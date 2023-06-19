@@ -699,3 +699,49 @@ def diam_spacing(hh, kk, ll, aa):
 
 _complement_dict_mat(_DCRYST_MAT)
 _complement_dict_cut(dcryst_mat=_DCRYST_MAT, dcryst_cut=_DCRYST)
+
+
+def _build_cry(
+    crystal=None,
+    ):
+    '''
+    _build_cry is a function meant to populate a crystal dictionary
+    using either hardcoded WEST default crystal names ['Quartz_110', 'Quartz_102']
+    or a user-defined crystal as a dictionary in the form of --
+
+    # C-Mod's crystal
+    dcry = {
+        'HIREX': { # crystal name
+            'material': 'Quartz',
+            'name': 'Quartz_102',
+            'symbol': 'Qz102',
+            'miller': np.r_[1., 0., 2.,],
+            'target': {
+                'ion': 'Ar16+',
+                'lamb': 3.96, # e-10
+                'units': 'm',
+            },
+            'd_hkl': None,
+            'phases': {
+                'Si': None,
+                'O': None,
+            }
+        }
+    }
+
+    '''
+
+    # Hardcoded defaults
+    if crystal in ['Quartz_110', 'Quartz_102']:
+        dcry = _DCRYST
+        name = crystal
+
+    # Else if user-defined crystal
+    elif isinstance(crystal, dict):
+        dcry = crystal
+        name = list(dcry.keys())[0] # name of crystal, assume only one
+
+    # Builds the crystal dictionary
+    _complement_dict_cut(dcryst_mat=_DCRYST_MAT, dcryst_cut=dcry)
+
+    return dcry[name]
