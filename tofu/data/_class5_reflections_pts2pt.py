@@ -155,7 +155,7 @@ def _get_pts2pt(
             return_x01=None,
             # number of k for interpolation
             nk=None,
-            debug=True,
+            debug=None,
             # timing
             dt=None,
         ):
@@ -251,17 +251,30 @@ def _get_pts2pt(
                 # find indices of sign changes
                 i0 = (eq[:-1] * eq[1:] < 0).nonzero()[0]
                 if len(i0) == 1:
-                    roots = np.r_[
-                        kk[i0]
-                        - eq[i0]*(kk[i0+1] - kk[i0])
-                        / (eq[i0+1] - eq[i0])
-                    ]
+                    # indices used for linear fit
+                    ind = np.arange(max(0, i0-10), min(i0+10, kk.size))
 
-                    # roots = scpinterp.InterpolatedUnivariateSpline(
-                    # kk,
-                    # eq,
-                    # k=3,
-                    # ).roots()
+                    # linear least square fit
+                    xx_m = np.mean(kk[ind])
+                    yy_m = np.mean(eq[ind])
+                    xx2_m = np.mean(kk[ind]**2)
+                    xy_m = np.mean(kk[ind] * eq[ind])
+
+                    # coefs
+                    aa = (xy_m - xx_m*yy_m) / (xx2_m - xx_m**2)
+                    bb = yy_m - aa * xx_m
+
+                    # fit and threshold
+                    line = aa*kk[ind] + bb
+                    thr = abs(line[0] - line[-1]) * 0.02
+                    if np.any(np.abs(eq[ind] - line) > thr):
+                        continue
+                    roots = np.r_[-bb / aa]
+                    # roots = np.r_[
+                    #     kk[i0]
+                    #     - eq[i0]*(kk[i0+1] - kk[i0])
+                    #     / (eq[i0+1] - eq[i0])
+                    # ]
                 else:
                     continue
 
@@ -284,6 +297,39 @@ def _get_pts2pt(
                     -(nix*erot[0] + niy*erot[1] + niz*erot[2]),
                     nix*nin[0] + niy*nin[1] + niz*nin[2],
                 )
+
+
+                # ------ DEBUG --------
+                # if debug:
+                    # Ex = pt_x + roots[0]*(pts_x[ii] - pt_x)
+                    # Ey = pt_y + roots[0]*(pts_y[ii] - pt_y)
+                    # Ez = pt_z + roots[0]*(pts_z[ii] - pt_z)
+                    # print()
+                    # print(f'\nii = {ii}', xxi, thetai)
+                    # print('rcs', rcs)
+                    # print('rca', rca)
+                    # print('nix, niy, niz', nix, niy, niz)
+                    # print('erot', erot)
+                    # print('nin', nin)
+                    # print('eax', eax)
+                    # print('O', O)
+                    # print('E', Ex, Ey, Ez)
+                    # print('OE', Ex - O[0], Ey - O[1], Ez - O[2])
+                    # print('roots', roots[0])
+                    # print('eax', eax)
+                    # plt.figure()
+                    # plt.plot(
+                        # kk, eq, '.-k',
+                        # kk[ind], line, '-r',
+                        # kk[ind], line + thr, '--r',
+                        # kk[ind], line - thr, '--r',
+                        # [kk[i0]], [eq[i0]], 'xr',
+                    # )
+                    # plt.axhline(0, c='k', ls='--')
+                    # plt.axvline(roots[0], c='k', ls='--')
+                    # plt.gca().set_title(f'thr = {thr}')
+                    # print()
+                # ---------------------
 
                 if strict is True:
                     if np.abs(xxi) > xmax or np.abs(thetai) > thetamax:
@@ -346,11 +392,12 @@ def _get_pts2pt(
             nin=dgeom['nin'],
             e0=dgeom['e0'],
             e1=dgeom['e1'],
+            # solving
+            nk=None,
             # return
             strict=None,
             return_xyz=None,
             return_x01=None,
-            nk=None,
             debug=None,
             # timing
             dt=None,
@@ -441,17 +488,31 @@ def _get_pts2pt(
                 # find indices of sign changes
                 i0 = (eq[:-1] * eq[1:] < 0).nonzero()[0]
                 if len(i0) == 1:
-                    roots = np.r_[
-                        kk[i0]
-                        - eq[i0]*(kk[i0+1] - kk[i0])
-                        / (eq[i0+1] - eq[i0])
-                    ]
+                    # indices used for linear fit
+                    ind = np.arange(max(0, i0-10), min(i0+10, kk.size))
 
-                    # roots = scpinterp.InterpolatedUnivariateSpline(
-                    # kk,
-                    # eq,
-                    # k=3,
-                    # ).roots()
+                    # linear least square fit
+                    xx_m = np.mean(kk[ind])
+                    yy_m = np.mean(eq[ind])
+                    xx2_m = np.mean(kk[ind]**2)
+                    xy_m = np.mean(kk[ind] * eq[ind])
+
+                    # coefs
+                    aa = (xy_m - xx_m*yy_m) / (xx2_m - xx_m**2)
+                    bb = yy_m - aa * xx_m
+
+                    # fit and threshold
+                    line = aa*kk[ind] + bb
+                    thr = abs(line[0] - line[-1]) * 0.02
+                    if np.any(np.abs(eq[ind] - line) > thr):
+                        continue
+                    roots = np.r_[-bb / aa]
+                    # roots = np.r_[
+                    #     kk[i0]
+                    #     - eq[i0]*(kk[i0+1] - kk[i0])
+                    #     / (eq[i0+1] - eq[i0])
+                    # ]
+
                 else:
                     continue
 
@@ -474,8 +535,6 @@ def _get_pts2pt(
                 phii = - rcs * np.arcsin(
                     (nix*e0[0] + niy*e0[1] + niz*e0[2]) / np.cos(dthetai)
                 )
-
-                # ----------
 
                 if strict is True:
                     if np.abs(phii) > phimax or np.abs(dthetai) > dthetamax:
@@ -641,6 +700,8 @@ def _get_Dnin_from_k_cyl(
     rcs=None,
     rca=None,
     nin=None,
+    # debug
+    debug=None,
 ):
     Ex = Ax + kk*(Bx - Ax)
     Ey = Ay + kk*(By - Ay)

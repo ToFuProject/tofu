@@ -146,8 +146,10 @@ def _compute_check(
     # update all accordingly
     if hastime and dind is not None:
         # matrix side
-        if dind.get(key_matrix, {}).get('ind') is not None:
-            matrix = matrix[dind[key_matrix]['ind'], ...]
+        lkmat = coll.dobj['geom matrix'][key_matrix]['data']
+        c0 = any([dind.get(k0, {}).get('ind') is not None for k0 in lkmat])
+        if c0:
+            matrix = matrix[dind[lkmat[0]]['ind'], ...]
 
         # data side
         c0 = any([

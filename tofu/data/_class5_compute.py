@@ -146,13 +146,14 @@ def _ideal_configuration_check(
     coll=None,
     key=None,
     configuration=None,
+    defocus=None,
     # parameters
     cam_on_e0=None,
     # johann-specific
     cam_tangential=None,
     # pinhole-specific
     cam_dimensions=None,
-    pinhole_distance=None,
+    focal_distance=None,
     # store
     store=None,
     key_cam=None,
@@ -196,6 +197,13 @@ def _ideal_configuration_check(
         allowed=conf,
     )
 
+    # defocus
+    defocus = float(ds._generic_check._check_var(
+        defocus, 'defocus',
+        types=(float, int),
+        default=0.,
+    ))
+
     # cam_on_e0
     cam_on_e0 = ds._generic_check._check_var(
         cam_on_e0, 'cam_on_e0',
@@ -224,14 +232,14 @@ def _ideal_configuration_check(
     # --------------
     # special cases
 
-    # pinhole_distance
+    # focal_distance
     if configuration == 'pinhole' and gtype == 'planar':
-        pinhole_distance = ds._generic_check._check_var(
-            pinhole_distance, 'pinhole_distance',
+        focal_distance = ds._generic_check._check_var(
+            focal_distance, 'focal_distance',
             types=(float, int),
             sign='> 0.',
         )
-        pinhole_distance = float(pinhole_distance)
+        focal_distance = float(focal_distance)
 
     # --------------
     # store-specific
@@ -258,7 +266,16 @@ def _ideal_configuration_check(
         if configuration != 'johann':
 
             if configuration == 'pinhole':
-                ap = 'pinhole'
+
+                lc = [pinhole_radius is None, aperture_dimensions is None]
+                if np.sum(lc) != 1:
+                    msg = "Provide pinhole_radius xor aperture_dimensions!"
+                    raise Exception(msg)
+
+                if pinhole_radius is not None:
+                    ap = 'pinhole'
+                else:
+                    ap = 'slit'
             else:
                 ap = 'slit'
 
@@ -290,11 +307,19 @@ def _ideal_configuration_check(
         # aperture_dimensions
         if key_aperture_in is False:
             if configuration == 'pinhole':
-                pinhole_radius = ds._generic_check._check_var(
-                    pinhole_radius, 'pinhole_radius',
-                    types=float,
-                    sign='> 0.',
-                )
+                if pinhole_radius is not None:
+                    pinhole_radius = ds._generic_check._check_var(
+                        pinhole_radius, 'pinhole_radius',
+                        types=float,
+                        sign='> 0.',
+                    )
+                elif aperture_dimensions is not None:
+                    aperture_dimensions = ds._generic_check._check_flat1darray(
+                        aperture_dimensions, 'aperture_dimensions',
+                        dtype=float,
+                        size=[1, 2],
+                        sign='> 0.',
+                    )
 
             elif configuration == 'von hamos':
                 aperture_dimensions = ds._generic_check._check_flat1darray(
@@ -304,7 +329,8 @@ def _ideal_configuration_check(
                     sign='> 0.',
                 )
 
-                if aperture_dimensions.size == 1:
+            if aperture_dimensions is not None:
+                if len(aperture_dimensions) == 1:
                     aperture_dimensions = aperture_dimensions * np.r_[1., 1.]
 
     # returnas
@@ -320,9 +346,10 @@ def _ideal_configuration_check(
 
     return (
         key, gtype, configuration,
-        cam_on_e0, cam_tangential,
+        defocus, cam_on_e0, cam_tangential,
         store, key_cam, key_aperture, key_aperture_in,
-        cam_pixels_nb, aperture_dimensions, pinhole_radius,
+        cam_pixels_nb, aperture_dimensions,
+        focal_distance, pinhole_radius,
         returnas,
     )
 
@@ -334,6 +361,7 @@ def _ideal_configuration(
     lamb=None,
     bragg=None,
     norder=None,
+    defocus=None,
     # parameters
     cam_on_e0=None,
     # johann-specific
@@ -341,7 +369,7 @@ def _ideal_configuration(
     # pinhole-specific
     cam_dimensions=None,
     cam_distance=None,
-    pinhole_distance=None,
+    focal_distance=None,
     # store
     store=None,
     key_cam=None,
@@ -358,21 +386,23 @@ def _ideal_configuration(
 
     (
         key, gtype, configuration,
-        cam_on_e0, cam_tangential,
+        defocus, cam_on_e0, cam_tangential,
         store, key_cam, key_aperture, key_aperture_in,
-        cam_pixels_nb, aperture_dimensions, pinhole_radius,
+        cam_pixels_nb, aperture_dimensions,
+        focal_distance, pinhole_radius,
         returnas,
     ) = _ideal_configuration_check(
         coll=coll,
         key=key,
         configuration=configuration,
+        defocus=defocus,
         # parameters
         cam_on_e0=cam_on_e0,
         # johann-specific
         cam_tangential=cam_tangential,
         # pinhole-specific
         cam_dimensions=cam_dimensions,
-        pinhole_distance=pinhole_distance,
+        focal_distance=focal_distance,
         # store
         store=store,
         key_cam=key_cam,
@@ -445,7 +475,7 @@ def _ideal_configuration(
         meridional = cent + med * vect_los
         sagittal = cent + sag * vect_los
 
-        cam_cent = cent + med * vect_cam
+        cam_cent = cent + (med + defocus) * vect_cam
 
         if cam_tangential is True:
             cam_nin = (cent + nin*rc/2. - cam_cent)
@@ -480,7 +510,7 @@ def _ideal_configuration(
         pin_cent = cent + dist_pin * vect_los
         pin_nin = vect_los
 
-        cam_cent = cent + dist_pin * vect_cam
+        cam_cent = cent + (dist_pin + defocus) * vect_cam
         if cam_tangential is True:
             cam_nin = -nin
         else:
@@ -499,19 +529,19 @@ def _ideal_configuration(
     elif configuration == 'pinhole':
 
         # pinhole
-        if pinhole_distance is None:
+        if focal_distance is None:
             if gtype == 'cylindrical':
-                pin_dist = np.abs(rc) / np.sin(bragg)
+                focus = np.abs(rc) / np.sin(bragg)
             elif gtype == 'spherical':
-                pin_dist = np.abs(rc) * np.sin(bragg)
+                focus = np.abs(rc) * np.sin(bragg)
             else:
-                msg = "Please provide pinhole_distance!"
+                msg = "Please provide focal_distance!"
                 raise Exception(msg)
 
         else:
-            pin_dist = pinhole_distance
+            focus = focal_distance
 
-        pin_cent = cent + pin_dist * vect_los
+        pin_cent = cent + focus * vect_los
         pin_nin = vect_los
 
         # camera
@@ -529,7 +559,7 @@ def _ideal_configuration(
                     )
                     raise Exception(msg)
 
-                cam_dist = pinhole_distance * (cam_height / cryst_height - 1.)
+                cam_dist = focal_distance * (cam_height / cryst_height - 1.)
 
             else:
                 if gtype == 'cylindrical':
@@ -552,7 +582,7 @@ def _ideal_configuration(
             cam_dist = cam_distance
 
         cam_nin = -vect_cam
-        cam_cent = cent + cam_dist * vect_cam
+        cam_cent = cent + (cam_dist + defocus) * vect_cam
 
         dout = {
             'aperture': {
@@ -574,7 +604,7 @@ def _ideal_configuration(
             temp_ang = np.arctan2(
                 np.linalg.norm(np.cross(dd['nin'], pin_nin)),
                 np.sum(dd['nin'] * pin_nin),
-                )
+            )
 
             if not (temp_dist < 1e-6 and np.abs(temp_ang) < 0.01*np.pi/180.):
                 # dist = np.linalg.norm(dd['cent'] - pin_cent)
@@ -695,7 +725,7 @@ def _ideal_configuration_store(
 
     if 'aperture' in dout.keys():
 
-        if configuration == 'pinhole':
+        if pinhole_radius is not None:
             theta = np.pi * np.linspace(-1, 1, 50)[:-1]
             outline_x0 = pinhole_radius * np.cos(theta)
             outline_x1 = pinhole_radius * np.sin(theta)

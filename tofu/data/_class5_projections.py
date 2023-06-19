@@ -4,6 +4,7 @@
 import numpy as np
 
 
+import matplotlib.pyplot as plt
 import Polygon as plg
 
 
@@ -34,6 +35,9 @@ def _get_reflection(
     ptsvect_poly=None,
     # timing
     dt=None,
+    # debug
+    ii=None,
+    ij=None,
 ):
 
     # -------------------
@@ -75,6 +79,16 @@ def _get_reflection(
 
     # isinside
     if np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
+        # if ij in [104]:
+        #     plt.figure()
+        #     plt.plot(
+        #         np.r_[poly_x0, poly_x0[0]],
+        #         np.r_[poly_x1, poly_x1[0]],
+        #         '.-k',
+        #         p0, p1, 
+        #         '.-r',
+        #     )
+        #     plt.gca().set_title(f"ii = {ii}, projection 0")
         return x0, x1
 
     # intersection
@@ -83,11 +97,17 @@ def _get_reflection(
         # print('pts < 3')
         return None, None
 
-    # plt.figure()
-    # plt.plot(
-        # poly_x0, poly_x1, '.-k',
-        # p0, p1, '.-r',
-    # )
+    # --------- DEBUG ------------
+    # if ij in [104]:
+    #     plt.figure()
+    #     plt.plot(
+    #         np.r_[poly_x0, poly_x0[0]],
+    #         np.r_[poly_x1, poly_x1[0]],
+    #         '.-k',
+    #         p0, p1, '.-r',
+    #     )
+    #     plt.gca().set_title(f"ii = {ii}, projection 0")
+    # ---------------------------
 
     p0, p1 = np.array(p_a.contour(0)).T
 
@@ -130,6 +150,7 @@ def _get_reflection(
 # ##############################################################
 #           Global to local coordinates
 # ##############################################################
+
 
 # DEPRECATED ????
 # def _get_project_plane(

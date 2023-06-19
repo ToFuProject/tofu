@@ -2,21 +2,15 @@
 
 
 import numpy as np
-from matplotlib.path import Path
 import datastock as ds
-import bsplines2d as bs2
-from contourpy import contour_generator
-from scipy.spatial import ConvexHull
-import scipy.interpolate as scpinterp
 
 
 import datetime as dtm      # DB
 
 
-import Polygon as plg
-
-
-from ..geom import _comp_solidangles
+from . import _class8_vos_utilities as _vos_utilities
+from . import _class8_vos_broadband as _vos_broadband
+from . import _class8_vos_spectro as _vos_spectro
 
 
 # ###############################################################
@@ -31,7 +25,12 @@ def compute_vos(
     key_mesh=None,
     config=None,
     # parameters
-    res=None,
+    res_RZ=None,
+    res_phi=None,
+    res_lamb=None,
+    res_rock_curve=None,
+    n0=None,
+    n1=None,
     margin_poly=None,
     margin_par=None,
     margin_perp=None,
@@ -45,8 +44,10 @@ def compute_vos(
     convex=None,
     check=None,
     verb=None,
+    debug=None,
     plot=None,
     store=None,
+    replace_poly=None,
     timing=None,
 ):
 
@@ -63,11 +64,14 @@ def compute_vos(
         is2d,
         doptics,
         dcompute,
-        res,
+        res_RZ,
+        res_phi,
+        res_lamb,
         margin_par,
         margin_perp,
         visibility,
         verb,
+        debug,
         plot,
         store,
         timing,
@@ -75,26 +79,40 @@ def compute_vos(
         coll=coll,
         key_diag=key_diag,
         key_mesh=key_mesh,
-        res=res,
+        res_RZ=res_RZ,
+        res_phi=res_phi,
+        res_lamb=res_lamb,
         margin_par=margin_par,
         margin_perp=margin_perp,
         visibility=visibility,
         verb=verb,
+        debug=debug,
         plot=plot,
         store=store,
         timing=timing,
     )
 
+    # ----------
+    # verb
+
     if verb is True:
         msg = f"\nComputing vos for diag '{key_diag}':"
         print(msg)
+
+    # -----------
+    # prepare
+
+    if spectro:
+        func = _vos_spectro._vos
+    else:
+        func = _vos_broadband._vos
 
     # ------------
     # sample mesh
 
     dsamp = coll.get_sample_mesh(
         key=key_mesh,
-        res=res,
+        res=res_RZ,
         mode='abs',
         grid=True,
         in_mesh=True,
@@ -123,6 +141,9 @@ def compute_vos(
     x0l = np.repeat(x0l[:, None], x1l.size, axis=1)
     x1l = np.repeat(x1l[None, :], x0l.shape[0], axis=0)
 
+    dx0 = x0u[1] - x0u[0]
+    dx1 = x1u[1] - x1u[0]
+
     # ------------
     # prepare output
 
@@ -142,8 +163,8 @@ def compute_vos(
     if timing:
         t1 = dtm.datetime.now()     # DB
         dt1 = (t1 - t0).total_seconds()
-        dt11, dt22 = 0, 0
-        dt111, dt222, dt333 = 0, 0, 0
+    dt11, dt22 = 0, 0
+    dt111, dt222, dt333 = 0, 0, 0
     dt1111, dt2222, dt3333, dt4444 = 0, 0, 0, 0
 
     # --------------
@@ -152,228 +173,65 @@ def compute_vos(
     dvos = {}
     for key_cam in dcompute.keys():
 
-        # ---------------
-        # prepare polygon
+            # ------------------
+            # call relevant func
 
-        if timing:
-            t00 = dtm.datetime.now()     # DB
-
-        # get temporary vos
-        kpc0, kpc1 = doptics[key_cam]['vos_pcross']
-        shape = coll.ddata[kpc0]['data'].shape
-        pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
-        pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
-        kph0, kph1 = doptics[key_cam]['vos_phor']
-        shapeh = coll.ddata[kph0]['data'].shape
-        phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
-        phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
-
-        dphi = doptics[key_cam]['vos_dphi']
-
-        # ---------------
-        # prepare det
-
-        dgeom = coll.dobj['camera'][key_cam]['dgeom']
-        par = dgeom['parallel']
-        is2d = dgeom['type'] == '2d'
-        cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
-        dvect = coll.get_camera_unit_vectors(key=key_cam)
-        outline = dgeom['outline']
-        out0 = coll.ddata[outline[0]]['data']
-        out1 = coll.ddata[outline[1]]['data']
-
-        if is2d:
-            cx = cx.ravel()
-            cy = cy.ravel()
-            cz = cz.ravel()
-
-        # -----------
-        # prepare lap
-
-        if spectro is False:
-            lap = coll.get_optics_as_input_solid_angle(
-                keys=doptics[key_cam]['optics'],
-            )
-
-        if timing:
-            t11 = dtm.datetime.now()     # DB
-            dt11 += (t11-t00).total_seconds()
-
-        # -----------
-        # loop on pix
-
-        lpcross = []
-        for ii in range(pcross0.shape[1]):
-
-            # -----------------
-            # get volume limits
-
-            if timing:
-                t000 = dtm.datetime.now()     # DB
-
-            if np.isnan(pcross0[0, ii]):
-                continue
-
-            # get cross-section polygon
-            ind, path_hor = _get_cross_section_indices(
+            (
+                dvos[key_cam],
+                dt11, dt22,
+                dt111, dt222, dt333,
+                dt1111, dt2222, dt3333, dt4444,
+            ) = func(
+                # ressources
+                coll=coll,
+                doptics=doptics,
+                key_diag=key_diag,
+                key_cam=key_cam,
                 dsamp=dsamp,
-                # polygon
-                pcross0=pcross0[:, ii],
-                pcross1=pcross1[:, ii],
-                phor0=phor0[:, ii],
-                phor1=phor1[:, ii],
-                margin_poly=margin_poly,
-                # points
+                # inputs sample points
+                x0u=x0u,
+                x1u=x1u,
                 x0f=x0f,
                 x1f=x1f,
+                x0l=x0l,
+                x1l=x1l,
+                dx0=dx0,
+                dx1=dx1,
+                # options
                 sh=sh,
+                res_RZ=res_RZ,
+                res_phi=res_phi,
+                res_lamb=res_lamb,
+                res_rock_curve=res_rock_curve,
+                n0=n0,
+                n1=n1,
+                bool_cross=bool_cross,
+                # parameters
+                margin_poly=margin_poly,
+                config=config,
+                visibility=visibility,
+                verb=verb,
+                # debug
+                debug=debug,
+                # timing
+                timing=timing,
+                dt11=dt11,
+                dt111=dt111,
+                dt1111=dt1111,
+                dt2222=dt2222,
+                dt3333=dt3333,
+                dt4444=dt4444,
+                dt222=dt222,
+                dt333=dt333,
+                dt22=dt22,
             )
 
-            # re-initialize
-            bool_cross[...] = False
-
-            # verb
-            if verb is True:
-                msg = (
-                    f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
-                    f"npts in cross_section = {ind.sum()}   "
-                )
-                end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
-                print(msg, end=end, flush=True)
-
-            # ---------------------
-            # loop on volume points
-
-
-            if spectro:
-                dvos[key_cam] = _vos_spectro(
-                    x0=x0,
-                    x1=x1,
-                    ind=ind,
-                    dphi=dphi[:, ii],
-                )
-
-            else:
-                # get detector / aperture
-                deti = _get_deti(
-                    coll=coll,
-                    cxi=cx[ii],
-                    cyi=cy[ii],
-                    czi=cz[ii],
-                    dvect=dvect,
-                    par=par,
-                    out0=out0,
-                    out1=out1,
-                    ii=ii,
-                )
-
-                if timing:
-                    t111 = dtm.datetime.now()     # DB
-                    dt111 += (t111-t000).total_seconds()
-
-                # compute
-                out = _vos_broadband(
-                    x0=x0u,
-                    x1=x1u,
-                    ind=ind,
-                    dphi=dphi[:, ii],
-                    deti=deti,
-                    lap=lap,
-                    res=res,
-                    config=config,
-                    visibility=visibility,
-                    # output
-                    key_cam=key_cam,
-                    dvos=dvos,
-                    sli=None,
-                    ii=ii,
-                    bool_cross=bool_cross,
-                    path_hor=path_hor,
-                    # timing
-                    timing=timing,
-                    dt1111=dt1111,
-                    dt2222=dt2222,
-                    dt3333=dt3333,
-                    dt4444=dt4444,
-                )
-
-                if timing:
-                    dt1111, dt2222, dt3333, dt4444 = out
-                    t222 = dtm.datetime.now()     # DB
-                    dt222 += (t222-t111).total_seconds()
-
-            # -----------------------
-            # get pcross and simplify
-
-            if np.any(bool_cross):
-                pc0, pc1 = _get_polygons(
-                    bool_cross=bool_cross,
-                    x0=x0l,
-                    x1=x1l,
-                    res=res,
-                )
-            else:
-                pc0, pc1 = None, None
-
-            # -----------
-            # replace
-
-            lpcross.append((pc0, pc1))
-
-            if timing:
-                t333 = dtm.datetime.now()     # DB
-                dt333 += (t333-t222).total_seconds()
-
-        # ----------------
-        # harmonize pcross
-
-        if timing:
-            t22 = dtm.datetime.now()     # DB
-
-        ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
-        nmax = np.max(ln)
-        sh2 = (nmax, pcross0.shape[1])
-        pcross0 = np.full(sh2, np.nan)
-        pcross1 = np.full(sh2, np.nan)
-        for ii, nn in enumerate(ln):
-
-            if nn == 0:
-                continue
-
-            if nmax > nn:
-                ind = np.r_[0, np.linspace(0.1, 0.9, nmax-nn), np.arange(1, nn)]
-                pcross0[:, ii] = scpinterp.interp1d(
-                    range(0, nn),
-                    lpcross[ii][0],
-                    kind='linear',
-                )(ind)
-
-                pcross1[:, ii] = scpinterp.interp1d(
-                    range(0, nn),
-                    lpcross[ii][1],
-                    kind='linear',
-                )(ind)
-
-            else:
-                pcross0[:, ii] = lpcross[ii][0]
-                pcross1[:, ii] = lpcross[ii][1]
-
-        # -------------
-        # reshape
-
-        if is2d:
-            newsh = tuple(np.r_[nmax, shape])
-            pcross0 = pcross0.reshape(newsh)
-            pcross1 = pcross1.reshape(newsh)
-
-        dvos[key_cam] = {
-            'pcross0': pcross0,
-            'pcross1': pcross1,
-        }
-
-        if timing:
-            t33 = dtm.datetime.now()
-            dt22 += (t33 - t22).total_seconds()
+            dvos[key_cam]['keym'] = key_mesh
+            dvos[key_cam]['res_RZ'] = res_RZ
+            dvos[key_cam]['res_phi'] = res_phi
+            if spectro is True:
+                dvos[key_cam]['res_lamb'] = res_lamb
+                dvos[key_cam]['res_rock_curve'] = res_rock_curve
 
     # timing
     if timing:
@@ -400,6 +258,8 @@ def compute_vos(
             coll=coll,
             key_diag=key_diag,
             dvos=dvos,
+            spectro=spectro,
+            replace_poly=replace_poly,
         )
 
     return dvos
@@ -415,12 +275,15 @@ def _check(
     coll=None,
     key_diag=None,
     key_mesh=None,
-    res=None,
+    res_RZ=None,
+    res_phi=None,
+    res_lamb=None,
     margin_par=None,
     margin_perp=None,
     visibility=None,
     check=None,
     verb=None,
+    debug=None,
     plot=None,
     store=None,
     timing=None,
@@ -472,7 +335,7 @@ def _check(
         outline = dgeom['outline']
         out0 = coll.ddata[outline[0]]['data']
         out1 = coll.ddata[outline[1]]['data']
-        is2d = dgeom['type'] == '2d'
+        is2d = dgeom['nd'] == '2d'
         par = dgeom['parallel']
         dcompute[k0]['shape0'] = cx.shape
 
@@ -504,10 +367,22 @@ def _check(
         ]
 
     # -----------
-    # res
+    # res_RZ
 
-    if res is None:
-        res = 0.01
+    if res_RZ is None:
+        res_RZ = 0.01
+
+    # -----------
+    # res_phi
+
+    if res_phi is None:
+        res_phi = 0.01
+
+    # -----------
+    # res_lamb
+
+    if res_lamb is None:
+        res_lamb = 0.01e-10
 
     # -----------
     # margin_par
@@ -546,6 +421,15 @@ def _check(
     )
 
     # -----------
+    # debug
+
+    debug = ds._generic_check._check_var(
+        debug, 'debug',
+        types=bool,
+        default=False,
+    )
+
+    # -----------
     # plot
 
     if plot is None:
@@ -560,8 +444,12 @@ def _check(
     store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
-        default=True,
+        default=False,
     )
+
+    if store is True and spectro is True:
+        msg = "storing vos is not available yet for spectrometers!"
+        raise NotImplementedError(msg)
 
     # -----------
     # timing
@@ -579,11 +467,14 @@ def _check(
         is2d,
         doptics,
         dcompute,
-        res,
+        res_RZ,
+        res_phi,
+        res_lamb,
         margin_par,
         margin_perp,
         visibility,
         verb,
+        debug,
         plot,
         store,
         timing,
@@ -651,400 +542,6 @@ def _prepare_output(
 
 # ###########################################################
 # ###########################################################
-#               Get cross-section indices
-# ###########################################################
-
-
-def _get_cross_section_indices(
-    dsamp=None,
-    # polygon
-    pcross0=None,
-    pcross1=None,
-    phor0=None,
-    phor1=None,
-    margin_poly=None,
-    # points
-    x0f=None,
-    x1f=None,
-    sh=None,
-):
-
-    # ----------
-    # check
-
-    margin_poly = ds._generic_check._check_var(
-        margin_poly, 'margin_poly',
-        types=float,
-        default=0.2,
-        sign='>0'
-    )
-
-    # ---------------------------
-    # add extra margin to pcross
-
-    # get centroid
-    center = plg.Polygon(np.array([pcross0, pcross1]).T).center()
-
-    # add margin
-    pcross02 = center[0] + (1. + margin_poly) * (pcross0 - center[0])
-    pcross12 = center[1] + (1. + margin_poly) * (pcross1 - center[1])
-
-    # define path
-    pcross = Path(np.array([pcross02, pcross12]).T)
-
-    # ---------------------------
-    # add extra margin to phor
-
-    # get center
-    center = plg.Polygon(np.array([phor0, phor1]).T).center()
-
-    # add margin
-    phor02 = center[0] + (1. + margin_poly) * (phor0 - center[0])
-    phor12 = center[1] + (1. + margin_poly) * (phor1 - center[1])
-
-    # define path
-    phor = Path(np.array([phor02, phor12]).T)
-
-    # get ind
-    return (
-        dsamp['ind']['data']
-        & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
-    ), phor
-
-
-# ###########################################################
-# ###########################################################
-#               Detector
-# ###########################################################
-
-
-def _get_deti(
-    coll=None,
-    cxi=None,
-    cyi=None,
-    czi=None,
-    dvect=None,
-    par=None,
-    out0=None,
-    out1=None,
-    ii=None,
-):
-
-    # ------------
-    # detector
-
-    if not par:
-        msg = "Maybe dvect needs to be flattened?"
-        raise Exception(msg)
-
-    det = {
-        'cents_x': cxi,
-        'cents_y': cyi,
-        'cents_z': czi,
-        'outline_x0': out0,
-        'outline_x1': out1,
-        'nin_x': dvect['nin_x'] if par else dvect['nin_x'][ii],
-        'nin_y': dvect['nin_y'] if par else dvect['nin_y'][ii],
-        'nin_z': dvect['nin_z'] if par else dvect['nin_z'][ii],
-        'e0_x': dvect['e0_x'] if par else dvect['e0_x'][ii],
-        'e0_y': dvect['e0_y'] if par else dvect['e0_y'][ii],
-        'e0_z': dvect['e0_z'] if par else dvect['e0_z'][ii],
-        'e1_x': dvect['e1_x'] if par else dvect['e1_x'][ii],
-        'e1_y': dvect['e1_y'] if par else dvect['e1_y'][ii],
-        'e1_z': dvect['e1_z'] if par else dvect['e1_z'][ii],
-    }
-
-    return det
-
-
-# ###########################################################
-# ###########################################################
-#               Broadband
-# ###########################################################
-
-
-def _vos_broadband(
-    x0=None,
-    x1=None,
-    ind=None,
-    dphi=None,
-    deti=None,
-    lap=None,
-    res=None,
-    config=None,
-    visibility=None,
-    # output
-    key_cam=None,
-    dvos=None,
-    sli=None,
-    ii=None,
-    bool_cross=None,
-    path_hor=None,
-    # timing
-    timing=None,
-    dt1111=None,
-    dt2222=None,
-    dt3333=None,
-    dt4444=None,
-):
-
-    # --------------------------
-    # prepare points and indices
-
-    ir, iz = ind.nonzero()
-    iru = np.unique(ir)
-    izru = [iz[ir == i0] for i0 in iru]
-
-    nphi = np.ceil(x0[ir]*(dphi[1] - dphi[0]) / res).astype(int)
-
-    irf = np.repeat(ir, nphi)
-    izf = np.repeat(iz, nphi)
-    phi = np.concatenate(tuple([
-        np.linspace(dphi[0], dphi[1], nn) for nn in nphi
-    ]))
-
-    xx = x0[irf] * np.cos(phi)
-    yy = x0[irf] * np.sin(phi)
-    zz = x1[izf]
-
-    out = _comp_solidangles.calc_solidangle_apertures(
-        # observation points
-        pts_x=xx,
-        pts_y=yy,
-        pts_z=zz,
-        # polygons
-        apertures=lap,
-        detectors=deti,
-        # possible obstacles
-        config=config,
-        # parameters
-        summed=False,
-        visibility=visibility,
-        return_vector=False,
-        return_flat_pts=None,
-        return_flat_det=None,
-        timing=timing,
-    )
-
-    # ------------
-    # get indices
-
-    if timing:
-        t0 = dtm.datetime.now()     # DB
-        out, dt1, dt2, dt3 = out
-
-    for ii, i0 in enumerate(iru):
-        ind0 = irf == i0
-        for i1 in izru[ii]:
-            ind = ind0 & (izf == i1)
-            bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
-
-    # timing
-    if timing:
-        dt4444 += (dtm.datetime.now() - t0).total_seconds()
-        dt1111 += dt1
-        dt2222 += dt2
-        dt3333 += dt3
-
-        return dt1111, dt2222, dt3333, dt4444
-    else:
-        return
-
-
-# ###########################################################
-# ###########################################################
-#               get polygons
-# ###########################################################
-
-
-def _get_polygons(
-    x0=None,
-    x1=None,
-    bool_cross=None,
-    res=None,
-):
-
-    # ------------
-    # get contour
-
-    contgen = contour_generator(
-        x=x0,
-        y=x1,
-        z=bool_cross,
-        name='serial',
-        corner_mask=None,
-        line_type='Separate',
-        fill_type=None,
-        chunk_size=None,
-        chunk_count=None,
-        total_chunk_count=None,
-        quad_as_tri=True,       # for sub-mesh precision
-        # z_interp=<ZInterp.Linear: 1>,
-        thread_count=0,
-    )
-
-    no_cont, cj = bs2._class02_contours._get_contours_lvls(
-        contgen=contgen,
-        level=0.5,
-        largest=True,
-    )
-
-    assert no_cont is False
-
-    # -------------
-    # simplify poly
-
-    return _simplify_polygon(cj[:, 0], cj[:, 1], res=res)
-
-
-def _simplify_polygon(c0, c1, res=None):
-
-    # -----------
-    # convex hull
-
-    npts = c0.size
-
-    # get hull
-    convh = ConvexHull(np.array([c0, c1]).T)
-    indh = convh.vertices
-    ch0 = c0[indh]
-    ch1 = c1[indh]
-    nh = indh.size
-
-    sign = np.median(np.diff(indh))
-
-    # segments norms
-    seg0 = np.r_[ch0[1:] - ch0[:-1], ch0[0] - ch0[-1]]
-    seg1 = np.r_[ch1[1:] - ch1[:-1], ch1[0] - ch1[-1]]
-    norms = np.sqrt(seg0**2 + seg1**2)
-
-    # keep egdes that match res
-    lind = []
-    for ii, ih in enumerate(indh):
-
-        # ind of points in between
-        i1 = indh[(ii + 1) % nh]
-        if sign > 0:
-            if i1 > ih:
-                ind = np.arange(ih, i1 + 1)
-            else:
-                ind = np.r_[np.arange(ih, npts), np.arange(0, i1 + 1)]
-        else:
-            if i1 < ih:
-                ind = np.arange(ih, i1 - 1, -1)
-            else:
-                ind = np.r_[np.arange(ih, -1, -1), np.arange(npts - 1, i1 - 1, -1)]
-
-        # trivial
-        if ind.size == 2:
-            lind.append((ih, i1))
-            continue
-
-        # get distances
-        x0 = c0[ind]
-        x1 = c1[ind]
-
-        # segment unit vect
-        vect0 = x0 - ch0[ii]
-        vect1 = x1 - ch1[ii]
-
-        # perpendicular distance
-        cross = (vect0*seg1[ii] - vect1*seg0[ii]) / norms[ii]
-
-        # criterion
-        if np.all(np.abs(cross) <= 0.8*res):
-            lind.append((ih, i1))
-        else:
-            lind += _simplify_concave(
-                x0=x0,
-                x1=x1,
-                ind=ind,
-                cross=cross,
-                res=res,
-            )
-
-    # ------------------------------------
-    # point by point on remaining segments
-
-    iok = np.unique(np.concatenate(tuple(lind)))
-
-    return c0[iok], c1[iok]
-
-
-def _simplify_concave(
-    x0=None,
-    x1=None,
-    ind=None,
-    cross=None,
-    res=None,
-):
-
-    # ------------
-    # safety check
-
-    sign = np.sign(cross)
-    sign0 = np.mean(sign)
-    assert np.all(cross * sign0 >= -1e-12)
-
-    # ------------
-    # loop
-
-    i0 = 0
-    i1 = 1
-    iok = 1
-    lind_loc, lind = [], []
-    while iok <= ind.size - 1:
-
-        # reference normalized vector
-        vref0, vref1 = x0[i1] - x0[i0], x1[i1] - x1[i0]
-        normref = np.sqrt(vref0**2 + vref1**2)
-        vref0, vref1 = vref0 / normref, vref1 / normref
-
-        # intermediate vectors
-        indi = np.arange(i0 + 1, i1)
-        v0 = x0[indi] - x0[i0]
-        v1 = x1[indi] - x1[i0]
-
-        # sign and distance (from cross product)
-        cross = v0 * vref1 - v1 * vref0
-        dist = np.abs(cross)
-
-        # conditions
-        c0 = np.all(dist <= 0.8*res)
-        c1 = np.all(cross * sign0 >= -1e-12)
-        c2 = i1 == ind.size - 1
-
-        append = False
-        # cases
-        if c0 and c1 and (not c2):
-            iok = int(i1)
-            i1 += 1
-        elif c0 and c1 and c2:
-            iok = int(i1)
-            append = True
-        elif c0 and (not c1) and (not c2):
-            i1 += 1
-        elif c0 and (not c1) and c2:
-            append = True
-        elif not c0:
-            append = True
-
-        # append
-        if append is True:
-            lind_loc.append((i0, iok))
-            lind.append((ind[i0], ind[iok]))
-            i0 = iok
-            i1 = i0 + 1
-            iok = int(i1)
-
-        if i1 > ind.size - 1:
-            break
-
-    return lind
-
-
-# ###########################################################
-# ###########################################################
 #               store
 # ###########################################################
 
@@ -1053,21 +550,199 @@ def _store(
     coll=None,
     key_diag=None,
     dvos=None,
+    spectro=None,
+    replace_poly=None,
 ):
+
+    # ------------
+    # check inputs
+
+    replace_poly = ds._generic_check._check_var(
+        replace_poly, 'replace_poly',
+        types=bool,
+        default=True,
+    )
+
+    # ------------
+    # store
 
     doptics = coll._dobj['diagnostic'][key_diag]['doptics']
 
     for k0, v0 in dvos.items():
 
-        # re-use previous keys
-        kpc0, kpc1 = doptics[k0]['vos_pcross']
-        kr = coll.ddata[kpc0]['ref'][0]
+        # ----------------
+        # pcross
 
-        # safety check
-        if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
-            msg = "Something is wrong"
-            raise Exception(msg)
+        if replace_poly and v0.get('pcross0') is not None:
 
-        coll._dref[kr]['size'] = v0['pcross0'].shape[0]
-        coll._ddata[kpc0]['data'] = v0['pcross0']
-        coll._ddata[kpc1]['data'] = v0['pcross1']
+            # re-use previous keys
+            kpc0, kpc1 = doptics[k0]['dvos']['pcross']
+            kr = coll.ddata[kpc0]['ref'][0]
+
+            # safety check
+            if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
+                msg = "Something is wrong"
+                raise Exception(msg)
+
+            coll._dref[kr]['size'] = v0['pcross0'].shape[0]
+            coll._ddata[kpc0]['data'] = v0['pcross0']
+            coll._ddata[kpc1]['data'] = v0['pcross1']
+
+        # ----------------
+        # 2d mesh sampling
+
+        knpts = f'{k0}_vos_npts'
+        kir = f'{k0}_vos_ir'
+        kiz = f'{k0}_vos_iz'
+
+        ref = tuple(list(coll.dobj['camera'][k0]['dgeom']['ref']) + [knpts])
+
+        if knpts not in coll.dref.keys():
+            coll.add_ref(knpts, size=v0['indr'].shape[1])
+
+        # indr
+        if kir not in coll.ddata.keys():
+            coll.add_data(
+                key=kir,
+                data=v0['indr'],
+                ref=ref,
+                units='',
+                dim='index',
+            )
+
+        # indz
+        if kiz not in coll.ddata.keys():
+            coll.add_data(
+                key=kiz,
+                data=v0['indz'],
+                ref=ref,
+                units='',
+                dim='index',
+            )
+
+        # add in doptics
+        doptics[k0]['dvos']['keym'] = v0['keym']
+        doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
+        doptics[k0]['dvos']['res_phi'] = v0['res_phi']
+        doptics[k0]['dvos']['ind'] = (kir, kiz)
+
+        # ------------
+        # spectro
+
+        if spectro:
+
+            # keys
+            kcos = f"{k0}_vos_cos"
+            kph = f"{k0}_vos_ph"
+            # klambmin =
+            # klambmax =
+
+            # add data
+            coll.add_data(
+                key=kcos,
+                data=v0['cos'],
+                ref=(knpts, kchan),
+                units='',
+            )
+
+            coll.add_data(
+                key=kph,
+                data=v0['ph_counts'],
+                ref=(knpts, kchan),
+                units='sr.m3.m',
+            )
+
+            # add in doptics
+            doptics[k0]['dvos']['cos'] = v0['cos']
+            doptics[k0]['dvos']['ph'] = v0['ph']
+
+        else:
+
+            # keys
+            ksa = f'{k0}_vos_sa'
+
+            # add data
+            coll.add_data(
+                key=ksa,
+                data=v0['sang']['data'],
+                ref=ref,
+                units=v0['sang']['units'],
+            )
+
+            # add in doptics
+            doptics[k0]['dvos']['sang'] = ksa
+
+
+# ###############################################################
+# ###############################################################
+#                       Main
+# ###############################################################
+
+
+def _check_get_dvos(
+    coll=None,
+    key=None,
+    key_cam=None,
+    dvos=None,
+):
+
+    # ------------
+    # keys
+
+    key_diag, key_cam = coll.get_diagnostic_cam(
+        key=key,
+        key_cam=key_cam,
+    )
+    spectro = coll.dobj['diagnostic'][key_diag]['spectro']
+
+    # ------
+    # dvos
+
+    if dvos is None:
+        dvos = {}
+        for k0 in key_cam:
+            dop = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
+            dvos[k0] = {
+                'keym': dop['keym'],
+                'res_RZ': dop['res_RZ'],
+                'indr': coll.ddata[dop['ind'][0]]['data'],
+                'indz': coll.ddata[dop['ind'][1]]['data'],
+                'sang': {
+                    'data': coll.ddata[dop['sang']]['data'],
+                    'units': coll.ddata[dop['sang']]['units'],
+                },
+            }
+
+    # ------------------
+    # check keys of dvos
+
+    # default
+    if spectro is True:
+        pass
+    else:
+        lk = ['keym', 'res_RZ', 'indr', 'indz', 'sang']
+
+    # check
+    c0 = (
+        isinstance(dvos, dict)
+        and all([
+            k0 in dvos.keys()
+            and all([k1 in dvos[k0].keys() for k1 in lk])
+            for k0 in key_cam
+        ])
+    )
+
+    # raise exception
+    if not c0:
+        msg = (
+            "Arg dvos must be a dict with, for each camera, the keys:\n"
+            + str(lk)
+        )
+        raise Exception(msg)
+
+    # only keep desired cams
+    lkout = [k0 for k0 in dvos.keys() if k0 not in key_cam]
+    for k0 in lkout:
+        del dvos[k0]
+
+    return dvos

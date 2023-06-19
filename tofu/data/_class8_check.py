@@ -73,7 +73,7 @@ def _diagnostics_check(
             for k0, v0 in doptics.items()
             if k0 not in lcam
             or any([k1 not in lop for k1 in v0])
-            }
+        }
         if len(dkout) > 0:
             err = True
 
@@ -94,7 +94,7 @@ def _diagnostics_check(
     # types of camera
 
     lcam = list(doptics.keys())
-    types = [coll.dobj['camera'][k0]['dgeom']['type'] for k0 in lcam]
+    types = [coll.dobj['camera'][k0]['dgeom']['nd'] for k0 in lcam]
 
     if len(set(types)) > 1:
         msg = (

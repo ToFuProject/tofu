@@ -37,6 +37,7 @@ def compute_etendue_los(
     # options
     add_points=None,
     # spectro-only
+    ind_ap_lim_spectral=None,
     rocking_curve_fw=None,
     rocking_curve_max=None,
     # bool
@@ -95,13 +96,14 @@ def compute_etendue_los(
             cx, cy, cz,
             centsx, centsy, centsz,
             ap_area, plane_nin,
-            spectro,
+            spectro, dist_cryst2ap,
         ) = coll.get_diagnostic_equivalent_aperture(
             key=key,
             key_cam=key_cam,
             # inital contour
             add_points=add_points,
             # options
+            ind_ap_lim_spectral=ind_ap_lim_spectral,
             convex=convex,
             harmonize=True,
             reshape=False,
@@ -136,7 +138,8 @@ def compute_etendue_los(
         (
             det_area, distances,
             los_x, los_y, los_z,
-            cos_los_det, cos_los_ap, solid_angles, res,
+            cos_los_det, cos_los_ap,
+            solid_angles, solid_angles_rc, res,
         ) = _loop_on_pix(
             coll=coll,
             ldet=v0['ldet'],
@@ -144,6 +147,7 @@ def compute_etendue_los(
             spectro=spectro,
             rocking_curve_fw=rocking_curve_fw,
             rocking_curve_max=rocking_curve_max,
+            dist_cryst2ap=dist_cryst2ap,
             # optics
             x0=x0,
             x1=x1,
@@ -159,6 +163,7 @@ def compute_etendue_los(
             centsz=centsz,
             plane_nin=plane_nin,
             ap_area=ap_area,
+            res=res,
         )
 
         # --------------------
@@ -166,7 +171,7 @@ def compute_etendue_los(
 
         nd = len(v0['ldet'])
         if analytical is True:
-            etend0 = np.full(tuple(np.r_[3, nd]), np.nan)
+            etend0 = np.full(tuple(np.r_[3 + (spectro is True), nd]), np.nan)
 
             # 0th order
             etend0[0, :] = ap_area * det_area / distances**2
@@ -180,30 +185,47 @@ def compute_etendue_los(
             # 2nd order
             etend0[2, :] = cos_los_ap * ap_area * solid_angles
 
+            # 3rd order for spectro
+            if spectro:
+                etend0[3, :] = cos_los_ap * ap_area * solid_angles_rc
+
         else:
             etend0 = None
 
         # --------------------
         # compute numerically
 
+        etend1 = None
         if numerical is True:
 
-            etend1 = _compute_etendue_numerical(
-                ldeti=v0['ldet'],
-                aperture=aperture,
-                pix_ap=pix_ap,
-                res=res,
-                los_x=los_x,
-                los_y=los_y,
-                los_z=los_z,
-                margin_par=margin_par,
-                margin_perp=margin_perp,
-                check=check,
-                verb=verb,
-            )
-
-        else:
-            etend1 = None
+            if spectro is True:
+                etend1 = _compute_etendue_numerical_spectro(
+                    coll=coll,
+                    key_diag=key,
+                    key_cam=key_cam,
+                    is2d=is2d,
+                    doptics=doptics,
+                    los_x=los_x,
+                    los_y=los_y,
+                    los_z=los_z,
+                    margin_par=margin_par,
+                    margin_perp=margin_perp,
+                )
+            else:
+                etend1 = _compute_etendue_numerical(
+                    coll=coll,
+                    key_diag=key,
+                    key_cam=key_cam,
+                    ldeti=v0['ldet'],
+                    res=res,
+                    los_x=los_x,
+                    los_y=los_y,
+                    los_z=los_z,
+                    margin_par=margin_par,
+                    margin_perp=margin_perp,
+                    check=check,
+                    verb=verb,
+                )
 
         # --------------------
         # optional plotting
@@ -220,7 +242,7 @@ def compute_etendue_los(
 
         # etend0
         if etend0 is not None and is2d:
-            etend0 = etend0.reshape(tuple(np.r_[3, v0['shape0']]))
+            etend0 = etend0.reshape(tuple(np.r_[etend0.shape[0], v0['shape0']]))
 
         # etend1
         if etend1 is not None and is2d:
@@ -289,6 +311,27 @@ def compute_etendue_los(
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue'] = ketendue
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etend_type'] = etend_type
 
+            # spectro
+            if spectro and store == 'analytical':
+                # data
+                etendue = v0[store][-2, ...]
+
+                # keys
+                ketendue = f'{key}_{key_cam}_etend0'
+                ddata = {
+                    ketendue: {
+                        'data': etendue,
+                        'ref': ref,
+                        'dim': 'etendue',
+                        'quant': 'etendue',
+                        'name': 'etendue',
+                        'units': 'm2.sr',
+                    },
+                }
+
+                coll.update(ddata=ddata)
+                coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue0'] = ketendue
+
     return dcompute, store
 
 
@@ -347,7 +390,7 @@ def _check(
         outline = dgeom['outline']
         out0 = coll.ddata[outline[0]]['data']
         out1 = coll.ddata[outline[1]]['data']
-        is2d = dgeom['type'] == '2d'
+        is2d = dgeom['nd'] == '2d'
         par = dgeom['parallel']
         dcompute[k0]['shape0'] = cx.shape
 
@@ -393,7 +436,7 @@ def _check(
     numerical = ds._generic_check._check_var(
         numerical, 'numerical',
         types=bool,
-        default=False,
+        default=True,
     )
 
     # -----------
@@ -479,10 +522,10 @@ def _check(
     )
 
 
-# ##################################################################
-# ##################################################################
+# ###############################################################
+# ###############################################################
 #                    Loop on camera pixels
-# ##################################################################
+# ###############################################################
 
 
 def _loop_on_pix(
@@ -493,6 +536,7 @@ def _loop_on_pix(
     spectro=None,
     rocking_curve_fw=None,
     rocking_curve_max=None,
+    dist_cryst2ap=None,
     # equivalent aperture
     x0=None,
     x1=None,
@@ -518,6 +562,7 @@ def _loop_on_pix(
     los_y = np.full((nd,), np.nan)
     los_z = np.full((nd,), np.nan)
     solid_angles = np.zeros((nd,), dtype=float)
+    solid_angles_rc = np.zeros((nd,), dtype=float)
     cos_los_det = np.full((nd,), np.nan)
     distances = np.full((nd,), np.nan)
     mindiff = np.full((nd,), np.nan)
@@ -530,19 +575,6 @@ def _loop_on_pix(
 
         if not iok[ii]:
             continue
-
-        # rocking curve
-        if spectro:
-            out0 = ldet[ii]['outline_x0']
-            width0 = np.max(np.abs(np.diff(out0)))
-            dist = np.sqrt(
-                (centsx[ii] - ldet[ii]['cents_x'])**2
-                + (centsy[ii] - ldet[ii]['cents_y'])**2
-                + (centsz[ii] - ldet[ii]['cents_z'])**2
-            )
-            withrc = dist * rocking_curve_fw
-            out0_norm = out0 / width0
-            ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
 
         # ------------
         # solid angles
@@ -564,11 +596,42 @@ def _loop_on_pix(
             timing=False,
         )[0, 0]
 
+        # rocking curve
+        if spectro:
+            out0 = ldet[ii]['outline_x0']
+            width0 = np.max(np.abs(np.diff(out0)))
+            dist = np.sqrt(
+                (centsx[ii] - ldet[ii]['cents_x'])**2
+                + (centsy[ii] - ldet[ii]['cents_y'])**2
+                + (centsz[ii] - ldet[ii]['cents_z'])**2
+            )
+            withrc = dist * rocking_curve_fw * (dist + dist_cryst2ap / dist)
+            out0_norm = out0 / width0
+            ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
+            solid_angles_rc[ii] = _comp_solidangles.calc_solidangle_apertures(
+                # observation points
+                pts_x=centsx[ii],
+                pts_y=centsy[ii],
+                pts_z=centsz[ii],
+                # polygons
+                apertures=None,
+                detectors=ldet[ii],
+                # possible obstacles
+                config=None,
+                # parameters
+                visibility=False,
+                return_vector=False,
+                # timing
+                timing=False,
+            )[0, 0]
+
     # -----------
     # rocking curve
 
     if spectro:
-        solid_angles *= rocking_curve_max
+        solid_angles_rc *= rocking_curve_max
+    else:
+        solid_angles_rc = None
 
     # -------------
     # normalize los
@@ -635,7 +698,8 @@ def _loop_on_pix(
     return (
         det_area, distances,
         los_x, los_y, los_z,
-        cos_los_det, cos_los_ap, solid_angles, res,
+        cos_los_det, cos_los_ap,
+        solid_angles, solid_angles_rc, res,
     )
 
 
@@ -677,9 +741,10 @@ def _get_lpoly_post(coll=None, lop_post_cls=None, lop_post=None):
 
 
 def _compute_etendue_numerical(
+    coll=None,
+    key_diag=None,
+    key_cam=None,
     ldeti=None,
-    aperture=None,
-    pix_ap=None,
     res=None,
     margin_par=None,
     margin_perp=None,
@@ -689,6 +754,21 @@ def _compute_etendue_numerical(
     check=None,
     verb=None,
 ):
+
+    # ------------
+    # prepare
+
+    # aperture
+    lop = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]['optics']
+    aperture = {}
+    for k0 in lop:
+        px, py, pz = coll.get_optics_poly(key=k0)
+        aperture[k0] = {
+            'poly_x': px,
+            'poly_y': py,
+            'poly_z': pz,
+            'nin': coll.dobj['aperture'][k0]['dgeom']['nin'],
+        }
 
     # shape0 = det['cents_x'].shape
     nd = len(ldeti)
@@ -717,10 +797,6 @@ def _compute_etendue_numerical(
 
         if np.isnan(los_x[ii]):
             continue
-
-        # get det corners to aperture corners vectors
-        out_c_x0 = np.r_[0, ldeti[ii]['outline_x0']]
-        out_c_x1 = np.r_[0, ldeti[ii]['outline_x1']]
 
         # det poly 3d
         det_Px = (
@@ -957,6 +1033,113 @@ def _compute_etendue_numerical(
 
     return etendue
 
+# ##################################################################
+# ##################################################################
+#           Numerical etendue estimation routine
+# ##################################################################
+
+
+def _compute_etendue_numerical_spectro(
+    coll=None,
+    key_diag=None,
+    key_cam=None,
+    is2d=None,
+    doptics=None,
+    los_x=None,
+    los_y=None,
+    los_z=None,
+    margin_par=None,
+):
+
+    # --------------
+    # check
+
+    if is2d is False:
+        msg = "Can only handle 2d camera spectrometers"
+        raise Exception(msg)
+
+    # --------------
+    # Get main LOS
+
+    los = np.r_[np.nanmean(los_x), np.nanmean(los_y), np.nanmean(los_z)]
+    los_n = los / np.linalg.norm(los)
+
+    e0_cam = coll.dobj['camera'][key_cam]['dgeom']['e0']
+    e1_cam = coll.dobj['camera'][key_cam]['dgeom']['e1']
+
+    e0 = np.cross(e1_cam, los_n)
+    e0 = e0 / np.linalg.norm(e0)
+
+    e1 = np.cross(los_n, e0)
+    e1 = e1 / np.linalg.norm(e1)
+
+    # get length along los
+    k_los = (1. + margin_par) * np.max(sca1)
+
+    # -------------------------
+    # grid perpendicular to los
+
+    # pojections of all los on plane
+    sca0 = (
+        (c_los_x - det_Px[None, :]) * los_x[ii]
+        + (c_los_y - det_Py[None, :]) * los_y[ii]
+        + (c_los_z - det_Pz[None, :]) * los_z[ii]
+    )
+    k_plane = sca0 / sca1
+
+    # perpendicular limits
+    x0 = np.split(
+        ((det_Px[None, :] + k_plane * PA_x) - c_los_x)*e0_xi
+        + ((det_Py[None, :] + k_plane * PA_y) - c_los_y)*e0_yi
+        + ((det_Pz[None, :] + k_plane * PA_z) - c_los_z)*e0_zi,
+        ap_ind,
+        axis=0,
+    )
+    x1 = np.split(
+        ((det_Px[None, :] + k_plane * PA_x) - c_los_x)*e1_xi
+        + ((det_Py[None, :] + k_plane * PA_y) - c_los_y)*e1_yi
+        + ((det_Pz[None, :] + k_plane * PA_z) - c_los_z)*e1_zi,
+        ap_ind,
+        axis=0,
+    )
+
+    x0_min = np.max([np.min(x0s) for x0s in x0])
+    x0_max = np.min([np.max(x0s) for x0s in x0])
+    x1_min = np.max([np.min(x1s) for x1s in x1])
+    x1_max = np.min([np.max(x1s) for x1s in x1])
+
+    w0 = x0_max - x0_min
+    w1 = x1_max - x1_min
+
+    min_res = min(2*margin_perp*w0, 2*margin_perp*w1)
+    too_large = res >= min_res
+    if np.any(too_large):
+        msg = (
+            f"Minimum etendue resolution for det {ii} / {nd}: {min_res}\n"
+            "The following res values may lead to errors:\n"
+            f"\t- res values = {res}\n"
+            f"\t- too large  = {too_large}\n"
+        )
+        warnings.warn(msg)
+
+    # 2d grid perpendicular to los
+    n0 = int(np.ceil((lim0[1] -lim0[0]) / res))
+    n1 = int(np.ceil((lim1[1] -lim1[0]) / res))
+    x0 = np.linspace(lim0[0], lim0[1], n0)
+    x1 = np.linspace(lim1[0], lim1[1], n1)
+
+    x0f = np.repeat(x0[:, None], n1, axis=1)
+    x1f = np.repeat(x1[None, :], n0, axis=0)
+
+    # ------------
+    # loop on pts
+
+    import pdb; pdb.set_trace()     # DB
+
+
+
+    return etendue
+
 
 # ##################################################################
 # ##################################################################
@@ -986,10 +1169,10 @@ def _plot_etendues(
     x0 = None
     if etend0 is not None:
         x0 = [
-            f'order {ii}' if ii < 3 else '' for ii in range(nmax)
+            f'order {ii}' for ii in range(nmax)
         ]
     if etend1 is not None:
-        x1 = [f'{res[ii]}' if ii < res.size-1 else '' for ii in range(nmax)]
+        x1 = [f'{res[ii]}' for ii in range(nmax)]
         if x0 is None:
             x0 = x1
         else:

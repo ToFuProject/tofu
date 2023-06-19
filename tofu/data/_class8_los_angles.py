@@ -4,6 +4,7 @@
 import numpy as np
 import scipy.interpolate as scpinterp
 from scipy.spatial import ConvexHull
+import matplotlib.pyplot as plt     # DB
 
 
 import datastock as ds
@@ -15,10 +16,10 @@ from ..geom import CamLOS1D
 __all__ = ['compute_los_angles']
 
 
-# ##################################################################
-# ##################################################################
+# ##############################################################
+# ##############################################################
 #                       Main
-# ##################################################################
+# ##############################################################
 
 
 def compute_los_angles(
@@ -363,7 +364,7 @@ def _vos_from_los_store(
     kph1 = f'{key_cam}_vos_ph1'
 
     # reshape for 2d camera
-    if coll.dobj['camera'][key_cam]['dgeom']['type'] == '2d':
+    if coll.dobj['camera'][key_cam]['dgeom']['nd'] == '2d':
         shape0 = coll.dobj['camera'][key_cam]['dgeom']['shape']
         shape = tuple(np.r_[pcross0.shape[0], shape0])
         pcross0 = pcross0.reshape(shape)
@@ -416,9 +417,11 @@ def _vos_from_los_store(
 
     # add pcross
     doptics = coll._dobj['diagnostic'][key]['doptics']
-    doptics[key_cam]['vos_pcross'] = (kpc0, kpc1)
-    doptics[key_cam]['vos_phor'] = (kph0, kph1)
-    doptics[key_cam]['vos_dphi'] = dphi
+    doptics[key_cam]['dvos'] = {
+        'pcross': (kpc0, kpc1),
+        'phor': (kph0, kph1),
+        'dphi': dphi,
+    }
 
 
 # ###########################################################
@@ -560,6 +563,7 @@ def _angle_spectro(
     # ------
     # loop
 
+    # langles = []        # DB
     for ii in range(v0['cx'].size):
 
         if not v0['iok'][ii]:
@@ -592,8 +596,15 @@ def _angle_spectro(
             return_x01=False,
         )[6]
 
+        # Correct for approximation of using
+        # the same projected reflection from the center for all
+        ang0 = np.nanmean(angles[:ne])
+        angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
+
         angmin[ii] = np.nanmin(angles)
         angmax[ii] = np.nanmax(angles)
+
+        # langles.append(angles)      # DB
 
     if is2d:
         angmin = angmin.reshape(v0['shape0'])

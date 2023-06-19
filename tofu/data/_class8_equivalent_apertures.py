@@ -30,7 +30,9 @@ def equivalent_apertures(
     pixel=None,
     # inital contour
     add_points=None,
+    min_threshold=None,
     # options
+    ind_ap_lim_spectral=None,
     convex=None,
     harmonize=None,
     reshape=None,
@@ -39,6 +41,8 @@ def equivalent_apertures(
     verb=None,
     plot=None,
     store=None,
+    # debug
+    debug=None,
 ):
 
     # -------------
@@ -51,6 +55,9 @@ def equivalent_apertures(
         cref,
         spectro,
         ispectro,
+        curved,
+        concave,
+        curve_mult,
         lop_pre,
         lop_pre_cls,
         lop_post,
@@ -62,6 +69,8 @@ def equivalent_apertures(
         cz,
         pixel,
         add_points,
+        min_threshold,
+        ind_ap_lim_spectral,
         convex,
         harmonize,
         reshape,
@@ -74,6 +83,8 @@ def equivalent_apertures(
         key_cam=key_cam,
         pixel=pixel,
         add_points=add_points,
+        min_threshold=min_threshold,
+        ind_ap_lim_spectral=ind_ap_lim_spectral,
         convex=convex,
         harmonize=harmonize,
         reshape=reshape,
@@ -122,8 +133,18 @@ def equivalent_apertures(
     # pts2pts func
     if spectro:
         pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
+        if len(lop_post) > 0:
+            cls_ap_lim = lop_post_cls[ind_ap_lim_spectral]
+            kap_lim = lop_post[ind_ap_lim_spectral]
+            dist_cryst2ap = np.linalg.norm(
+                coll.dobj[cls_ap_lim][kap_lim]['dgeom']['cent']
+                - coll.dobj[cref][kref]['dgeom']['cent']
+            )
+        else:
+            dist_cryst2ap = 0.
     else:
         pts2pt = None
+        dist_cryst2ap = None
 
     # ptsvect func
     ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
@@ -171,7 +192,7 @@ def equivalent_apertures(
         if verb is True:
             msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {pixel.size}"
             end = '\n' if ii == len(pixel) - 1 else '\r'
-            print(msg, end=end , flush=True)
+            print(msg, end=end, flush=True)
 
         p0, p1 = func(
             p_a=p_a,
@@ -190,6 +211,9 @@ def equivalent_apertures(
             # options
             add_points=add_points,
             convex=convex,
+            # debug
+            ii=ii,
+            ij=ij,
             # timing
             # dt=dt,
         )
@@ -203,57 +227,60 @@ def equivalent_apertures(
                 # plg.Polygon(np.array([p0, p1]).T)
             # ).contour(0)).T
             vert = ConvexHull(np.array([p0, p1]).T).vertices
-            p0, p1 = p0[vert], p1[vert]
 
-            p0, p1 = _compute._interp_poly(
-                lp=[p0, p1],
-                add_points=add_points,
-                mode='mean',
+            # --- DEBUG ---------
+            # if ii in [97]:
+                # _debug_plot(
+                    # pa0=p0, pa1=p1,
+                    # pb0=p0[vert], pb1=p1[vert],
+                    # ii=ii, tit='local coords',
+                # )
+            # --------------------
+
+            p0c, p1c = _compute._interp_poly(
+                lp=[
+                    p0[vert] * curve_mult[0],
+                    p1[vert] * curve_mult[1],
+                ],
+                add_points=1,
+                mode='thr',
                 isclosed=False,
                 closed=False,
                 ravel=True,
-                min_threshold=1.e-5,
+                min_threshold=min_threshold,
+                debug=True,
             )
+
+            # --- DEBUG ---------
+            # if ij in [104]:
+            #     _debug_plot(
+            #         pa0=p0, pa1=p1,
+            #         pb0=p0[vert], pb1=p1[vert],
+            #         pc0=p0c/curve_mult[0], pc1=p1c/curve_mult[1],
+            #         ii=ii, tit='curve_mult',
+            #     )
+            # --------------------
+            p0, p1 = p0c / curve_mult[0], p1c / curve_mult[1]
 
         # append
         x0.append(p0)
         x1.append(p1)
+
+        # --- DEBUG ---------
+        # if ii in [14, 15, 16, 17]:
+            # _debug_plot(pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        # --------------------
 
     # -------------------------------------------
     # harmonize if necessary the initial polygons
     # -------------------------------------------
 
     if harmonize:
-
-        ln = [p0.size if p0 is not None else 0 for p0 in x0]
-        nmax = np.max(ln)
-        nan = np.full((nmax,), np.nan)
-
-        for ii in range(pixel.size):
-
-            if ln[ii] == 0:
-                x0[ii] = nan
-                x1[ii] = nan
-
-            elif ln[ii] < nmax:
-                ndif = nmax - ln[ii]
-                irand = np.random.random(ndif)
-                irand = irand + np.random.randint(0, ln[ii]-1, ndif)
-                imax = np.sort(np.r_[np.arange(0, ln[ii]), irand])
-                imax = np.linspace(0, ln[ii]-1, nmax)
-                x0[ii] = scpinterp.interp1d(
-                    np.arange(0, ln[ii]),
-                    x0[ii],
-                    kind='linear',
-                )(imax)
-                x1[ii] = scpinterp.interp1d(
-                    np.arange(0, ln[ii]),
-                    x1[ii],
-                    kind='linear',
-                )(imax)
-
-        x0 = np.array(x0)
-        x1 = np.array(x1)
+        x0, x1 = _compute._harmonize_polygon_sizes(
+            lp0=x0,
+            lp1=x1,
+            nmin=150 if curved else 0,
+        )
 
     # -------------
     # xyz
@@ -302,12 +329,32 @@ def equivalent_apertures(
                 np.array([x0[ii, :], x1[ii, :]]).T
             ).center()
 
+            # --- DEBUG ---------
+            # if ii in [97]:
+                # _debug_plot2(
+                    # p0=p0, p1=p1,
+                    # cents0=cents0, cents1=cents1,
+                    # ii=ii,
+                    # ip=ip,
+                    # coord_x01toxyz=coord_x01toxyz,
+                    # cx=cx, cy=cy, cz=cz,
+                    # area=area,
+                # )
+            # --------------------
+
         centsx, centsy, centsz = coord_x01toxyz(
             x0=cents0,
             x1=cents1,
         )
 
         plane_nin = coll.dobj[cref][kref]['dgeom']['nin']
+
+        # ------ DEBUG --------
+        # if True:
+            # plt.figure()
+            # plt.plot(pixel, area, '.-k')
+            # plt.gca().set_title('area')
+        # --------------------
 
     else:
         cents0, cents1 = None, None
@@ -351,7 +398,8 @@ def equivalent_apertures(
             px, py, pz,
             cx, cy, cz,
             centsx, centsy, centsz,
-            area, plane_nin, spectro,
+            area, plane_nin,
+            spectro, dist_cryst2ap
         )
     else:
         return x0, x1, kref, iok
@@ -369,6 +417,8 @@ def _check(
     key_cam=None,
     pixel=None,
     add_points=None,
+    min_threshold=None,
+    ind_ap_lim_spectral=None,
     convex=None,
     harmonize=None,
     reshape=None,
@@ -409,12 +459,31 @@ def _check(
     optics_cls = doptics['cls']
     ispectro = doptics.get('ispectro')
 
+    # --------
+    # curvature
+
+    if spectro:
+        clssp = optics_cls[ispectro[0]]
+        ksp = optics[ispectro[0]]
+        rcurve = coll.dobj[clssp][ksp]['dgeom']['curve_r']
+        iok = np.isfinite(rcurve)
+        curved = np.any(iok)
+        concave = np.any(np.r_[rcurve][iok] > 0.)
+
+        curve_mult = np.copy(rcurve)
+        curve_mult[~iok] = 1
+
+    else:
+        curved = False
+        concave = False
+        curve_mult = [1., 1.]
+
     # -------------------------------------------------
     # ldeti: list of individual camera dict (per pixel)
 
     dgeom = coll.dobj['camera'][key_cam]['dgeom']
     cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
-    is2d = dgeom['type'] == '2d'
+    is2d = dgeom['nd'] == '2d'
     shape0 = cx.shape
 
     if is2d:
@@ -480,6 +549,28 @@ def _check(
     )
 
     # -----------
+    # min_threshold
+
+    min_threshold = ds._generic_check._check_var(
+        min_threshold, 'min_threshold',
+        types=float,
+        default=400e-6,
+        sign='>0',
+    )
+
+    # ----------------------------------------------
+    # index of aperture limiting the spectral range
+    
+    if spectro is True:
+        ind_ap_lim_spectral = int(ds._generic_check._check_var(
+            ind_ap_lim_spectral, 'ind_ap_lim_spectral',
+            types=(float, int),
+            default=0,
+        ))
+    else:
+        ind_ap_lim_spectral = None
+
+    # -----------
     # convex
 
     isconvex = any(coll.get_optics_isconvex(doptics['optics']))
@@ -541,6 +632,9 @@ def _check(
         cref,
         spectro,
         ispectro,
+        curved,
+        concave,
+        curve_mult,
         lop_pre,
         lop_pre_cls,
         lop_post,
@@ -552,6 +646,8 @@ def _check(
         cz,
         pixel,
         add_points,
+        min_threshold,
+        ind_ap_lim_spectral,
         convex,
         harmonize,
         reshape,
@@ -573,6 +669,9 @@ def _get_equivalent_aperture(
     nop_pre=None,
     lpoly_pre=None,
     ptsvect=None,
+    # debug
+    ii=None,
+    debug=None,
     **kwdargs,
 ):
 
@@ -590,6 +689,14 @@ def _get_equivalent_aperture(
             strict=False,
             return_x01=True,
         )[-2:]
+
+        if p0 is None:
+            return None, None
+
+        # --- DEBUG ---------
+        if debug is True:
+            _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        # --------------------
 
         # inside
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
@@ -629,8 +736,11 @@ def _get_equivalent_aperture_spectro(
     convex=None,
     # timing
     dt=None,
+    # debug
+    ii=None,
+    ij=None,
 ):
-
+    
     # loop on optics before crystal
     for jj in range(nop_pre):
 
@@ -681,22 +791,30 @@ def _get_equivalent_aperture_spectro(
             ptsvect_poly=lptsvect_poly[jj],
             # timing
             # dt=dt,
+            # debug
+            ii=ii,
+            ij=ij,
         )
 
         if p0 is None:
             # print('\t \t None 0')
             return p0, p1
 
+        # --- DEBUG ---------
+        # if ii in [14, 15, 16]:
+            # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
+        # ----------------------
+
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
-            # print('inside: ', p1)
-            # plt.figure()
-            # plt.plot(
-                # np.array(p_a.contour(0))[:, 0],
-                # np.array(p_a.contour(0))[:, 1],
-                # '.-k',
-                # p0, p1, '.-r'
-            # )
+            # --- DEBUG ---------
+            # if ij in [104]:
+            #     print()
+            #     print(f'\t {jj} / {nop_post}')      # DB
+            #     print()
+            #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='all in')
+            # ----------------------
             p_a = plg.Polygon(np.array([p0, p1]).T)
+
         else:
             # convex hull
             if convex:
@@ -704,16 +822,27 @@ def _get_equivalent_aperture_spectro(
                     # plg.Polygon(np.array([p0, p1]).T)
                 # ).contour(0)).T
                 vert = ConvexHull(np.array([p0, p1]).T).vertices
+                # --- DEBUG ---------
+                # if ij in [104]:
+                #     _debug_plot(
+                #         pa0=p0, pa1=p1,
+                #         pb0=p0[vert], pb1=p1[vert],
+                #         ii=ii, tit='convexH',
+                #     )
+                # ----------------------
                 p0, p1 = p0[vert], p1[vert]
 
-            # plt.figure()
-            # plt.plot(
-                # np.array(p_a.contour(0))[:, 0],
-                # np.array(p_a.contour(0))[:, 1],
-                # '.-k',
-                # p0, p1, '.-r'
-            # )
-            # import pdb; pdb.set_trace()     # DB
+            # --- DEBUG ---------
+            # if ij in [104]:
+            #     _debug_plot(
+            #         p_a=p_a,
+            #         p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
+            #         pa0=p0,
+            #         pa1=p1,
+            #         ii=ii,
+            #         tit='not all',
+            #     )
+            # ----------------------
 
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
@@ -780,3 +909,141 @@ def _plot(
 
     ax.legend()
     return
+
+
+# ##############################################################
+# ##############################################################
+#           Debug plots
+# ##############################################################
+
+
+def _debug_plot(
+    p_a=None,
+    p_b=None,
+    pa0=None,
+    pa1=None,
+    pb0=None,
+    pb1=None,
+    pc0=None,
+    pc1=None,
+    ii=None,
+    tit=None,
+):
+
+    plt.figure()
+
+    # p_a
+    if p_a is not None:
+        p_a = np.array(p_a.contour(0))
+        ind = np.r_[np.arange(0, p_a.shape[0]), 0]
+        plt.plot(
+            p_a[ind, 0],
+            p_a[ind, 1],
+            ls='-',
+            lw=1.,
+            marker='.',
+            label=f'p_a ({p_a.shape[0]} pts)',
+        )
+
+    # p_b
+    if p_b is not None:
+        p_b = np.array(p_b.contour(0))
+        ind = np.r_[np.arange(0, p_b.shape[0]), 0]
+        plt.plot(
+            p_b[ind, 0],
+            p_b[ind, 1],
+            ls='-',
+            lw=1.,
+            marker='.',
+            label=f'p_b ({p_b.shape[0]} pts)',
+        )
+
+    # pa
+    if pa0 is not None:
+        ind = np.r_[np.arange(0, pa0.size), 0]
+        plt.plot(
+            pa0[ind],
+            pa1[ind],
+            ls='-',
+            lw=1.,
+            marker='x',
+            label=f'pa ({pa0.size} pts)',
+        )
+
+    # pb
+    if pb0 is not None:
+        ind = np.r_[np.arange(0, pb0.size), 0]
+        plt.plot(
+            pb0[ind],
+            pb1[ind],
+            ls='-',
+            lw=1.,
+            marker='+',
+            label=f'pb ({pb0.size} pts)',
+        )
+
+    # pc
+    if pc0 is not None:
+        ind = np.r_[np.arange(0, pc0.size), 0]
+        plt.plot(
+            pc0[ind],
+            pc1[ind],
+            ls='-',
+            lw=1.,
+            marker='+',
+            label=f'pc ({pc0.size} pts)',
+        )
+
+    plt.legend()
+
+    if ii is not None:
+        tit0 = f'ii = {ii}'
+        if tit is None:
+            tit = tit0
+        else:
+            tit = tit0 + ', ' + tit
+        plt.gca().set_title(tit, size=12)
+
+
+def _debug_plot2(
+    p0=None,
+    p1=None,
+    cents0=None,
+    cents1=None,
+    ii=None,
+    ip=None,
+    coord_x01toxyz=None,
+    cx=None,
+    cy=None,
+    cz=None,
+    area=None,
+):
+
+    plt.figure()
+    plt.plot(
+        np.r_[p0, p0[0]],
+        np.r_[p1, p1[0]],
+        c='k',
+        ls='-',
+        lw=1.,
+        marker='.',
+    )
+    plt.plot([cents0[ii]], [cents1[ii]], 'xk')
+    ppx, ppy, ppz = coord_x01toxyz(
+        x0=np.r_[cents0[ii]],
+        x1=np.r_[cents1[ii]],
+    )
+    ddd = np.linalg.norm(
+        np.r_[ppx - cx[ip], ppy - cy[ip], ppz - cz[ip]]
+    )
+    plt.gca().text(
+        np.mean(p0),
+        np.mean(p1),
+        f'area\n{area[ii]:.3e} m2\ndist\n{ddd:.6e} m',
+        size=12,
+        horizontalalignment='center',
+        verticalalignment='center',
+    )
+    plt.gca().set_title(f'planar coordinates - {ii}', size=12)
+    plt.gca().set_xlabel('x0 (m)', size=12)
+    plt.gca().set_ylabel('x1 (m)', size=12)

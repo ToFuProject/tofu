@@ -150,11 +150,13 @@ class Crystal(Previous):
     def get_optics_x01toxyz(
         self,
         key=None,
+        asplane=None,
     ):
         """ Return a dict of formatted """
         return _coordinates._get_x01toxyz(
             coll=self,
             key=key,
+            asplane=asplane,
         )
 
     # --------------------
@@ -172,12 +174,16 @@ class Crystal(Previous):
         self,
         key=None,
         asplane=None,
+        isnorm=None,
+        fast=None,
     ):
         """ Return a dict of formatted """
         return _reflections_ptsvect._get_ptsvect(
             coll=self,
             key=key,
             asplane=asplane,
+            isnorm=isnorm,
+            fast=fast,
         )
 
     # -------------------------------------------
@@ -198,6 +204,7 @@ class Crystal(Previous):
         configuration=None,
         lamb=None,
         bragg=None,
+        defocus=None,
         # parameters
         cam_on_e0=None,
         # johann-specific
@@ -205,7 +212,7 @@ class Crystal(Previous):
         # pinhole-specific
         cam_dimensions=None,
         cam_distance=None,
-        pinhole_distance=None,
+        focal_distance=None,
         # store
         store=None,
         key_cam=None,
@@ -242,6 +249,7 @@ class Crystal(Previous):
             configuration=configuration,
             lamb=lamb,
             bragg=bragg,
+            defocus=defocus,
             # parameters
             cam_on_e0=cam_on_e0,
             # johann-specific
@@ -249,7 +257,7 @@ class Crystal(Previous):
             # pinhole-specific
             cam_dimensions=cam_dimensions,
             cam_distance=cam_distance,
-            pinhole_distance=pinhole_distance,
+            focal_distance=focal_distance,
             # store
             store=store,
             key_cam=key_cam,

@@ -20,17 +20,20 @@ from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
+from . import _class8_plane_perp_to_los as _planeperp
 from . import _class8_compute_signal as _compute_signal
+from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
+from . import _class8_plot_vos as _plot_vos
 
 
 __all__ = ['Diagnostic']
 
 
-# #############################################################################
-# #############################################################################
+# ###############################################################
+# ###############################################################
 #                           Diagnostic
-# #############################################################################
+# ###############################################################
 
 
 class Diagnostic(Previous):
@@ -197,7 +200,9 @@ class Diagnostic(Previous):
         margin_par=None,
         margin_perp=None,
         # spectro-only
+        ind_ap_lim_spectral=None,
         rocking_curve_fw=None,
+        rocking_curve_max=None,
         # equivalent aperture
         add_points=None,
         convex=None,
@@ -232,7 +237,9 @@ class Diagnostic(Previous):
             margin_par=margin_par,
             margin_perp=margin_perp,
             # spectro-only
+            ind_ap_lim_spectral=ind_ap_lim_spectral,
             rocking_curve_fw=rocking_curve_fw,
+            rocking_curve_max=rocking_curve_max,
             # equivalent aperture
             add_points=add_points,
             convex=convex,
@@ -261,15 +268,84 @@ class Diagnostic(Previous):
                 compute_vos_from_los=compute_vos_from_los,
             )
 
+    def compute_diagnostic_solidangle_from_plane(
+        self,
+        key_diag=None,
+        key_cam=None,
+        indch=None,
+        indref=None,
+        # parameters
+        res=None,
+        margin_par=None,
+        margin_perp=None,
+        config=None,
+        # solid angle
+        n0=None,
+        n1=None,
+        # lamb
+        res_lamb=None,
+        # bool
+        verb=None,
+        plot=None,
+        # plotting
+        indplot=None,
+        dax=None,
+        plot_config=None,
+        fs=None,
+        dmargin=None,
+        vmin_cam=None,
+        vmax_cam=None,
+        vmin_plane=None,
+        vmax_plane=None,
+    ):
+        """ Creates a plane perpendicular to los
+        compute contribution of each point to the signal
+        """
+
+        return _planeperp.main(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            indch=indch,
+            indref=indref,
+            # parameters
+            res=res,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            config=config,
+            # solid angle
+            n0=n0,
+            n1=n1,
+            # lamb
+            res_lamb=res_lamb,
+            # bool
+            verb=verb,
+            plot=plot,
+            # plotting
+            indplot=indplot,
+            dax=dax,
+            plot_config=plot_config,
+            fs=fs,
+            dmargin=dmargin,
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
+            vmin_plane=vmin_plane,
+            vmax_plane=vmax_plane,
+        )
+
     def compute_diagnostic_vos(
         self,
         key=None,
         key_mesh=None,
         # parameters
-        res=None,
+        res_RZ=None,
+        res_phi=None,
+        res_lamb=None,
+        res_rock_curve=None,
+        n0=None,
+        n1=None,
         check=None,
-        margin_par=None,
-        margin_perp=None,
+        margin_poly=None,
         # raytracing
         visibility=None,
         # spectro-only
@@ -277,16 +353,12 @@ class Diagnostic(Previous):
         # equivalent aperture
         add_points=None,
         convex=None,
-        # for storing los
-        config=None,
-        length=None,
-        reflections_nb=None,
-        reflections_type=None,
-        key_nseg=None,
         # bool
         verb=None,
+        debug=None,
         plot=None,
         store=None,
+        replace_poly=None,
         timing=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
@@ -297,24 +369,43 @@ class Diagnostic(Previous):
 
         """
 
-        dvos = _vos.compute_vos(
+        return _vos.compute_vos(
             coll=self,
             key_diag=key,
             key_mesh=key_mesh,
             # etendue
-            res=res,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            res_lamb=res_lamb,
+            res_rock_curve=res_rock_curve,
+            n0=n0,
+            n1=n1,
             check=check,
-            margin_par=margin_par,
-            margin_perp=margin_perp,
-            config=config,
+            margin_poly=margin_poly,
             visibility=visibility,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
             # bool
             verb=verb,
+            debug=debug,
             plot=plot,
             store=store,
+            replace_poly=replace_poly,
             timing=timing,
+        )
+
+    def check_diagnostic_dvos(
+        self,
+        key=None,
+        key_cam=None,
+        dvos=None,
+    ):
+        """ Check dvos and return it if stored """
+        return _vos._check_get_dvos(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            dvos=dvos,
         )
 
     # ---------------
@@ -329,6 +420,7 @@ class Diagnostic(Previous):
         # inital contour
         add_points=None,
         # options
+        ind_ap_lim_spectral=None,
         convex=None,
         harmonize=None,
         reshape=None,
@@ -347,6 +439,7 @@ class Diagnostic(Previous):
             # inital contour
             add_points=add_points,
             # options
+            ind_ap_lim_spectral=ind_ap_lim_spectral,
             convex=convex,
             harmonize=harmonize,
             reshape=reshape,
@@ -616,6 +709,119 @@ class Diagnostic(Previous):
             returnas=returnas,
         )
 
+    # -----------------------
+    # ray-tracing from plasma
+    # -----------------------
+
+    def get_raytracing_from_pts(
+        self,
+        # diag
+        key=None,
+        key_cam=None,
+        # mesh sampling
+        key_mesh=None,
+        res_RZ=None,
+        res_phi=None,
+        # pts coordinates
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # res
+        res_rock_curve=None,
+        n0=None,
+        n1=None,
+        # optional lamb
+        lamb0=None,
+        res_lamb=None,
+        # options
+        append=None,
+        plot=None,
+        plot_pixels=None,
+        plot_config=None,
+        vmin=None,
+        vmax=None,
+    ):
+        """ Get rays from plasma points to camera for a spectrometer diag """
+
+        return _reverse_rt._from_pts(
+            coll=self,
+            # diag
+            key=key,
+            key_cam=key_cam,
+            # mesh sampling
+            key_mesh=key_mesh,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            # pts coordinates
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # res
+            res_rock_curve=res_rock_curve,
+            n0=n0,
+            n1=n1,
+            # optional lamb
+            lamb0=lamb0,
+            res_lamb=res_lamb,
+            # options
+            append=append,
+            plot=plot,
+            plot_pixels=plot_pixels,
+            plot_config=plot_config,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
+    # ---------------------
+    # interpolate along los
+    # ---------------------
+
+    def interpolate_along_los(
+        self,
+        key_diag=None,
+        key_cam=None,
+        key_integrand=None,
+        key_coords=None,
+        # sampling
+        res=None,
+        mode=None,
+        segment=None,
+        radius_max=None,
+        # interpolating
+        domain=None,
+        val_out=None,
+        # plotting
+        vmin=None,
+        vmax=None,
+        plot=None,
+        dcolor=None,
+        dax=None,
+    ):
+        """ Compute and plot interpolated data along the los of the diagnostic
+
+        """
+        return _los_data._interpolate_along_los(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            key_integrand=key_integrand,
+            key_coords=key_coords,
+            # sampling
+            res=res,
+            mode=mode,
+            segment=segment,
+            radius_max=radius_max,
+            # interpolating
+            domain=domain,
+            val_out=val_out,
+            # plotting
+            vmin=vmin,
+            vmax=vmax,
+            plot=plot,
+            dcolor=dcolor,
+            dax=dax,
+        )
+
     # -----------------
     # plotting
     # -----------------
@@ -729,48 +935,68 @@ class Diagnostic(Previous):
             connect=connect,
         )
 
-    def interpolate_along_los(
+    def plot_diagnostic_vos(
         self,
-        key_diag=None,
+        key=None,
         key_cam=None,
-        key_integrand=None,
-        key_coords=None,
-        # sampling
-        res=None,
-        mode=None,
-        segment=None,
-        radius_max=None,
-        # interpolating
-        domain=None,
-        val_out=None,
-        # plotting
+        indch=None,
+        indlamb=None,
+        optics=None,
+        elements=None,
+        proj=None,
+        los_res=None,
+        # data plot
+        dvos=None,
+        units=None,
+        cmap=None,
         vmin=None,
         vmax=None,
-        plot=None,
-        dcolor=None,
+        vmin_tot=None,
+        vmax_tot=None,
+        vmin_cam=None,
+        vmax_cam=None,
+        dvminmax=None,
+        alpha=None,
+        # config
+        plot_config=None,
+        # figure
         dax=None,
+        dmargin=None,
+        fs=None,
+        wintit=None,
+        # interactivity
+        color_dict=None,
     ):
-        """ Compute and plot interpolated data along the los of the diagnostic
 
-        """
-        return _los_data._interpolate_along_los(
+        return _plot_vos._plot_diagnostic_vos(
             coll=self,
-            key_diag=key_diag,
+            key=key,
             key_cam=key_cam,
-            key_integrand=key_integrand,
-            key_coords=key_coords,
-            # sampling
-            res=res,
-            mode=mode,
-            segment=segment,
-            radius_max=radius_max,
-            # interpolating
-            domain=domain,
-            val_out=val_out,
-            # plotting
+            indch=indch,
+            indlamb=indlamb,
+            optics=optics,
+            elements=elements,
+            proj=proj,
+            los_res=los_res,
+            # data plot
+            dvos=dvos,
+            units=units,
+            cmap=cmap,
             vmin=vmin,
             vmax=vmax,
-            plot=plot,
-            dcolor=dcolor,
+            vmin_tot=vmin_tot,
+            vmax_tot=vmax_tot,
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
+            dvminmax=dvminmax,
+            alpha=alpha,
+            # config
+            plot_config=plot_config,
+            # figure
             dax=dax,
-            )
+            dmargin=dmargin,
+            fs=fs,
+            wintit=wintit,
+            # interactivity
+            color_dict=color_dict,
+        )
