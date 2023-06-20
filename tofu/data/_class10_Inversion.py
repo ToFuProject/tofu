@@ -108,7 +108,7 @@ class Inversion(Previous):
             dconstraints=dconstraints,
             # ref vector specifier
             dref_vector=dref_vector,
-            ref_vector_strategy=None,
+            ref_vector_strategy=ref_vector_strategy,
         )
 
     # -----------------
