@@ -58,6 +58,7 @@ def compute_inversions(
     options=None,
     # ref vector specifier
     dref_vector=None,
+    ref_vector_strategy=None,
 ):
 
     # -------------
@@ -395,7 +396,9 @@ def _store(
     chain=None,
     conv_crit=None,
     units=None,
+    # ref vector specifier
     dref_vector=None,
+    ref_vector_strategy=None,
     **kwdargs,
 ):
 
@@ -520,7 +523,9 @@ def _store(
         key_matrix=key_matrix,
         key_profile2d=keyinv,
         t=keyt,
+        # ref vector specifier
         dref_vector=dref_vector,
+        ref_vector_strategy=ref_vector_strategy,
         store=True,
     )
 
@@ -983,6 +988,7 @@ def compute_retrofit_data(
     t=None,
     # ref_vector_specifier
     dref_vector=None,
+    ref_vector_strategy=None,
     # parameters
     store=None,
     returnas=None,
@@ -1011,6 +1017,7 @@ def compute_retrofit_data(
         t=t,
         # ref_vector_specifier
         dref_vector=dref_vector,
+        ref_vector_strategy=ref_vector_strategy,
         # parameters
         store=store,
         returnas=returnas,
@@ -1149,6 +1156,7 @@ def _compute_retrofit_data_check(
     t=None,
     # ref vector specifier
     dref_vector=None,
+    ref_vector_strategy=None,
     # parameters
     store=None,
     returnas=None,
@@ -1210,6 +1218,7 @@ def _compute_retrofit_data_check(
         coll=coll,
         key_matrix=key_matrix,
         key_profile2d=key_profile2d,
+        strategy=ref_vector_strategy,
         dref_vector=dref_vector,
     )
 
