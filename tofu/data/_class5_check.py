@@ -7,6 +7,7 @@ import copy
 import numpy as np
 import scipy.integrate as scpinteg
 import datastock as ds
+from scipy.interpolate import interp1d
 
 
 from ..spectro import _rockingcurve_def
@@ -252,11 +253,22 @@ def _extract_rocking_curve(key=None, drock=None, alpha=None):
     # amin, amax = np.nanmin(ang_rel), np.nanmax(ang_rel)
     # angles = np.linspace(amin, amax, na)
 
-    # power_ratio
+    # power ratio, accounting for slight difference in angle basis
     power_ratio = np.nanmean(
-        drock['Power ratio'][:, indtref, ind_alpha, :],
-        axis=0,
-    )
+        [
+            drock['Power ratio'][0, indtref, ind_alpha, :],
+            interp1d(
+                drock['Glancing angles'][1, indtref, ind_alpha, :], 
+                drock['Power ratio'][1, indtref, ind_alpha, :],
+                bounds_error=False,
+                fill_value=(
+                    drock['Power ratio'][1,indtref,ind_alpha,0], 
+                    drock['Power ratio'][1,indtref,ind_alpha,-1]
+                    )  
+                )(drock['Glancing angles'][0, indtref, ind_alpha, :])
+            ],
+            axis = 0
+        )
 
     # ---------------
     # interpolate
