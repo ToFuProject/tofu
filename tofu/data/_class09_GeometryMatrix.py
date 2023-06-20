@@ -58,6 +58,9 @@ class GeometryMatrix(Previous):
         method=None,
         crop=None,
         dvos=None,
+        # common ref
+        ref_com=None,
+        ref_vector_strategy=None,
         # options
         brightness=None,
         # output
@@ -77,6 +80,9 @@ class GeometryMatrix(Previous):
             method=method,
             crop=crop,
             dvos=dvos,
+            # common ref
+            ref_com=ref_com,
+            ref_vector_strategy=ref_vector_strategy,
             # options
             brightness=brightness,
             # output
