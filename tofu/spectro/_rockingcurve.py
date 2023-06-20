@@ -479,11 +479,10 @@ def _checks(
 
     # ------------
     # crystal
-    print(din)
 
     # Builds crystal dictionary
     try:
-        din = _def._build_cry(crystal=crystal)
+        din = _def._build_cry(crystal=crystal, din=din)
     
     # Exception handling
     except:
@@ -499,8 +498,6 @@ def _checks(
             + "\n".join(lstr)
         )
         raise Exception(msg)
-
-    print(din)
 
     # If user-defined crystal cut
     #if isinstance(crystal, dict):

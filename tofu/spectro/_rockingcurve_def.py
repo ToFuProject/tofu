@@ -58,6 +58,10 @@ _DCRYST_MAT = {
             },
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
+        'phases': { # Will be populated
+            'Si': None,
+            'O': None,
+        },
         'thermal_expansion': {
             'coefs': {
                 'alpha_a': 1.337e-5,
@@ -127,6 +131,9 @@ _DCRYST_MAT = {
                 'unit': 'K',
             },
             'sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
+        },
+        'phases': { # Will be populated
+            'Ge': None,
         },
         'thermal_expansion': {
             'coefs': {
@@ -516,10 +523,6 @@ _DCRYST = {
             'units': 'm',
         },
         'd_hkl': None,
-        'phases': {
-            'Si': None,
-            'O': None,
-        },
     },
     'Quartz_102': {
         'material': 'Quartz',
@@ -532,10 +535,6 @@ _DCRYST = {
             'units': 'm',
         },
         'd_hkl': None,
-        'phases': {
-            'Si': None,
-            'O': None,
-        },
     },
 
     # 'Germanium_XXX': {
@@ -548,7 +547,6 @@ _DCRYST = {
             # 'wavelength': 3.96e-10,
         # }
         # 'd_hkl': None,
-        # 'phases': None,
     # },
 }
 
@@ -703,6 +701,7 @@ _complement_dict_cut(dcryst_mat=_DCRYST_MAT, dcryst_cut=_DCRYST)
 
 def _build_cry(
     crystal=None,
+    din=None,
     ):
     '''
     _build_cry is a function meant to populate a crystal dictionary
@@ -711,37 +710,31 @@ def _build_cry(
 
     # C-Mod's crystal
     dcry = {
-        'HIREX': { # crystal name
-            'material': 'Quartz',
-            'name': 'Quartz_102',
-            'symbol': 'Qz102',
-            'miller': np.r_[1., 0., 2.,],
-            'target': {
-                'ion': 'Ar16+',
-                'lamb': 3.96, # e-10
-                'units': 'm',
+        'material': 'Quartz',
+        'name': 'HIREX',
+        'symbol': 'Qz102',
+        'miller': np.r_[1., 0., 2.,],
+        'target': {
+            'ion': 'Ar16+',
+            'lamb': 3.96, # e-10
+            'units': 'm',
             },
-            'd_hkl': None,
-            'phases': {
-                'Si': None,
-                'O': None,
-            }
+        'd_hkl': None,
         }
-    }
 
     '''
 
     # Hardcoded defaults
     if crystal in ['Quartz_110', 'Quartz_102']:
         dcry = _DCRYST
-        name = crystal
 
     # Else if user-defined crystal
-    elif isinstance(crystal, dict):
-        dcry = crystal
-        name = list(dcry.keys())[0] # name of crystal, assume only one
+    elif isinstance(din, dict):
+        dcry = {
+            crystal: din
+            }
 
     # Builds the crystal dictionary
     _complement_dict_cut(dcryst_mat=_DCRYST_MAT, dcryst_cut=dcry)
 
-    return dcry[name]
+    return dcry[crystal]
