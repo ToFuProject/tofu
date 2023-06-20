@@ -50,7 +50,7 @@ def _dmat(
     if dmat is None:
         return dmat
 
-    # known crystal
+    # If using hardcoded known crystal
     ready_to_compute = False
     if isinstance(dmat, str):
         if dmat not in _rockingcurve_def._DCRYST.keys():
@@ -59,11 +59,11 @@ def _dmat(
             )
             raise Exception(msg)
         dmat = _rockingcurve_def._DCRYST[dmat]
-        ready_to_compute = True
 
     # ---------------------
     # check dict integrity
     # ---------------------
+    #NOTE: Especially in the case of user-defined crystals
 
     # Check dict typeand content (each key is a valid string)
     dmat = ds._generic_check._check_dict_valid_keys(
@@ -74,6 +74,8 @@ def _dmat(
         keys_can_be_None=True,
         dkeys=_DMAT_KEYS,
     )
+
+    ready_to_compute = True
 
     # -----------
     # safety check
@@ -120,7 +122,7 @@ def _dmat(
         drock = _rockingcurve.compute_rockingcurve(
             # Type of crystal
             crystal=dmat['name'],
-            din=None,
+            din=dmat,
             # Wavelength
             lamb=dmat['target']['lamb'],
             # Lattice modifications
