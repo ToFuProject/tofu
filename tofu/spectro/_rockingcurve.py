@@ -1087,11 +1087,11 @@ def CrystBragg_comp_lattice_spacing(
         theta[ii] = np.arcsin(sin_theta[ii])
         theta_deg[ii] = theta[ii]*(180./np.pi)
 
-        lc = [theta_deg[ii] < 10., theta_deg[ii] > 89.]
+        lc = [theta_deg[ii] < 1., theta_deg[ii] > 89.]
         if any(lc):
             msg = (
                 "The computed value of theta is behind the arbitrary limits.\n"
-                "Limit condition: 10° < theta < 89° and\n"
+                "Limit condition: 1° < theta < 89° and\n"
                 f"theta = {theta_deg} °\n"
             )
             raise Exception(msg)
@@ -1272,10 +1272,10 @@ def CrystBragg_comp_integrated_reflect(
             # beam; if not polarized, the reflecting power is an average over
             # the 2 polarization states
             P_dyn[i, j] = np.sum(rhg[:, i, j])/2.
-            if P_dyn[i, j] < 1e-7:
+            if P_dyn[i, j] < 1e-9:
                 msg = (
                     "Please check the equations for integrated reflectivity:\n"
-                    "the value of P_dyn ({}) is less than 1e-7.\n".format(
+                    "the value of P_dyn ({}) is less than 1e-9.\n".format(
                         P_dyn[j],
                     )
                 )
