@@ -337,44 +337,50 @@ class Diagnostic(Previous):
 
     def compute_diagnostic_vos(
         self,
-        key=None,
+        key_diag=None,
+        key_cam=None,
         key_mesh=None,
-        # parameters
+        config=None,
+        # sampling
         res_RZ=None,
         res_phi=None,
         res_lamb=None,
         res_rock_curve=None,
         n0=None,
         n1=None,
-        check=None,
+        # margins
         margin_poly=None,
         # raytracing
         visibility=None,
         # spectro-only
         rocking_curve_fw=None,
+        rocking_curve_max=None,
         # equivalent aperture
         add_points=None,
         convex=None,
         # bool
+        check=None,
         verb=None,
         debug=None,
-        plot=None,
         store=None,
         replace_poly=None,
         timing=None,
     ):
-        """ Compute the etendue of the diagnostic (per pixel)
+        """ Compute the vos of the diagnostic (per pixel)
 
-        Etendue (m2.sr) can be computed analytically or numerically
-        If plot, plot the comparison between all computations
-        If store = 'analytical' or 'numerical', overwrites the diag etendue
+        - poly_margin (0.3) fraction by which the los-estimated vos is widened
+        -store:
+            - if replace_poly, will replace the vos polygon approximation
+            - will store the toroidally-integrated solid angles
 
         """
 
         return _vos.compute_vos(
             coll=self,
-            key_diag=key,
+            key_diag=key_diag,
+            key_cam=key_cam,
             key_mesh=key_mesh,
+            config=config,
             # etendue
             res_RZ=res_RZ,
             res_phi=res_phi,
@@ -382,15 +388,16 @@ class Diagnostic(Previous):
             res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
-            check=check,
+            # margins
             margin_poly=margin_poly,
-            visibility=visibility,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
+            rocking_curve_max=rocking_curve_max,
             # bool
+            visibility=visibility,
+            check=check,
             verb=verb,
             debug=debug,
-            plot=plot,
             store=store,
             replace_poly=replace_poly,
             timing=timing,

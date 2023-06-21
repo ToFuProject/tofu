@@ -477,8 +477,10 @@ def _compute_los(
 
             # verb
             if verb is True:
-                msg = f"\t- '{key_mat}': pixel {ii + 1} / {npix}"
-                msg += f"\t{(mat > 0).sum()} / {mat.size}"
+                msg = (
+                    f"\t- '{key_mat}' for cam '{k0}': pixel {ii + 1} / {npix}"
+                    f"\t{(mat > 0).sum()} / {mat.size}\t\t"
+                )
                 end = '\n' if ii == npix - 1 else '\r'
                 print(msg, flush=True, end=end)
 
@@ -686,8 +688,10 @@ def _compute_vos(
 
             # verb
             if verb is True:
-                msg = f"\t- '{key_mat}': pixel {ii + 1} / {npix}"
-                msg += f"\t{(mat > 0).sum()} / {mat.size}"
+                msg = (
+                    f"\t- '{key_mat}' for cam '{k0}': pixel {ii + 1} / {npix}"
+                    f"\t{(mat > 0).sum()} / {mat.size}\t\t"
+                )
                 end = '\n' if ii == npix - 1 else '\r'
                 print(msg, flush=True, end=end)
 

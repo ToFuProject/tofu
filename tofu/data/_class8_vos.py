@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
+import copy
+
+
 import numpy as np
 import datastock as ds
 
@@ -22,6 +25,7 @@ from . import _class8_vos_spectro as _vos_spectro
 def compute_vos(
     coll=None,
     key_diag=None,
+    key_cam=None,
     key_mesh=None,
     config=None,
     # parameters
@@ -31,9 +35,8 @@ def compute_vos(
     res_rock_curve=None,
     n0=None,
     n1=None,
+    # margins
     margin_poly=None,
-    margin_par=None,
-    margin_perp=None,
     # options
     add_points=None,
     # spectro-only
@@ -45,7 +48,6 @@ def compute_vos(
     check=None,
     verb=None,
     debug=None,
-    plot=None,
     store=None,
     replace_poly=None,
     timing=None,
@@ -67,8 +69,6 @@ def compute_vos(
         res_RZ,
         res_phi,
         res_lamb,
-        margin_par,
-        margin_perp,
         visibility,
         verb,
         debug,
@@ -78,16 +78,15 @@ def compute_vos(
     ) = _check(
         coll=coll,
         key_diag=key_diag,
+        key_cam=key_cam,
         key_mesh=key_mesh,
         res_RZ=res_RZ,
         res_phi=res_phi,
         res_lamb=res_lamb,
-        margin_par=margin_par,
-        margin_perp=margin_perp,
         visibility=visibility,
         verb=verb,
         debug=debug,
-        plot=plot,
+        plot=None,
         store=store,
         timing=timing,
     )
@@ -171,13 +170,13 @@ def compute_vos(
     # prepare optics
 
     dvos = {}
-    for key_cam in dcompute.keys():
+    for k0 in dcompute.keys():
 
             # ------------------
             # call relevant func
 
             (
-                dvos[key_cam],
+                dvos[k0],
                 dt11, dt22,
                 dt111, dt222, dt333,
                 dt1111, dt2222, dt3333, dt4444,
@@ -186,7 +185,7 @@ def compute_vos(
                 coll=coll,
                 doptics=doptics,
                 key_diag=key_diag,
-                key_cam=key_cam,
+                key_cam=k0,
                 dsamp=dsamp,
                 # inputs sample points
                 x0u=x0u,
@@ -226,12 +225,12 @@ def compute_vos(
                 dt22=dt22,
             )
 
-            dvos[key_cam]['keym'] = key_mesh
-            dvos[key_cam]['res_RZ'] = res_RZ
-            dvos[key_cam]['res_phi'] = res_phi
+            dvos[k0]['keym'] = key_mesh
+            dvos[k0]['res_RZ'] = res_RZ
+            dvos[k0]['res_phi'] = res_phi
             if spectro is True:
-                dvos[key_cam]['res_lamb'] = res_lamb
-                dvos[key_cam]['res_rock_curve'] = res_rock_curve
+                dvos[k0]['res_lamb'] = res_lamb
+                dvos[k0]['res_rock_curve'] = res_rock_curve
 
     # timing
     if timing:
@@ -274,12 +273,11 @@ def compute_vos(
 def _check(
     coll=None,
     key_diag=None,
+    key_cam=None,
     key_mesh=None,
     res_RZ=None,
     res_phi=None,
     res_lamb=None,
-    margin_par=None,
-    margin_perp=None,
     visibility=None,
     check=None,
     verb=None,
@@ -308,6 +306,25 @@ def _check(
 
     # doptics
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+
+    # ------------
+    # key_cam
+
+    lok = [k0 for k0, v0 in doptics.items() if len(v0['optics']) > 0]
+    if isinstance(key_cam, str):
+        key_cam = [key_cam]
+    key_cam = ds._generic_check._check_var_iter(
+        key_cam, 'key_cam',
+        types=list,
+        types_iter=str,
+        allowed=lok,
+    )
+
+    # -----------------
+    # doptics, dcompute
+
+    doptics = {k0: v0 for k0, v0 in doptics.items() if k0 in key_cam}
+
     dcompute = {
         k0: {'compute': len(v0['optics']) > 0}
         for k0, v0 in doptics.items()
@@ -371,6 +388,11 @@ def _check(
 
     if res_RZ is None:
         res_RZ = 0.01
+    if np.isscalar(res_RZ):
+        res_RZ = np.r_[res_RZ, res_RZ]
+    res_RZ = np.atleast_1d(res_RZ).ravel().astype(float)
+    assert res_RZ.size == 2
+    res_RZ = res_RZ.tolist()
 
     # -----------
     # res_phi
@@ -383,24 +405,6 @@ def _check(
 
     if res_lamb is None:
         res_lamb = 0.01e-10
-
-    # -----------
-    # margin_par
-
-    margin_par = ds._generic_check._check_var(
-        margin_par, 'margin_par',
-        types=float,
-        default=0.05,
-    )
-
-    # -----------
-    # margin_perp
-
-    margin_perp = ds._generic_check._check_var(
-        margin_perp, 'margin_perp',
-        types=float,
-        default=0.05,
-    )
 
     # -----------
     # visibility
@@ -470,8 +474,6 @@ def _check(
         res_RZ,
         res_phi,
         res_lamb,
-        margin_par,
-        margin_perp,
         visibility,
         verb,
         debug,
@@ -712,6 +714,9 @@ def _check_get_dvos(
                     'units': coll.ddata[dop['sang']]['units'],
                 },
             }
+
+    else:
+        dvos = copy.deepcopy(dvos)
 
     # ------------------
     # check keys of dvos
