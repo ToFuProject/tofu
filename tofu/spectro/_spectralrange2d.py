@@ -363,6 +363,9 @@ def _compute(
 
     if dcam is not None:
         ninx, niny = dcam['nin'][:2]
+        ninn = np.sqrt(ninx**2 + niny**2)
+        ninx, niny = ninx/ninn, niny/ninn
+        
         sca_up = (
             (dcam['cent'][0] - crystx) * ninx
             + (dcam['cent'][1] - crysty) * niny
@@ -450,6 +453,8 @@ def _plot(
     if dcam is not None:
         ninx, niny = dcam['nin'][:2]
         e0x, e0y = -niny, ninx
+        e0n = np.sqrt(e0x**2 + e0y**2)
+        e0x, e0y = e0x/e0n, e0y/e0n
         clen = dcam['length']
         camx = dcam['cent'][0] + 0.5*clen*np.r_[-1, 1] * e0x
         camy = dcam['cent'][1] + 0.5*clen*np.r_[-1, 1] * e0y
