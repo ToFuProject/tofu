@@ -352,8 +352,8 @@ def _compute(
     # ----------------------
     # compute spectral range
 
-    # get local bragg angle - top and bottom
-    bragg = np.pi/2. - np.arccos(sca)
+    # get local bragg angle - top and bottom    
+    bragg = np.arccos(sca) - np.pi/2.
 
     # lamb
     lamb = d2 * np.sin(bragg)
