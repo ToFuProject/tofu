@@ -76,6 +76,9 @@ def spectral_range_2d(
     # -------------
     # format output
 
+    lamb_min = np.nanmin(lamb, axis=0)
+    lamb_max = np.nanmax(lamb, axis=0)
+
     dout = dict(din)
     dout.update({
         'beta_max': beta_max,
@@ -84,9 +87,9 @@ def spectral_range_2d(
         'endx': endx,
         'endy': endy,
         'lamb': lamb,
-        'lamb_min': np.nanmin(lamb, axis=0),
-        'lamb_max': np.nanmax(lamb, axis=0),
-        'Dlamb': np.nanmax(lamb, axis=0) - np.nanmin(lamb, axis=0),
+        'lamb_min': lamb_min,
+        'lamb_max': lamb_max,
+        'Dlamb': lamb_max - lamb_min,
     })
 
     # ---------
@@ -366,13 +369,6 @@ def _compute(
         endx[ind] = np.nan
         endy[ind] = np.nan
         lamb[ind] = np.nan
-
-    # lamb min, max
-    lambm = np.nanmin(lamb, axis=0)
-    lambM = np.nanmax(lamb, axis=0)
-
-    # Dlamb
-    Dlamb = np.nanmax(lamb, axis=0) - np.nanmin(lamb, axis=0)
 
     # -----------------
     # impacts on camera
