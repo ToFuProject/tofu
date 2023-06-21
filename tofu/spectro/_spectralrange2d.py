@@ -42,6 +42,21 @@ def spectral_range_2d(
     pfe_fig=None,
     pfe_npz=None,
 ):
+    
+    """
+    
+    lamb0: target wavelength
+    bragg0: target bragg angle
+    rcurve: radii of curvature
+    
+    ap: point source position
+    xx: distance between point source and crystals
+    dist: lenght of rays after reflexion
+    beta_max: maximum angular opening from point source (optionnal)
+    npts: nb of rays from point source to crystals
+    length: crystal length
+
+    """
 
     # --------
     # check
@@ -201,7 +216,7 @@ def _check(
             if not c0:
                 msg = (
                     f"Arg '{k0}' must be finite and positive\n"
-                    "Provided: {v0}"
+                    f"Provided: {v0}"
                 )
                 raise Exception(msg)
 
