@@ -78,6 +78,7 @@ def spectral_range_2d(
 
     dout = dict(din)
     dout.update({
+        'beta_max': beta_max,
         'crystx': crystx,
         'crysty': crysty,
         'endx': endx,
@@ -391,12 +392,14 @@ def _compute(
         ptsx = crystx + kk * vrx
         ptsy = crysty + kk * vry
 
-        e0x = -dcam['nin'][1]
-        e0y = dcam['nin'][0]
-        dcam['x0'] = (
-            (ptsx - dcam['cent'][0]) * e0x
-            + (ptsy - dcam['cent'][1]) * e0y
-        )
+        e0x = -niny
+        e0y = ninx
+        x0 = (ptsx - dcam['cent'][0]) * e0x + (ptsy - dcam['cent'][1]) * e0y
+        
+        if beta_max is not None:
+            x0[ind] = np.nan
+            
+        dcam['x0'] = x0
 
     return crystx, crysty, endx, endy, lamb
 
@@ -416,6 +419,7 @@ def _plot(
     length=None,
     rcurve=None,
     dist=None,
+    beta_max=None,
     # computed
     ap=None,
     crystx=None,
@@ -467,6 +471,8 @@ def _plot(
     # dcam
     if dcam is not None:
         ninx, niny = dcam['nin'][:2]
+        ninn = np.sqrt(ninx**2 + niny**2)
+        ninx, niny = ninx/ninn, niny/ninn
         e0x, e0y = -niny, ninx
         e0n = np.sqrt(e0x**2 + e0y**2)
         e0x, e0y = e0x/e0n, e0y/e0n
@@ -521,6 +527,11 @@ def _plot(
                 lw=1,
                 marker='None',
                 c=color,
+                label=(
+                    f"r = {rcurve[ii]} m\t"
+                    + r"$\lambda_0$" + f" = {lamb0[ii]*1e10:5.3f} AA\t"
+                    + r"$\beta_0$" + f" = {bragg0[ii]*180/np.pi:5.2f} deg"
+                ),
             )
 
         kax = 'cam'
@@ -558,6 +569,35 @@ def _plot(
                 verticalalignment='top',
             )
 
+    # ---------------
+    # plot input data
+
+    kax = 'hor'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.legend(fontsize=12)
+        
+    if beta_max is None:
+        beta_str = 'None'
+    else:
+        beta_str = f'{beta_max*180/np.pi:5.3} deg'
+    
+    msg = (
+        f"beta_max = {beta_str}\n"
+    )
+
+    ax.text(
+        0.8,
+        0.4,
+        msg,
+        color='k',
+        size=10,
+        horizontalalignment='center',
+        verticalalignment='top',
+        transform=ax.figure.transFigure,
+    )
+
+
     # ------------
     # camera
 
@@ -579,10 +619,8 @@ def _plot(
         kax = 'cam'
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
-
             ax.axvline(-0.5*dcam['length'], c='k', ls='-', lw=1.)
             ax.axvline(0.5*dcam['length'], c='k', ls='-', lw=1.)
-
             ax.set_ylim(0, size + 1)
 
     # ----------
