@@ -373,6 +373,7 @@ def plot_inversion(
     los_res=None,
     # ref vector specifier
     dref_vector=None,
+    ref_vector_strategy=None,
     # interactivity
     color_dict=None,
     nlos=None,
@@ -430,6 +431,7 @@ def plot_inversion(
         # ref vectors
         dref_vectorZ=dref_vector,
         dref_vectorU=None,          # U not handled yet
+        ref_vector_strategy=ref_vector_strategy,
         # figure
         vmin=vmin,
         vmax=vmax,
@@ -631,7 +633,10 @@ def plot_inversion(
             ax = dax[kax]['handle']
 
             nan_los = np.full((dlos_n[k0],), np.nan)
-            nan_vos = np.full((dvos_n[k0],), np.nan)
+            if dvos_n is None:
+                nan_vos = None
+            else:
+                nan_vos = np.full((dvos_n[k0],), np.nan)
 
             _class8_plot._add_camera_los_cross(
                 coll2=coll2,
