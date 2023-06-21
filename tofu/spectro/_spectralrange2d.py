@@ -90,7 +90,13 @@ def spectral_range_2d(
     if save is True:
         np.savez(pfe_npz, **dout)
 
-    return dout
+    # ---------
+    # return 
+    
+    if plot is True:
+        return dout, dax
+    else:
+        return dout
 
 
 # #################################################################
