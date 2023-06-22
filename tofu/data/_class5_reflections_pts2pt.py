@@ -271,7 +271,7 @@ def _get_pts2pt(
                     nix*nin[0] + niy*nin[1] + niz*nin[2],
                 )
 
-                # ------ DEBUG -----------------------------------
+                # ------ DEBUG -----------------------------
                 if debug and ii == 0:
                     _debug_new(**locals())
                 # -----------------------------------------
@@ -317,6 +317,12 @@ def _get_pts2pt(
         rc = dgeom['curve_r'][0]
         rcs = np.sign(rc)
         rca = np.abs(rc)
+        
+        # pick solver
+        if rcs > 0:
+            solver = root_sph_concave
+        else:
+            solver = root_sph_convex
 
         def pts2pt(
             pt_x=None,
@@ -339,6 +345,7 @@ def _get_pts2pt(
             e1=dgeom['e1'],
             # solving
             nk=None,
+            solver=solver,
             # return
             strict=None,
             return_xyz=None,
@@ -358,14 +365,22 @@ def _get_pts2pt(
 
             # get parameters for k
             A = np.r_[pt_x, pt_y, pt_z]
+            B = np.r_[pts_x[0], pts_y[0], pts_z[0]]
             Dx, Dy, Dz, phi, dtheta = _common_prepare(nb=pts_x.size)
 
-             # defining zones for kk (point , plane unit vector)
-            epm = np.cos(phimax)*e0 + rcs * np.sin(phimax)*(-nin)
-            epM = np.cos(phimax)*e0 - rcs * np.sin(phimax)*(-nin)
+            if strict:
+                phitot = phimax
+                dthetatot = dthetamax                
+            else:
+                phitot = phimax*(1. + 0.01)
+                dthetatot = dthetamax*(1. + 0.01)
 
-            etm = np.cos(dthetamax)*e1 + rcs * np.sin(dthetamax)*(-nin)
-            etM = np.cos(dthetamax)*e1 - rcs * np.sin(dthetamax)*(-nin)
+             # defining zones for kk (point , plane unit vector)
+            epm = np.cos(phitot)*e0 + rcs * np.sin(phitot)*(-nin)
+            epM = np.cos(phitot)*e0 - rcs * np.sin(phitot)*(-nin)
+
+            etm = np.cos(dthetatot)*e1 + rcs * np.sin(dthetatot)*(-nin)
+            etM = np.cos(dthetatot)*e1 - rcs * np.sin(dthetatot)*(-nin)
 
             lzones = [
                 (
@@ -386,22 +401,31 @@ def _get_pts2pt(
 
             # loop on pts
             for ii in range(pts_x.size):
-                B = np.r_[pts_x[ii], pts_y[ii], pts_z[ii]]
+                B[:] = pts_x[ii], pts_y[ii], pts_z[ii]
                 AB = B - A
                 eAB = AB / np.linalg.norm(AB)
-
-                # compute kmin, kmax
-                kk = _kminmax_plane(
+                
+                # solver for root finding
+                roots = solver(
+                    lzones=lzones,
+                    # points
+                    O=O,
                     A=A,
                     B=B,
-                    lzones=lzones,
+                    # radius
+                    rcs=rcs,
+                    rca=rca,
+                    # unit vectors
                     nin=nin,
+                    # options
                     nk=nk,
                     # timing
                     dt=dt,
+                    # debug
+                    debug=debug and ii == 0,
                 )
-
-                if kk is None:
+                
+                if roots is None:
                     continue
 
                 # nin, xx, D
@@ -412,63 +436,7 @@ def _get_pts2pt(
                     O=O,
                     Ax=pt_x, Ay=pt_y, Az=pt_z,
                     Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                    kk=kk,
-                    rcs=rcs,
-                    rca=rca,
-                    nin=nin,
-                )
-
-                # derive DAn, DB, DBn, DA
-                eq = _get_DADB(
-                    Ax=pt_x, Ay=pt_y, Az=pt_z,
-                    Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                    Dx=Dxi, Dy=Dyi, Dz=Dzi,
-                    nix=nix, niy=niy, niz=niz,
-                )
-                iok = np.isfinite(eq)
-                kk = kk[iok]
-                eq = eq[iok]
-
-                # find indices of sign changes
-                i0 = (eq[:-1] * eq[1:] < 0).nonzero()[0]
-                if len(i0) == 1:
-                    # indices used for linear fit
-                    ind = np.arange(max(0, i0-10), min(i0+10, kk.size))
-
-                    # linear least square fit
-                    xx_m = np.mean(kk[ind])
-                    yy_m = np.mean(eq[ind])
-                    xx2_m = np.mean(kk[ind]**2)
-                    xy_m = np.mean(kk[ind] * eq[ind])
-
-                    # coefs
-                    aa = (xy_m - xx_m*yy_m) / (xx2_m - xx_m**2)
-                    bb = yy_m - aa * xx_m
-
-                    # fit and threshold
-                    line = aa*kk[ind] + bb
-                    thr = abs(line[0] - line[-1]) * 0.02
-                    if np.any(np.abs(eq[ind] - line) > thr):
-                        continue
-                    roots = np.r_[-bb / aa]
-                    # roots = np.r_[
-                    #     kk[i0]
-                    #     - eq[i0]*(kk[i0+1] - kk[i0])
-                    #     / (eq[i0+1] - eq[i0])
-                    # ]
-
-                else:
-                    continue
-
-                # nin, xx, D
-                (
-                    nix, niy, niz,
-                    Dxi, Dyi, Dzi,
-                ) = _get_Dnin_from_k_sph(
-                    O=O,
-                    Ax=pt_x, Ay=pt_y, Az=pt_z,
-                    Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                    kk=roots[0],
+                    kk=roots,
                     rcs=rcs,
                     rca=rca,
                     nin=nin,
@@ -479,6 +447,11 @@ def _get_pts2pt(
                 phii = - rcs * np.arcsin(
                     (nix*e0[0] + niy*e0[1] + niz*e0[2]) / np.cos(dthetai)
                 )
+                
+                # ------ DEBUG -----------------------------
+                if debug and ii == 0:
+                    _debug_new(**locals())
+                # -----------------------------------------
 
                 if strict is True:
                     if np.abs(phii) > phimax or np.abs(dthetai) > dthetamax:
@@ -498,7 +471,7 @@ def _get_pts2pt(
             # TODO : find a way to hanbdle complex (self-intersection polygons)
             # Exceptionally a polygon (xx, theta) can self-intersect
 
-            # return
+            # return            
             if return_xyz and return_x01:
                 return Dx, Dy, Dz, phi, dtheta
             elif return_xyz:
@@ -766,7 +739,7 @@ def _common_prepare(nb=None):
 
 # #################################################################
 # #################################################################
-#           Root finding
+#           Root finding - Cylindrical
 # #################################################################
 
 
@@ -990,6 +963,128 @@ def root_cyl_convex(
         return
     else:
         return roots.root
+
+# #################################################################
+# #################################################################
+#           Root finding - Spherical
+# #################################################################
+
+
+def root_sph_concave(
+    lzones=None,
+    # points
+    O=None,
+    A=None,
+    B=None,
+    # radius
+    rcs=None,
+    rca=None,
+    # unit vectors
+    nin=None,
+    # options
+    nk=None,
+    # nrobust=3,
+    nrobust=10,
+    # timing
+    dt=None,
+    # debug
+    debug=None,
+    # unused
+    **kwdargs,
+):
+
+    # compute kmin, kmax
+    kk = _kminmax_plane(
+        A=A,
+        B=B,
+        lzones=lzones,
+        nin=nin,
+        nk=nk,
+        # timing
+        dt=dt,
+    )
+
+    if kk is None:
+        return
+
+    # nin, xx, D
+    (
+        nix, niy, niz,
+        Dxi, Dyi, Dzi,
+    ) = _get_Dnin_from_k_sph(
+        O=O,
+        Ax=A[0], Ay=A[1], Az=A[2],
+        Bx=B[0], By=B[1], Bz=B[2],
+        kk=kk,
+        rcs=rcs,
+        rca=rca,
+        nin=nin,
+    )
+
+    # derive DAn, DB, DBn, DA
+    eq = _get_DADB(
+        Ax=A[0], Ay=A[1], Az=A[2],
+        Bx=B[0], By=B[1], Bz=B[2],
+        Dx=Dxi, Dy=Dyi, Dz=Dzi,
+        nix=nix, niy=niy, niz=niz,
+    )
+    iok = np.isfinite(eq)
+    kk = kk[iok]
+    eq = eq[iok]
+
+    # find indices of sign changes
+    i0 = (eq[:-1] * eq[1:] < 0).nonzero()[0]
+    if len(i0) == 1:
+        # indices used for fit
+        ind = np.arange(max(0, i0-nrobust), min(i0+nrobust, kk.size))
+        kint = [kk[ind][0], kk[ind][-1]]
+
+        # fit parabola
+        out = npoly.Polynomial.fit(
+            kk[ind],
+            eq[ind],
+            deg=3,
+            domain=kint,
+            window=kint,
+        )
+        
+        # fit
+        line = out(kk[ind])
+            
+        thr = abs(line[0] - line[-1]) * 0.02
+        if np.any(np.abs(eq[ind] - line) > thr):
+            return
+        
+        # roots
+        roots = out.roots()
+        roots = np.real(roots[np.isreal(roots)])
+        roots = [
+            rr for rr in roots
+            if rr >= kint[0] and rr <= kint[1]
+        ]
+    
+    else:
+        return
+
+    # ----------------
+    # debug
+
+    if debug:
+        plt.figure()
+        plt.plot(
+            kk, eq, 'x-k',
+            kk[ind], line, 'o-r',
+            kk[ind], line + thr, '--r',
+            kk[ind], line - thr, '--r',
+            [kk[i0]], [eq[i0]], 'xr',
+        )
+        plt.axhline(0, c='k', ls='--')
+        plt.axvline(roots[0], c='k', ls='--')
+        plt.gca().set_title(f'thr = {thr}')
+        print(kint, roots)
+
+    return roots[0]
+
 
 
 # #################################################################
