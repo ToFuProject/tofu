@@ -284,8 +284,8 @@ def _get_ptsvect(
             rcs=rcs,
             rca=rca,
             # limits
-            dthetamax=dgeom['extenthalf'][0],
-            phimax=dgeom['extenthalf'][1],
+            dthetamax=dgeom['extenthalf'][1],
+            phimax=dgeom['extenthalf'][0],
             # local coordinates
             nin=dgeom['nin'],
             e0=dgeom['e0'],
