@@ -160,10 +160,7 @@ def _check(
         if v0 is None:
             din_basis[k0] = basis_def[k0]
 
-        din_basis[k0] = np.atleast_1d(din_basis[k0]).ravel().astype(float)
-        if din_basis[k0].size != 2:
-            msg = f"Arg '{k0}' must be a 2d array!\nProvided: {din_basis[k0]}"
-            raise Exception(msg)
+        din_basis[k0] = np.atleast_1d(din_basis[k0]).ravel().astype(float)[:2]
 
     # normalize ex
     din_basis['ex'] = din_basis['ex'] / np.linalg.norm(din_basis['ex'])
@@ -226,6 +223,7 @@ def _check(
 
     # ------------
     # add basis
+    
     din.update(din_basis)
 
     # ---------
@@ -233,6 +231,9 @@ def _check(
 
     if npts is None:
         npts = 101
+    npts = int(npts)
+    if npts % 2 == 0:
+        npts += 1
 
     # ---------
     # plot
@@ -287,8 +288,6 @@ def _compute(
     # initialize
 
     size = lamb0.size
-    cx = np.full((size,), np.nan)
-    cy = np.full((size,), np.nan)
 
     crystx = np.full((npts, size), np.nan)
     crysty = np.full((npts, size), np.nan)
@@ -309,25 +308,33 @@ def _compute(
     indc = np.isfinite(rcurve)
 
     # center of curvature
-    cx[indc] = sx[indc] - rcurve[indc] * np.sin(bragg0[indc])
-    cy[indc] = sy[indc] + rcurve[indc] * np.cos(bragg0[indc])
+    ecx = np.sin(bragg0[indc]) * ex[0] - np.cos(bragg0[indc]) * ey[0]
+    ecy = np.sin(bragg0[indc]) * ex[1] - np.cos(bragg0[indc]) * ey[1]
+    ecx_p = -ecy
+    ecy_p = ecx
+    
+    cx = sx[indc] - rcurve[indc] * ecx
+    cy = sy[indc] - rcurve[indc] * ecy
 
     # half angular opening of crystal
     dalpha = 0.5*length[indc] / rcurve[indc]
-    theta = (
-        np.pi/2. - bragg0[None, indc]
-        + dalpha * np.linspace(-1, 1, npts)[:, None]
-    )
+    theta = dalpha * np.linspace(-1, 1, npts)[:, None]
 
     # crystal plotting - curved
-    crystx[:, indc] = cx[None, indc] + rcurve[indc][None, :] * np.cos(theta)
-    crysty[:, indc] = cy[None, indc] - rcurve[indc][None, :] * np.sin(theta)
+    ethetax = np.cos(theta) * ecx[None, :] + np.sin(theta) * ecx_p[None, :]
+    ethetay = np.cos(theta) * ecy[None, :] + np.sin(theta) * ecy_p[None, :]
+    
+    crystx[:, indc] = cx[None, :] + rcurve[indc][None, :] * ethetax
+    crysty[:, indc] = cy[None, :] + rcurve[indc][None, :] * ethetay
 
     # crystal plotting - straight
+    estraightx = np.cos(bragg0)[~indc] * ex[0] + np.sin(bragg0)[~indc] * ey[0]
+    estraighty = np.cos(bragg0)[~indc] * ex[1] + np.sin(bragg0)[~indc] * ey[1]
+    
     ll = 0.5 * length[None, ~indc] * np.linspace(-1, 1, npts)[:, None]
-    crystx[:, ~indc] = sx[None, ~indc] + ll*np.cos(bragg0)[None, ~indc]
-    crysty[:, ~indc] = sy[None, ~indc] + ll*np.sin(bragg0)[None, ~indc]
-
+    crystx[:, ~indc] = sx[None, ~indc] + ll*estraightx[None, :]
+    crysty[:, ~indc] = sy[None, ~indc] + ll*estraighty[None, :]
+    
     # ----------------
     # compute rays
 
@@ -339,10 +346,10 @@ def _compute(
     viy = viy / vin
 
     # local normal vectors
-    vnx[:, indc] = -np.sin(np.pi/2 - theta)
-    vny[:, indc] = np.cos(np.pi/2. - theta)
-    vnx[:, ~indc] = -np.sin(bragg0[None, ~indc])
-    vny[:, ~indc] = np.cos(bragg0[None, ~indc])
+    vnx[:, indc] = -ethetax
+    vny[:, indc] = -ethetay
+    vnx[:, ~indc] = -estraighty
+    vny[:, ~indc] = estraightx
 
     # reflected vectors
     sca = vix*vnx + viy*vny
@@ -364,7 +371,8 @@ def _compute(
 
     # beta_max
     if beta_max is not None:
-        beta = np.arctan2(crysty - ap[1], crystx - ap[0])
+        dvx, dvy = crystx - ap[0], crysty - ap[1]
+        beta = np.arctan2(dvx*ey[0] + dvy*ey[1], dvx*ex[0] + dvy*ex[1])
         ind = np.abs(beta) > beta_max
         endx[ind] = np.nan
         endy[ind] = np.nan
@@ -378,24 +386,29 @@ def _compute(
         ninn = np.sqrt(ninx**2 + niny**2)
         ninx, niny = ninx/ninn, niny/ninn
         
-        sca_up = (
-            (dcam['cent'][0] - crystx) * ninx
-            + (dcam['cent'][1] - crysty) * niny
-        )
-        sca_bot = vrx*ninx + vry*niny
+        ninx_r = ninx * ex[0] + niny * ey[0]
+        niny_r = ninx * ex[1] + niny * ey[1]
+        
+        camx = ap[0] + dcam['cent'][0] * ex[0] + dcam['cent'][1] * ey[0]
+        camy = ap[1] + dcam['cent'][0] * ex[1] + dcam['cent'][1] * ey[1]
+        
+        sca_up = (camx - crystx) * ninx_r + (camy - crysty) * niny_r
+        sca_bot = vrx*ninx_r + vry*niny_r
 
         kk = sca_up / sca_bot
         ptsx = crystx + kk * vrx
         ptsy = crysty + kk * vry
 
-        e0x = -niny
-        e0y = ninx
-        x0 = (ptsx - dcam['cent'][0]) * e0x + (ptsy - dcam['cent'][1]) * e0y
+        e0x = -niny_r
+        e0y = ninx_r
+        x0 = (ptsx - camx) * e0x + (ptsy - camy) * e0y
         
         if beta_max is not None:
             x0[ind] = np.nan
             
         dcam['x0'] = x0
+        dcam['cent_r'] = np.r_[camx, camy]
+        dcam['nin_r'] = np.r_[ninx_r, niny_r]
 
     return crystx, crysty, endx, endy, lamb
 
@@ -466,15 +479,15 @@ def _plot(
 
     # dcam
     if dcam is not None:
-        ninx, niny = dcam['nin'][:2]
+        ninx, niny = dcam['nin_r'][:2]
         ninn = np.sqrt(ninx**2 + niny**2)
         ninx, niny = ninx/ninn, niny/ninn
         e0x, e0y = -niny, ninx
         e0n = np.sqrt(e0x**2 + e0y**2)
         e0x, e0y = e0x/e0n, e0y/e0n
         clen = dcam['length']
-        camx = dcam['cent'][0] + 0.5*clen*np.r_[-1, 1] * e0x
-        camy = dcam['cent'][1] + 0.5*clen*np.r_[-1, 1] * e0y
+        camx = dcam['cent_r'][0] + 0.5*clen*np.r_[-1, 1] * e0x
+        camy = dcam['cent_r'][1] + 0.5*clen*np.r_[-1, 1] * e0y
 
     # --------------
     # prepare figure
