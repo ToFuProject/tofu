@@ -310,7 +310,7 @@ def _get_curved_poly(
         rca = np.abs(rc)
 
         centbis = cent + rc * nin
-        dtheta, psi = outline_x0, outline_x1
+        psi, dtheta = outline_x0, outline_x1
 
         vpsix = np.cos(psi) * (-rcs*nin[0]) + np.sin(psi) * e0[0]
         vpsiy = np.cos(psi) * (-rcs*nin[1]) + np.sin(psi) * e0[1]
