@@ -808,7 +808,7 @@ def _get_equivalent_aperture_spectro(
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             # --- DEBUG ---------
-            # if ij in [7]:
+            # if ij in [4]:
             #     print()
             #     print(f'\t allin, {jj} / {nop_post}')      # DB
             #     print()
@@ -824,7 +824,7 @@ def _get_equivalent_aperture_spectro(
                 # ).contour(0)).T
                 vert = ConvexHull(np.array([p0, p1]).T).vertices
                 # --- DEBUG ---------
-                # if ij in [104]:
+                # if ij in [4]:
                 #     _debug_plot(
                 #         pa0=p0, pa1=p1,
                 #         pb0=p0[vert], pb1=p1[vert],
@@ -834,15 +834,15 @@ def _get_equivalent_aperture_spectro(
                 p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
-            # if ij in [7]:
-            #     _debug_plot(
-            #         p_a=p_a,
-            #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
-            #         pa0=p0,
-            #         pa1=p1,
-            #         ii=ii,
-            #         tit='not all',
-            #     )
+            # if ij in [4]:
+                # _debug_plot(
+                #     p_a=p_a,
+                #     # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
+                #     pa0=p0,
+                #     pa1=p1,
+                #     ii=ii,
+                #     tit='not all',
+                # )
             # ----------------------
 
             # intersection
