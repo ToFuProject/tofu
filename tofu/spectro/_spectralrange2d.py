@@ -76,8 +76,11 @@ def spectral_range_2d(
     # -------------
     # format output
 
-    lamb_min = np.nanmin(lamb, axis=0)
-    lamb_max = np.nanmax(lamb, axis=0)
+    ilamb_min = np.nanargmin(lamb, axis=0)
+    ilamb_max = np.nanargmax(lamb, axis=0)
+    
+    lamb_min = np.array([lamb[imin, ii] for ii, imin in enumerate(ilamb_min)])
+    lamb_max = np.array([lamb[imax, ii] for ii, imax in enumerate(ilamb_max)])
 
     dout = dict(din)
     dout.update({
@@ -87,10 +90,15 @@ def spectral_range_2d(
         'endx': endx,
         'endy': endy,
         'lamb': lamb,
+        'ilamb_min': ilamb_min,
+        'ilamb_max': ilamb_max,
         'lamb_min': lamb_min,
         'lamb_max': lamb_max,
         'Dlamb': lamb_max - lamb_min,
     })
+    
+    if dcam is not None:
+        dout['dcam'] = dcam
 
     # ---------
     # plot
@@ -98,7 +106,6 @@ def spectral_range_2d(
     if plot is True:
         dax = _plot(
             dax=dax,
-            dcam=dcam,
             pfe_fig=pfe_fig,
             **dout,
         )
@@ -435,6 +442,8 @@ def _plot(
     crysty=None,
     endx=None,
     endy=None,
+    ilamb_min=None,
+    ilamb_max=None,
     lamb_min=None,
     lamb_max=None,
     Dlamb=None,
@@ -559,7 +568,7 @@ def _plot(
 
             # lamb min, max
             ax.text(
-                np.nanmin(dcam['x0'][:, ii]),
+                dcam['x0'][ilamb_min[ii], ii],
                 ii + 1 - 0.1,
                 f'{lamb_min[ii]*1e10:2.3} AA',
                 color=color,
@@ -569,7 +578,7 @@ def _plot(
             )
 
             ax.text(
-                np.nanmax(dcam['x0'][:, ii]),
+                dcam['x0'][ilamb_max[ii], ii],
                 ii + 1 - 0.1,
                 f'{lamb_max[ii]*1e10:2.3} AA',
                 color=color,
