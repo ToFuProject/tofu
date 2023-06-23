@@ -22,6 +22,7 @@ from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
 from . import _class8_plane_perp_to_los as _planeperp
 from . import _class8_compute_signal as _compute_signal
+from . import _class8_compute_signal_moments as _signal_moments
 from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
@@ -826,6 +827,36 @@ class Diagnostic(Previous):
             plot=plot,
             dcolor=dcolor,
             dax=dax,
+        )
+
+    # -----------------
+    # data moments
+    # -----------------
+
+    def get_diagnostic_spectro2d_binned_data(
+        self,
+        key=None,
+        key_cam=None,
+        # data to be binned
+        data=None,
+        # binning dimension
+        bin_data=None,
+        bins=None,
+        # plotting
+        plot=None,
+    ):
+
+        return _signal_moments.spectro2d_binned(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            # data to be binned
+            data=data,
+            # binning dimension
+            bin_data=bin_data,
+            bins=bins,
+            # plotting
+            plot=plot,
         )
 
     # -----------------

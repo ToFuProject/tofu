@@ -394,7 +394,7 @@ def _get_ref_bs_spectro(
 
     # -----------
     # prepare
-    
+
     # get ref of integrand
     kref = coll.ddata[key_integrand]['ref']
     wbs = coll._which_bsplines
@@ -404,7 +404,7 @@ def _get_ref_bs_spectro(
         k0 for k0 in kref
         if k0 not in coll.dobj[wbs][key_bs]['ref']
     ]
-    
+
     # If none => error
     if len(lkspectro) == 0:
         msg = (
@@ -430,7 +430,7 @@ def _get_ref_bs_spectro(
             key_ref_spectro = lkspectro[0]
         else:
             pass
-    
+
     # check if bs
     if len(lbs_spectro) == 0:
         pass
@@ -441,7 +441,7 @@ def _get_ref_bs_spectro(
         assert key_ref_spectro == coll.dobj[wbs][key_bs_spectro]['ref'][0]
     else:
         pass
-            
+
     # --------
     # safety check
 
