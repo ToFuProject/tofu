@@ -344,6 +344,48 @@ class Diagnostic(Previous):
             vmax_plane=vmax_plane,
         )
 
+    def plot_diagnostic_solidangle_from_plane(
+        self,
+        dout=None,
+        # plotting
+        indplot=None,
+        dax=None,
+        plot_config=None,
+        fs=None,
+        dmargin=None,
+        vmin_cam0=None,
+        vmax_cam0=None,
+        vmin_cam=None,
+        vmax_cam=None,
+        vmin_cam_lamb=None,
+        vmax_cam_lamb=None,
+        vmin_plane=None,
+        vmax_plane=None,
+    ):
+        """ Creates a plane perpendicular to los
+        compute contribution of each point to the signal
+        """
+
+        return _planeperp._plot(
+            coll=self,
+            # extra
+            indplot=indplot,
+            dax=dax,
+            plot_config=plot_config,
+            fs=fs,
+            dmargin=dmargin,
+            vmin_cam0=vmin_cam0,
+            vmax_cam0=vmax_cam0,
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
+            vmin_cam_lamb=vmin_cam_lamb,
+            vmax_cam_lamb=vmax_cam_lamb,
+            vmin_plane=vmin_plane,
+            vmax_plane=vmax_plane,
+            # dout
+            **dout,
+        )
+
     def compute_diagnostic_vos(
         self,
         key=None,

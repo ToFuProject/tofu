@@ -248,6 +248,8 @@ def main(
     dout.update({
         'key_diag': key_diag,
         'key_cam': key_cam,
+        'is2d': is2d,
+        'spectro': spectro,
         'indch': indch,
         'indref': indref,
         'los_ref': los_ref,
@@ -269,8 +271,6 @@ def main(
     if plot is True:
         _plot(
             coll=coll,
-            is2d=is2d,
-            spectro=spectro,
             # extra
             indplot=indplot,
             dax=dax,
@@ -710,9 +710,9 @@ def _spectro(
 
 def _plot(
     coll=None,
+    # dout
     is2d=None,
     spectro=None,
-    # dout
     key_diag=None,
     key_cam=None,
     indch=None,
