@@ -53,7 +53,7 @@ def main():
     # ------------------------
     # compute synthetic signal
 
-    # _compute_synth_signal(coll) # , ldiag=['diag00'])
+    _compute_synth_signal(coll, ldiag=['d03']) # , ldiag=['diag00'])
 
     # ------------------
     # geometry matrices
