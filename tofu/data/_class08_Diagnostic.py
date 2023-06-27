@@ -682,6 +682,7 @@ class Diagnostic(Previous):
         ref_com=None,
         # signal
         brightness=None,
+        spectral_binning=None,
         # store
         store=None,
         # return
@@ -709,6 +710,7 @@ class Diagnostic(Previous):
             ref_com=ref_com,
             # signal
             brightness=brightness,
+            spectral_binning=spectral_binning,
             # store
             store=store,
             # return

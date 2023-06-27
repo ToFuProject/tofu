@@ -343,15 +343,6 @@ def _compute_signal_check(
         key_ref_spectro = None
         key_bs_spectro = None
 
-    # spectral_binning
-    spectral_binning = ds._generic_check._check_var(
-        spectral_binning, 'spectral_binning',
-        types=bool,
-        default=False,
-    )
-    if not spectro:
-        spectral_binning = False
-
     # val_init
     val_init = ds._generic_check._check_var(
         val_init, 'val_init',
@@ -526,6 +517,31 @@ def _compute_los(
         E_flat = E.ravel()
         dE_flat = dE.ravel()
 
+
+        # --------------------------
+        # optional spectral binning
+
+        defspb = (
+            np.nanmean(dE_flat)
+            > np.nanmean(np.abs(np.diff(coll.ddata[kspect_ref_vect]['data'])))
+        )
+        # spectral_binning
+        spectral_binning = ds._generic_check._check_var(
+            spectral_binning, 'spectral_binning',
+            types=bool,
+            default=defspb,
+        )
+
+        # if spectral binning => add bins of len 2 for temporary storing
+        if spectral_binning is True:
+            ktemp_bin = f'{key_bs_spectro}_temp_bin'
+            coll.add_bins(
+                key=ktemp_bin,
+                edges=[0, 1],
+                units=units_spectro,
+            )
+            ktemp_binc = coll.dobj['bins'][ktemp_bin]['cents'][0]
+
     else:
         dict_E = None
         dict_dE = None
@@ -543,6 +559,7 @@ def _compute_los(
     # ----------------
     # loop on cameras
 
+    key_integrand_interp = str(key_integrand)
     dout = {}
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
     for k0 in key_cam:
@@ -602,8 +619,26 @@ def _compute_los(
             # domain for spectro
 
             if spectro and spectral_binning:
+
+                # add bins for storing
+                coll._ddata[ktemp_binc]['data'] = E_flat[ii]
+                edges = E_flat[ii] + dE_flat[ii] * 0.5 * np.r_[-1, 1]
+                coll._dobj['bins'][ktemp_bin]['edges'] = edges
+
                 # bin spectrally before spatial interpolation
-                coll.binning()
+                kbinned = f"{key_integrand}_bin_{k0}_{ii}"
+                coll.binning(
+                    keys=key_integrand,
+                    ref_key=key_bs_spectro,
+                    bins=ktemp_bin,
+                    verb=False,
+                    store=True,
+                    returnas=False,
+                    key_store=kbinned,
+                )
+
+                domain = None
+                key_integrand_interp = kbinned
 
             elif spectro:
                 ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_flat[0]]))
@@ -614,7 +649,7 @@ def _compute_los(
 
             # datai, units, refi = coll.interpolate(
             douti = coll.interpolate(
-                keys=key_integrand,
+                keys=key_integrand_interp,
                 ref_key=key_bs,
                 x0=R,
                 x1=Z,
@@ -629,13 +664,17 @@ def _compute_los(
                 val_out=np.nan,
                 return_params=False,
                 store=False,
-            )[key_integrand]
+            )[key_integrand_interp]
 
             # ----------------------
             # interpolate spectrally
 
             if spectro:
                 douti['data'] = np.take(douti['data'], 0, axis_spectro)
+
+                if spectral_binning is True:
+                    coll.remove_data(kbinned)
+
                 douti['ref'] = tuple([
                     rr for jj, rr in enumerate(douti['ref'])
                     if jj != axis_spectro
@@ -704,9 +743,13 @@ def _compute_los(
 
         # spectral bins if spectro
         if spectro:
-            sh_dE = [-1 if aa == axis else 1 for aa in range(len(refi))]
-            data *= dE_flat.reshape(sh_dE)
             unitsi = unitsi * units_spectro
+            if spectral_binning is True:
+                pass
+            else:
+                sh_dE = [-1 if aa == axis else 1 for aa in range(len(refi))]
+                data *= dE_flat.reshape(sh_dE)
+
 
         # reshape if 2d
         if is2d:
@@ -729,8 +772,11 @@ def _compute_los(
             'units': unitsi,
         }
 
-    # -----
-    # units
+    # ----------
+    # clean up
+
+    if spectral_binning is True:
+        coll.remove_bins(ktemp_bin)
 
     return dout
 
