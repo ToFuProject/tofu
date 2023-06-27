@@ -56,7 +56,7 @@ def main():
     _compute_synth_signal(
         coll,
         #ldiag=['diag00']),
-        spectral_binning=False,
+        spectral_binning=True,
     )
 
     # ------------------
@@ -723,6 +723,8 @@ def _compute_synth_signal(coll=None, ldiag=None, spectral_binning=None):
             ref_com=ref_com,
             brightness=None,
             spectral_binning=spectral_binning,
+            verb=True,
+            timing=False,
             store=True,
             returnas=False,
         )
