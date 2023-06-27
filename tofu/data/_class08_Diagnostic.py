@@ -685,6 +685,8 @@ class Diagnostic(Previous):
         spectral_binning=None,
         # verb
         verb=None,
+        # timing
+        timing=None,
         # store
         store=None,
         # return
@@ -715,6 +717,8 @@ class Diagnostic(Previous):
             spectral_binning=spectral_binning,
             # verb
             verb=verb,
+            # timing
+            timing=timing,
             # store
             store=store,
             # return
