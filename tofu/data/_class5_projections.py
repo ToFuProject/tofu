@@ -82,29 +82,29 @@ def _get_reflection(
     pts3 = p_a.nPoints() < 3
 
     # ----------- DEBUG ---------------------
-    if ij in [4]:
-        plt.figure()
-        plt.gcf().suptitle(f"ii = {ii}, ij = {ij}, projection on aperture plane\n")
-        plt.plot(
-            np.r_[poly_x0, poly_x0[0]],
-            np.r_[poly_x1, poly_x1[0]],
-            '.-k',
-            p0, p1, 
-            '.-r',
-        )
-        if not pts3:
-            plt.plot(
-                np.array(p_a.contour(0))[:, 0],
-                np.array(p_a.contour(0))[:, 1],
-                '.-b',
-            )
-        
-        msg = (
-            f"all inside: {all_inside}\n"
-            f"npts:  {p_a.nPoints()}"
-        )
-        plt.gca().set_title(msg)
-        print('\n', pa & plg.Polygon(np.array([p0, p1]).T), '\n')
+    # if ij in [4]:
+        # plt.figure()
+        # plt.gcf().suptitle(f"ii = {ii}, ij = {ij}, projection on aperture plane\n")
+        # plt.plot(
+            # np.r_[poly_x0, poly_x0[0]],
+            # np.r_[poly_x1, poly_x1[0]],
+            # '.-k',
+            # p0, p1,
+            # '.-r',
+        # )
+        # if not pts3:
+            # plt.plot(
+                # np.array(p_a.contour(0))[:, 0],
+                # np.array(p_a.contour(0))[:, 1],
+                # '.-b',
+            # )
+
+        # msg = (
+            # f"all inside: {all_inside}\n"
+            # f"npts:  {p_a.nPoints()}"
+        # )
+        # plt.gca().set_title(msg)
+        # print('\n', pa & plg.Polygon(np.array([p0, p1]).T), '\n')
     # -----------------------------------------
 
     # isinside

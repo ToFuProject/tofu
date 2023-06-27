@@ -560,7 +560,7 @@ def _check(
 
     # ----------------------------------------------
     # index of aperture limiting the spectral range
-    
+
     if spectro is True:
         ind_ap_lim_spectral = int(ds._generic_check._check_var(
             ind_ap_lim_spectral, 'ind_ap_lim_spectral',
@@ -740,7 +740,7 @@ def _get_equivalent_aperture_spectro(
     ii=None,
     ij=None,
 ):
-    
+
     # loop on optics before crystal
     for jj in range(nop_pre):
 
