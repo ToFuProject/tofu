@@ -683,6 +683,8 @@ class Diagnostic(Previous):
         # signal
         brightness=None,
         spectral_binning=None,
+        # verb
+        verb=None,
         # store
         store=None,
         # return
@@ -711,6 +713,8 @@ class Diagnostic(Previous):
             # signal
             brightness=brightness,
             spectral_binning=spectral_binning,
+            # verb
+            verb=verb,
             # store
             store=store,
             # return

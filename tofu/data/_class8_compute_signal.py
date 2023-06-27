@@ -131,6 +131,7 @@ def compute_signal(
             ref_com=ref_com,
             brightness=brightness,
             spectral_binning=spectral_binning,
+            verb=verb,
         )
 
     else:
@@ -484,6 +485,7 @@ def _compute_los(
     ref_com=None,
     brightness=None,
     spectral_binning=None,
+    verb=None,
 ):
 
     # -----------------
@@ -579,6 +581,12 @@ def _compute_los(
         shape = None
         for ii in range(ngroup):
 
+            # verb
+            if verb is True:
+                msg = f"\tpix group {ii+1} / {ngroup}"
+                end = "\n" if ii == ngroup - 1 else "\r"
+                print(msg, end=end, flush=True)
+
             # indices
             i0 = ii*groupby
             i1 = min((ii + 1)*groupby, npix)
@@ -631,7 +639,7 @@ def _compute_los(
                     keys=key_integrand,
                     ref_key=key_bs_spectro,
                     bins=ktemp_bin,
-                    verb=False,
+                    verb=verb,
                     store=True,
                     returnas=False,
                     key_store=kbinned,
