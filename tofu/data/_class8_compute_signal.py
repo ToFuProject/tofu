@@ -32,6 +32,7 @@ def compute_signal(
     ref_com=None,
     # signal
     brightness=None,
+    spectral_binning=None,
     # verb
     verb=None,
     # store
@@ -46,7 +47,8 @@ def compute_signal(
 
     (
         key_diag, key_cam, spectro, PHA, is2d,
-        method, mode, groupby, val_init, brightness,
+        method, mode, groupby, val_init,
+        brightness, spectral_binning,
         key_integrand, key_mesh0, key_bs,
         key_ref_spectro, key_bs_spectro,
         verb, store, key,
@@ -63,6 +65,7 @@ def compute_signal(
         val_init=val_init,
         # signal
         brightness=brightness,
+        spectral_binning=spectral_binning,
         # to be integrated
         key_integrand=key_integrand,
         # spectral ref
@@ -127,6 +130,7 @@ def compute_signal(
             val_init=val_init,
             ref_com=ref_com,
             brightness=brightness,
+            spectral_binning=spectral_binning,
         )
 
     else:
@@ -237,6 +241,7 @@ def _compute_signal_check(
     val_init=None,
     # signal
     brightness=None,
+    spectral_binning=None,
     # to be integrated
     key_integrand=None,
     # spectral ref
@@ -338,6 +343,15 @@ def _compute_signal_check(
         key_ref_spectro = None
         key_bs_spectro = None
 
+    # spectral_binning
+    spectral_binning = ds._generic_check._check_var(
+        spectral_binning, 'spectral_binning',
+        types=bool,
+        default=False,
+    )
+    if not spectro:
+        spectral_binning = False
+
     # val_init
     val_init = ds._generic_check._check_var(
         val_init, 'val_init',
@@ -377,7 +391,8 @@ def _compute_signal_check(
 
     return (
         key_diag, key_cam, spectro, PHA, is2d,
-        method, mode, groupby, val_init, brightness,
+        method, mode, groupby, val_init,
+        brightness, spectral_binning,
         key_integrand, key_mesh0, key_bs,
         key_ref_spectro, key_bs_spectro,
         verb, store, key,
@@ -394,7 +409,7 @@ def _get_ref_bs_spectro(
 
     # -----------
     # prepare
-    
+
     # get ref of integrand
     kref = coll.ddata[key_integrand]['ref']
     wbs = coll._which_bsplines
@@ -404,7 +419,7 @@ def _get_ref_bs_spectro(
         k0 for k0 in kref
         if k0 not in coll.dobj[wbs][key_bs]['ref']
     ]
-    
+
     # If none => error
     if len(lkspectro) == 0:
         msg = (
@@ -430,7 +445,7 @@ def _get_ref_bs_spectro(
             key_ref_spectro = lkspectro[0]
         else:
             pass
-    
+
     # check if bs
     if len(lbs_spectro) == 0:
         pass
@@ -441,7 +456,7 @@ def _get_ref_bs_spectro(
         assert key_ref_spectro == coll.dobj[wbs][key_bs_spectro]['ref'][0]
     else:
         pass
-            
+
     # --------
     # safety check
 
@@ -477,6 +492,7 @@ def _compute_los(
     val_init=None,
     ref_com=None,
     brightness=None,
+    spectral_binning=None,
 ):
 
     # -----------------
@@ -585,7 +601,11 @@ def _compute_los(
             # -------------------
             # domain for spectro
 
-            if spectro:
+            if spectro and spectral_binning:
+                # bin spectrally before spatial interpolation
+                coll.binning()
+
+            elif spectro:
                 ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_flat[0]]))
                 domain = {key_ref_spectro: {'ind': np.r_[ind]}}
 
