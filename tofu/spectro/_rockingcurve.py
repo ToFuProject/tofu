@@ -1036,14 +1036,14 @@ def CrystBragg_comp_lattice_spacing(
     # Prepare
     # -------
 
-    #cond0 = crystal in ['Quartz_110', 'Quartz_102']
-    cond0 = din['material'] in ['Quartz']
+    # Crystal structure
+    struct = din['mesh']['type']
 
     # Inter-atomic distances and thermal expansion coefficients
-    if cond0:
-        a0 = din['inter_atomic']['distances']['a0']
+    a0 = din['inter_atomic']['distances']['a0']
+    alpha_a = din['thermal_expansion']['coefs']['alpha_a']
+    if struct == 'hexagonal':
         c0 = din['inter_atomic']['distances']['c0']
-        alpha_a = din['thermal_expansion']['coefs']['alpha_a']
         alpha_c = din['thermal_expansion']['coefs']['alpha_c']
 
     # Temperature changes
@@ -1067,12 +1067,18 @@ def CrystBragg_comp_lattice_spacing(
 
     for ii in range(TD.size):
 
-        if cond0:
-            a1[ii] = a0*(1 + alpha_a*TD[ii])
+        # Calculates thermal expansion
+        a1[ii] = a0*(1 + alpha_a*TD[ii])
+        if struct == 'hexagonal':
             c1[ii] = c0*(1 + alpha_c*TD[ii])
             Volume[ii] = _def.hexa_volume(a1[ii], c1[ii])
             d_atom[ii] = _def.hexa_spacing(
                 ih, ik, il, a1[ii], c1[ii],
+            )
+        elif struct == 'diamond':
+            Volume[ii] = _def.diam_volume(a1[ii])
+            d_atom[ii] = _def.diam_spacing(
+                ih, ik, il, a1[ii]
             )
 
         if d_atom[ii] < lamb/2.:
