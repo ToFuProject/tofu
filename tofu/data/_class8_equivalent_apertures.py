@@ -834,15 +834,15 @@ def _get_equivalent_aperture_spectro(
                 p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
-            # if ij in [4]:
-                # _debug_plot(
-                #     p_a=p_a,
-                #     # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
-                #     pa0=p0,
-                #     pa1=p1,
-                #     ii=ii,
-                #     tit='not all',
-                # )
+            # if ij in [12, 42]:
+            #     _debug_plot(
+            #         p_a=p_a,
+            #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
+            #         pa0=p0,
+            #         pa1=p1,
+            #         ii=ii,
+            #         tit='not all',
+            #     )
             # ----------------------
 
             # intersection
