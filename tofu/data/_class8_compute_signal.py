@@ -386,7 +386,7 @@ def _compute_signal_check(
 
     # timing
     timing = ds._generic_check._check_var(
-        verb, 'verb',
+        timing, 'timing',
         types=bool,
         default=False,
     )
