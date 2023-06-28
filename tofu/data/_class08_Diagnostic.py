@@ -67,6 +67,7 @@ class Diagnostic(Previous):
         # compute
         compute=True,
         add_points=None,
+        convex=None,
         # spectro-only
         rocking_curve_fw=None,
         # others
@@ -107,7 +108,9 @@ class Diagnostic(Previous):
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
+                # equivalent aperture
                 add_points=add_points,
+                convex=convex,
                 # spectro-only
                 rocking_curve_fw=rocking_curve_fw,
                 # bool
