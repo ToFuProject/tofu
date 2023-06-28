@@ -1057,8 +1057,7 @@ def CrystBragg_comp_lattice_spacing(
     # -----------------------
 
     d_atom = np.full((TD.size), np.nan)
-    if cond0:
-        a1, c1 = d_atom.copy(), d_atom.copy()
+    a1, c1 = d_atom.copy(), d_atom.copy()
     Volume, sol = d_atom.copy(), d_atom.copy()
     sin_theta, theta, theta_deg = d_atom.copy(), d_atom.copy(), d_atom.copy()
 
