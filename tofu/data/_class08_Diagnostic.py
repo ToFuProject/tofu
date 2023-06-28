@@ -358,7 +358,6 @@ class Diagnostic(Previous):
         # bool
         verb=None,
         debug=None,
-        plot=None,
         store=None,
         replace_poly=None,
         timing=None,
@@ -390,7 +389,6 @@ class Diagnostic(Previous):
             # bool
             verb=verb,
             debug=debug,
-            plot=plot,
             store=store,
             replace_poly=replace_poly,
             timing=timing,
