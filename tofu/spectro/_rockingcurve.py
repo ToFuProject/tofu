@@ -215,7 +215,7 @@ def compute_rockingcurve(
         f_im[ee] = din['f'+el.lower()+'_im'](lamb)
 
         # Loop over temperature
-        for ii range(sol.size):
+        for ii in range(sol.size):
             # Interpolates zeroth order scat. factor
             f_re[ee,ii] = din['f'+el.lower()+'_re'](lamb,sol[ii])
 
