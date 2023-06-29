@@ -145,21 +145,24 @@ _DCRYST_MAT = {
         },
         'sin_theta_lambda': {
             'Ge': np.r_[
-                0., 0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7,
-                0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5
-            ], # *1e10,
+                0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 
+                0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 
+                1.3, 1.4, 1.5
+            ], # [1/AA],
             'sources': 
-                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985), Table 3.3.1A',
         },
         'atomic_scattering': {
             'factors': {
-                'Ge': np.r_[32., 29.534, 25.567, 23.791, 22.136,
-                    19.047, 16.227, 13.770, 11.745, 10.151,
-                    8.937, 8.028, 7.348, 6.830, 6.419,
-                    6.076, 5.774]
+                'Ge': np.r_[
+                    32.0, 31.28, 29.52, 27.48, 25.53, 23.76,
+                    22.11, 20.54, 19.02, 16.19, 13.72, 11.68,
+                    10.08, 8.87, 7.96, 7.29, 6.77, 6.37, 
+                    6.02, 5.72
+                ]
             },
             'sources': 
-                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985), Table 3.3.1A',
         },
     },
 }
@@ -463,15 +466,42 @@ def _atomic_coefs_factor_Germanium(
     v0=None,
 ):
 
+    # Useful constant
+    import scipy.constants as cnt
+    hc = cnt.h*cnt.c/cnt.e/1e3*1e10 # [keV*AA]
+
+    # Charge of Germanium
     Zge = v0['atoms_Z']
+
+    # Density of Germanium
+    rho_Ge = 5.307 # [g/cm^3]
+
+    # Data file for anomalous corrections to atomic scattering factor & attenuation
+    # From NIST X-ray Form Factor, Attenuation, and Scattering Tables
+    import os
+    table_path = os.path.join(
+        os.path.dirname(__file__),
+        'Ge_AtomicScatteringFactors_NIST.txt'
+        )
+
+    tables = np.loadtxt(table_path)
+    print('bbb')
+    print(tables.shape)
+
+    # Table values
+    E_NIST  = tables[:,0] # [keV]
+    f1_NIST = tables[:,1] # [e/atom]
+    f2_NIST = tables[:,2] # [e/atom]
+    mu_NIST = tables[:,5] *rho_Ge # [1/cm]
 
     # -----------------------------------
     # linear atomic absorption coefficients 'mu'
-    # From W. Zachariasen, Theory of X-ray Diffraction in Crystals
-    # (Wiley, New York, 1945)
+
+    # Interpolates NIST attenuation values
+    interp_ge_mu = scipy.interpolate.interp1d(E_NIST, mu_NIST)
 
     def mu_ge(lamb, Zge=Zge):
-        return 0
+        return interp_ge_mu(hc/lamb) # [1/cm]
 
     # store in dict
     dcryst_mat[k0]['mu'] = mu_ge
@@ -479,21 +509,23 @@ def _atomic_coefs_factor_Germanium(
     # ----------------------------
     # Atomic scattering factor 'f'
 
-    # Same values for different h,k,l ???????
+    # Same values for different h,k,l (only energy-dependent)
     sol_ge = v0['sin_theta_lambda']['Ge']
     asf_ge = v0['atomic_scattering']['factors']['Ge']
-    interp_ge = scipy.interpolate.interp1d(sol_ge, asf_ge)
+    interp_ge_f0 = scipy.interpolate.interp1d(sol_ge, asf_ge)
 
-    def dfge_re(lamb):
-        #return 0.1335*lamb - 6e-3
-        return 0
+    # Interpolates NIST scattering factor corrections
+    interp_ge_f1 = scipy.interpolate.interp1d(E_NIST, f1_NIST)
+    interp_ge_f2 = scipy.interpolate.interp1d(E_NIST, f2_NIST)
 
-    def fge_re(lamb, sol, dfge_re=dfge_re, interp_ge=interp_ge):
-        return interp_ge(sol) + dfge_re(lamb)
+    def dfge_re(lamb, Zge=Zge):
+        return interp_ge_f1(hc/lamb) - Zge
 
-    def fge_im(lamb, Zge=Zge, mu_ge=mu_ge):
-        #return 5.936e-4*Zsi*(mu_si(lamb)/lamb)
-        return 0
+    def fge_re(lamb, sol, dfge_re=dfge_re, interp_ge_f0=interp_ge_f0):
+        return interp_ge_f0(sol) + dfge_re(lamb)
+
+    def fge_im(lamb):
+        return interp_ge_f2(hc/lamb)
 
 
     # store in dict
