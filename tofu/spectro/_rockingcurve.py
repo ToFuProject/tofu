@@ -195,13 +195,13 @@ def compute_rockingcurve(
 
     # Intializes matrices
     f_re = np.full((nele, sol.size), np.nan) # dim(elements, temp), zeroth order scattering
-    f_im = np.full((nele), np.nan) # dim(elements), absorption corrrection
-    df_re = np.full((nele), np.nan) # dim(elements), scattering correction
+    f_im = np.full((nele), np.nan) # dim(elements,), absorption corrrection
+    df_re = np.full((nele), np.nan) # dim(elements,), scattering correction
 
     F_re1 = np.full((nele, sol.size), np.nan) # dim(elements, temp), structure factore component
     F_re2 = np.full((nele, sol.size), np.nan) # dim(elements, temp), structure factore component
-    F_im1 = np.full((sol.size), np.nan) # dim(temp,), structure factore component
-    F_im2 = np.full((sol.size), np.nan) # dim(temp,), structure factore component
+    F_im1 = np.full((nele), np.nan) # dim(elements,), structure factore component
+    F_im2 = np.full((nele), np.nan) # dim(elements,), structure factore component
 
     # Loop over elements
     for ee, el in enumerate(din['atoms']):
@@ -254,8 +254,8 @@ def compute_rockingcurve(
     kk = Fmod.copy()
     rek = Fmod.copy()
     psi_re = Fmod.copy()
-    psi0_dre = np.ful((sol.size), 0)
-    psi0_im = np.ful((sol.size), 0)
+    psi0_dre = np.zeros(sol.size)
+    psi0_im = np.zeros(sol.size)
 
     for ii in range(sol.size):
         # Expression of the Fourier coef. psi_H
