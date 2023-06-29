@@ -183,124 +183,126 @@ def compute_rockingcurve(
         therm_exp=therm_exp,
     )
 
-    #cond0 = crystal in ['Quartz_110', 'Quartz_102']
-    cond0 = din['material'] in ['Quartz']
-    if cond0:
 
-        # Calculation of the structure factor
-        # -----------------------------------
+    # Calculation of the structure factor
+    # -----------------------------------
 
-        # Atomic absorption coefficient
-        mu = din['mu'](lamb)
+    # Atomic absorption coefficient
+    mu = din['mu'](lamb)
 
+    # Number of species in crystal
+    nele = len(din['atoms'])
+
+    # Intializes matrices
+    f_re = np.full((nele, sol.size), np.nan) # dim(elements, temp), zeroth order scattering
+    f_im = np.full((nele), np.nan) # dim(elements), absorption corrrection
+    df_re = np.full((nele), np.nan) # dim(elements), scattering correction
+
+    F_re1 = np.full((nele, sol.size), np.nan) # dim(elements, temp), structure factore component
+    F_re2 = np.full((nele, sol.size), np.nan) # dim(elements, temp), structure factore component
+    F_im1 = np.full((sol.size), np.nan) # dim(temp,), structure factore component
+    F_im2 = np.full((sol.size), np.nan) # dim(temp,), structure factore component
+
+    # Loop over elements
+    for ee, el in enumerate(din['atoms']):
         # Atomic scattering factor ("f") in function of sol
         # ("_re") for the real part and ("_im") for the imaginary part
-        fsi_re = np.full((sol.size), np.nan)
-        fo_re = np.full((sol.size), np.nan)
 
-        dfsi_re = din['dfsi_re'](lamb)
-        dfo_re = din['dfo_re'](lamb)
-        for ii in range(sol.size):
-            fsi_re[ii] = din['fsi_re'](lamb, sol[ii])
-            fo_re[ii] = din['fo_re'](lamb, sol[ii])
-        fsi_im = din['fsi_im'](lamb)
-        fo_im = din['fo_im'](lamb)
+        # Interpolates scat. correction
+        df_re[ee] = din['df'+el.lower() + '_re'](lamb)
+
+        # Interpolates abs. corrction
+        f_im[ee] = din['f'+el.lower()+'_im'](lamb)
+
+        # Loop over temperature
+        for ii range(sol.size):
+            # Interpolates zeroth order scat. factor
+            f_re[ee,ii] = din['f'+el.lower()+'_re'](lamb,sol[ii])
 
         # Structure factor ("F") for (hkl) reflection
         # xsi and ih have already been defined with din
-        phasesi = din['phases']['Si']
-        phaseo = din['phases']['O']
 
-        Fsi_re1 = np.full((sol.size), np.nan)
-        Fsi_re2 = Fsi_re1.copy()
-        Fo_re1 = Fsi_re1.copy()
-        Fo_re2 = Fsi_re1.copy()
+        # Atom lattice position, dot(s, r_atom)
+        phase = din['phases'][el] # dim(atoms,)
 
+        # Calculates \sum_atom f_atom * exp(1j * 2pi * dot(s, r_atom) )
+        # Loop over temp.
         for ii in range(sol.size):
-            Fsi_re1[ii] = np.sum(fsi_re[ii]*np.cos(2*np.pi*phasesi))
-            Fsi_re2[ii] = np.sum(fsi_re[ii]*np.sin(2*np.pi*phasesi))
-            Fo_re1[ii] = np.sum(fo_re[ii]*np.cos(2*np.pi*phaseo))
-            Fo_re2[ii] = np.sum(fo_re[ii]*np.sin(2*np.pi*phaseo))
+            F_re1[ee,ii] = np.sum(f_re[ee,ii]*np.cos(2*np.pi*phase))
+            F_re2[ee,ii] = np.sum(f_re[ee,ii]*np.sin(2*np.pi*phase))
 
-        Fsi_im1 = np.sum(fsi_im*np.cos(2*np.pi*phasesi))
-        Fsi_im2 = np.sum(fsi_im*np.sin(2*np.pi*phasesi))
-        Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))
-        Fo_im2 = np.sum(fo_im*np.sin(2*np.pi*phaseo))
+        F_im1[ee] = np.sum(f_im[ee]*np.cos(2*np.pi*phase))
+        F_im2[ee] = np.sum(f_im[ee]*np.sin(2*np.pi*phase))
 
-        F_re_cos = np.full((sol.size), np.nan)
-        F_re_sin = F_re_cos.copy()
+    # Sums structure factor compenents over species 
+    F_re_cos = np.sum(F_re1, axis=0) # dim(temp,)
+    F_re_sin = np.sum(F_re2, axis=0) # dim(temp,)
 
-        for ii in range(sol.size):
-            F_re_cos[ii] = Fsi_re1[ii] + Fo_re1[ii]
-            F_re_sin[ii] = Fsi_re2[ii] + Fo_re2[ii]
+    F_im_cos = np.sum(F_im1, axis=0) # dim()
+    F_im_sin = np.sum(F_im2, axis=0) # dim()
 
-        F_im_cos = Fsi_im1 + Fo_im1
-        F_im_sin = Fsi_im2 + Fo_im2
+    # Modulus
+    F_re = np.sqrt(F_re_cos**2 + F_re_sin**2) # dim(temp,)
+    F_im = np.sqrt(F_im_cos**2 + F_im_sin**2) # dim()
 
-        F_re = np.full((sol.size), np.nan)
 
-        for ii in range(sol.size):
-            F_re[ii] = np.sqrt(F_re_cos[ii]**2 + F_re_sin[ii]**2)
+    # Calculation of Fourier coefficients of polarization
+    # ---------------------------------------------------
 
-        F_im = np.sqrt(F_im_cos**2 + F_im_sin**2)
+    Fmod = np.full((sol.size), np.nan)
+    Fbmod = Fmod.copy()
+    kk = Fmod.copy()
+    rek = Fmod.copy()
+    psi_re = Fmod.copy()
+    psi0_dre = np.ful((sol.size), 0)
+    psi0_im = np.ful((sol.size), 0)
 
-        # Calculation of Fourier coefficients of polarization
-        # ---------------------------------------------------
-
-        Nsi = din['mesh']['positions']['Si']['N']
-        No = din['mesh']['positions']['O']['N']
-        Zsi = din['atoms_Z'][0]
-        Zo = din['atoms_Z'][1]
-
-        Fmod = np.full((sol.size), np.nan)
-        Fbmod = Fmod.copy()
-        kk = Fmod.copy()
-        rek = Fmod.copy()
-        psi_re = Fmod.copy()
-        psi0_dre = Fmod.copy()
-        psi0_im = Fmod.copy()
-
-        for ii in range(sol.size):
-            # Expression of the Fourier coef. psi_H
-            Fmod[ii] = np.sqrt(
-                F_re[ii]**2 + F_im**2 - 2.*(
-                    F_re_cos[ii]*F_im_sin - F_im_cos*F_re_sin[ii]
-                )
+    for ii in range(sol.size):
+        # Expression of the Fourier coef. psi_H
+        Fmod[ii] = np.sqrt(
+            F_re[ii]**2 + F_im**2 - 2.*(
+                F_re_cos[ii]*F_im_sin - F_im_cos*F_re_sin[ii]
             )
-            # psi_-H equivalent to (-ih, -ik, -il)
-            Fbmod[ii] = np.sqrt(
-                F_re[ii]**2 + F_im**2 - 2.*(
-                    F_re_sin[ii]*F_im_cos - F_re_cos[ii]*F_im_sin
-                )
+        )
+        # psi_-H equivalent to (-ih, -ik, -il)
+        Fbmod[ii] = np.sqrt(
+            F_re[ii]**2 + F_im**2 - 2.*(
+                F_re_sin[ii]*F_im_cos - F_re_cos[ii]*F_im_sin
             )
-            if Fmod[ii] == 0.:
-                Fmod[ii] == 1e-30
-            if Fbmod[ii] == 0.:
-                Fbmod[ii] == 1e-30
+        )
+        if Fmod[ii] == 0.:
+            Fmod[ii] == 1e-30
+        if Fbmod[ii] == 0.:
+            Fbmod[ii] == 1e-30
 
-            # Ratio imaginary part and real part of the structure factor
-            kk[ii] = F_im / F_re[ii]
+        # Ratio imaginary part and real part of the structure factor
+        kk[ii] = F_im / F_re[ii]
 
-            # Real part of kk
-            rek[ii] = (
-                (F_re_cos[ii]*F_im_cos + F_re_sin[ii]*F_im_sin)
-                / (F_re[ii]**2.)
-            )
+        # Real part of kk
+        rek[ii] = (
+            (F_re_cos[ii]*F_im_cos + F_re_sin[ii]*F_im_sin)
+            / (F_re[ii]**2.)
+        )
 
-            # Real part of psi_H
-            psi_re[ii] = (re*(lamb**2)*F_re[ii])/(np.pi*Volume[ii])
+        # Real part of psi_H
+        psi_re[ii] = (re*(lamb**2)*F_re[ii])/(np.pi*Volume[ii])
 
+        # Loop over elements
+        for ee, el in enumerate(din['atoms']):
             # Zero-order real part (averaged)
-            psi0_dre[ii] = -re*(lamb**2)*(
-                No*(Zo + dfo_re) + Nsi*(Zsi + dfsi_re)
-            )/(np.pi*Volume[ii])
+            psi0_dre[ii] += (
+                -re * (lamb**2)
+                * din['mesh']['positions'][el]['N']
+                * (din['atoms_Z'][ee] + df_re[ee])
+                )/(np.pi*Volume[ii])
 
             # Zero-order imaginary part (averaged)
-            psi0_im[ii] = (
+            psi0_im[ii] += (
                 -re*(lamb**2)
-                * (No*fo_im + Nsi*fsi_im)
-                / (np.pi*Volume[ii])
-            )
+                * din['mesh']['positions'][el]['N'] 
+                * f_im[ee]
+                )/(np.pi*Volume[ii])
+
 
     # Power ratio and their integrated reflectivity for 3 crystals models:
     # perfect (Darwin model), ideally mosaic thick and dynamical
@@ -311,7 +313,7 @@ def compute_rockingcurve(
             alpha, bb, polar, g, y, power_ratio, max_pr, th, dth,
             rhg, P_per, P_mos, P_dyn, det_perp, det_para,
         ) = CrystBragg_comp_integrated_reflect(
-            lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
+            lamb=lamb, re=re, Volume=Volume, Zo=din['atoms_Z'][-1], theta=theta, mu=mu,
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
@@ -327,7 +329,7 @@ def compute_rockingcurve(
             det_perp, det_para, det_perp_norm, det_para_norm,
             shift_perp, shift_para,
         ) = CrystBragg_comp_integrated_reflect(
-            lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
+            lamb=lamb, re=re, Volume=Volume, Zo=din['atoms_Z'][-1], theta=theta, mu=mu,
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
@@ -1115,7 +1117,7 @@ def CrystBragg_comp_lattice_spacing(
         'Temperature variations (°C)': TD,
         'Inter_atomic distance a1 (A)': a1,
         'Inter_atomic distance c1 (A)': c1,
-        'Volume (1/m3)': Volume,                # m3 ?
+        'Volume (1/m3)': Volume,                # [\AA ^3]
         'Inter-reticular spacing (A)': d_atom,
         'sinus over lambda': sol,
         'sinus theta_Bragg': sin_theta,
