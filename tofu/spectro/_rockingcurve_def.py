@@ -478,6 +478,7 @@ def _atomic_coefs_factor_Germanium(
 
     # Data file for anomalous corrections to atomic scattering factor & attenuation
     # From NIST X-ray Form Factor, Attenuation, and Scattering Tables
+    # https://physics.nist.gov/PhysRefData/FFast/html/form.html
     import os
     table_path = os.path.join(
         os.path.dirname(__file__),
@@ -748,7 +749,7 @@ def _build_cry(
         'target': {
             'ion': 'Ar16+',
             'lamb': 3.96,
-            'units': 'A',
+            'units': 'AA',
             },
         'd_hkl': None,
         }
