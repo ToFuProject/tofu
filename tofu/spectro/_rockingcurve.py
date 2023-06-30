@@ -57,7 +57,7 @@ def compute_rockingcurve(
     (h,k,l)=(2,0,3) and (2,0,-3).
     The alpha-Quartz structure is hexagonal with 3 molecules of SiO2 in the
     unit cell.
-    There will be soon also the Germanium crystal...
+    Also included is Germanium crystal (diamond structure, 8 Ge atoms)
 
     The possibility to add a miscut between crystal's optical surface
     and inter-atomic planes is available. Rocking curve plots are updated
@@ -87,10 +87,10 @@ def compute_rockingcurve(
     -----------
     crystal:    str
         Crystal definition to use, among 'Quartz_110', 'Quartz_102'
-        and soon 'Ge'
+        or user-defined Quartz or Germanium crystals
     din:    str
         Crystal definition dictionary to use, among 'Quartz_110', 'Quartz_102'
-        and soon 'Ge'
+        or user-defined Quartz or Germanium crystals
     lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m)
         ex: lamb=np.r_[3.96]
@@ -500,30 +500,6 @@ def _checks(
             + "\n".join(lstr)
         )
         raise Exception(msg)
-
-    # If user-defined crystal cut
-    #if isinstance(crystal, dict):
-    #    din = crystal
-
-    # If using default crystal types
-    #else:
-    #    if crystal not in _def._DCRYST.keys():
-    #        lk1 = ['material', 'symbol', 'miller', 'target']
-    #        dstr = {
-    #            k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
-    #            for k0, v0 in _def._DCRYST.items()
-    #        }
-    #        lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
-    #        msg = (
-    #            "You must choose a type of crystal from "
-    #            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
-    #            + "\n".join(lstr)
-    #        )
-    #        raise Exception(msg)
-    #
-    #    din = _def._DCRYST[crystal]
-    #
-    #    print(din)
 
     # lamb
     if lamb is None:
@@ -1015,10 +991,10 @@ def CrystBragg_comp_lattice_spacing(
     -----------
     crystal:    str
         Crystal definition to use, among 'Quartz_110', 'Quartz_102'
-        and soon 'Ge'
+        or user-defined Quartz or Germanium crystals
     din:    str
         Crystal definition dictionary to use, among 'Quartz_110', 'Quartz_102'
-        and soon 'Ge'
+        or user-defined Quartz or Germanium crystals
     ih, ik, il:    int
         Miller indices of crystal used, by default to (1,1,0)
     lamb:    float
