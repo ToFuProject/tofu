@@ -118,7 +118,7 @@ _DCRYST_MAT = {
                     'N': None,
                 },
             },
-            'sources':  'R.W.G. Wyckoff, Crystal Structures (1963)',
+            'sources':  'R.W.G. Wyckoff, Crystal Structures (1963), Eqn 8a',
         },
         'inter_atomic': {
             'distances': {
@@ -130,7 +130,7 @@ _DCRYST_MAT = {
                 'data': 20. + 273.15,
                 'unit': 'K',
             },
-            'sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
+            'sources': 'R.W.G. Wyckoff, Crystal Structures (1963), Table II.5',
         },
         'phases': { # Will be populated
             'Ge': None,
@@ -485,8 +485,6 @@ def _atomic_coefs_factor_Germanium(
         )
 
     tables = np.loadtxt(table_path)
-    print('bbb')
-    print(tables.shape)
 
     # Table values
     E_NIST  = tables[:,0] # [keV]
@@ -500,7 +498,7 @@ def _atomic_coefs_factor_Germanium(
     # Interpolates NIST attenuation values
     interp_ge_mu = scipy.interpolate.interp1d(E_NIST, mu_NIST)
 
-    def mu_ge(lamb, Zge=Zge):
+    def mu_ge(lamb):
         return interp_ge_mu(hc/lamb) # [1/cm]
 
     # store in dict
@@ -509,12 +507,12 @@ def _atomic_coefs_factor_Germanium(
     # ----------------------------
     # Atomic scattering factor 'f'
 
-    # Same values for different h,k,l (only energy-dependent)
-    sol_ge = v0['sin_theta_lambda']['Ge']
-    asf_ge = v0['atomic_scattering']['factors']['Ge']
+    # Interpolates mean scattering factors
+    sol_ge = v0['sin_theta_lambda']['Ge'] # [1/AA]
+    asf_ge = v0['atomic_scattering']['factors']['Ge'] # [e/atom]
     interp_ge_f0 = scipy.interpolate.interp1d(sol_ge, asf_ge)
 
-    # Interpolates NIST scattering factor corrections
+    # Interpolates NIST anomalous scattering factor corrections
     interp_ge_f1 = scipy.interpolate.interp1d(E_NIST, f1_NIST)
     interp_ge_f2 = scipy.interpolate.interp1d(E_NIST, f2_NIST)
 
@@ -678,6 +676,7 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
 
             Nge = v0['mesh']['positions']['Ge']['N']
 
+            # dot(s, r_atom); s = lattice vector, r_atom = atom position
             def phasege(hh, kk, ll, xge, yge, zge):
                 return hh*xge + kk*yge + ll*zge
 
@@ -748,8 +747,8 @@ def _build_cry(
         'miller': np.r_[1., 0., 2.,],
         'target': {
             'ion': 'Ar16+',
-            'lamb': 3.96, # e-10
-            'units': 'm',
+            'lamb': 3.96,
+            'units': 'A',
             },
         'd_hkl': None,
         }
