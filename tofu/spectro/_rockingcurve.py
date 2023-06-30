@@ -1198,7 +1198,7 @@ def CrystBragg_comp_integrated_reflect(
                     al[h, i, j, :] - np.sqrt((al[h, i, j, :]**2) - 1.)
                 )
                 # Power ratio maximum and its index
-                max_pr[h, i, j] = (power_ratio[h, i, j]).max()
+                max_pr[h,i,j] = np.nanmax(power_ratio[h,i,j])
                 ind_max_pr[h, i, j] = np.where(
                     power_ratio[h, i, j] == max_pr[h, i, j]
                 )[0][0]
