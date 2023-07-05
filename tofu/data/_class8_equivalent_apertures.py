@@ -806,6 +806,14 @@ def _get_equivalent_aperture_spectro(
         #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
         # ----------------------
 
+        if convex:
+            p0, p1 = _check_self_intersect_rectify(
+                p0=p0,
+                p1=p1,
+            )
+            
+
+
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             # --- DEBUG ---------
             # if ij in [4]:
@@ -869,6 +877,52 @@ def _get_equivalent_aperture_spectro(
 
     return p0, p1
 
+
+def _check_self_intersect_rectify(
+    p0=None,
+    p1=None,
+):
+
+    # ---------------
+    # get segments
+    
+    npts = p0.size
+    s0 = np.r_[p0[1:] - p0[:-1], p0[0] - p0[-1]]
+    s1 = np.r_[p1[1:] - p1[:-1], p1[0] - p1[-1]]
+    
+    # -----------------------
+    # get intersection matrix
+    
+    # k horizontal
+    det_up = 
+    det_lo = 
+    kA = det_up / det_lo
+    
+    kB = 
+
+    intersect = (kA >= 0) & (kA < 1) & (kB >= 0) & (kB < 1)
+    
+    # ------------------
+    # trivial cases
+    
+    # no intersection
+    if not np.any(intersect):
+        return p0, p1
+    
+    # several intersections
+    if np.sum(intersect) > 1:
+        msg = "Multiple intersections detected"
+        raise Exception(msg)
+        
+    # --------------------
+    # single intersection
+    
+    indA, indB = np.nonzero(intersect)
+    
+    
+    
+    return p0[ind], p1[ind]
+     
 
 # ##############################################################
 # ##############################################################
