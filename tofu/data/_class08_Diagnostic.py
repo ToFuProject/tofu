@@ -67,6 +67,7 @@ class Diagnostic(Previous):
         # compute
         compute=True,
         add_points=None,
+        convex=None,
         # spectro-only
         rocking_curve_fw=None,
         # others
@@ -107,7 +108,9 @@ class Diagnostic(Previous):
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
+                # equivalent aperture
                 add_points=add_points,
+                convex=convex,
                 # spectro-only
                 rocking_curve_fw=rocking_curve_fw,
                 # bool
@@ -358,7 +361,6 @@ class Diagnostic(Previous):
         # bool
         verb=None,
         debug=None,
-        plot=None,
         store=None,
         replace_poly=None,
         timing=None,
@@ -390,7 +392,6 @@ class Diagnostic(Previous):
             # bool
             verb=verb,
             debug=debug,
-            plot=plot,
             store=store,
             replace_poly=replace_poly,
             timing=timing,
@@ -682,6 +683,11 @@ class Diagnostic(Previous):
         ref_com=None,
         # signal
         brightness=None,
+        spectral_binning=None,
+        # verb
+        verb=None,
+        # timing
+        timing=None,
         # store
         store=None,
         # return
@@ -709,6 +715,11 @@ class Diagnostic(Previous):
             ref_com=ref_com,
             # signal
             brightness=brightness,
+            spectral_binning=spectral_binning,
+            # verb
+            verb=verb,
+            # timing
+            timing=timing,
             # store
             store=store,
             # return

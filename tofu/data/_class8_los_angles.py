@@ -558,10 +558,10 @@ def _angle_spectro(
     ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
     coords = coll.get_optics_x01toxyz(key=v0['kref'])
 
-    dx, dy, dz = coll.get_camera_dxyz(
-        key=key_cam,
-        include_center=True,
-    )
+    # dx, dy, dz = coll.get_camera_dxyz(
+    #     key=key_cam,
+    #     include_center=True,
+    # )
 
     # ------
     # loop
@@ -580,11 +580,11 @@ def _angle_spectro(
             continue
 
         # get 3d coordiantes of points on pixel
-        cxi = v0['cx'][ii] + dx
-        cyi = v0['cy'][ii] + dy
-        czi = v0['cz'][ii] + dz
+        cxi = v0['cx'][ii] # + dx
+        cyi = v0['cy'][ii] # + dy
+        czi = v0['cz'][ii] # + dz
 
-        nc = cxi.size
+        nc = 1 # cxi.size
 
         # get 3d coords of points on crystal
         exi, eyi, ezi = coords(
@@ -613,11 +613,10 @@ def _angle_spectro(
         # Correct for approximation of using
         # the same projected reflection from the center for all
         ang0 = np.nanmean(angles[:ne])
-        angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
+        # angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
 
-        angmin[ii] = np.nanmin(angles)
-        angmax[ii] = np.nanmax(angles)
-
+        angmin[ii] = np.nanmin(angles[:ne])
+        angmax[ii] = np.nanmax(angles[:ne])
         # langles.append(angles)      # DB
 
     if is2d:
