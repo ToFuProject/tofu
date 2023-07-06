@@ -810,9 +810,8 @@ def _get_equivalent_aperture_spectro(
             p0, p1 = _check_self_intersect_rectify(
                 p0=p0,
                 p1=p1,
+                debug=None,
             )
-            
-
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             # --- DEBUG ---------
@@ -825,21 +824,6 @@ def _get_equivalent_aperture_spectro(
             p_a = plg.Polygon(np.array([p0, p1]).T)
 
         else:
-            # convex hull
-            if convex:
-                # p0, p1 = np.array(plgUtils.convexHull(
-                    # plg.Polygon(np.array([p0, p1]).T)
-                # ).contour(0)).T
-                vert = ConvexHull(np.array([p0, p1]).T).vertices
-                # --- DEBUG ---------
-                # if ij in [4]:
-                #     _debug_plot(
-                #         pa0=p0, pa1=p1,
-                #         pb0=p0[vert], pb1=p1[vert],
-                #         ii=ii, tit='convexH',
-                #     )
-                # ----------------------
-                p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
             # if ij in [12, 42]:
@@ -881,48 +865,167 @@ def _get_equivalent_aperture_spectro(
 def _check_self_intersect_rectify(
     p0=None,
     p1=None,
+    # debug
+    debug=None,
 ):
 
     # ---------------
     # get segments
     
     npts = p0.size
-    s0 = np.r_[p0[1:] - p0[:-1], p0[0] - p0[-1]]
-    s1 = np.r_[p1[1:] - p1[:-1], p1[0] - p1[-1]]
+    
+    A0, A1 = p0, p1
+    B0, B1 = np.r_[p0[1:], p0[0]], np.r_[p1[1:], p1[0]]
+    
+    s0 = B0 - A0
+    s1 = B1 - A1
     
     # -----------------------
     # get intersection matrix
     
     # k horizontal
-    det_up = 
-    det_lo = 
-    kA = det_up / det_lo
+    kA = np.full((npts, npts), -1, dtype=float)
     
-    kB = 
+    det_up = (
+        (A0[None, :] - A0[:, None]) * s1[None, :]
+        - (A1[None, :] - A1[:, None]) * s0[None, :]
+    )
+    det_lo = s0[:, None] * s1[None, :] - s1[:, None] * s0[None, :]
+    
+    iok = np.abs(det_lo) > 0 
+    kA[iok] = det_up[iok] / det_lo[iok]
+    iok[iok] = (kA[iok] > 0) & (kA[iok] < 1)
+    
+    if not np.any(iok):
+        if debug is True:
+            _debug_intersect(tit="No kA", **locals())
+        return p0, p1
+    
+    kB = np.full((npts, npts), -1, dtype=float)
+    A0f = np.repeat(A0[:, None], npts, axis=1)
+    A1f = np.repeat(A1[:, None], npts, axis=1)
+    s0f = np.repeat(s0[:, None], npts, axis=1)
+    s1f = np.repeat(s1[:, None], npts, axis=1)
+    
+    M0 = A0f[iok] + kA[iok] * s0f[iok]
+    M1 = A1f[iok] + kA[iok] * s1f[iok]
+    
+    kB[iok] = (
+        (M0 - A0f.T[iok]) * s0f.T[iok] + (M1 - A1f.T[iok]) * s1f.T[iok]
+    ) / (s0f.T[iok]**2 + s1f.T[iok]**2)
+    iok[iok] = (kB[iok] > 0) & (kB[iok] < 1)
 
-    intersect = (kA >= 0) & (kA < 1) & (kB >= 0) & (kB < 1)
-    
-    # ------------------
+    # ---------------
     # trivial cases
     
     # no intersection
-    if not np.any(intersect):
+    if not np.any(iok):
+        if debug is True:
+            _debug_intersect(tit="No kB", **locals())
         return p0, p1
     
     # several intersections
-    if np.sum(intersect) > 1:
+    if np.sum(iok) != 2:
         msg = "Multiple intersections detected"
+        if debug is True:
+            _debug_intersect(tit=msg, **locals())
         raise Exception(msg)
-        
+
     # --------------------
     # single intersection
     
-    indA, indB = np.nonzero(intersect)
+    indA, indB = np.nonzero(iok)
+    assert np.all(indA == indB[::-1]), (indA, indB)
     
+    indpts = indA[:, None] + np.r_[0, 1][None, :]
     
+    ind = np.r_[
+        np.arange(0, indpts[0, 0] + 1),
+        np.arange(indpts[1, 0], indpts[0, 1] - 1, -1),
+        np.arange(indpts[1, 1], npts)
+    ]
+    
+    # ----------------
+    # DEBUG
+    
+    if debug is True or debug is None:
+        _debug_intersect(tit='found', **locals())
     
     return p0[ind], p1[ind]
+
+
+def _debug_intersect(
+    p0=None,
+    p1=None,
+    kA=None,
+    kB=None,
+    iok=None,
+    det_up=None,
+    det_lo=None,
+    ind=None,
+    tit=None,
+    **kwdargs,
+):
      
+    fig, axs = plt.subplots(figsize=(12, 10), nrows=2, ncols=4)
+    fig.suptitle(tit, size=12, fontweight='bold')
+    
+    axs[0, 0].plot(np.r_[p0, p0[0]], np.r_[p1, p1[0]], '.-k')
+    
+    axs[0, 1].imshow(iok, origin='upper', interpolation='nearest')
+    axs[0, 2].imshow(
+        kA,
+        origin='upper',
+        interpolation='nearest',
+        vmin=0,
+        vmax=1,
+    )
+    axs[1, 1].imshow(
+        det_up, 
+        origin='upper',
+        interpolation='nearest',
+        vmin=-np.max(np.abs(det_up)),
+        vmax=np.max(np.abs(det_up)),
+        cmap=plt.cm.seismic,
+    )
+    axs[1, 2].imshow(
+        det_lo,
+        origin='upper', 
+        interpolation='nearest',
+        vmin=-np.max(np.abs(det_lo)),
+        vmax=np.max(np.abs(det_lo)),
+        cmap=plt.cm.seismic,
+    )
+    axs[0, 1].set_title("iok")
+    axs[0, 2].set_title("kA")
+    axs[1, 1].set_title("det_up")
+    axs[1, 2].set_title("det_lo")
+    
+    print('kA\n',kA)
+    print('det_up\n', det_up)
+    print('det_lo\n', det_lo)
+    
+    if kB is not None:
+        axs[0, 3].imshow(
+            kB,
+            origin='upper',
+            interpolation='nearest',
+            vmin=0,
+            vmax=1,
+        )
+        
+        print('kB\n', kB)
+    
+    if ind is not None:
+        axs[0, 0].plot(
+            np.r_[p0[ind], p0[ind[0]]], 
+            np.r_[p1[ind], p1[ind[0]]], 
+            '.-b',
+        )
+        
+        print('ind', ind)
+        
+    raise Exception()
 
 # ##############################################################
 # ##############################################################
