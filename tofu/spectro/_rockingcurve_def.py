@@ -408,6 +408,10 @@ def _atomic_coefs_factor_Quartz(
     # From W. Zachariasen, Theory of X-ray Diffraction in Crystals
     # (Wiley, New York, 1945)
 
+    # Data file for anomalous corrections to atomic scattering factor & attenuation
+    # From Lawrence Berkeley National Lab, Center for X-Ray Optics
+    # https://henke.lbl.gov/optical_constants/asf.html
+
     def mu_si(lamb, Zsi=Zsi):
         if lamb > 6.74:     # e-10 ?
             return 5.33e-4*(lamb**2.74)*(Zsi**3.03)
@@ -468,7 +472,7 @@ def _atomic_coefs_factor_Germanium(
 
     # Useful constant
     import scipy.constants as cnt
-    hc = cnt.h*cnt.c/cnt.e/1e3*1e10 # [keV*AA]
+    hc = cnt.h*cnt.c/cnt.e*1e10 # [eV*AA]
 
     # Charge of Germanium
     Zge = v0['atoms_Z']
@@ -477,33 +481,21 @@ def _atomic_coefs_factor_Germanium(
     rho_Ge = 5.307 # [g/cm^3]
 
     # Data file for anomalous corrections to atomic scattering factor & attenuation
-    # From NIST X-ray Form Factor, Attenuation, and Scattering Tables
-    # https://physics.nist.gov/PhysRefData/FFast/html/form.html
+    # From Lawrence Berkeley National Lab, Center for X-Ray Optics
+    # https://henke.lbl.gov/optical_constants/asf.html
+
     import os
     table_path = os.path.join(
         os.path.dirname(__file__),
-        'Ge_AtomicScatteringFactors_NIST.txt'
+        'Ge_AtomicScatteringFactors_LBL.txt'
         )
 
     tables = np.loadtxt(table_path)
 
     # Table values
-    E_NIST  = tables[:,0] # [keV]
-    f1_NIST = tables[:,1] # [e/atom]
-    f2_NIST = tables[:,2] # [e/atom]
-    mu_NIST = tables[:,5] *rho_Ge # [1/cm]
-
-    # -----------------------------------
-    # linear atomic absorption coefficients 'mu'
-
-    # Interpolates NIST attenuation values
-    interp_ge_mu = scipy.interpolate.interp1d(E_NIST, mu_NIST)
-
-    def mu_ge(lamb):
-        return interp_ge_mu(hc/lamb) # [1/cm]
-
-    # store in dict
-    dcryst_mat[k0]['mu'] = mu_ge
+    E_LBL  = tables[:,0] # [eV]
+    f1_LBL = tables[:,1] # [e/atom]
+    f2_LBL = tables[:,2] # [e/atom]
 
     # ----------------------------
     # Atomic scattering factor 'f'
@@ -514,8 +506,8 @@ def _atomic_coefs_factor_Germanium(
     interp_ge_f0 = scipy.interpolate.interp1d(sol_ge, asf_ge)
 
     # Interpolates NIST anomalous scattering factor corrections
-    interp_ge_f1 = scipy.interpolate.interp1d(E_NIST, f1_NIST)
-    interp_ge_f2 = scipy.interpolate.interp1d(E_NIST, f2_NIST)
+    interp_ge_f1 = scipy.interpolate.interp1d(E_LBL, f1_LBL)
+    interp_ge_f2 = scipy.interpolate.interp1d(E_LBL, f2_LBL)
 
     def dfge_re(lamb, Zge=Zge):
         return interp_ge_f1(hc/lamb) - Zge
@@ -532,7 +524,18 @@ def _atomic_coefs_factor_Germanium(
     dcryst_mat[k0]['fge_re'] = fge_re
     dcryst_mat[k0]['fge_im'] = fge_im
 
-    
+    # -----------------------------------
+    # linear atomic absorption coefficients 'mu'
+
+    # Material-dependent conversion from f2 to mu
+    # From NIST X-ray Form Factor, Attenuation, and Scattering Tables
+    # https://physics.nist.gov/PhysRefData/FFast/html/form.html
+    def mu_ge(lamb):
+        return 5.7969e5*fge_im(lamb)*(lamb/hc) * rho_Ge # [1/cm]
+
+    # store in dict
+    dcryst_mat[k0]['mu'] = mu_ge
+
 
 
 # ###############################################################
