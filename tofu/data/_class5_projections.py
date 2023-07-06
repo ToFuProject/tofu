@@ -82,7 +82,7 @@ def _get_reflection(
     pts3 = p_a.nPoints() < 3
 
     # ----------- DEBUG ---------------------
-    # if ij in [12]:
+    # if ij in [236, 239, 387]:
     #     plt.figure()
     #     plt.gcf().suptitle(f"ii = {ii}, ij = {ij}, projection on aperture plane\n")
     #     plt.plot(
@@ -116,19 +116,8 @@ def _get_reflection(
         # print(ii, ij, 'pts < 3\n')      # DB
         return None, None
 
-    # get outline on apertue plane
+    # get outline on aperture plane
     p0, p1 = np.array(p_a.contour(0)).T
-
-    # interpolate to add points
-    if p0.size < 50:
-        p0, p1 = _class8_compute._interp_poly(
-            lp=[p0, p1],
-            add_points=add_points,
-            mode='min',
-            isclosed=False,
-            closed=False,
-            ravel=True,
-        )
 
     # back to 3d
     px, py, pz = coord_x01toxyz_poly(x0=p0, x1=p1)

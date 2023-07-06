@@ -105,19 +105,24 @@ def equivalent_apertures(
     lpoly_pre = [
         coll.get_optics_poly(
             key=k0,
+            mode='thr',
             add_points=add_points,
+            min_threshold=min_threshold,
             return_outline=False,
         )
         for k0 in lop_pre
     ]
     nop_pre = len(lop_pre)
 
-    lout_post = [
-        coll.dobj[c0][k0]['dgeom']['outline']
+    lx01_post = [
+        coll.get_optics_outline(
+            key=k0,
+            mode='thr',
+            add_points=add_points,
+            min_threshold=min_threshold,
+        )
         for c0, k0 in zip(lop_post_cls, lop_post)
     ]
-    lx0_post = [coll.ddata[pp[0]]['data'] for pp in lout_post]
-    lx1_post = [coll.ddata[pp[1]]['data'] for pp in lout_post]
     nop_post = len(lop_post)
 
     # -------------------
@@ -189,6 +194,12 @@ def equivalent_apertures(
 
     for ii, ij in enumerate(pixel):
 
+        # ----- DEBUG -------
+        # if ij not in [236, 239, 387]:
+        #     iok[ii] = False
+        #     continue
+        # -------------------        
+
         if verb is True:
             msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {pixel.size}"
             end = '\n' if ii == len(pixel) - 1 else '\r'
@@ -200,8 +211,7 @@ def equivalent_apertures(
             nop_pre=nop_pre,
             lpoly_pre=lpoly_pre,
             nop_post=nop_post,
-            lx0_post=lx0_post,
-            lx1_post=lx1_post,
+            lx01_post=lx01_post,
             # functions
             coord_x01toxyz=coord_x01toxyz,
             lcoord_x01toxyz_poly=lcoord_x01toxyz_poly,
@@ -223,10 +233,11 @@ def equivalent_apertures(
             iok[ii] = False
 
         elif convex:
+            pass
             # p0, p1 = np.array(plgUtils.convexHull(
                 # plg.Polygon(np.array([p0, p1]).T)
             # ).contour(0)).T
-            vert = ConvexHull(np.array([p0, p1]).T).vertices
+            # vert = ConvexHull(np.array([p0, p1]).T).vertices
 
             # --- DEBUG ---------
             # if ii in [97]:
@@ -237,19 +248,19 @@ def equivalent_apertures(
                 # )
             # --------------------
 
-            p0c, p1c = _compute._interp_poly(
-                lp=[
-                    p0[vert] * curve_mult[0],
-                    p1[vert] * curve_mult[1],
-                ],
-                add_points=1,
-                mode='thr',
-                isclosed=False,
-                closed=False,
-                ravel=True,
-                min_threshold=min_threshold,
-                debug=True,
-            )
+            # p0c, p1c = _compute._interp_poly(
+            #     lp=[
+            #         p0[vert] * curve_mult[0],
+            #         p1[vert] * curve_mult[1],
+            #     ],
+            #     add_points=1,
+            #     mode='thr',
+            #     isclosed=False,
+            #     closed=False,
+            #     ravel=True,
+            #     min_threshold=min_threshold,
+            #     debug=True,
+            # )
 
             # --- DEBUG ---------
             # if ij in [104]:
@@ -260,7 +271,7 @@ def equivalent_apertures(
             #         ii=ii, tit='curve_mult',
             #     )
             # --------------------
-            p0, p1 = p0c / curve_mult[0], p1c / curve_mult[1]
+            # p0, p1 = p0c / curve_mult[0], p1c / curve_mult[1]
 
         # append
         x0.append(p0)
@@ -548,16 +559,6 @@ def _check(
         sign='>0',
     )
 
-    # -----------
-    # min_threshold
-
-    min_threshold = ds._generic_check._check_var(
-        min_threshold, 'min_threshold',
-        types=float,
-        default=400e-6,
-        sign='>0',
-    )
-
     # ----------------------------------------------
     # index of aperture limiting the spectral range
 
@@ -578,6 +579,16 @@ def _check(
         convex, 'convex',
         types=bool,
         default=isconvex,
+    )
+    
+    # -----------
+    # min_threshold
+
+    min_threshold = ds._generic_check._check_var(
+        min_threshold, 'min_threshold',
+        types=float,
+        default=500e-6 if convex else 0.002,
+        sign='>0',
     )
 
     # -----------
@@ -723,8 +734,7 @@ def _get_equivalent_aperture_spectro(
     nop_pre=None,
     lpoly_pre=None,
     nop_post=None,
-    lx0_post=None,
-    lx1_post=None,
+    lx01_post=None,
     # functions
     coord_x01toxyz=None,
     lcoord_x01toxyz_poly=None,
@@ -778,8 +788,8 @@ def _get_equivalent_aperture_spectro(
             x0=p0,
             x1=p1,
             # polygon observed
-            poly_x0=lx0_post[jj],
-            poly_x1=lx1_post[jj],
+            poly_x0=lx01_post[jj][0],
+            poly_x1=lx01_post[jj][1],
             # observation point
             pt=pt,
             add_points=add_points,
@@ -801,11 +811,6 @@ def _get_equivalent_aperture_spectro(
             # print('\n\t \t None 0\n')       # DB
             return p0, p1
 
-        # --- DEBUG ---------
-        # if ii in [14, 15, 16]:
-        #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
-        # ----------------------
-
         if convex:
             p0, p1 = _check_self_intersect_rectify(
                 p0=p0,
@@ -813,50 +818,25 @@ def _get_equivalent_aperture_spectro(
                 debug=None,
             )
 
-        if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
-            # --- DEBUG ---------
-            # if ij in [4]:
-            #     print()
-            #     print(f'\t allin, {jj} / {nop_post}')      # DB
-            #     print()
-            #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='all in')
-            # ----------------------
-            p_a = plg.Polygon(np.array([p0, p1]).T)
+        # --- DEBUG ---------
+        # if ij in [236, 239, 387]:
+        #     _debug_plot(
+        #         p_a=p_a,
+        #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
+        #         pa0=p0,
+        #         pa1=p1,
+        #         ii=ii,
+        #         tit='not all',
+        #     )
+        # ----------------------
 
-        else:
-
-            # --- DEBUG ---------
-            # if ij in [12, 42]:
-            #     _debug_plot(
-            #         p_a=p_a,
-            #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
-            #         pa0=p0,
-            #         pa1=p1,
-            #         ii=ii,
-            #         tit='not all',
-            #     )
-            # ----------------------
-
-            # intersection
-            p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-            if p_a.nPoints() < 3:
-                # print('\n\t \t None 1\n')       # DB
-                return None, None
-
-            # update
-            p0, p1 = np.array(p_a.contour(0)).T
-
-            # interpolate
-            if jj < nop_post - 1:
-                p0, p1 = _compute._interp_poly(
-                    lp=[p0, p1],
-                    add_points=add_points,
-                    mode='min',
-                    isclosed=False,
-                    closed=False,
-                    ravel=True,
-                )
-                # print(f'\t\t interp => {p0.size} pts')       # DB
+        # intersection
+        p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
+        if p_a.nPoints() < 3:
+            # print('\n\t \t None 1\n')       # DB
+            return None, None
+       
+            # print(f'\t\t interp => {p0.size} pts')       # DB
             # print('inter: ', p0)
 
     return p0, p1
