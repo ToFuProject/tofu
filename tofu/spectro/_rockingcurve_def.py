@@ -531,7 +531,7 @@ def _atomic_coefs_factor_Germanium(
     # From NIST X-ray Form Factor, Attenuation, and Scattering Tables
     # https://physics.nist.gov/PhysRefData/FFast/html/form.html
     def mu_ge(lamb):
-        return 5.7969e5*fge_im(lamb)*(lamb/hc) * rho_Ge # [1/cm]
+        return 5.7969e5*fge_im(lamb)*(lamb/hc) * rho_Ge *1e-8 # [1/AA]
 
     # store in dict
     dcryst_mat[k0]['mu'] = mu_ge
