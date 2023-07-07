@@ -7,6 +7,7 @@ import copy
 import numpy as np
 import scipy.integrate as scpinteg
 import datastock as ds
+from scipy.interpolate import interp1d
 
 
 from ..spectro import _rockingcurve_def
@@ -50,7 +51,7 @@ def _dmat(
     if dmat is None:
         return dmat
 
-    # known crystal
+    # If using hardcoded known crystal
     ready_to_compute = False
     if isinstance(dmat, str):
         if dmat not in _rockingcurve_def._DCRYST.keys():
@@ -59,11 +60,11 @@ def _dmat(
             )
             raise Exception(msg)
         dmat = _rockingcurve_def._DCRYST[dmat]
-        ready_to_compute = True
 
     # ---------------------
     # check dict integrity
     # ---------------------
+    #NOTE: Especially in the case of user-defined crystals
 
     # Check dict typeand content (each key is a valid string)
     dmat = ds._generic_check._check_dict_valid_keys(
@@ -74,6 +75,8 @@ def _dmat(
         keys_can_be_None=True,
         dkeys=_DMAT_KEYS,
     )
+
+    ready_to_compute = True
 
     # -----------
     # safety check
@@ -120,7 +123,7 @@ def _dmat(
         drock = _rockingcurve.compute_rockingcurve(
             # Type of crystal
             crystal=dmat['name'],
-            din=None,
+            din=dmat,
             # Wavelength
             lamb=dmat['target']['lamb'],
             # Lattice modifications
@@ -250,11 +253,22 @@ def _extract_rocking_curve(key=None, drock=None, alpha=None):
     # amin, amax = np.nanmin(ang_rel), np.nanmax(ang_rel)
     # angles = np.linspace(amin, amax, na)
 
-    # power_ratio
+    # power ratio, accounting for slight difference in angle basis
     power_ratio = np.nanmean(
-        drock['Power ratio'][:, indtref, ind_alpha, :],
-        axis=0,
-    )
+        [
+            drock['Power ratio'][0, indtref, ind_alpha, :],
+            interp1d(
+                drock['Glancing angles'][1, indtref, ind_alpha, :], 
+                drock['Power ratio'][1, indtref, ind_alpha, :],
+                bounds_error=False,
+                fill_value=(
+                    drock['Power ratio'][1,indtref,ind_alpha,0], 
+                    drock['Power ratio'][1,indtref,ind_alpha,-1]
+                    )  
+                )(drock['Glancing angles'][0, indtref, ind_alpha, :])
+            ],
+            axis = 0
+        )
 
     # ---------------
     # interpolate
