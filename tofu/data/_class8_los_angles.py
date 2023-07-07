@@ -209,9 +209,9 @@ def _vos_from_los(
             cz=v0['cz'][ii],
             x0=v0['x0'][ii, :],
             x1=v0['x1'][ii, :],
-            dx=dx,
-            dy=dy,
-            dz=dz,
+            dx=np.r_[0],
+            dy=np.r_[0],
+            dz=np.r_[0],
             coords=coll.get_optics_x01toxyz(key=v0['kref']),
             lspectro=lspectro,
             config=config,
@@ -348,8 +348,8 @@ def _vos_from_los_store(
     # dref
 
     # keys
-    knc = f'{key_cam}_vos_pc_n'
-    knh = f'{key_cam}_vos_ph_n'
+    knc = f'{key}_{key_cam}_vos_pc_n'
+    knh = f'{key}_{key_cam}_vos_ph_n'
 
     # dict
     dref = {
@@ -361,10 +361,10 @@ def _vos_from_los_store(
     # data
 
     # keys
-    kpc0 = f'{key_cam}_vos_pc0'
-    kpc1 = f'{key_cam}_vos_pc1'
-    kph0 = f'{key_cam}_vos_ph0'
-    kph1 = f'{key_cam}_vos_ph1'
+    kpc0 = f'{key}_{key_cam}_vos_pc0'
+    kpc1 = f'{key}_{key_cam}_vos_pc1'
+    kph0 = f'{key}_{key_cam}_vos_ph0'
+    kph1 = f'{key}_{key_cam}_vos_ph1'
 
     # reshape for 2d camera
     if coll.dobj['camera'][key_cam]['dgeom']['nd'] == '2d':

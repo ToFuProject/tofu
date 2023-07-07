@@ -222,6 +222,7 @@ class Diagnostic(Previous):
         verb=None,
         plot=None,
         store=None,
+        debug=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
 
@@ -252,6 +253,7 @@ class Diagnostic(Previous):
             verb=verb,
             plot=plot,
             store=store,
+            debug=debug,
         )
 
         # compute los angles
@@ -432,6 +434,7 @@ class Diagnostic(Previous):
         plot=None,
         verb=None,
         store=None,
+        debug=None,
     ):
         """"""
         return _equivalent_apertures.equivalent_apertures(
@@ -451,6 +454,7 @@ class Diagnostic(Previous):
             plot=plot,
             verb=verb,
             store=store,
+            debug=debug,
         )
 
     # ---------------
@@ -502,6 +506,7 @@ class Diagnostic(Previous):
         self,
         key=None,
         add_points=None,
+        min_threshold=None,
         mode=None,
         closed=None,
         ravel=None,
@@ -512,6 +517,7 @@ class Diagnostic(Previous):
             coll=self,
             key=key,
             add_points=add_points,
+            min_threshold=min_threshold,
             mode=mode,
             closed=closed,
             ravel=ravel,
@@ -522,6 +528,7 @@ class Diagnostic(Previous):
         self,
         key=None,
         add_points=None,
+        min_threshold=None,
         mode=None,
         closed=None,
         ravel=None,
@@ -533,6 +540,7 @@ class Diagnostic(Previous):
             coll=self,
             key=key,
             add_points=add_points,
+            min_threshold=min_threshold,
             mode=mode,
             closed=closed,
             ravel=ravel,

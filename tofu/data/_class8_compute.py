@@ -28,6 +28,7 @@ def get_optics_outline(
     coll=None,
     key=None,
     add_points=None,
+    min_threshold=None,
     mode=None,
     closed=None,
     ravel=None,
@@ -113,6 +114,7 @@ def get_optics_outline(
         isclosed=False,
         closed=closed,
         ravel=ravel,
+        min_threshold=min_threshold,
         debug=None,
     )
 
@@ -127,6 +129,7 @@ def get_optics_poly(
     coll=None,
     key=None,
     add_points=None,
+    min_threshold=None,
     mode=None,
     closed=None,
     ravel=None,
@@ -162,6 +165,7 @@ def get_optics_poly(
             p0, p1 = coll.get_optics_outline(
                 key=key,
                 add_points=add_points,
+                min_threshold=min_threshold,
                 mode=mode,
                 closed=closed,
                 ravel=ravel,
@@ -190,6 +194,7 @@ def get_optics_poly(
         p0, p1 = coll.get_optics_outline(
             key=key,
             add_points=add_points,
+            min_threshold=min_threshold,
             mode=mode,
             closed=closed,
             ravel=ravel,

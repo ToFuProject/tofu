@@ -6,6 +6,7 @@
 
 # Common
 import numpy as np
+from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import Polygon as plg
@@ -515,8 +516,30 @@ def _prepare_vos(
             pc = pc | plg.Polygon(np.array([pc0[:, ii], pc1[:, ii]]).T)
             ph = ph | plg.Polygon(np.array([ph0[:, ii], ph1[:, ii]]).T)
 
-        pc0, pc1 = np.array(pc).T
-        ph0, ph1 = np.array(ph).T
+        # -----------------------
+        # convex hull if distinct
+        
+        # pc
+        if len(pc) > 1: 
+            # replace by convex hull
+            pts = np.concatenate(
+                tuple([np.array(pc.contour(ii)) for ii in range(len(pc))]),
+                axis=0,
+            )
+            pc0, pc1 = pts[ConvexHull(pts).vertices, :].T 
+        else:
+            pc0, pc1 = np.array(pc).T
+            
+        # ph
+        if len(ph) > 1: 
+            # replace by convex hull
+            pts = np.concatenate(
+                tuple([np.array(ph.contour(ii)) for ii in range(len(ph))]),
+                axis=0,
+            )
+            ph0, ph1 = pts[ConvexHull(pts).vertices, :].T 
+        else:
+            ph0, ph1 = np.array(ph).T
 
     else:
         pc0i = pc0[:, indch]

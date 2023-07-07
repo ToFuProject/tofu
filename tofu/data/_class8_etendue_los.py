@@ -46,6 +46,7 @@ def compute_etendue_los(
     verb=None,
     plot=None,
     store=None,
+    debug=None,
 ):
 
     # ------------
@@ -112,6 +113,7 @@ def compute_etendue_los(
             verb=verb,
             store=False,
             return_for_etendue=True,
+            debug=debug,
         )
 
         # ------------------------

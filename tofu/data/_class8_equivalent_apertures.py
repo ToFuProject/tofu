@@ -77,21 +77,8 @@ def equivalent_apertures(
         verb,
         plot,
         store,
-    ) = _check(
-        coll=coll,
-        key=key,
-        key_cam=key_cam,
-        pixel=pixel,
-        add_points=add_points,
-        min_threshold=min_threshold,
-        ind_ap_lim_spectral=ind_ap_lim_spectral,
-        convex=convex,
-        harmonize=harmonize,
-        reshape=reshape,
-        verb=verb,
-        plot=plot,
-        store=store,
-    )
+        debug,
+    ) = _check(**locals())
 
     if pixel is None:
         pixel = np.arange(0, cx.size)
@@ -105,19 +92,24 @@ def equivalent_apertures(
     lpoly_pre = [
         coll.get_optics_poly(
             key=k0,
+            mode='thr',
             add_points=add_points,
+            min_threshold=min_threshold,
             return_outline=False,
         )
         for k0 in lop_pre
     ]
     nop_pre = len(lop_pre)
 
-    lout_post = [
-        coll.dobj[c0][k0]['dgeom']['outline']
+    lx01_post = [
+        coll.get_optics_outline(
+            key=k0,
+            mode='thr',
+            add_points=add_points,
+            min_threshold=min_threshold,
+        )
         for c0, k0 in zip(lop_post_cls, lop_post)
     ]
-    lx0_post = [coll.ddata[pp[0]]['data'] for pp in lout_post]
-    lx1_post = [coll.ddata[pp[1]]['data'] for pp in lout_post]
     nop_post = len(lop_post)
 
     # -------------------
@@ -189,6 +181,12 @@ def equivalent_apertures(
 
     for ii, ij in enumerate(pixel):
 
+        # ----- DEBUG -------
+        # if ij not in [236, 239, 387]:
+        #     iok[ii] = False
+        #     continue
+        # -------------------        
+
         if verb is True:
             msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {pixel.size}"
             end = '\n' if ii == len(pixel) - 1 else '\r'
@@ -200,8 +198,7 @@ def equivalent_apertures(
             nop_pre=nop_pre,
             lpoly_pre=lpoly_pre,
             nop_post=nop_post,
-            lx0_post=lx0_post,
-            lx1_post=lx1_post,
+            lx01_post=lx01_post,
             # functions
             coord_x01toxyz=coord_x01toxyz,
             lcoord_x01toxyz_poly=lcoord_x01toxyz_poly,
@@ -214,6 +211,7 @@ def equivalent_apertures(
             # debug
             ii=ii,
             ij=ij,
+            debug=debug,
             # timing
             # dt=dt,
         )
@@ -223,10 +221,11 @@ def equivalent_apertures(
             iok[ii] = False
 
         elif convex:
+            pass
             # p0, p1 = np.array(plgUtils.convexHull(
                 # plg.Polygon(np.array([p0, p1]).T)
             # ).contour(0)).T
-            vert = ConvexHull(np.array([p0, p1]).T).vertices
+            # vert = ConvexHull(np.array([p0, p1]).T).vertices
 
             # --- DEBUG ---------
             # if ii in [97]:
@@ -237,19 +236,19 @@ def equivalent_apertures(
                 # )
             # --------------------
 
-            p0c, p1c = _compute._interp_poly(
-                lp=[
-                    p0[vert] * curve_mult[0],
-                    p1[vert] * curve_mult[1],
-                ],
-                add_points=1,
-                mode='thr',
-                isclosed=False,
-                closed=False,
-                ravel=True,
-                min_threshold=min_threshold,
-                debug=True,
-            )
+            # p0c, p1c = _compute._interp_poly(
+            #     lp=[
+            #         p0[vert] * curve_mult[0],
+            #         p1[vert] * curve_mult[1],
+            #     ],
+            #     add_points=1,
+            #     mode='thr',
+            #     isclosed=False,
+            #     closed=False,
+            #     ravel=True,
+            #     min_threshold=min_threshold,
+            #     debug=True,
+            # )
 
             # --- DEBUG ---------
             # if ij in [104]:
@@ -260,7 +259,7 @@ def equivalent_apertures(
             #         ii=ii, tit='curve_mult',
             #     )
             # --------------------
-            p0, p1 = p0c / curve_mult[0], p1c / curve_mult[1]
+            # p0, p1 = p0c / curve_mult[0], p1c / curve_mult[1]
 
         # append
         x0.append(p0)
@@ -425,6 +424,8 @@ def _check(
     verb=None,
     plot=None,
     store=None,
+    debug=None,
+    **kwdargs,
 ):
 
     # --------
@@ -548,16 +549,6 @@ def _check(
         sign='>0',
     )
 
-    # -----------
-    # min_threshold
-
-    min_threshold = ds._generic_check._check_var(
-        min_threshold, 'min_threshold',
-        types=float,
-        default=400e-6,
-        sign='>0',
-    )
-
     # ----------------------------------------------
     # index of aperture limiting the spectral range
 
@@ -578,6 +569,16 @@ def _check(
         convex, 'convex',
         types=bool,
         default=isconvex,
+    )
+    
+    # -----------
+    # min_threshold
+
+    min_threshold = ds._generic_check._check_var(
+        min_threshold, 'min_threshold',
+        types=float,
+        default=500e-6 if convex else 0.002,
+        sign='>0',
     )
 
     # -----------
@@ -624,6 +625,15 @@ def _check(
         default=False,
         types=bool,
     )
+    
+    # -----------
+    # debug
+
+    debug = ds._generic_check._check_var(
+        debug, 'debug',
+        default=False,
+        allowed=['intersect', False, True]
+    )
 
     return (
         key,
@@ -654,6 +664,7 @@ def _check(
         verb,
         plot,
         store,
+        debug,
     )
 
 
@@ -723,8 +734,7 @@ def _get_equivalent_aperture_spectro(
     nop_pre=None,
     lpoly_pre=None,
     nop_post=None,
-    lx0_post=None,
-    lx1_post=None,
+    lx01_post=None,
     # functions
     coord_x01toxyz=None,
     lcoord_x01toxyz_poly=None,
@@ -739,6 +749,7 @@ def _get_equivalent_aperture_spectro(
     # debug
     ii=None,
     ij=None,
+    debug=None,
 ):
 
     # loop on optics before crystal
@@ -778,8 +789,8 @@ def _get_equivalent_aperture_spectro(
             x0=p0,
             x1=p1,
             # polygon observed
-            poly_x0=lx0_post[jj],
-            poly_x1=lx1_post[jj],
+            poly_x0=lx01_post[jj][0],
+            poly_x1=lx01_post[jj][1],
             # observation point
             pt=pt,
             add_points=add_points,
@@ -801,74 +812,201 @@ def _get_equivalent_aperture_spectro(
             # print('\n\t \t None 0\n')       # DB
             return p0, p1
 
+        if convex:
+            p0, p1 = _check_self_intersect_rectify(
+                p0=p0,
+                p1=p1,
+                debug=debug,
+            )
+
         # --- DEBUG ---------
-        # if ii in [14, 15, 16]:
-        #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
+        # if ij in [236, 239, 387]:
+        #     _debug_plot(
+        #         p_a=p_a,
+        #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
+        #         pa0=p0,
+        #         pa1=p1,
+        #         ii=ii,
+        #         tit='not all',
+        #     )
         # ----------------------
 
-        if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
-            # --- DEBUG ---------
-            # if ij in [4]:
-            #     print()
-            #     print(f'\t allin, {jj} / {nop_post}')      # DB
-            #     print()
-            #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='all in')
-            # ----------------------
-            p_a = plg.Polygon(np.array([p0, p1]).T)
-
-        else:
-            # convex hull
-            if convex:
-                # p0, p1 = np.array(plgUtils.convexHull(
-                    # plg.Polygon(np.array([p0, p1]).T)
-                # ).contour(0)).T
-                vert = ConvexHull(np.array([p0, p1]).T).vertices
-                # --- DEBUG ---------
-                # if ij in [4]:
-                #     _debug_plot(
-                #         pa0=p0, pa1=p1,
-                #         pb0=p0[vert], pb1=p1[vert],
-                #         ii=ii, tit='convexH',
-                #     )
-                # ----------------------
-                p0, p1 = p0[vert], p1[vert]
-
-            # --- DEBUG ---------
-            # if ij in [12, 42]:
-            #     _debug_plot(
-            #         p_a=p_a,
-            #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
-            #         pa0=p0,
-            #         pa1=p1,
-            #         ii=ii,
-            #         tit='not all',
-            #     )
-            # ----------------------
-
-            # intersection
-            p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-            if p_a.nPoints() < 3:
-                # print('\n\t \t None 1\n')       # DB
-                return None, None
-
-            # update
-            p0, p1 = np.array(p_a.contour(0)).T
-
-            # interpolate
-            if jj < nop_post - 1:
-                p0, p1 = _compute._interp_poly(
-                    lp=[p0, p1],
-                    add_points=add_points,
-                    mode='min',
-                    isclosed=False,
-                    closed=False,
-                    ravel=True,
-                )
-                # print(f'\t\t interp => {p0.size} pts')       # DB
+        # intersection
+        p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
+        if p_a.nPoints() < 3:
+            # print('\n\t \t None 1\n')       # DB
+            return None, None
+       
+            # print(f'\t\t interp => {p0.size} pts')       # DB
             # print('inter: ', p0)
 
     return p0, p1
 
+
+def _check_self_intersect_rectify(
+    p0=None,
+    p1=None,
+    # debug
+    debug=None,
+):
+
+    # ---------------
+    # get segments
+    
+    npts = p0.size
+    
+    A0, A1 = p0, p1
+    B0, B1 = np.r_[p0[1:], p0[0]], np.r_[p1[1:], p1[0]]
+    
+    s0 = B0 - A0
+    s1 = B1 - A1
+    
+    # -----------------------
+    # get intersection matrix
+    
+    # k horizontal
+    kA = np.full((npts, npts), -1, dtype=float)
+    
+    det_up = (
+        (A0[None, :] - A0[:, None]) * s1[None, :]
+        - (A1[None, :] - A1[:, None]) * s0[None, :]
+    )
+    det_lo = s0[:, None] * s1[None, :] - s1[:, None] * s0[None, :]
+    
+    iok = np.abs(det_lo) > 0 
+    kA[iok] = det_up[iok] / det_lo[iok]
+    iok[iok] = (kA[iok] > 0) & (kA[iok] < 1)
+    
+    if not np.any(iok):
+        if debug is True:
+            _debug_intersect(tit="No kA", **locals())
+        return p0, p1
+    
+    kB = np.full((npts, npts), -1, dtype=float)
+    A0f = np.repeat(A0[:, None], npts, axis=1)
+    A1f = np.repeat(A1[:, None], npts, axis=1)
+    s0f = np.repeat(s0[:, None], npts, axis=1)
+    s1f = np.repeat(s1[:, None], npts, axis=1)
+    
+    M0 = A0f[iok] + kA[iok] * s0f[iok]
+    M1 = A1f[iok] + kA[iok] * s1f[iok]
+    
+    kB[iok] = (
+        (M0 - A0f.T[iok]) * s0f.T[iok] + (M1 - A1f.T[iok]) * s1f.T[iok]
+    ) / (s0f.T[iok]**2 + s1f.T[iok]**2)
+    iok[iok] = (kB[iok] > 0) & (kB[iok] < 1)
+
+    # ---------------
+    # trivial cases
+    
+    # no intersection
+    if not np.any(iok):
+        if debug is True:
+            _debug_intersect(tit="No kB", **locals())
+        return p0, p1
+    
+    # several intersections
+    if np.sum(iok) != 2:
+        msg = "Multiple intersections detected"
+        if debug is True:
+            _debug_intersect(tit=msg, **locals())
+        raise Exception(msg)
+
+    # --------------------
+    # single intersection
+    
+    indA, indB = np.nonzero(iok)
+    assert np.all(indA == indB[::-1]), (indA, indB)
+    
+    indpts = indA[:, None] + np.r_[0, 1][None, :]
+    
+    ind = np.r_[
+        np.arange(0, indpts[0, 0] + 1),
+        np.arange(indpts[1, 0], indpts[0, 1] - 1, -1),
+        np.arange(indpts[1, 1], npts)
+    ]
+    
+    # ----------------
+    # DEBUG
+    
+    if debug is True or debug == 'intersect':
+        _debug_intersect(tit='found', **locals())
+    
+    return p0[ind], p1[ind]
+
+
+def _debug_intersect(
+    p0=None,
+    p1=None,
+    kA=None,
+    kB=None,
+    iok=None,
+    det_up=None,
+    det_lo=None,
+    ind=None,
+    tit=None,
+    **kwdargs,
+):
+     
+    fig, axs = plt.subplots(figsize=(12, 10), nrows=2, ncols=4)
+    fig.suptitle(tit, size=12, fontweight='bold')
+    
+    axs[0, 0].plot(np.r_[p0, p0[0]], np.r_[p1, p1[0]], '.-k')
+    
+    axs[0, 1].imshow(iok, origin='upper', interpolation='nearest')
+    axs[0, 2].imshow(
+        kA,
+        origin='upper',
+        interpolation='nearest',
+        vmin=0,
+        vmax=1,
+    )
+    axs[1, 1].imshow(
+        det_up, 
+        origin='upper',
+        interpolation='nearest',
+        vmin=-np.max(np.abs(det_up)),
+        vmax=np.max(np.abs(det_up)),
+        cmap=plt.cm.seismic,
+    )
+    axs[1, 2].imshow(
+        det_lo,
+        origin='upper', 
+        interpolation='nearest',
+        vmin=-np.max(np.abs(det_lo)),
+        vmax=np.max(np.abs(det_lo)),
+        cmap=plt.cm.seismic,
+    )
+    axs[0, 1].set_title("iok")
+    axs[0, 2].set_title("kA")
+    axs[1, 1].set_title("det_up")
+    axs[1, 2].set_title("det_lo")
+    
+    print('kA\n',kA)
+    print('det_up\n', det_up)
+    print('det_lo\n', det_lo)
+    
+    if kB is not None:
+        axs[0, 3].imshow(
+            kB,
+            origin='upper',
+            interpolation='nearest',
+            vmin=0,
+            vmax=1,
+        )
+        
+        print('kB\n', kB)
+    
+    if ind is not None:
+        axs[0, 0].plot(
+            np.r_[p0[ind], p0[ind[0]]], 
+            np.r_[p1[ind], p1[ind[0]]], 
+            '.-b',
+        )
+        
+        print('ind', ind)
+        
+    raise Exception()
 
 # ##############################################################
 # ##############################################################
