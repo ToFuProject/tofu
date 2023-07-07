@@ -222,6 +222,7 @@ class Diagnostic(Previous):
         verb=None,
         plot=None,
         store=None,
+        debug=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
 
@@ -252,6 +253,7 @@ class Diagnostic(Previous):
             verb=verb,
             plot=plot,
             store=store,
+            debug=debug,
         )
 
         # compute los angles

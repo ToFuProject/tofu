@@ -77,21 +77,8 @@ def equivalent_apertures(
         verb,
         plot,
         store,
-    ) = _check(
-        coll=coll,
-        key=key,
-        key_cam=key_cam,
-        pixel=pixel,
-        add_points=add_points,
-        min_threshold=min_threshold,
-        ind_ap_lim_spectral=ind_ap_lim_spectral,
-        convex=convex,
-        harmonize=harmonize,
-        reshape=reshape,
-        verb=verb,
-        plot=plot,
-        store=store,
-    )
+        debug,
+    ) = _check(**locals())
 
     if pixel is None:
         pixel = np.arange(0, cx.size)
@@ -224,6 +211,7 @@ def equivalent_apertures(
             # debug
             ii=ii,
             ij=ij,
+            debug=debug,
             # timing
             # dt=dt,
         )
@@ -436,6 +424,8 @@ def _check(
     verb=None,
     plot=None,
     store=None,
+    debug=None,
+    **kwdargs,
 ):
 
     # --------
@@ -635,6 +625,15 @@ def _check(
         default=False,
         types=bool,
     )
+    
+    # -----------
+    # debug
+
+    debug = ds._generic_check._check_var(
+        debug, 'debug',
+        default=False,
+        allowed=['intersect', False, True]
+    )
 
     return (
         key,
@@ -665,6 +664,7 @@ def _check(
         verb,
         plot,
         store,
+        debug,
     )
 
 
@@ -749,6 +749,7 @@ def _get_equivalent_aperture_spectro(
     # debug
     ii=None,
     ij=None,
+    debug=None,
 ):
 
     # loop on optics before crystal
@@ -815,7 +816,7 @@ def _get_equivalent_aperture_spectro(
             p0, p1 = _check_self_intersect_rectify(
                 p0=p0,
                 p1=p1,
-                debug=None,
+                debug=debug,
             )
 
         # --- DEBUG ---------
@@ -928,7 +929,7 @@ def _check_self_intersect_rectify(
     # ----------------
     # DEBUG
     
-    if debug is True or debug is None:
+    if debug is True or debug == 'intersect':
         _debug_intersect(tit='found', **locals())
     
     return p0[ind], p1[ind]
