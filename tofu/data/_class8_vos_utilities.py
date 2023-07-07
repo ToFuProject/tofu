@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
 
+import warnings
+
+
 import numpy as np
 import bsplines2d as bs2
 from contourpy import contour_generator
 from matplotlib.path import Path
 from scipy.spatial import ConvexHull
+import matplotlib.pyplot as plt
 import datastock as ds
 import Polygon as plg
 
@@ -73,7 +77,35 @@ def _get_overall_polygons(
     for ii in ipn[1:]:
         pp |= plg.Polygon(np.array([p0[:, ii], p1[:, ii]]).T)
 
-    return np.array(pp)[0].T
+    if len(pp) > 1:
+        
+        # replace by convex hull
+        pts = np.concatenate(
+            tuple([np.array(pp.contour(ii)) for ii in range(len(pp))]),
+            axis=0,
+        )
+        poly = pts[ConvexHull(pts).vertices, :].T 
+    
+        # plot for debugging
+        fig = plt.figure()
+        fig.suptitle("_get_overall_polygons()", size=12)
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        ax.set_title(f"camera '{key_cam}', vos poly '{poly}'")
+        for ii in range(len(pp)):
+            ax.plot(
+                np.array(pp.contour(ii))[:, 0],
+                np.array(pp.contour(ii))[:, 1],
+                '.-',
+                poly[0, :],
+                poly[1, :],
+                '.-k',
+            )
+        msg = "multiple contours"
+        warnings.warn(msg)
+        return poly
+    
+    else:
+        return np.array(pp.contour(0)).T
 
 
 # ###############################################
