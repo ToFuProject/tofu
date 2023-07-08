@@ -47,7 +47,7 @@ def scope_reflected_intensities(
     
     """
     
-    Provide target_lamb in AA
+    Provide target_lamb in m
     
     """
 
