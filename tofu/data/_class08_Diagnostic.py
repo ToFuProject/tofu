@@ -68,6 +68,7 @@ class Diagnostic(Previous):
         # compute
         compute=True,
         add_points=None,
+        convex=None,
         # spectro-only
         rocking_curve_fw=None,
         # others
@@ -108,7 +109,9 @@ class Diagnostic(Previous):
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
+                # equivalent aperture
                 add_points=add_points,
+                convex=convex,
                 # spectro-only
                 rocking_curve_fw=rocking_curve_fw,
                 # bool
@@ -220,6 +223,7 @@ class Diagnostic(Previous):
         verb=None,
         plot=None,
         store=None,
+        debug=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
 
@@ -250,6 +254,7 @@ class Diagnostic(Previous):
             verb=verb,
             plot=plot,
             store=store,
+            debug=debug,
         )
 
         # compute los angles
@@ -409,7 +414,6 @@ class Diagnostic(Previous):
         # bool
         verb=None,
         debug=None,
-        plot=None,
         store=None,
         replace_poly=None,
         timing=None,
@@ -441,7 +445,6 @@ class Diagnostic(Previous):
             # bool
             verb=verb,
             debug=debug,
-            plot=plot,
             store=store,
             replace_poly=replace_poly,
             timing=timing,
@@ -482,6 +485,7 @@ class Diagnostic(Previous):
         plot=None,
         verb=None,
         store=None,
+        debug=None,
     ):
         """"""
         return _equivalent_apertures.equivalent_apertures(
@@ -501,6 +505,7 @@ class Diagnostic(Previous):
             plot=plot,
             verb=verb,
             store=store,
+            debug=debug,
         )
 
     # ---------------
@@ -552,6 +557,7 @@ class Diagnostic(Previous):
         self,
         key=None,
         add_points=None,
+        min_threshold=None,
         mode=None,
         closed=None,
         ravel=None,
@@ -562,6 +568,7 @@ class Diagnostic(Previous):
             coll=self,
             key=key,
             add_points=add_points,
+            min_threshold=min_threshold,
             mode=mode,
             closed=closed,
             ravel=ravel,
@@ -572,6 +579,7 @@ class Diagnostic(Previous):
         self,
         key=None,
         add_points=None,
+        min_threshold=None,
         mode=None,
         closed=None,
         ravel=None,
@@ -583,6 +591,7 @@ class Diagnostic(Previous):
             coll=self,
             key=key,
             add_points=add_points,
+            min_threshold=min_threshold,
             mode=mode,
             closed=closed,
             ravel=ravel,
@@ -733,6 +742,11 @@ class Diagnostic(Previous):
         ref_com=None,
         # signal
         brightness=None,
+        spectral_binning=None,
+        # verb
+        verb=None,
+        # timing
+        timing=None,
         # store
         store=None,
         # return
@@ -760,6 +774,11 @@ class Diagnostic(Previous):
             ref_com=ref_com,
             # signal
             brightness=brightness,
+            spectral_binning=spectral_binning,
+            # verb
+            verb=verb,
+            # timing
+            timing=timing,
             # store
             store=store,
             # return
