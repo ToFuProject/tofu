@@ -1195,7 +1195,7 @@ def CrystBragg_comp_integrated_reflect(
                 ))/np.sqrt(((kk[i])**2 - 1.)**2 + 4.*(rek[i]**2))
                 # Reflecting power
                 power_ratio[h, i, j, ...] = (Fmod[i]/Fbmod[i])*(
-                    al[h, i, j, :] - np.sqrt((al[h, i, j, :]**2) - 1.)
+                    al[h, i, j, :] - np.sqrt(al[h, i, j, :]**2 - 1.)
                 )
                 # Power ratio maximum and its index
                 max_pr[h,i,j] = np.nanmax(power_ratio[h,i,j])
@@ -1257,12 +1257,26 @@ def CrystBragg_comp_integrated_reflect(
             P_dyn[i, j] = np.sum(rhg[:, i, j])/2.
             if P_dyn[i, j] < 1e-9:
                 msg = (
-                    "Please check the equations for integrated reflectivity:\n"
-                    "the value of P_dyn ({}) is less than 1e-9.\n".format(
-                        P_dyn[j],
-                    )
+                    "Please check the equations for integrated reflectivity, "
+                    "some values lower than 1e-9:\n"
+                    f"\t- P_dyn[{i}, {j}] = {P_dyn[i, j]}\n"
+                    f"\t- rhg[:, {i}, {j}] = {rhg[:, i, j]}\n"
+                    f"\t- conv_ygscale[:, {i}, {j}] = {conv_ygscale[:, i, j]}\n"
+                    f"\t- rhy[{i}, {j}] = {rhy[i, j]}\n"
+                    f"\t- dy = {np.mean(dy)}\n"
+                    f"\t- Fmod[{i}]/Fbmod[{i}] = {Fmod[i]/Fbmod[i]}\n"
+                    f"\t- g[:, {i}, {j}] = {g[:, i, j]}\n"
+                    f"\t- kk[{i}] = {kk[i]}\n"
+                    f"\t- rek[{i}] = {rek[i]}\n"
+                    f"\t- bb[{i}, {j}] = {bb[i, j]}\n"
+                    f"\t- psi0_im[i] = {psi0_im[i]}\n"
+                    f"\t- psi_re[i] = {psi_re[i]}\n"
+                    f"\t- polar[:][{i}] = {polar[:, i]}\n"                    
+                    f"\t- power_ratiob[{i}, {j}, :] = {power_ratiob[i, j, :]}\n"
+                    f"\t- al[:, {i}, {j}, :] = {al[:, i, j, :]}\n"
                 )
                 raise Exception(msg)
+
             # Coordinates of full width at mid high sides of FWHM
             hmx_perp = half_max_x(dth[0, i, j, :], power_ratio[0, i, j, :])
             hmx_para = half_max_x(dth[1, i, j, :], power_ratio[1, i, j, :])
