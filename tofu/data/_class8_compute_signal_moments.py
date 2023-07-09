@@ -212,13 +212,13 @@ def _check_bins(
 
     lok_var = [
         k0 for k0, v0 in coll.dobj['diagnostic'][key]['signal']
-        if
+        # if
     ]
 
-    if isinstance(bins, int):
-        lok += []
-    else:
-        lok =
+    # if isinstance(bins, int):
+        # lok += []
+    # else:
+        # lok =
 
     bin_data = ds._generic_check._check_var(
         bin_data, 'bin_data',
