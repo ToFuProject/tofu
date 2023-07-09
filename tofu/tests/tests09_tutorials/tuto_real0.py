@@ -581,11 +581,11 @@ def _crystals(coll=None, crystals=None):
             },
             # 'dmat': 'Quartz_110',
             'dmat': {
-                'd_hkl': 0.944e-10 / (2*np.sin(24.2*np.pi/180.)),
-                'target': {
-                    'lamb': 0.944e-10,
-                },
-                'drock': drock,
+                'material': 'Germanium',
+                'name': 'Ge224',
+                'miller': np.r_[2,2,4],
+                # 'd_hkl': 0.944e-10 / (2*np.sin(24.2*np.pi/180.)),
+                'target': {'lamb': 0.944e-10},
             },
             'configuration': 'von hamos',
         }

@@ -234,7 +234,7 @@ def compute_rockingcurve(
         F_im1[ee] = np.sum(f_im[ee]*np.cos(2*np.pi*phase))
         F_im2[ee] = np.sum(f_im[ee]*np.sin(2*np.pi*phase))
 
-    # Sums structure factor compenents over species 
+    # Sums structure factor compenents over species
     F_re_cos = np.sum(F_re1, axis=0) # dim(temp,)
     F_re_sin = np.sum(F_re2, axis=0) # dim(temp,)
 
@@ -299,7 +299,7 @@ def compute_rockingcurve(
             # Zero-order imaginary part (averaged)
             psi0_im[ii] += (
                 -re*(lamb**2)
-                * din['mesh']['positions'][el]['N'] 
+                * din['mesh']['positions'][el]['N']
                 * f_im[ee]
                 )/(np.pi*Volume[ii])
 
@@ -450,11 +450,11 @@ def compute_rockingcurve(
         return dreturn
 
 
-# ####################################################################
-# ####################################################################
+# ################################################################
+# ################################################################
 #               Checks
-# ####################################################################
-# ####################################################################
+# ################################################################
+# ################################################################
 
 
 def _checks(
@@ -482,24 +482,7 @@ def _checks(
     # ------------
     # crystal
 
-    # Builds crystal dictionary
-    try:
-        din = _def._build_cry(crystal=crystal, din=din)
-    
-    # Exception handling
-    except:
-        lk1 = ['material', 'symbol', 'miller', 'target']
-        dstr = {
-            k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
-            for k0, v0 in _def._DCRYST.items()
-        }
-        lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
-        msg = (
-            "You must choose a type of crystal from "
-            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
+    din = _def._build_cry(crystal=crystal, din=din)
 
     # lamb
     if lamb is None:
@@ -569,12 +552,12 @@ def _checks(
     )
 
 
-# #############################################################################
-# #############################################################################
+# ################################################################
+# ################################################################
 #          Plot variations of RC components vs temperature & asymetry
 #                        for multiple wavelengths
-# #############################################################################
-# #############################################################################
+# ################################################################
+# ################################################################
 
 
 def plot_var_temp_changes_wavelengths(
@@ -1062,6 +1045,8 @@ def CrystBragg_comp_lattice_spacing(
             msg = (
                 "According to Bragg law, Bragg scattering need d > lamb/2!\n"
                 "Please check your wavelength argument.\n"
+                f"\t- d_atom[{ii}] = {d_atom[ii]}\n"
+                f"\t- lamb/2 = {lamb} / 2.\n"
             )
             raise Exception(msg)
 
@@ -1195,7 +1180,7 @@ def CrystBragg_comp_integrated_reflect(
                 ))/np.sqrt(((kk[i])**2 - 1.)**2 + 4.*(rek[i]**2))
                 # Reflecting power
                 power_ratio[h, i, j, ...] = (Fmod[i]/Fbmod[i])*(
-                    al[h, i, j, :] - np.sqrt((al[h, i, j, :]**2) - 1.)
+                    al[h, i, j, :] - np.sqrt(al[h, i, j, :]**2 - 1.)
                 )
                 # Power ratio maximum and its index
                 max_pr[h,i,j] = np.nanmax(power_ratio[h,i,j])
@@ -1257,12 +1242,26 @@ def CrystBragg_comp_integrated_reflect(
             P_dyn[i, j] = np.sum(rhg[:, i, j])/2.
             if P_dyn[i, j] < 1e-9:
                 msg = (
-                    "Please check the equations for integrated reflectivity:\n"
-                    "the value of P_dyn ({}) is less than 1e-9.\n".format(
-                        P_dyn[j],
-                    )
+                    "Please check the equations for integrated reflectivity, "
+                    "some values lower than 1e-9:\n"
+                    f"\t- P_dyn[{i}, {j}] = {P_dyn[i, j]}\n"
+                    f"\t- rhg[:, {i}, {j}] = {rhg[:, i, j]}\n"
+                    f"\t- conv_ygscale[:, {i}, {j}] = {conv_ygscale[:, i, j]}\n"
+                    f"\t- rhy[{i}, {j}] = {rhy[i, j]}\n"
+                    f"\t- dy = {np.mean(dy)}\n"
+                    f"\t- Fmod[{i}]/Fbmod[{i}] = {Fmod[i]/Fbmod[i]}\n"
+                    f"\t- g[:, {i}, {j}] = {g[:, i, j]}\n"
+                    f"\t- kk[{i}] = {kk[i]}\n"
+                    f"\t- rek[{i}] = {rek[i]}\n"
+                    f"\t- bb[{i}, {j}] = {bb[i, j]}\n"
+                    f"\t- psi0_im[i] = {psi0_im[i]}\n"
+                    f"\t- psi_re[i] = {psi_re[i]}\n"
+                    f"\t- polar[:][{i}] = {polar[:, i]}\n"
+                    f"\t- power_ratiob[{i}, {j}, :] = {power_ratiob[i, j, :]}\n"
+                    f"\t- al[:, {i}, {j}, :] = {al[:, i, j, :]}\n"
                 )
                 raise Exception(msg)
+
             # Coordinates of full width at mid high sides of FWHM
             hmx_perp = half_max_x(dth[0, i, j, :], power_ratio[0, i, j, :])
             hmx_para = half_max_x(dth[1, i, j, :], power_ratio[1, i, j, :])
