@@ -234,7 +234,7 @@ def compute_rockingcurve(
         F_im1[ee] = np.sum(f_im[ee]*np.cos(2*np.pi*phase))
         F_im2[ee] = np.sum(f_im[ee]*np.sin(2*np.pi*phase))
 
-    # Sums structure factor compenents over species 
+    # Sums structure factor compenents over species
     F_re_cos = np.sum(F_re1, axis=0) # dim(temp,)
     F_re_sin = np.sum(F_re2, axis=0) # dim(temp,)
 
@@ -299,7 +299,7 @@ def compute_rockingcurve(
             # Zero-order imaginary part (averaged)
             psi0_im[ii] += (
                 -re*(lamb**2)
-                * din['mesh']['positions'][el]['N'] 
+                * din['mesh']['positions'][el]['N']
                 * f_im[ee]
                 )/(np.pi*Volume[ii])
 
@@ -450,11 +450,11 @@ def compute_rockingcurve(
         return dreturn
 
 
-# ####################################################################
-# ####################################################################
+# ################################################################
+# ################################################################
 #               Checks
-# ####################################################################
-# ####################################################################
+# ################################################################
+# ################################################################
 
 
 def _checks(
@@ -482,24 +482,7 @@ def _checks(
     # ------------
     # crystal
 
-    # Builds crystal dictionary
-    try:
-        din = _def._build_cry(crystal=crystal, din=din)
-    
-    # Exception handling
-    except:
-        lk1 = ['material', 'symbol', 'miller', 'target']
-        dstr = {
-            k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
-            for k0, v0 in _def._DCRYST.items()
-        }
-        lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
-        msg = (
-            "You must choose a type of crystal from "
-            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
+    din = _def._build_cry(crystal=crystal, din=din)
 
     # lamb
     if lamb is None:
@@ -569,12 +552,12 @@ def _checks(
     )
 
 
-# #############################################################################
-# #############################################################################
+# ################################################################
+# ################################################################
 #          Plot variations of RC components vs temperature & asymetry
 #                        for multiple wavelengths
-# #############################################################################
-# #############################################################################
+# ################################################################
+# ################################################################
 
 
 def plot_var_temp_changes_wavelengths(
@@ -1062,6 +1045,8 @@ def CrystBragg_comp_lattice_spacing(
             msg = (
                 "According to Bragg law, Bragg scattering need d > lamb/2!\n"
                 "Please check your wavelength argument.\n"
+                f"\t- d_atom[{ii}] = {d_atom[ii]}\n"
+                f"\t- lamb/2 = {lamb} / 2.\n"
             )
             raise Exception(msg)
 
@@ -1271,7 +1256,7 @@ def CrystBragg_comp_integrated_reflect(
                     f"\t- bb[{i}, {j}] = {bb[i, j]}\n"
                     f"\t- psi0_im[i] = {psi0_im[i]}\n"
                     f"\t- psi_re[i] = {psi_re[i]}\n"
-                    f"\t- polar[:][{i}] = {polar[:, i]}\n"                    
+                    f"\t- polar[:][{i}] = {polar[:, i]}\n"
                     f"\t- power_ratiob[{i}, {j}, :] = {power_ratiob[i, j, :]}\n"
                     f"\t- al[:, {i}, {j}, :] = {al[:, i, j, :]}\n"
                 )
