@@ -145,11 +145,11 @@ _DCRYST_MAT = {
         },
         'sin_theta_lambda': {
             'Ge': np.r_[
-                0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 
-                0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 
+                0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35,
+                0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2,
                 1.3, 1.4, 1.5
             ], # [1/AA],
-            'sources': 
+            'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985), Table 3.3.1A',
         },
         'atomic_scattering': {
@@ -157,11 +157,11 @@ _DCRYST_MAT = {
                 'Ge': np.r_[
                     32.0, 31.28, 29.52, 27.48, 25.53, 23.76,
                     22.11, 20.54, 19.02, 16.19, 13.72, 11.68,
-                    10.08, 8.87, 7.96, 7.29, 6.77, 6.37, 
+                    10.08, 8.87, 7.96, 7.29, 6.77, 6.37,
                     6.02, 5.72
                 ]
             },
-            'sources': 
+            'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985), Table 3.3.1A',
         },
     },
@@ -371,7 +371,7 @@ def _positions_germanium(
     dcryst_mat[k0]['mesh']['positions']['Ge']['N'] = np.size(
         dcryst_mat[k0]['mesh']['positions']['Ge']['x']
     )
-    
+
 
 
 # ##################################################################
@@ -599,6 +599,17 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
         # ------------------------
         # complement with material
 
+        # safety check on material
+        if v0.get('material') not in dcryst_mat.keys():
+            lstr = [f"\t- '{k0}'" for k0 in dcryst_mat.keys()]
+            msg = (
+                f"Please, for '{k0}', select a material from:\n"
+                + "\n".join(lstr)
+                + f"\nProvided: {v0.get('material')}\n"
+            )
+            raise Exception(msg)
+
+        # complement dict
         for k1, v1 in dcryst_mat[v0['material']].items():
             dcryst_cut[k0][k1] = copy.deepcopy(v1)
 
@@ -737,7 +748,7 @@ _complement_dict_cut(dcryst_mat=_DCRYST_MAT, dcryst_cut=_DCRYST)
 def _build_cry(
     crystal=None,
     din=None,
-    ):
+):
     '''
     _build_cry is a function meant to populate a crystal dictionary
     using either hardcoded WEST default crystal names ['Quartz_110', 'Quartz_102']
@@ -767,7 +778,7 @@ def _build_cry(
     elif isinstance(din, dict):
         dcry = {
             crystal: din
-            }
+        }
 
     # Builds the crystal dictionary
     _complement_dict_cut(dcryst_mat=_DCRYST_MAT, dcryst_cut=dcry)
