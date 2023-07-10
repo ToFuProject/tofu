@@ -221,6 +221,205 @@ def _binned_check(
 
 
 
+def _check_bins(
+    coll=None,
+    ddata=None,
+    coll=None,
+    bin_data=None,
+    bins=None,
+    bin_units=None,
+    
+    dref=None,
+    dref_cam=None,
+    key_diag=None,
+    key_cam=None,
+    bin_data=None,
+    bins=None,
+    bin_units=None,
+    # if bsplines
+    safety_ratio=None,
+    strict=None,
+    deg=None,
+):
+
+    # --------------
+    # options
+
+    # check
+    strict = _generic_check._check_var(
+        strict, 'strict',
+        types=bool,
+        default=True,
+    )
+
+    # check
+    safety_ratio = _generic_check._check_var(
+        safety_ratio, 'safety_ratio',
+        types=(int, float),
+        default=1.5,
+        sign='>0.'
+    )
+
+    # --------------
+    # bins
+
+    if bins is None:
+        bins = 100
+
+    if np.isscalar(bins):
+        bins = int(bins)
+
+    else:
+        bins = _generic_check._check_flat1d_array(
+            bins, 'bins',
+            dtype=float,
+            unique=True,
+            can_be_None=False,
+        )
+
+    # -------------
+    # bin data
+
+    if isinstance(bin_data, str):
+
+        # lquant = ['etendue', 'amin', 'amax']  # 'los'
+        # lcomp = ['length', 'tangency radius', 'alpha']
+        # llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
+        # lok_fixed = ['x0', 'x1'] + lquant + lcomp + llamb
+
+        lok_static = []
+        lok_var = []
+        for k0 in coll.dobj['diagnostic'][key_diag]['signal']:
+            cams = coll.dobj['synth sig'][k0]['camera']
+            ref = coll.ddata[coll.dobj['synth sig'][k0]['data'][0]]['ref']
+            if ref == dref_cam[cams[0]]:
+                lok_sig_static.append(k0)
+            elif ref == dref[cams[0]]:
+                lok_sig_var.append(k0)
+
+        bin_key = ds._generic_check._check_var(
+            bin_data, 'bin_data',
+            types=str,
+            allowed=lok_fixed + lok_sig_static + lok_sig_var,
+        )
+        bin_data = coll.ddata[bin_key]['data']
+        bin_ref = coll.ddata[bin_key]['ref']
+        bin_units = coll.ddata[bin_key]['units']
+
+        variable = bin_data in lok_sig_var
+
+    elif isinstance(bin_data, np.ndarray):
+        bin_key = None
+        shape = tuple([ss for ss in data_shape if ss in bin_data.shape])
+        if bin_data.shape != shape:
+            msg = "Arg bin_data must have "
+            raise Exception(msg)
+
+    elif bin_data is None:
+        hasref, ref, bin_data, val, dkeys = coll.get_ref_vector_common(
+            keys=keys,
+            strategy=ref_vector_strategy,
+        )
+        if bin_data is None:
+            msg = (
+                f"No matching ref vector found for:\n"
+                f"\t- keys: {keys}\n"
+                f"\t- hasref: {hasref}\n"
+                f"\t- ref: {ref}\n"
+                f"\t- ddata['{keys[0]}']['ref'] = {coll.ddata[keys[0]]['ref']} "
+            )
+            raise Exception(msg)
+
+    else:
+        msg = f"Invalid bin_data:\n{bin_data}"
+        raise Exception(msg)
+
+    # ----------------
+    # get axis
+
+    if axis is None:
+        if bin_key is None:
+            axis = np.array([
+                ii for ii, ss in enumerate(data_shape)
+                if ss in bin_data.shape
+            ])
+        else:
+            axis = np.array([
+                ii for ii, rr in enumerate(data_ref)
+                if rr in bin_ref
+            ])
+
+    axis = ds._generic_check._check_flat1d_array(
+        axis, 'axis',
+        dtype=int,
+        unique=True,
+        can_be_None=False,
+        sign='>=0',
+    )
+
+    if np.any(axis > len(data_shape)-1):
+        msg = f"axis too large\n{axis}"
+        raise Exception(msg)
+
+    if np.any(np.diff(axis) > 1):
+        msg = f"axis must be adjacent indices!\n{axis}"
+        raise Exception(msg)
+
+    # --------------
+    # bins
+
+    # bins
+    if isinstance(bins, int):
+        bin_min = np.nanmin(bin_data)
+        bin_max = np.nanmax(bin_data)
+        bin_edges = np.linspace(bin_min, bin_max, bins + 1)
+
+    else:
+        bin_edges = np.r_[
+            bins[0] - 0.5*(bins[1] - bins[0]),
+            0.5*(bins[1:] + bins[:-1]),
+            bins[-1] + 0.5*(bins[-1] - bins[-2]),
+        ]
+
+    # ----------
+    # bin method
+
+    if bin_data.ndim == 1:
+        dv = np.abs(np.diff(bin_data))
+        dv = np.append(dv, dv[-1])
+        dvmean = np.mean(dv) + np.std(dv)
+
+        if strict is True:
+            lim = safety_ratio*dvmean
+            if not np.mean(np.diff(bin_edges)) > lim:
+                msg = (
+                    f"Uncertain binning for '{sorted(keys)}', ref vect '{ref_key}':\n"
+                    f"Binning steps ({db}) are < {safety_ratio}*ref ({lim}) vector step"
+                )
+                raise Exception(msg)
+
+            else:
+                npts = None
+
+        else:
+            npts = (deg + 3) * max(1, dvmean / db)
+
+    # ----------
+    # dbins
+
+    dbins = {
+        'key': bin_key,
+        'bins': bins,
+        'edges': edges,
+        'data': bin_data,
+        'ref': bin_ref,
+        'units': bin_units,
+        'axis': axis,
+    }
+
+    return dbins, npts
+
+
 
 
 def _spectro2d_binned_plot(
