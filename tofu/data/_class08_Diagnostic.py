@@ -902,28 +902,36 @@ class Diagnostic(Previous):
     # data moments
     # -----------------
 
-    def get_diagnostic_spectro2d_binned_data(
+    def compute_diagnostic_binned_data(
         self,
-        key=None,
+        key_diag=None,
         key_cam=None,
         # data to be binned
         data=None,
         # binning dimension
-        bin_data=None,
-        bins=None,
+        bins0=None,
+        bins1=None,
+        bin_data0=None,
+        bin_data1=None,
+        # store
+        store=None,
         # plotting
         plot=None,
     ):
 
-        return _signal_moments.spectro2d_binned(
+        return _signal_moments.binned(
             coll=self,
-            key=key,
+            key_diag=key_diag,
             key_cam=key_cam,
             # data to be binned
             data=data,
             # binning dimension
-            bin_data=bin_data,
-            bins=bins,
+            bins0=bins0,
+            bins1=bins1,
+            bin_data0=bin_data0,
+            bin_data1=bin_data1,
+            # store
+            store=store,
             # plotting
             plot=plot,
         )
