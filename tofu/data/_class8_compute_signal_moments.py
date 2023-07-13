@@ -90,12 +90,12 @@ def binned(
         import pdb; pdb.et_trace()      # DB
 
         # fill dict
-        dout[kcam] = {
-            'data': out,
-            'units': units,
-            'bins': 0.5*(dbin_edges[kcam][1:] + dbin_edges[kcam][:-1]),
-            'bin_units': bin_dd[kcam]['units'],
-        }
+        # dout[kcam] = {
+        #     'data': out,
+        #     'units': units,
+        #     'bins': 0.5*(dbin_edges[kcam][1:] + dbin_edges[kcam][:-1]),
+        #     'bin_units': bin_dd[kcam]['units'],
+        # }
 
     # ----------
     # plot
@@ -224,22 +224,21 @@ def _binned_check(
 def _check_bins(
     coll=None,
     ddata=None,
-    coll=None,
     bin_data=None,
     bins=None,
     bin_units=None,
     
-    dref=None,
-    dref_cam=None,
-    key_diag=None,
-    key_cam=None,
-    bin_data=None,
-    bins=None,
-    bin_units=None,
-    # if bsplines
-    safety_ratio=None,
-    strict=None,
-    deg=None,
+    # dref=None,
+    # dref_cam=None,
+    # key_diag=None,
+    # key_cam=None,
+    # bin_data=None,
+    # bins=None,
+    # bin_units=None,
+    # # if bsplines
+    # safety_ratio=None,
+    # strict=None,
+    # deg=None,
 ):
 
     # --------------
