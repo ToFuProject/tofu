@@ -703,13 +703,14 @@ def _compute_los(
                 # bin spectrally before spatial interpolation
                 kbinned = f"{key_integrand}_bin_{k0}_{ii}"
                 coll.binning(
-                    keys=key_integrand,
-                    ref_key=key_bs_spectro,
-                    bins=ktemp_bin,
+                    data=key_integrand,
+                    bin_data0=key_bs_spectro,
+                    bins0=ktemp_bin,
+                    integrate=True,
                     verb=verb,
                     store=True,
                     returnas=False,
-                    key_store=kbinned,
+                    store_keys=kbinned,
                 )
 
                 domain = None
