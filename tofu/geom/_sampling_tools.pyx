@@ -851,7 +851,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
     # ... Treating the first los ....................................
     seg_length = los_kmax[0] - los_kmin[0]
     num_raf = <int>(c_ceil(seg_length * inv_resol))
-    num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
+    num_raf = <int>(2**(<int>(c_ceil(c_log2(num_raf)))))
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
