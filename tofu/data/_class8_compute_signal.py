@@ -559,32 +559,14 @@ def _compute_los(
 
         units_spectro = coll.ddata[kspect_ref_vect]['units']
 
-        E, _ = coll.get_diagnostic_lamb(
-            key_diag,
-            lamb='lamb',
-            units=units_spectro,
-        )
-        dE, _ = coll.get_diagnostic_lamb(
-            key_diag,
-            lamb='dlamb',
-            units=units_spectro,
-        )
-        E_flat = E.ravel()
-        dE_flat = dE.ravel()
-
-
         # --------------------------
         # optional spectral binning
-
-        defspb = (
-            np.nanmean(dE_flat)
-            > np.nanmean(np.abs(np.diff(coll.ddata[kspect_ref_vect]['data'])))
-        )
+        
         # spectral_binning
         spectral_binning = ds._generic_check._check_var(
             spectral_binning, 'spectral_binning',
             types=bool,
-            default=defspb,
+            default=True,
         )
 
         # if spectral binning => add bins of len 2 for temporary storing
@@ -631,6 +613,25 @@ def _compute_los(
         ngroup = npix // groupby
         if groupby * ngroup < npix:
             ngroup += 1
+
+        # ----------------
+        # spectro
+        
+        if spectro:
+            E, _ = coll.get_diagnostic_lamb(
+                key_diag,
+                lamb='lamb',
+                key_cam=k0,
+                units=units_spectro,
+            )
+            dE, _ = coll.get_diagnostic_lamb(
+                key_diag,
+                lamb='dlamb',
+                key_cam=k0,
+                units=units_spectro,
+            )
+            E_flat = E.ravel()
+            dE_flat = dE.ravel()
 
         # ---------------------------------------------------
         # loop on group of pixels (to limit memory footprint)
