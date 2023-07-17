@@ -703,6 +703,7 @@ def _compute_los(
 
                 # bin spectrally before spatial interpolation
                 kbinned = f"{key_integrand}_bin_{k0}_{ii}"
+                #try:
                 coll.binning(
                     data=key_integrand,
                     bin_data0=key_bs_spectro,
@@ -713,6 +714,20 @@ def _compute_los(
                     returnas=False,
                     store_keys=kbinned,
                 )
+                # except Exception as err:
+                #     msg = (
+                #         err.args[0]
+                #         + "\n\n"
+                #         f"\t- k0 = {k0}\n"
+                #         f"\t- ii = {ii}\n"
+                #         f"\t- key_integrand = {key_integrand}\n"
+                #         f"\t- key_bs_spectro = {key_bs_spectro}\n"
+                #         f"\t- ktemp_bin = {ktemp_bin}\n"
+                #         f"\t- edges = {edges}\n"
+                #         f"\t- E_flat[ii] = {E_flat[ii]}\n"
+                #     )
+                #     err.args = (msg,)
+                #     raise err
 
                 domain = None
                 key_integrand_interp = kbinned
