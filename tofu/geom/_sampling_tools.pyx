@@ -861,7 +861,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
     for ii in range(1, nlos):
         seg_length = los_kmax[ii] - los_kmin[ii]
         num_raf = <int>(c_ceil(seg_length * inv_resol))
-        num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
+        num_raf = <int>(2**(<int>(c_ceil(c_log2(num_raf)))))
         loc_resol = seg_length / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -1071,7 +1071,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
     cdef int first_index
     cdef double loc_resol
     num_raf = <int>(c_ceil(1. / resolutions[0]))
-    num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
+    num_raf = <int>(2**(<int>(c_ceil(c_log2(num_raf)))))
     loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -1080,7 +1080,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
     # ...
     for ii in range(1,nlos):
         num_raf = <int>(c_ceil(1. / resolutions[ii]))
-        num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
+        num_raf = <int>(2**(<int>(c_ceil(c_log2(num_raf)))))
         loc_resol = (los_kmax[ii] - los_kmin[ii]) / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -1134,7 +1134,7 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
     cdef double loc_resol
     seg_length = los_kmax[0] - los_kmin[0]
     num_raf = <int>(c_ceil(seg_length / resolutions[0]))
-    num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
+    num_raf = <int>(2**(<int>(c_ceil(c_log2(num_raf)))))
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -1144,7 +1144,7 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
     for ii in range(1,nlos):
         seg_length = los_kmax[ii] - los_kmin[ii]
         num_raf = <int>(c_ceil(seg_length / resolutions[ii]))
-        num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
+        num_raf = <int>(2**(<int>(c_ceil(c_log2(num_raf)))))
         loc_resol = seg_length / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -1261,7 +1261,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
             return nraf + 1
         elif n_imode==2:
             # 'romb' quad
-            nraf = 2**(<int>(c_ceil(c_log2(nraf))))
+            nraf = <int>(2**(<int>(c_ceil(c_log2(nraf)))))
             invnraf = 1./nraf
             coeffs[0] = <double*>malloc((nraf + 1)*sizeof(double))
             eff_res[0] = (los_kmax - los_kmin)*invnraf
@@ -1294,7 +1294,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
             # 'romb' quad
             seg_length = los_kmax - los_kmin
             nraf = <int>(c_ceil(seg_length / resol))
-            nraf = 2**(<int>(c_ceil(c_log2(nraf))))
+            nraf = <int>(2**(<int>(c_ceil(c_log2(nraf)))))
             eff_res[0] = seg_length / nraf
             coeffs[0] = <double*>malloc((nraf+1)*sizeof(double))
             left_rule_single(nraf, los_kmin, eff_res[0],
@@ -1415,7 +1415,7 @@ cdef inline int los_get_sample_core_const_res(int nlos,
                           num_threads=num_threads)
             return (num_cells+1)*nlos
         elif n_imode==2: #romb
-            num_cells = 2**(<int>c_ceil(c_log2(num_cells)))
+            num_cells = <int>(2**(<int>c_ceil(c_log2(num_cells))))
             coeff_ptr[0] = <double*>malloc(sizeof(double)*(num_cells+1)*nlos)
             left_rule_rel(nlos, num_cells,
                           los_lim_min, los_lim_max,
