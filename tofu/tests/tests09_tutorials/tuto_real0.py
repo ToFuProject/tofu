@@ -36,13 +36,13 @@ def main():
     # add several diagnostics
 
     # add broadband
-    _add_broadband(coll, conf)
+    # _add_broadband(coll, conf)
 
     # add 2d camera
-    _add_2d(coll, conf)
+    # _add_2d(coll, conf)
 
     # add PHA
-    _add_PHA(coll, conf)
+    # _add_PHA(coll, conf)
 
     # add spectrometer
     _add_spectrometer(coll, conf)   # , crystals=['c0'])
@@ -53,7 +53,11 @@ def main():
     # ------------------------
     # compute synthetic signal
 
-    # _compute_synth_signal(coll) # , ldiag=['diag00'])
+    _compute_synth_signal(
+        coll,
+        #ldiag=['diag00']),
+        spectral_binning=True,
+    )
 
     # ------------------
     # geometry matrices
@@ -577,11 +581,11 @@ def _crystals(coll=None, crystals=None):
             },
             # 'dmat': 'Quartz_110',
             'dmat': {
-                'd_hkl': 0.944e-10 / (2*np.sin(24.2*np.pi/180.)),
-                'target': {
-                    'lamb': 0.944e-10,
-                },
-                'drock': drock,
+                'material': 'Germanium',
+                'name': 'Ge224',
+                'miller': np.r_[2,2,4],
+                # 'd_hkl': 0.944e-10 / (2*np.sin(24.2*np.pi/180.)),
+                'target': {'lamb': 0.944e-10},
             },
             'configuration': 'von hamos',
         }
@@ -678,17 +682,13 @@ def _nine0e1_from_orientations(
 # #####################################################
 
 
-def _compute_synth_signal(coll=None, ldiag=None):
+def _compute_synth_signal(coll=None, ldiag=None, spectral_binning=None):
 
     # -------------
     # list of diags
 
     if ldiag is None:
-        ldiag = [
-            'd0',
-            'd1',
-            'diag00', 'diag01', 'diag02',
-        ]
+        ldiag = list(coll.dobj['diagnostic'])
 
     # ------------
     # loop n diags
@@ -722,6 +722,9 @@ def _compute_synth_signal(coll=None, ldiag=None):
             val_init=None,
             ref_com=ref_com,
             brightness=None,
+            spectral_binning=spectral_binning,
+            verb=True,
+            timing=False,
             store=True,
             returnas=False,
         )

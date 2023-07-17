@@ -72,7 +72,6 @@ def compute_vos(
         visibility,
         verb,
         debug,
-        plot,
         store,
         timing,
     ) = _check(
@@ -86,7 +85,6 @@ def compute_vos(
         visibility=visibility,
         verb=verb,
         debug=debug,
-        plot=None,
         store=store,
         timing=timing,
     )
@@ -282,7 +280,6 @@ def _check(
     check=None,
     verb=None,
     debug=None,
-    plot=None,
     store=None,
     timing=None,
 ):
@@ -434,15 +431,6 @@ def _check(
     )
 
     # -----------
-    # plot
-
-    if plot is None:
-        plot = True
-    if not isinstance(plot, bool):
-        msg = "Arg plot must be a bool"
-        raise Exception(msg)
-
-    # -----------
     # store
 
     store = ds._generic_check._check_var(
@@ -477,7 +465,6 @@ def _check(
         visibility,
         verb,
         debug,
-        plot,
         store,
         timing,
     )
@@ -723,7 +710,13 @@ def _check_get_dvos(
 
     # default
     if spectro is True:
-        pass
+        lk = [
+            'keym', 'res_RZ', 'res_phi', 'indr', 'indz', 
+            'phi_min', 'phi_max', 'phi_mean',
+            'ph_count', 'ncounts', 'cos',
+            'lamb', 'lambmin', 'lambmax',
+            'dV', 'etendlen', 'res_rock_curve',
+        ]
     else:
         lk = ['keym', 'res_RZ', 'indr', 'indz', 'sang']
 

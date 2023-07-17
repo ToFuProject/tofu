@@ -1,5 +1,8 @@
 
 
+import datetime as dtm
+
+
 import numpy as np
 import scipy.integrate as scpinteg
 import astropy.units as asunits
@@ -32,8 +35,11 @@ def compute_signal(
     ref_com=None,
     # signal
     brightness=None,
+    spectral_binning=None,
     # verb
     verb=None,
+    # timing
+    timing=None,
     # store
     store=None,
     # return
@@ -46,10 +52,11 @@ def compute_signal(
 
     (
         key_diag, key_cam, spectro, PHA, is2d,
-        method, mode, groupby, val_init, brightness,
+        method, mode, groupby, val_init,
+        brightness, spectral_binning,
         key_integrand, key_mesh0, key_bs,
         key_ref_spectro, key_bs_spectro,
-        verb, store, key,
+        verb, timing, store, key,
         returnas,
     ) = _compute_signal_check(
         coll=coll,
@@ -63,12 +70,15 @@ def compute_signal(
         val_init=val_init,
         # signal
         brightness=brightness,
+        spectral_binning=spectral_binning,
         # to be integrated
         key_integrand=key_integrand,
         # spectral ref
         key_ref_spectro=key_ref_spectro,
         # verb
         verb=verb,
+        # timing
+        timing=timing,
         # store
         store=store,
         key=key,
@@ -108,7 +118,7 @@ def compute_signal(
     # --------------
 
     if method == 'los':
-        dout = _compute_los(
+        dout, dt = _compute_los(
             coll=coll,
             is2d=is2d,
             spectro=spectro,
@@ -127,10 +137,29 @@ def compute_signal(
             val_init=val_init,
             ref_com=ref_com,
             brightness=brightness,
+            spectral_binning=spectral_binning,
+            # verb
+            verb=verb,
+            # timing
+            timing=timing,
         )
 
     else:
         pass
+
+
+    # ----------
+    # timing
+    # ----------
+
+    if timing is True:
+        lstr = [f"{k0}:\t {v0} s" for k0, v0 in dt.items()]
+        msg = (
+            "Timing for "
+            f"compute_diagnostic_signal('{key_diag}', method='{method}')\n"
+            + "\n".join(lstr)
+        )
+        print(msg)
 
     # -------------
     # store
@@ -237,12 +266,15 @@ def _compute_signal_check(
     val_init=None,
     # signal
     brightness=None,
+    spectral_binning=None,
     # to be integrated
     key_integrand=None,
     # spectral ref
     key_ref_spectro=None,
     # verb
     verb=None,
+    # timing
+    timing=None,
     # store
     store=None,
     # return
@@ -352,6 +384,13 @@ def _compute_signal_check(
         default=True,
     )
 
+    # timing
+    timing = ds._generic_check._check_var(
+        timing, 'timing',
+        types=bool,
+        default=False,
+    )
+
     # store
     store = ds._generic_check._check_var(
         store, 'store',
@@ -377,10 +416,11 @@ def _compute_signal_check(
 
     return (
         key_diag, key_cam, spectro, PHA, is2d,
-        method, mode, groupby, val_init, brightness,
+        method, mode, groupby, val_init,
+        brightness, spectral_binning,
         key_integrand, key_mesh0, key_bs,
         key_ref_spectro, key_bs_spectro,
-        verb, store, key,
+        verb, timing, store, key,
         returnas,
     )
 
@@ -394,7 +434,7 @@ def _get_ref_bs_spectro(
 
     # -----------
     # prepare
-    
+
     # get ref of integrand
     kref = coll.ddata[key_integrand]['ref']
     wbs = coll._which_bsplines
@@ -404,7 +444,7 @@ def _get_ref_bs_spectro(
         k0 for k0 in kref
         if k0 not in coll.dobj[wbs][key_bs]['ref']
     ]
-    
+
     # If none => error
     if len(lkspectro) == 0:
         msg = (
@@ -430,7 +470,7 @@ def _get_ref_bs_spectro(
             key_ref_spectro = lkspectro[0]
         else:
             pass
-    
+
     # check if bs
     if len(lbs_spectro) == 0:
         pass
@@ -441,7 +481,7 @@ def _get_ref_bs_spectro(
         assert key_ref_spectro == coll.dobj[wbs][key_bs_spectro]['ref'][0]
     else:
         pass
-            
+
     # --------
     # safety check
 
@@ -477,7 +517,29 @@ def _compute_los(
     val_init=None,
     ref_com=None,
     brightness=None,
+    spectral_binning=None,
+    # verb
+    verb=None,
+    # timing
+    timing=None,
 ):
+
+    # --------------
+    # prepare timing
+
+    dt = None
+    if timing is True:
+        lk = [
+            '\tpreparation',
+            '\tsample rays',
+            '\tspectral binning',
+            '\tinterpolate on los',
+            '\textract data',
+            '\tintegrate on los',
+            '\tformat output'
+        ]
+        dt = dict.fromkeys(lk, 0)
+        t0 = dtm.datetime.now()     # Timing
 
     # -----------------
     # prepare
@@ -510,6 +572,31 @@ def _compute_los(
         E_flat = E.ravel()
         dE_flat = dE.ravel()
 
+
+        # --------------------------
+        # optional spectral binning
+
+        defspb = (
+            np.nanmean(dE_flat)
+            > np.nanmean(np.abs(np.diff(coll.ddata[kspect_ref_vect]['data'])))
+        )
+        # spectral_binning
+        spectral_binning = ds._generic_check._check_var(
+            spectral_binning, 'spectral_binning',
+            types=bool,
+            default=defspb,
+        )
+
+        # if spectral binning => add bins of len 2 for temporary storing
+        if spectral_binning is True:
+            ktemp_bin = f'{key_bs_spectro}_temp_bin'
+            coll.add_bins(
+                key=ktemp_bin,
+                edges=[0, 1],
+                units=units_spectro,
+            )
+            ktemp_binc = coll.dobj['bins'][ktemp_bin]['cents'][0]
+
     else:
         dict_E = None
         dict_dE = None
@@ -521,12 +608,17 @@ def _compute_los(
         key_bs=key_bs,
     )
     units = units0 * units_bs
-
     domain = None
+
+    # timing
+    if timing is True:
+        t1 = dtm.datetime.now()
+        dt['\tpreparation'] = (t1 - t0).total_seconds()
 
     # ----------------
     # loop on cameras
 
+    key_integrand_interp = str(key_integrand)
     dout = {}
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
     for k0 in key_cam:
@@ -545,6 +637,17 @@ def _compute_los(
 
         shape = None
         for ii in range(ngroup):
+
+            # verb
+            if verb is True:
+                msg = f"\tpix group {ii+1} / {ngroup}"
+                end = "\n" if ii == ngroup - 1 else "\r"
+                print(msg, end=end, flush=True)
+
+
+            # timing
+            if timing is True:
+                t01 = dtm.datetime.now()
 
             # indices
             i0 = ii*groupby
@@ -582,19 +685,51 @@ def _compute_los(
             # some lines can be nan if non-existant
             assert nnan == ni, f"{nnan} vs {ni}"
 
+            # timing
+            if timing is True:
+                t02 = dtm.datetime.now()
+                dt['\tsample rays'] += (t02-t01).total_seconds()
+
             # -------------------
             # domain for spectro
 
-            if spectro:
+            if spectro and spectral_binning:
+
+                # add bins for storing
+                coll._ddata[ktemp_binc]['data'] = E_flat[ii]
+                edges = E_flat[ii] + dE_flat[ii] * 0.5 * np.r_[-1, 1]
+                coll._dobj['bins'][ktemp_bin]['edges'] = edges
+
+                # bin spectrally before spatial interpolation
+                kbinned = f"{key_integrand}_bin_{k0}_{ii}"
+                coll.binning(
+                    keys=key_integrand,
+                    ref_key=key_bs_spectro,
+                    bins=ktemp_bin,
+                    verb=verb,
+                    store=True,
+                    returnas=False,
+                    key_store=kbinned,
+                )
+
+                domain = None
+                key_integrand_interp = kbinned
+
+            elif spectro:
                 ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_flat[0]]))
                 domain = {key_ref_spectro: {'ind': np.r_[ind]}}
+
+            # timing
+            if timing is True:
+                t03 = dtm.datetime.now()
+                dt['\tspectral binning'] += (t03-t02).total_seconds()
 
             # ---------------------
             # interpolate spacially
 
             # datai, units, refi = coll.interpolate(
             douti = coll.interpolate(
-                keys=key_integrand,
+                keys=key_integrand_interp,
                 ref_key=key_bs,
                 x0=R,
                 x1=Z,
@@ -609,13 +744,22 @@ def _compute_los(
                 val_out=np.nan,
                 return_params=False,
                 store=False,
-            )[key_integrand]
+            )[key_integrand_interp]
+
+            # timing
+            if timing is True:
+                t04 = dtm.datetime.now()
+                dt['\tinterpolate on los'] += (t04-t03).total_seconds()
 
             # ----------------------
             # interpolate spectrally
 
             if spectro:
                 douti['data'] = np.take(douti['data'], 0, axis_spectro)
+
+                if spectral_binning is True:
+                    coll.remove_data(kbinned)
+
                 douti['ref'] = tuple([
                     rr for jj, rr in enumerate(douti['ref'])
                     if jj != axis_spectro
@@ -631,6 +775,11 @@ def _compute_los(
                 shape[axis] = npix
                 data = np.full(shape, val_init)
                 ref = list(refi)
+
+            # timing
+            if timing is True:
+                t05 = dtm.datetime.now()
+                dt['\textract data'] += (t05-t04).total_seconds()
 
             # ------------
             # integrate
@@ -669,6 +818,11 @@ def _compute_los(
                     axis=axis,
                 )
 
+            # timing
+            if timing is True:
+                t06 = dtm.datetime.now()
+                dt['\tintegrate on los'] += (t06-t05).total_seconds()
+
         # --------------
         # post-treatment
 
@@ -684,9 +838,13 @@ def _compute_los(
 
         # spectral bins if spectro
         if spectro:
-            sh_dE = [-1 if aa == axis else 1 for aa in range(len(refi))]
-            data *= dE_flat.reshape(sh_dE)
             unitsi = unitsi * units_spectro
+            if spectral_binning is True:
+                pass
+            else:
+                sh_dE = [-1 if aa == axis else 1 for aa in range(len(refi))]
+                data *= dE_flat.reshape(sh_dE)
+
 
         # reshape if 2d
         if is2d:
@@ -701,6 +859,11 @@ def _compute_los(
         ref[axis] = coll.dobj['camera'][k0]['dgeom']['ref']
         ref = tuple(np.r_[ref[:axis], ref[axis], ref[axis+1:]])
 
+        # timing
+        if timing is True:
+            t07 = dtm.datetime.now()
+            dt['\tformat output'] += (t07-t06).total_seconds()
+
         # fill dout
         dout[k0] = {
             'key': f'{key}_{k0}',
@@ -709,10 +872,13 @@ def _compute_los(
             'units': unitsi,
         }
 
-    # -----
-    # units
+    # ----------
+    # clean up
 
-    return dout
+    if spectral_binning is True:
+        coll.remove_bins(ktemp_bin)
+
+    return dout, dt
 
 
 def _units_integration(

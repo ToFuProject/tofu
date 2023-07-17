@@ -58,6 +58,10 @@ _DCRYST_MAT = {
             },
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
+        'phases': { # Will be populated
+            'Si': None,
+            'O': None,
+        },
         'thermal_expansion': {
             'coefs': {
                 'alpha_a': 1.337e-5,
@@ -97,39 +101,70 @@ _DCRYST_MAT = {
     # ----------
     # Germanium
 
-    # 'Germanium': {
-        # 'material_symbol': 'Ge',
-        # 'atoms': None,
-        # 'atoms_Z': None,
-        # 'atoms_nb': None,
-        # 'volume': None,
-        # 'mesh': {
-            # 'type': None,
-            # 'positions': None,
-            # 'sources': None,
-        # },
-        # 'inter_atomic': {
-            # 'distances': None,
-            # 'unit': None,
-            # 'comments': None,
-            # 'Tref': None,
-            # 'sources': None,
-        # },
-        # 'thermal_expansion': {
-            # 'coefs': None,
-            # 'unit': None,
-            # 'comments': None,
-            # 'sources': None,
-        # },
-        # 'sin_theta_lambda': {
-            # 'values': None,
-            # 'sources': None,
-        # },
-        # 'atomic_scattering': {
-            # 'factors': None,
-            # 'sources': None,
-        # },
-    # },
+    'Germanium': {
+        'material_symbol': 'Ge',
+        'atoms': ['Ge'],
+        'atoms_Z': [32.],
+        'atoms_nb': [8.],
+        'volume': None,
+        'mesh': {
+            'type': 'diamond',
+            'positions': {
+                'Ge': {
+                    'u': np.r_[0.25],
+                    'x': None,
+                    'y': None,
+                    'z': None,
+                    'N': None,
+                },
+            },
+            'sources':  'R.W.G. Wyckoff, Crystal Structures (1963), Eqn 8a',
+        },
+        'inter_atomic': {
+            'distances': {
+                'a0': 5.65735, # e-10
+            },
+            'unit': 'A',
+            'comments': None,
+            'Tref': {
+                'data': 20. + 273.15,
+                'unit': 'K',
+            },
+            'sources': 'R.W.G. Wyckoff, Crystal Structures (1963), Table II.5',
+        },
+        'phases': { # Will be populated
+            'Ge': None,
+        },
+        'thermal_expansion': {
+            'coefs': {
+                'alpha_a': 6.12e-6
+            },
+            'unit': '1/K',
+            'comments': 'only one unique direction',
+            'sources': 'H.P. Singh, Acta Cryst. (1968). A24, 469',
+        },
+        'sin_theta_lambda': {
+            'Ge': np.r_[
+                0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35,
+                0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2,
+                1.3, 1.4, 1.5
+            ], # [1/AA],
+            'sources':
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985), Table 3.3.1A',
+        },
+        'atomic_scattering': {
+            'factors': {
+                'Ge': np.r_[
+                    32.0, 31.28, 29.52, 27.48, 25.53, 23.76,
+                    22.11, 20.54, 19.02, 16.19, 13.72, 11.68,
+                    10.08, 8.87, 7.96, 7.29, 6.77, 6.37,
+                    6.02, 5.72
+                ]
+            },
+            'sources':
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985), Table 3.3.1A',
+        },
+    },
 }
 
 
@@ -180,6 +215,12 @@ def _complement_dict_mat(dcryst_mat=None):
                 v0['inter_atomic']['distances']['c0'],
             )
 
+        # diamond
+        elif v0['mesh']['type'] == 'diamond':
+            dcryst_mat[k0]['volume'] = diam_volume(
+                v0['inter_atomic']['distances']['a0']
+            )
+
         # other
         else:
             msg = f"Mesh volume not implemented for '{k0}'"
@@ -191,6 +232,13 @@ def _complement_dict_mat(dcryst_mat=None):
 
         if k0 == 'Quartz':
             _atomic_coefs_factor_Quartz(
+                dcryst_mat=dcryst_mat,
+                k0=k0,
+                v0=v0,
+            )
+
+        elif k0 == 'Germanium':
+            _atomic_coefs_factor_Germanium(
                 dcryst_mat=dcryst_mat,
                 k0=k0,
                 v0=v0,
@@ -224,7 +272,7 @@ def _positions_quartz(
     # yo = np.r_[y, -x, x - y, -y, x, y - x]
     # zo = np.r_[z, z + 1./3., z + 2./3., -z, 2./3. - z, 1./3. - z]
 
-    # Silicium
+    # Quartz
     uSi = v0['mesh']['positions']['Si']['u'][0]
     dcryst_mat[k0]['mesh']['positions']['Si']['x'] = np.r_[
         -uSi,
@@ -284,8 +332,46 @@ def _positions_germanium(
     v0=None,
 ):
 
-    msg = f"Positions not implemented for '{k0}'"
-    raise NotImplementedError(msg)
+    # Ge positions for Ge crystal
+    # From R.W.G. Wyckoff, Crystal Structures (1963)
+
+    # Germanium
+    uGe = v0['mesh']['positions']['Ge']['u'][0]
+    dcryst_mat[k0]['mesh']['positions']['Ge']['x'] = np.r_[
+        0.,
+        0.,
+        2*uGe,
+        2*uGe,
+        uGe,
+        uGe,
+        3*uGe,
+        3*uGe
+    ]
+    dcryst_mat[k0]['mesh']['positions']['Ge']['y'] = np.r_[
+        0.,
+        2*uGe,
+        0.,
+        2*uGe,
+        uGe,
+        3*uGe,
+        uGe,
+        3*uGe
+    ]
+    dcryst_mat[k0]['mesh']['positions']['Ge']['z'] = np.r_[
+        0.,
+        2*uGe,
+        2*uGe,
+        0.,
+        uGe,
+        3*uGe,
+        3*uGe,
+        uGe
+
+    ]
+    dcryst_mat[k0]['mesh']['positions']['Ge']['N'] = np.size(
+        dcryst_mat[k0]['mesh']['positions']['Ge']['x']
+    )
+
 
 
 # ##################################################################
@@ -297,6 +383,9 @@ def _positions_germanium(
 
 def hexa_volume(aa, cc):
     return (aa**2) * cc * (np.sqrt(3.)/2.)
+
+def diam_volume(aa):
+    return aa**3
 
 
 # ###############################################################
@@ -318,6 +407,10 @@ def _atomic_coefs_factor_Quartz(
     # linear atomic absorption coefficients 'mu'
     # From W. Zachariasen, Theory of X-ray Diffraction in Crystals
     # (Wiley, New York, 1945)
+
+    # Data file for anomalous corrections to atomic scattering factor & attenuation
+    # From Lawrence Berkeley National Lab, Center for X-Ray Optics
+    # https://henke.lbl.gov/optical_constants/asf.html
 
     def mu_si(lamb, Zsi=Zsi):
         if lamb > 6.74:     # e-10 ?
@@ -371,6 +464,79 @@ def _atomic_coefs_factor_Quartz(
     dcryst_mat[k0]['fo_re'] = fo_re
     dcryst_mat[k0]['fo_im'] = fo_im
 
+def _atomic_coefs_factor_Germanium(
+    dcryst_mat=None,
+    k0=None,
+    v0=None,
+):
+
+    # Useful constant
+    import scipy.constants as cnt
+    hc = cnt.h*cnt.c/cnt.e*1e10 # [eV*AA]
+
+    # Charge of Germanium
+    Zge = v0['atoms_Z']
+
+    # Density of Germanium
+    rho_Ge = 5.307 # [g/cm^3]
+
+    # Data file for anomalous corrections to atomic scattering factor & attenuation
+    # From Lawrence Berkeley National Lab, Center for X-Ray Optics
+    # https://henke.lbl.gov/optical_constants/asf.html
+
+    import os
+    table_path = os.path.join(
+        os.path.dirname(__file__),
+        'Ge_AtomicScatteringFactors_LBL.txt'
+        )
+
+    tables = np.loadtxt(table_path)
+
+    # Table values
+    E_LBL  = tables[:,0] # [eV]
+    f1_LBL = tables[:,1] # [e/atom]
+    f2_LBL = tables[:,2] # [e/atom]
+
+    # ----------------------------
+    # Atomic scattering factor 'f'
+
+    # Interpolates mean scattering factors
+    sol_ge = v0['sin_theta_lambda']['Ge'] # [1/AA]
+    asf_ge = v0['atomic_scattering']['factors']['Ge'] # [e/atom]
+    interp_ge_f0 = scipy.interpolate.interp1d(sol_ge, asf_ge)
+
+    # Interpolates NIST anomalous scattering factor corrections
+    interp_ge_f1 = scipy.interpolate.interp1d(E_LBL, f1_LBL)
+    interp_ge_f2 = scipy.interpolate.interp1d(E_LBL, f2_LBL)
+
+    def dfge_re(lamb, Zge=Zge):
+        return interp_ge_f1(hc/lamb) - Zge
+
+    def fge_re(lamb, sol, dfge_re=dfge_re, interp_ge_f0=interp_ge_f0):
+        return interp_ge_f0(sol) + dfge_re(lamb)
+
+    def fge_im(lamb):
+        return interp_ge_f2(hc/lamb)
+
+
+    # store in dict
+    dcryst_mat[k0]['dfge_re'] = dfge_re
+    dcryst_mat[k0]['fge_re'] = fge_re
+    dcryst_mat[k0]['fge_im'] = fge_im
+
+    # -----------------------------------
+    # linear atomic absorption coefficients 'mu'
+
+    # Material-dependent conversion from f2 to mu
+    # From NIST X-ray Form Factor, Attenuation, and Scattering Tables
+    # https://physics.nist.gov/PhysRefData/FFast/html/form.html
+    def mu_ge(lamb):
+        return 5.7969e5*fge_im(lamb)*(lamb/hc) * rho_Ge *1e-8 # [1/AA]
+
+    # store in dict
+    dcryst_mat[k0]['mu'] = mu_ge
+
+
 
 # ###############################################################
 # ###############################################################
@@ -391,10 +557,6 @@ _DCRYST = {
             'units': 'm',
         },
         'd_hkl': None,
-        'phases': {
-            'Si': None,
-            'O': None,
-        },
     },
     'Quartz_102': {
         'material': 'Quartz',
@@ -407,10 +569,6 @@ _DCRYST = {
             'units': 'm',
         },
         'd_hkl': None,
-        'phases': {
-            'Si': None,
-            'O': None,
-        },
     },
 
     # 'Germanium_XXX': {
@@ -423,7 +581,6 @@ _DCRYST = {
             # 'wavelength': 3.96e-10,
         # }
         # 'd_hkl': None,
-        # 'phases': None,
     # },
 }
 
@@ -442,6 +599,17 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
         # ------------------------
         # complement with material
 
+        # safety check on material
+        if v0.get('material') not in dcryst_mat.keys():
+            lstr = [f"\t- '{k0}'" for k0 in dcryst_mat.keys()]
+            msg = (
+                f"Please, for '{k0}', select a material from:\n"
+                + "\n".join(lstr)
+                + f"\nProvided: {v0.get('material')}\n"
+            )
+            raise Exception(msg)
+
+        # complement dict
         for k1, v1 in dcryst_mat[v0['material']].items():
             dcryst_cut[k0][k1] = copy.deepcopy(v1)
 
@@ -461,6 +629,15 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
                 ll,
                 v0['inter_atomic']['distances']['a0'],
                 v0['inter_atomic']['distances']['c0'],
+            )
+
+        # diamond
+        elif v0['mesh']['type'] == 'diamond':
+            dcryst_cut[k0]['d_hkl'] = diam_spacing(
+                hh,
+                kk,
+                ll,
+                v0['inter_atomic']['distances']['a0'],
             )
 
         # other
@@ -487,7 +664,7 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
             dcryst_cut[k0]['phases']['Si'] = np.full((Nsi,), np.nan)
             dcryst_cut[k0]['phases']['O'] = np.full((No,), np.nan)
 
-            # Silicium
+            # Quartz
             for ii in range(Nsi):
                 dcryst_cut[k0]['phases']['Si'][ii] = phasesi(
                     hh,
@@ -507,6 +684,29 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
                     v0['mesh']['positions']['O']['x'][ii],
                     v0['mesh']['positions']['O']['y'][ii],
                     v0['mesh']['positions']['O']['z'][ii],
+                )
+
+        # Germanium
+        elif v0['material'] == 'Germanium':
+
+            Nge = v0['mesh']['positions']['Ge']['N']
+
+            # dot(s, r_atom); s = lattice vector, r_atom = atom position
+            def phasege(hh, kk, ll, xge, yge, zge):
+                return hh*xge + kk*yge + ll*zge
+
+            # initiate
+            dcryst_cut[k0]['phases']['Ge'] = np.full((Nge,), np.nan)
+
+            # Germanium
+            for ii in range(Nge):
+                dcryst_cut[k0]['phases']['Ge'][ii] = phasege(
+                    hh,
+                    kk,
+                    ll,
+                    v0['mesh']['positions']['Ge']['x'][ii],
+                    v0['mesh']['positions']['Ge']['y'][ii],
+                    v0['mesh']['positions']['Ge']['z'][ii],
                 )
 
         # Other
@@ -530,6 +730,9 @@ def hexa_spacing(hh, kk, ll, aa, cc):
         / (4.*(hh**2 + kk**2 + hh*kk)*(cc**2) + 3.*(ll**2)*(aa**2))
     )
 
+def diam_spacing(hh, kk, ll, aa):
+    return aa / np.sqrt(hh**2 + kk**2 + ll**2)
+
 
 # ###############################################################
 # ###############################################################
@@ -540,3 +743,44 @@ def hexa_spacing(hh, kk, ll, aa, cc):
 
 _complement_dict_mat(_DCRYST_MAT)
 _complement_dict_cut(dcryst_mat=_DCRYST_MAT, dcryst_cut=_DCRYST)
+
+
+def _build_cry(
+    crystal=None,
+    din=None,
+):
+    '''
+    _build_cry is a function meant to populate a crystal dictionary
+    using either hardcoded WEST default crystal names ['Quartz_110', 'Quartz_102']
+    or a user-defined crystal as a dictionary in the form of --
+
+    # C-Mod's crystal
+    dcry = {
+        'material': 'Quartz',
+        'name': 'HIREX',
+        'symbol': 'Qz102',
+        'miller': np.r_[1., 0., 2.,],
+        'target': {
+            'ion': 'Ar16+',
+            'lamb': 3.96,
+            'units': 'AA',
+            },
+        'd_hkl': None,
+        }
+
+    '''
+
+    # Hardcoded defaults
+    if crystal in ['Quartz_110', 'Quartz_102']:
+        dcry = _DCRYST
+
+    # Else if user-defined crystal
+    elif isinstance(din, dict):
+        dcry = {
+            crystal: din
+        }
+
+    # Builds the crystal dictionary
+    _complement_dict_cut(dcryst_mat=_DCRYST_MAT, dcryst_cut=dcry)
+
+    return dcry[crystal]

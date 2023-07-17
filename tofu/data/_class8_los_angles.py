@@ -209,9 +209,9 @@ def _vos_from_los(
             cz=v0['cz'][ii],
             x0=v0['x0'][ii, :],
             x1=v0['x1'][ii, :],
-            dx=dx,
-            dy=dy,
-            dz=dz,
+            dx=np.r_[0],
+            dy=np.r_[0],
+            dz=np.r_[0],
             coords=coll.get_optics_x01toxyz(key=v0['kref']),
             lspectro=lspectro,
             config=config,
@@ -348,8 +348,8 @@ def _vos_from_los_store(
     # dref
 
     # keys
-    knc = f'{key_cam}_vos_pc_n'
-    knh = f'{key_cam}_vos_ph_n'
+    knc = f'{key}_{key_cam}_vos_pc_n'
+    knh = f'{key}_{key_cam}_vos_ph_n'
 
     # dict
     dref = {
@@ -361,10 +361,10 @@ def _vos_from_los_store(
     # data
 
     # keys
-    kpc0 = f'{key_cam}_vos_pc0'
-    kpc1 = f'{key_cam}_vos_pc1'
-    kph0 = f'{key_cam}_vos_ph0'
-    kph1 = f'{key_cam}_vos_ph1'
+    kpc0 = f'{key}_{key_cam}_vos_pc0'
+    kpc1 = f'{key}_{key_cam}_vos_pc1'
+    kph0 = f'{key}_{key_cam}_vos_ph0'
+    kph1 = f'{key}_{key_cam}_vos_ph1'
 
     # reshape for 2d camera
     if coll.dobj['camera'][key_cam]['dgeom']['nd'] == '2d':
@@ -558,10 +558,10 @@ def _angle_spectro(
     ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
     coords = coll.get_optics_x01toxyz(key=v0['kref'])
 
-    dx, dy, dz = coll.get_camera_dxyz(
-        key=key_cam,
-        include_center=True,
-    )
+    # dx, dy, dz = coll.get_camera_dxyz(
+    #     key=key_cam,
+    #     include_center=True,
+    # )
 
     # ------
     # loop
@@ -580,11 +580,11 @@ def _angle_spectro(
             continue
 
         # get 3d coordiantes of points on pixel
-        cxi = v0['cx'][ii] + dx
-        cyi = v0['cy'][ii] + dy
-        czi = v0['cz'][ii] + dz
+        cxi = v0['cx'][ii] # + dx
+        cyi = v0['cy'][ii] # + dy
+        czi = v0['cz'][ii] # + dz
 
-        nc = cxi.size
+        nc = 1 # cxi.size
 
         # get 3d coords of points on crystal
         exi, eyi, ezi = coords(
@@ -613,11 +613,10 @@ def _angle_spectro(
         # Correct for approximation of using
         # the same projected reflection from the center for all
         ang0 = np.nanmean(angles[:ne])
-        angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
+        # angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
 
-        angmin[ii] = np.nanmin(angles)
-        angmax[ii] = np.nanmax(angles)
-
+        angmin[ii] = np.nanmin(angles[:ne])
+        angmax[ii] = np.nanmax(angles[:ne])
         # langles.append(angles)      # DB
 
     if is2d:
