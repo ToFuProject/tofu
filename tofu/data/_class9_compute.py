@@ -36,6 +36,9 @@ def compute(
     method=None,
     crop=None,
     dvos=None,
+    # common ref
+    ref_com=None,
+    ref_vector_strategy=None,
     # options
     brightness=None,
     # output
@@ -118,6 +121,9 @@ def compute(
             res=res,
             mode=mode,
             radius_max=radius_max,
+            # common ref
+            ref_com=ref_com,
+            ref_vector_strategy=ref_vector_strategy,
             # groupby=groupby,
             shape_mat=shape_mat,
             sli_mat=sli_mat,
@@ -141,6 +147,9 @@ def compute(
             res=res,
             mode=mode,
             radius_max=radius_max,
+            # common ref
+            ref_com=ref_com,
+            ref_vector_strategy=ref_vector_strategy,
             # groupby=groupby,
             shape_mat=shape_mat,
             sli_mat=sli_mat,
@@ -428,6 +437,9 @@ def _compute_los(
     key_integrand=None,
     radius_max=None,
     is3d=None,
+    # common ref
+    ref_com=None,
+    ref_vector_strategy=None,
     # slicing
     shape_mat=None,
     sli_mat=None,
@@ -465,8 +477,10 @@ def _compute_los(
 
             # verb
             if verb is True:
-                msg = f"\t- '{key_mat}': pixel {ii + 1} / {npix}"
-                msg += f"\t{(mat > 0).sum()} / {mat.size}"
+                msg = (
+                    f"\t- '{key_mat}' for cam '{k0}': pixel {ii + 1} / {npix}"
+                    f"\t{(mat > 0).sum()} / {mat.size}\t\t"
+                )
                 end = '\n' if ii == npix - 1 else '\r'
                 print(msg, flush=True, end=end)
 
@@ -494,10 +508,15 @@ def _compute_los(
             douti = coll.interpolate(
                 keys=None,
                 ref_key=key_bs,
+                # interpolation pts
                 x0=R[0],
                 x1=Z[0],
                 submesh=True,
                 grid=False,
+                # common ref
+                ref_com=ref_com,
+                ref_vector_strategy=ref_vector_strategy,
+                # bsplines-specific
                 # azone=None,
                 indbs_tf=indbs,
                 details=True,
@@ -584,6 +603,9 @@ def _compute_vos(
     key_integrand=None,
     radius_max=None,
     is3d=None,
+    # common ref
+    ref_com=None,
+    ref_vector_strategy=None,
     # slicing
     shape_mat=None,
     sli_mat=None,
@@ -666,8 +688,10 @@ def _compute_vos(
 
             # verb
             if verb is True:
-                msg = f"\t- '{key_mat}': pixel {ii + 1} / {npix}"
-                msg += f"\t{(mat > 0).sum()} / {mat.size}"
+                msg = (
+                    f"\t- '{key_mat}' for cam '{k0}': pixel {ii + 1} / {npix}"
+                    f"\t{(mat > 0).sum()} / {mat.size}\t\t"
+                )
                 end = '\n' if ii == npix - 1 else '\r'
                 print(msg, flush=True, end=end)
 
@@ -691,6 +715,10 @@ def _compute_vos(
                 x1=x1u[indz],
                 submesh=True,
                 grid=False,
+                # common ref
+                ref_com=ref_com,
+                ref_vector_strategy=ref_vector_strategy,
+                # bsplines-specific
                 # azone=None,
                 indbs_tf=indbs,
                 details=True,

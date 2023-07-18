@@ -124,11 +124,6 @@ def _vos(
         if np.isnan(pcross0[0, ii]):
             continue
 
-        # verb
-        if verb is True:
-            msg = f"\tcam '{key_cam}' pixel {ii+1} / {npix}"
-            print(msg, end='\t', flush=True)
-
         # get points
         xx, yy, zz, dind, iz = _vos_points(
             # polygons
@@ -162,8 +157,9 @@ def _vos(
 
         if verb is True:
             msg = (
-                f"\tnpts in cross_section = {npts_cross}\t"
-                f"({npts_tot} total)\t"
+                f"\tcam '{key_cam}' pixel {ii+1} / {npix}"
+                f"\tnpts in cross_section = {npts_cross}"
+                f"\t({npts_tot} total)"
             )
             end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
             print(msg, end=end, flush=True)
