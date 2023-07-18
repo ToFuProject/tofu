@@ -203,46 +203,13 @@ def _vos(
     # --------------
     # prepare output
 
-    shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
-
-    shape0 = tuple(np.r_[shape_cam, nRZ])
-    ncounts = np.full(shape0, 0.)
-    cos = np.full(shape0, 0.)
-    lambmin = np.full(shape0, np.inf)
-    lambmax = np.full(shape0, 0.)
-    phi_mean = np.full(shape0, 0.)
-    phi_min = np.full(shape0, np.inf)
-    phi_max = np.full(shape0, -np.inf)
-    indr = np.zeros((nRZ,), dtype=int)
-    indz = np.zeros((nRZ,), dtype=int)
-    dV = np.full((nRZ,), np.nan)
-    
-
-    shape1 = tuple(np.r_[shape_cam, nRZ, nlamb])
-    ph_count = np.full(shape1, 0.)
-
     shape_x01 = (nmax_rays, nlamb)
     x0 = np.full(shape_x01, np.nan)
     x1 = np.full(shape_x01, np.nan)
-    amp = np.full(shape_x01, np.nan)
+    ph_count = np.full(shape_x01, np.nan)
     
     nmax_real = np.zeros((nlamb,), dtype=int)
     indx01 = np.zeros((nlamb,), dtype=int)
-
-    # DEBUG
-    ph_approx = None
-    sang = None,
-    dang_rel = None
-    nphi_all = None
-
-    etendlen = np.full(shape_cam, 0.)
-    # ph_approx = np.full(shape1, 0.)
-    # sang = np.full(shape1, 0.)
-    # dang_rel = np.full(shape1, 0.)
-    # nphi_all = np.full(shape1, 0.)
-    # FW = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['FW']
-    # kp = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
-    # POW = coll.ddata[kp]['data'].max()
 
     if timing:
         t11 = dtm.datetime.now()     # DB
@@ -262,20 +229,6 @@ def _vos(
 
     # ---------------------
     # loop in plasma points
-
-    if debug is True:
-        dx0 = {
-            i0: {
-                i1: [] for i1 in np.unique(iz[ir == i0])
-            }
-            for i0 in iru
-        }
-        dx1 = {
-            i0: {
-                i1: [] for i1 in np.unique(iz[ir == i0])
-            }
-            for i0 in iru
-        }
 
     dr = np.mean(np.diff(x0u))
     dz = np.mean(np.diff(x1u))
@@ -301,9 +254,6 @@ def _vos(
 
         for i11, i1 in enumerate(iz[indiz]):
 
-            indr[ipts] = i0
-            indz[ipts] = i1
-            dV[ipts] = dv
             pti[2] = x1u[i1]
 
             for i2, phii in enumerate(phir):
@@ -390,171 +340,58 @@ def _vos(
                     t222 = dtm.datetime.now()     # DB
                     dt222 += (t222-t111).total_seconds()
 
-                # safety check
-                iok2 = (
-                    (x0c[iok] >= cbin0[0])
-                    & (x0c[iok] <= cbin0[-1])
-                    & (x1c[iok] >= cbin1[0])
-                    & (x1c[iok] <= cbin1[-1])
-                )
-
-                # ---------- DEBUG ------------
-                if debug is True:
-                    # _plot_debug(
-                        # coll=coll,
-                        # key_cam=key_cam,
-                        # cbin0=cbin0,
-                        # cbin1=cbin1,
-                        # x0c=x0c,
-                        # x1c=x1c,
-                        # cos=cosi,
-                        # angles=angles,
-                        # iok=iok,
-                        # p0=p0,
-                        # p1=p1,
-                        # x0if=x0if,
-                        # x1if=x1if,
-                    # )
-                    dx0[i0][i1].append(x0c)
-                    dx1[i0][i1].append(x1c)
-                # -------- END DEBUG ----------
-
-
-                if not np.any(iok2):
+                if not np.any(iok):
                     continue
 
-                # update index
-                iok[iok] = iok2
-
+                x0c = x0c[iok]
+                x1c = x1c[iok]
                 angles = angles[iok]
                 dsang = dsang[iok]
 
-                # bin by angles
-
-
-
                 # ilamb
-                angj = angles[indj]
                 ilamb = (
-                    (angj[:, None] >= angbragg0)
-                    & (angj[:, None] < angbragg1)
+                    (angles[:, None] >= angbragg0)
+                    & (angles[:, None] < angbragg1)
                 )
 
                 if not np.any(ilamb):
                     continue
 
+                ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
 
+                for kk in ilamb_n:
+                    
+                    # npts and indices of pts
+                    npts = ilamb[:, kk].sum()
+                    
+                    # update max
+                    nmax_real[kk] += npts
+                    
+                    # if too many points already => skip
+                    if indx01[kk] >= nmax_rays:
+                        continue
+                    
+                    # indices of power_ratio
+                    inds = np.searchsorted(
+                        angbragg[:, kk],
+                        angles[ilamb[:, kk]],
+                    )
 
+                    # indices of pts
+                    imax = min(indx01[kk] + npts, nmax_rays)
+                    indpts = np.arange(indx01[kk], imax)
 
+                    # x0, x1
+                    x0[indpts, kk] = x0c[ilamb[:, kk]]
+                    x1[indpts, kk] = x1c[ilamb[:, kk]]
 
-
-
-
-                # 2d pixel by binning
-                out = scpstats.binned_statistic_2d(
-                    x0c[iok],
-                    x1c[iok],
-                    None,
-                    statistic='count',
-                    bins=(cbin0, cbin1),
-                    expand_binnumbers=True,
-                )
-
-                ipixok = out.statistic > 0
-                ncounts[ipixok, ipts] += out.statistic[ipixok]
-
-                # temporary
-                outsa = scpstats.binned_statistic_2d(
-                    x0c[iok],
-                    x1c[iok],
-                    dsang[iok],
-                    statistic='sum',
-                    bins=(cbin0, cbin1),
-                    expand_binnumbers=True,
-                )
-                etendlen[ipixok] += outsa.statistic[ipixok] * dv
-
-                # adjust phimean
-                phi_mean[ipixok, ipts] += phii * out.statistic[ipixok]
-
-                cosi = cosi[iok]
-                angles = angles[iok]
-                dsang = dsang[iok]
-
-                ip0, ip1 = ipixok.nonzero()
-                indi = np.zeros((out.binnumber.shape[1],), dtype=bool)
-                indj = np.zeros((out.binnumber.shape[1],), dtype=bool)
-                for ii in np.unique(ip0):
-                    indi[:] = (out.binnumber[0, :] == (ii + 1))
-                    for jj in np.unique(ip1[ip0 == ii]):
-
-                        # indices
-                        indj[:] = indi & (out.binnumber[1, :] == jj + 1)
-
-                        # phi_min, phi_max
-                        phi_min[ii, jj, ipts] = min(phi_min[ii, jj, ipts], phii)
-                        phi_max[ii, jj, ipts] = max(phi_max[ii, jj, ipts], phii)
-
-                        # cos
-                        cos[ii, jj, ipts] += np.sum(cosi[indj])
-
-                        # ilamb
-                        angj = angles[indj]
-                        ilamb = (
-                            (angj[:, None] >= angbragg0)
-                            & (angj[:, None] < angbragg1)
-                        )
-
-                        if not np.any(ilamb):
-                            continue
-
-                        ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
-
-                        # lambmin
-                        lambmin[ii, jj, ipts] = min(
-                            lambmin[ii, jj, ipts],
-                            lamb[ilamb_n[0]],
-                        )
-
-                        # lambmax
-                        lambmax[ii, jj, ipts] = max(
-                            lambmax[ii, jj, ipts],
-                            lamb[ilamb_n[-1]],
-                        )
-
-                        # nphi_all  # DB
-                        # nphi_all[ii, jj, ipts, ilamb_n] += 1
-
-                        # if False:
-                        # binning of angles
-                        for kk in ilamb_n:
-                            inds = np.searchsorted(
-                                angbragg[:, kk],
-                                angj[ilamb[:, kk]],
-                            )
-
-                            # update power_ratio * solid angle
-                            ph_count[ii, jj, ipts, kk] += np.sum(
-                                pow_ratio[inds]
-                                * dsang[indj][ilamb[:, kk]]
-                            ) * dv
-
-                            # ------  DEBUG -------
-                            # ph_approx[ii, jj, ipts, kk] += (
-                                # POW
-                                # * FW
-                                # * np.sum(dang1[0, np.any(iok, axis=0)])
-                            # ) * dv
-
-                            # # sang
-                            # sang[ii, jj, ipts, kk] += np.sum(
-                                # dsang[indj][ilamb[:, kk]]
-                            # )
-
-                            # # dang_rel
-                            # dang_rel[ii, jj, ipts, kk] += np.sum(
-                                # dsang[indj][ilamb[:, kk]]
-                            # )
+                    # update power_ratio * solid angle
+                    ph_count[indpts, kk] = (
+                        pow_ratio[inds] * dsang[ilamb[:, kk]] * dv
+                    )
+                    
+                    # update index
+                    indx01[kk] += npts
 
                 if timing:
                     t333 = dtm.datetime.now()     # DB
@@ -571,55 +408,17 @@ def _vos(
         t22 = dtm.datetime.now()     # DB
 
     # remove useless points
-    iin = np.any(np.any(ncounts > 0, axis=0), axis=0)
+    iin = np.any(np.isfinite(ph_count), axis=0)
     if not np.all(iin):
-        ncounts = ncounts[:, :, iin]
-        cos = cos[:, :, iin]
-        phi_mean = phi_mean[:, :, iin]
-        phi_min = phi_min[:, :, iin]
-        phi_max = phi_max[:, :, iin]
-        lambmin = lambmin[:, :, iin]
-        lambmax = lambmax[:, :, iin]
+        
         ph_count = ph_count[:, :, iin, :]
-        indr = indr[iin]
-        indz = indz[iin]
-        dV = dV[iin]
-        # DEBUG
-        # sang = sang[:, :, iin]
-        # ph_approx = ph_approx[:, :, iin, :]
-        # dang_rel = dang_rel[:, :, iin, :]
-        # nphi_all = nphi_all[:, :, iin, :]
-
+        
     # remove useless lamb
     iin = ph_count > 0.
     ilamb = np.any(np.any(np.any(iin, axis=0), axis=0), axis=0)
     if not np.all(ilamb):
         ph_count = ph_count[..., ilamb]
         lamb = lamb[ilamb]
-        # DEBUG
-        # sang = sang[..., ilamb]
-        # ph_approx = ph_approx[..., ilamb]
-        # dang_rel = dang_rel[..., ilamb]
-        # nphi_all = nphi_all[..., ilamb]
-
-    # average cos and phi_mean
-    iout = ncounts == 0
-    cos[~iout] = cos[~iout] / ncounts[~iout]
-    phi_mean[~iout] = phi_mean[~iout] / ncounts[~iout]
-
-    # clear
-    cos[iout] = np.nan
-    phi_mean[iout] = np.nan
-    phi_min[iout] = np.nan
-    phi_max[iout] = np.nan
-    lambmin[iout] = np.nan
-    lambmax[iout] = np.nan
-    ph_count[iout, :] = np.nan
-    # DEBUG
-    # sang[iout, :] = np.nan
-    # ph_approx[iout, :] = np.nan
-    # dang_rel[iout, :] = np.nan
-    # nphi_all[iout, :] = np.nan
 
     # ------ DEBUG --------
     if debug is True:
@@ -633,41 +432,14 @@ def _vos(
         )
     # ---------------------
 
-    # ------------
-    # get indices
-
-    # for ii, i0 in enumerate(iru):
-        # ind0 = irf == i0
-        # for i1 in izru[ii]:
-            # ind = ind0 & (izf == i1)
-            # bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
-
     # dout
     dout = {
-        'pcross0': None,
-        'pcross1': None,
         # lamb
         'lamb': lamb,
-        # coordinates
-        'indr': indr,
-        'indz': indz,
-        'phi_min': phi_min,
-        'phi_max': phi_max,
-        'phi_mean': phi_mean,
-        'dV': dV,
         # data
-        'cos': cos,
-        'lambmin': lambmin,
-        'lambmax': lambmax,
+        'x0': x0,
+        'x1': x1,
         'ph_count': ph_count,
-        'ncounts': ncounts,
-        # debug
-        'etendlen': etendlen,
-        # 'dphi_r': dphi_r,
-        # 'nphi': nphi_all,
-        # 'sang': sang,
-        # 'ph_approx': ph_approx,
-        # 'dang_rel': dang_rel,
     }
 
     if timing:
