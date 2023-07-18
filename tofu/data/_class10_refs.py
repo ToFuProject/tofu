@@ -24,6 +24,8 @@ def _get_ref_vector_common(
     key_matrix=None,
     key_profile2d=None,
     dconstraints=None,
+    strategy=None,
+    strategy_bounds=None,
     dref_vector=None,
 ):
 
@@ -155,5 +157,7 @@ def _get_ref_vector_common(
         return coll.get_ref_vector_common(
             keys=lk,
             ref=refc,
+            strategy=strategy,
+            strategy_bounds=strategy_bounds,
             **dref_vector,
         )
