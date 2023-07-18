@@ -219,12 +219,6 @@ def _vos(
     shape1 = tuple(np.r_[shape_cam, nRZ, nlamb])
     ph_count = np.full(shape1, 0.)
 
-    # DEBUG
-    ph_approx = None
-    sang = None,
-    dang_rel = None
-    nphi_all = None
-
     etendlen = np.full(shape_cam, 0.)
     # ph_approx = np.full(shape1, 0.)
     # sang = np.full(shape1, 0.)
@@ -579,7 +573,7 @@ def _vos(
     phi_max[iout] = np.nan
     lambmin[iout] = np.nan
     lambmax[iout] = np.nan
-    ph_count[iout, :] = np.nan
+    # ph_count[iout, :] = np.nan
     # DEBUG
     # sang[iout, :] = np.nan
     # ph_approx[iout, :] = np.nan
@@ -628,11 +622,6 @@ def _vos(
         'ncounts': ncounts,
         # debug
         'etendlen': etendlen,
-        # 'dphi_r': dphi_r,
-        # 'nphi': nphi_all,
-        # 'sang': sang,
-        # 'ph_approx': ph_approx,
-        # 'dang_rel': dang_rel,
     }
 
     if timing:

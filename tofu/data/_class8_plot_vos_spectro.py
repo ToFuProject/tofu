@@ -506,7 +506,11 @@ def _prepare_ph(
     cosi[iri, izi] = cossi[ioki]
 
     # ph_tot
-    ph_tot[ir, iz] = np.nansum(np.nansum(ph[:, iok, :], axis=0), axis=-1)
+    if np.any(np.isnan(ph)):
+        msg = "ph_count should not contain nans! (nansum copies)"
+        raise Exception(msg)
+        
+    ph_tot[ir, iz] = np.sum(np.sum(ph[:, iok, :], axis=0), axis=-1)
     ph_toti[iri, izi] = np.nansum(phi[ioki, :], axis=-1)
 
     # average wavelength
