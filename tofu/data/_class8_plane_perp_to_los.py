@@ -50,8 +50,12 @@ def main(
     plot_config=None,
     fs=None,
     dmargin=None,
+    vmin_cam0=None,
+    vmax_cam0=None,
     vmin_cam=None,
     vmax_cam=None,
+    vmin_cam_lamb=None,
+    vmax_cam_lamb=None,
     vmin_plane=None,
     vmax_plane=None,
 ):
@@ -244,6 +248,8 @@ def main(
     dout.update({
         'key_diag': key_diag,
         'key_cam': key_cam,
+        'is2d': is2d,
+        'spectro': spectro,
         'indch': indch,
         'indref': indref,
         'los_ref': los_ref,
@@ -265,16 +271,18 @@ def main(
     if plot is True:
         _plot(
             coll=coll,
-            is2d=is2d,
-            spectro=spectro,
             # extra
             indplot=indplot,
             dax=dax,
             plot_config=plot_config,
             fs=fs,
             dmargin=dmargin,
+            vmin_cam0=vmin_cam0,
+            vmax_cam0=vmax_cam0,
             vmin_cam=vmin_cam,
             vmax_cam=vmax_cam,
+            vmin_cam_lamb=vmin_cam_lamb,
+            vmax_cam_lamb=vmax_cam_lamb,
             vmin_plane=vmin_plane,
             vmax_plane=vmax_plane,
             # dout
@@ -702,9 +710,9 @@ def _spectro(
 
 def _plot(
     coll=None,
+    # dout
     is2d=None,
     spectro=None,
-    # dout
     key_diag=None,
     key_cam=None,
     indch=None,
@@ -729,6 +737,8 @@ def _plot(
     plot_config=None,
     fs=None,
     dmargin=None,
+    vmin_cam0=None,
+    vmax_cam0=None,
     vmin_cam=None,
     vmax_cam=None,
     vmin_cam_lamb=None,
@@ -770,8 +780,10 @@ def _plot(
         indplot=indplot,
         vmin_cam=vmin_cam,
         vmax_cam=vmax_cam,
-        vmin_cam_lamb=None,
-        vmax_cam_lamb=None,
+        vmin_cam0=vmin_cam0,
+        vmax_cam0=vmax_cam0,
+        vmin_cam_lamb=vmin_cam_lamb,
+        vmax_cam_lamb=vmax_cam_lamb,
         vmin_plane=vmin_plane,
         vmax_plane=vmax_plane,
     )

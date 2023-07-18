@@ -22,6 +22,7 @@ from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
 from . import _class8_plane_perp_to_los as _planeperp
 from . import _class8_compute_signal as _compute_signal
+from . import _class8_compute_signal_moments as _signal_moments
 from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
@@ -300,8 +301,12 @@ class Diagnostic(Previous):
         plot_config=None,
         fs=None,
         dmargin=None,
+        vmin_cam0=None,
+        vmax_cam0=None,
         vmin_cam=None,
         vmax_cam=None,
+        vmin_cam_lamb=None,
+        vmax_cam_lamb=None,
         vmin_plane=None,
         vmax_plane=None,
     ):
@@ -334,10 +339,56 @@ class Diagnostic(Previous):
             plot_config=plot_config,
             fs=fs,
             dmargin=dmargin,
+            vmin_cam0=vmin_cam0,
+            vmax_cam0=vmax_cam0,
             vmin_cam=vmin_cam,
             vmax_cam=vmax_cam,
+            vmin_cam_lamb=vmin_cam_lamb,
+            vmax_cam_lamb=vmax_cam_lamb,
             vmin_plane=vmin_plane,
             vmax_plane=vmax_plane,
+        )
+
+    def plot_diagnostic_solidangle_from_plane(
+        self,
+        dout=None,
+        # plotting
+        indplot=None,
+        dax=None,
+        plot_config=None,
+        fs=None,
+        dmargin=None,
+        vmin_cam0=None,
+        vmax_cam0=None,
+        vmin_cam=None,
+        vmax_cam=None,
+        vmin_cam_lamb=None,
+        vmax_cam_lamb=None,
+        vmin_plane=None,
+        vmax_plane=None,
+    ):
+        """ Creates a plane perpendicular to los
+        compute contribution of each point to the signal
+        """
+
+        return _planeperp._plot(
+            coll=self,
+            # extra
+            indplot=indplot,
+            dax=dax,
+            plot_config=plot_config,
+            fs=fs,
+            dmargin=dmargin,
+            vmin_cam0=vmin_cam0,
+            vmax_cam0=vmax_cam0,
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
+            vmin_cam_lamb=vmin_cam_lamb,
+            vmax_cam_lamb=vmax_cam_lamb,
+            vmin_plane=vmin_plane,
+            vmax_plane=vmax_plane,
+            # dout
+            **dout,
         )
 
     def compute_diagnostic_vos(
@@ -854,6 +905,44 @@ class Diagnostic(Previous):
             plot=plot,
             dcolor=dcolor,
             dax=dax,
+        )
+
+    # -----------------
+    # data moments
+    # -----------------
+
+    def compute_diagnostic_binned_data(
+        self,
+        key_diag=None,
+        key_cam=None,
+        # data to be binned
+        data=None,
+        # binning dimension
+        bins0=None,
+        bins1=None,
+        bin_data0=None,
+        bin_data1=None,
+        # store
+        store=None,
+        # plotting
+        plot=None,
+    ):
+
+        return _signal_moments.binned(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # data to be binned
+            data=data,
+            # binning dimension
+            bins0=bins0,
+            bins1=bins1,
+            bin_data0=bin_data0,
+            bin_data1=bin_data1,
+            # store
+            store=store,
+            # plotting
+            plot=plot,
         )
 
     # -----------------

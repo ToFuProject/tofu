@@ -559,32 +559,14 @@ def _compute_los(
 
         units_spectro = coll.ddata[kspect_ref_vect]['units']
 
-        E, _ = coll.get_diagnostic_lamb(
-            key_diag,
-            lamb='lamb',
-            units=units_spectro,
-        )
-        dE, _ = coll.get_diagnostic_lamb(
-            key_diag,
-            lamb='dlamb',
-            units=units_spectro,
-        )
-        E_flat = E.ravel()
-        dE_flat = dE.ravel()
-
-
         # --------------------------
         # optional spectral binning
-
-        defspb = (
-            np.nanmean(dE_flat)
-            > np.nanmean(np.abs(np.diff(coll.ddata[kspect_ref_vect]['data'])))
-        )
+        
         # spectral_binning
         spectral_binning = ds._generic_check._check_var(
             spectral_binning, 'spectral_binning',
             types=bool,
-            default=defspb,
+            default=True,
         )
 
         # if spectral binning => add bins of len 2 for temporary storing
@@ -631,6 +613,25 @@ def _compute_los(
         ngroup = npix // groupby
         if groupby * ngroup < npix:
             ngroup += 1
+
+        # ----------------
+        # spectro
+        
+        if spectro:
+            E, _ = coll.get_diagnostic_lamb(
+                key_diag,
+                lamb='lamb',
+                key_cam=k0,
+                units=units_spectro,
+            )
+            dE, _ = coll.get_diagnostic_lamb(
+                key_diag,
+                lamb='dlamb',
+                key_cam=k0,
+                units=units_spectro,
+            )
+            E_flat = E.ravel()
+            dE_flat = dE.ravel()
 
         # ---------------------------------------------------
         # loop on group of pixels (to limit memory footprint)
@@ -702,15 +703,31 @@ def _compute_los(
 
                 # bin spectrally before spatial interpolation
                 kbinned = f"{key_integrand}_bin_{k0}_{ii}"
+                #try:
                 coll.binning(
-                    keys=key_integrand,
-                    ref_key=key_bs_spectro,
-                    bins=ktemp_bin,
+                    data=key_integrand,
+                    bin_data0=key_bs_spectro,
+                    bins0=ktemp_bin,
+                    integrate=True,
                     verb=verb,
                     store=True,
                     returnas=False,
-                    key_store=kbinned,
+                    store_keys=kbinned,
                 )
+                # except Exception as err:
+                #     msg = (
+                #         err.args[0]
+                #         + "\n\n"
+                #         f"\t- k0 = {k0}\n"
+                #         f"\t- ii = {ii}\n"
+                #         f"\t- key_integrand = {key_integrand}\n"
+                #         f"\t- key_bs_spectro = {key_bs_spectro}\n"
+                #         f"\t- ktemp_bin = {ktemp_bin}\n"
+                #         f"\t- edges = {edges}\n"
+                #         f"\t- E_flat[ii] = {E_flat[ii]}\n"
+                #     )
+                #     err.args = (msg,)
+                #     raise err
 
                 domain = None
                 key_integrand_interp = kbinned
