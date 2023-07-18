@@ -356,7 +356,7 @@ def _prepare_ph(
     # check up
 
     if indlamb is None:
-        indlamb = 0
+        indlamb = int(dvos['lamb'].size / 2)
 
     # -----------------
     # get mesh sampling
