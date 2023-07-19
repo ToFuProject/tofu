@@ -125,7 +125,8 @@ def compute_signal(
     if method == 'los':
         func = _compute_los
     else:
-        func = _compute_vos
+        if spectro is True:
+            func = _compute_vos_spectro
 
     dout, dt = func(
         coll=coll,
@@ -971,6 +972,7 @@ def _compute_vos_spectro(
     key_integrand=None,
     key_ref_spectro=None,
     key_bs_spectro=None,
+    key_ref_cos=None,
     radius_max=None,
     groupby=None,
     val_init=None,
@@ -989,12 +991,30 @@ def _compute_vos_spectro(
     # get mesh sampling
 
     # check all keym and res_RZ are similar
-
+    lkm = list(set([v0['keym'] for v0 in dvos.values()]))
+    lres = list(set([v0['res_RZ'] for v0 in dvos.values()]))
+    if len(lkm) != 1:
+        lstr = [f"\t- '{k0}': '{v0['keym']}'" for k0, v0 in dvos.items()]
+        msg = (
+            "All cameras vos were not sampled using the same mesh!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)            
+    if len(lres) != 1:
+        lstr = [f"\t- '{k0}': '{v0['res_RZ']}'" for k0, v0 in dvos.items()]
+        msg = (
+            "All cameras vos were not sampled using the same resolution!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)            
+     
+    keym = lkm[0]
+    res_RZ = lres[0]
 
     # get dsamp
     dsamp = coll.get_sample_mesh(
-        key=dvos['keym'],
-        res=dvos['res_RZ'],
+        key=keym,
+        res=res_RZ,
         mode='abs',
         grid=False,
         in_mesh=True,
@@ -1008,12 +1028,130 @@ def _compute_vos_spectro(
         kx0=None,
         kx1=None,
     )
+    
+    x0u = dsamp['x0']['data']
+    x1u = dsamp['x1']['data']
 
     # -----------------------------
     # interpolate per wavelength ?
 
+    for k0, v0 in dvos.items():
+        
+        R = x0u[v0['indr']]
+        Z = x1u[v0['indr']]
+        
+        kapex = coll.dobj[wbs][key_bs_spectro]['apex']
+        dlamb_ref = np.mean(np.diff(coll.ddata[kapex]['apex']))
+        dlamb = np.mean(np.diff(v0['lamb']))
+        if spectral_binning is None:
+            spectral_binningi = dlamb > dlamb_ref
+        else:
+            spectral_binningi = spectral_binning
 
+        # -----------------------------
+        # interpolate on matching wavelength ?
 
+        # pre-interpolate at lamb
+        # (nt, nbs0, nbs1, nlamb_ref, ncos) => (nt, nbs0, nbs1, nlamb, ncos)
+        # or
+        # (nt, nbs0, nbs1, nlamb_ref) => (nt, nbs0, nbs1, nlamb)
+        
+        key_integrand_interp_lamb = f"{key_integrand}_interp_lamb"
+        if spectral_binningi is True:
+            coll.binning(
+                data=key_integrand,
+                bin_data0=key_bs_spectro,
+                bins0=ktemp_bin,
+                integrate=True,
+                verb=verb,
+                store=True,
+                returnas=False,
+                store_keys=key_integrand_interp_lamb,
+            )
+        
+        else:
+            douti = coll.interpolate(
+                keys=key_integrand_interp,
+                ref_key=key_bs_spectro,
+                x0=v0['lamb'],
+                x1=None,
+                grid=False,
+                submesh=None,
+                ref_com=ref_com,
+                domain=None,
+                # azone=None,
+                details=False,
+                crop=None,
+                nan0=False,
+                val_out=0.,
+                return_params=False,
+                store=True,
+                store_keys=key_integrand_interp_lamb,
+            )[key_integrand_interp]
+            
+        # -----------------------------
+        # interpolate vs local cos
+        
+        if key_ref_cos is not None:
+            
+            # (nt, nbs0, nbs1, nlamb, ncos) => (nt, nbs0, nbs1, nlamb)
+            douti = coll.interpolate(
+                keys=key_integrand_interp,
+                ref_key=key_bs,
+                x0=R,
+                x1=Z,
+                grid=False,
+                submesh=True,
+                ref_com=ref_com,
+                domain=domain,
+                # azone=None,
+                details=False,
+                crop=None,
+                nan0=True,
+                val_out=np.nan,
+                return_params=False,
+                store=False,
+            )[key_integrand_interp]
+        
+        # -----------------------------
+        # interpolate per spatial pts
+
+        # (nt, nbs0, nbs1, nlamb) => (nt, npts, nlamb)
+
+        douti = coll.interpolate(
+            keys=key_integrand_interp_lamb,
+            ref_key=key_bs,
+            x0=R,
+            x1=Z,
+            grid=False,
+            submesh=True,
+            ref_com=ref_com,
+            domain=domain,
+            # azone=None,
+            details=False,
+            crop=None,
+            nan0=True,
+            val_out=np.nan,
+            return_params=False,
+            store=False,
+        )[key_integrand_interp]
+
+        # -------------------
+        # sum to get signal
+
+        # (nt, npts, nlamb) => (nt, n0, n1)
+        reshape = ()
+        
+        sig = np.sum(
+            np.sum(
+                douti['data'] * v0['ph_count'].reshape(reshape),
+                axis=ax_lamb_new,
+            ),
+            axis=ax_pts_new,
+        )
+
+        # douti['data'].shape = (n0, n1, npts, nlamb)
+    
 
 
     # -----------------
