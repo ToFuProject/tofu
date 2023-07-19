@@ -11,7 +11,6 @@ import datastock as ds
 import datetime as dtm      # DB
 
 
-from . import _class8_vos_utilities as _vos_utilities
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
 

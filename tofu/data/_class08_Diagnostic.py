@@ -7,7 +7,6 @@
 
 # Common
 import numpy as np
-import datastock as ds
 
 
 # tofu
@@ -19,6 +18,7 @@ from . import _class8_los_data as _los_data
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_vos as _vos
+from . import _class8_vos_spectro_nobin_at_lamb as _vos_nobin_at_lamb
 from . import _class8_los_angles as _los_angles
 from . import _class8_plane_perp_to_los as _planeperp
 from . import _class8_compute_signal as _compute_signal
@@ -411,9 +411,6 @@ class Diagnostic(Previous):
         # spectro-only
         rocking_curve_fw=None,
         rocking_curve_max=None,
-        # equivalent aperture
-        add_points=None,
-        convex=None,
         # bool
         check=None,
         verb=None,
@@ -471,6 +468,74 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
             dvos=dvos,
+        )
+
+    def compute_diagnostic_vos_nobin_at_lamb(
+        self,
+        key_diag=None,
+        key_cam=None,
+        key_mesh=None,
+        lamb=None,
+        config=None,
+        # parameters
+        res_RZ=None,
+        res_phi=None,
+        res_rock_curve=None,
+        n0=None,
+        n1=None,
+        # margins
+        margin_poly=None,
+        nmax_rays=None,
+        # spectro-only
+        rocking_curve_fw=None,
+        rocking_curve_max=None,
+        # bool
+        visibility=None,
+        verb=None,
+        debug=None,
+        # plot
+        plot=None,
+        pix0=None,
+        pix1=None,
+        tit=None,
+    ):
+        """ Compute the vos of the diagnostic (per pixel)
+
+        - poly_margin (0.3) fraction by which the los-estimated vos is widened
+        -store:
+            - if replace_poly, will replace the vos polygon approximation
+            - will store the toroidally-integrated solid angles
+
+        """
+
+        return _vos_nobin_at_lamb.compute_vos_nobin_at_lamb(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            key_mesh=key_mesh,
+            lamb=lamb,
+            config=config,
+            # etendue
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            res_rock_curve=res_rock_curve,
+            n0=n0,
+            n1=n1,
+            # margins
+            margin_poly=margin_poly,
+            nmax_rays=nmax_rays,
+            # spectro-only
+            rocking_curve_fw=rocking_curve_fw,
+            rocking_curve_max=rocking_curve_max,
+            # bool
+            visibility=visibility,
+            verb=verb,
+            debug=debug,
+            # plot
+            plot=plot,
+            pix0=pix0,
+            pix1=pix1,
+            tit=tit,
         )
 
     # ---------------

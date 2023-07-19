@@ -503,6 +503,7 @@ def _prepare_lamb(
     key_diag=None,
     key_cam=None,
     kspectro=None,
+    lamb=None,
     res_lamb=None,
     res_rock_curve=None,
     verb=None,
@@ -525,6 +526,18 @@ def _prepare_lamb(
         lamb = np.linspace(lambmin - 0.2*Dlamb, lambmax + 0.2*Dlamb, nlamb)
         dlamb = lamb[1] - lamb[0]
 
+        bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
+    
+    elif lamb is not None:
+        
+        lamb = ds._generic_check._check_flat1darray(
+            lamb, 'lamb',
+            dtype=float,
+            sign='>0',
+            unique=True,
+        )
+        nlamb = lamb.size
+        dlamb = None
         bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
 
     # ---------------
@@ -559,7 +572,7 @@ def _prepare_lamb(
     # --------------------------------------
     # overall bragg angle with rocking curve
 
-    if res_lamb is None:
+    if res_lamb is None and lamb is None:
         nlamb, lamb, dlamb, angbragg = None, None, None, None
 
     else:
@@ -577,7 +590,7 @@ def _prepare_lamb(
         dlamb_mh = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd1)[1])
         dlamb_res = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd2)[1])
 
-        if verb is True:
+        if verb is True and res_lamb is not None:
             msg = (
                 "Recommended res_lamb to ensure rocking curve overlap:\n"
                 f"\t- edge-edge: \t{dlamb_max[0]:.2e}\n"
