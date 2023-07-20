@@ -282,16 +282,56 @@ def _vos(
     )
 
     # ----------------
-    # format output
+    # prepare output
 
+    knpts = f'{key_cam}_vos_npts'
+    kir = f'{key_cam}_vos_ir'
+    kiz = f'{key_cam}_vos_iz'
+    ksa = f'{key_cam}_vos_sa'
+    
+    ref = tuple(list(coll.dobj['camera'][key_cam]['dgeom']['ref']) + [knpts])
+
+    # ----------------
+    # format output
+    
+    dref = {
+        'npts': {
+            'key': knpts,
+            'size': indr.shape[-1],
+        },
+    }
+    
     dout = {
-        'pcross0': pcross0,
-        'pcross1': pcross1,
-        'indr': indr,
-        'indz': indz,
+        'pcross0': {
+            'data': pcross0,
+            'units': 'm',
+            'dim': 'distance',
+        },
+        'pcross1': {
+            'data': pcross1,
+            'units': 'm',
+            'dim': 'distance',
+        },
+        'indr': {
+            'key': kir,
+            'data': indr,
+            'ref': ref,
+            'units': '',
+            'dim': 'index',
+        },
+        'indz': {
+            'key': kiz,
+            'data': indz,
+            'ref': ref,
+            'units': '',
+            'dim': 'index',
+        },
         'sang': {
+            'key': ksa,
             'data': sang,
+            'ref': ref,
             'units': 'sr.m3',
+            'dim': 'sang',
         },
     }
 
@@ -300,7 +340,7 @@ def _vos(
         dt22 += (t33 - t22).total_seconds()
 
     return (
-        dout,
+        dout, dref,
         dt11, dt22,
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,
