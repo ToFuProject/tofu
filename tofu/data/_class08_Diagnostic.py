@@ -817,6 +817,8 @@ class Diagnostic(Previous):
         # signal
         brightness=None,
         spectral_binning=None,
+        # vos
+        dvos=None,
         # verb
         verb=None,
         # timing
@@ -849,6 +851,8 @@ class Diagnostic(Previous):
             # signal
             brightness=brightness,
             spectral_binning=spectral_binning,
+            # vos
+            dvos=dvos,
             # verb
             verb=verb,
             # timing
