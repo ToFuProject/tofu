@@ -140,16 +140,6 @@ def compute_vos(
     dx0 = x0u[1] - x0u[0]
     dx1 = x1u[1] - x1u[0]
 
-    # ------------
-    # prepare output
-
-    # dvos = _prepare_output(
-        # coll=coll,
-        # key_diag=key_diag,
-        # shape_samp=sh,
-        # spectro=spectro,
-    # )
-
     # --------------
     # prepare optics
 
@@ -166,14 +156,14 @@ def compute_vos(
     # --------------
     # prepare optics
 
-    dvos = {}
+    dvos, dref = {}, {}
     for k0 in dcompute.keys():
 
             # ------------------
             # call relevant func
 
             (
-                dvos[k0],
+                dvos[k0], dref[k0],
                 dt11, dt22,
                 dt111, dt222, dt333,
                 dt1111, dt2222, dt3333, dt4444,
@@ -254,11 +244,12 @@ def compute_vos(
             coll=coll,
             key_diag=key_diag,
             dvos=dvos,
+            dref=dref,
             spectro=spectro,
             replace_poly=replace_poly,
         )
 
-    return dvos
+    return dvos, dref
 
 
 # ###########################################################
@@ -438,10 +429,6 @@ def _check(
         default=False,
     )
 
-    if store is True and spectro is True:
-        msg = "storing vos is not available yet for spectrometers!"
-        raise NotImplementedError(msg)
-
     # -----------
     # timing
 
@@ -471,65 +458,6 @@ def _check(
 
 # ###########################################################
 # ###########################################################
-#               Prepare ouput
-# ###########################################################
-
-
-def _prepare_output(
-    coll=None,
-    key_diag=None,
-    shape_samp=None,
-    spectro=None,
-):
-
-    # -------
-    # spectro
-
-    if spectro is True:
-        pass
-
-    # -----------
-    # non-spectro
-
-    else:
-
-        dvos = {'solid_angle_int': {}}
-        for k0 in coll.dobj['diagnostic'][key_diag]['doptics'].keys():
-            dgeom = coll.dobj['camera'][k0]['dgeom']
-            sh = dgeom['shape']
-            shape = tuple(np.r_[shape_samp, sh])
-            ref = tuple([None, None] + list(dgeom['ref']))
-
-            # --------
-            # slice
-
-            if is2d:
-                def sli(ir, iz, ii):
-                    pass
-
-            else:
-                def sli(ir, iz, ii):
-                    pass
-
-
-
-            # --------
-            # dvos
-
-            dvos['solid_angle_int'][k0] = {
-                'data': None,
-                'units': 'sr.m',
-                'dim': '',
-                'quant': '',
-                'name': '',
-                'ref': ref,
-            }
-
-    return dvos
-
-
-# ###########################################################
-# ###########################################################
 #               store
 # ###########################################################
 
@@ -538,6 +466,7 @@ def _store(
     coll=None,
     key_diag=None,
     dvos=None,
+    dref=None,
     spectro=None,
     replace_poly=None,
 ):
@@ -551,6 +480,24 @@ def _store(
         default=True,
     )
 
+    # ----------------------
+    # prepare what to store
+
+    lk_com = ['indr', 'indz']
+    if spectro is True:
+        lk = [
+            'lamb',
+            'ph', 'cos', 'ncounts',
+            'phi_min', 'phi_max',
+            # optional
+            'lamb0', 'dlamb',
+            'phi_mean',
+            'dV', 'etendlen',
+        ]
+    else:
+        lk = ['sang']
+        
+    
     # ------------
     # store
 
@@ -559,7 +506,7 @@ def _store(
     for k0, v0 in dvos.items():
 
         # ----------------
-        # pcross
+        # pcross replacement
 
         if replace_poly and v0.get('pcross0') is not None:
 
@@ -568,97 +515,51 @@ def _store(
             kr = coll.ddata[kpc0]['ref'][0]
 
             # safety check
-            if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
+            shape_pcross = v0['pcross0']['data'].shape
+            if coll.ddata[kpc0]['data'].shape[1:] != shape_pcross[1:]:
                 msg = "Something is wrong"
                 raise Exception(msg)
 
-            coll._dref[kr]['size'] = v0['pcross0'].shape[0]
+            coll._dref[kr]['size'] = shape_pcross[0]
             coll._ddata[kpc0]['data'] = v0['pcross0']
             coll._ddata[kpc1]['data'] = v0['pcross1']
 
         # ----------------
-        # 2d mesh sampling
+        # add ref
 
-        knpts = f'{k0}_vos_npts'
-        kir = f'{k0}_vos_ir'
-        kiz = f'{k0}_vos_iz'
+        for k1, v1 in dref[k0].items():
+            if v1['key'] in coll.dref.keys():
+                if v1['size'] != coll.dref[k1]['size']:
+                    msg = (
+                        f"Mismatch between new vs existing size ref {k1} '{v1['key']}'"
+                        f"\t- existing size = {coll.dref[k1]['size']}\n"
+                        f"\t- new size      = {v1['size']}\n"
+                    )
+                    raise Exception(msg)
+            else:
+                coll.add_ref(**v1)
 
-        ref = tuple(list(coll.dobj['camera'][k0]['dgeom']['ref']) + [knpts])
+        # ----------------
+        # add data
 
-        if knpts not in coll.dref.keys():
-            coll.add_ref(knpts, size=v0['indr'].shape[1])
-
-        # indr
-        if kir not in coll.ddata.keys():
-            coll.add_data(
-                key=kir,
-                data=v0['indr'],
-                ref=ref,
-                units='',
-                dim='index',
-            )
-
-        # indz
-        if kiz not in coll.ddata.keys():
-            coll.add_data(
-                key=kiz,
-                data=v0['indz'],
-                ref=ref,
-                units='',
-                dim='index',
-            )
+        for k1 in lk_com + lk:
+            if k1 not in coll.ddata.keys():
+                coll.add_data(**v0[k1])
 
         # add in doptics
         doptics[k0]['dvos']['keym'] = v0['keym']
         doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
         doptics[k0]['dvos']['res_phi'] = v0['res_phi']
-        doptics[k0]['dvos']['ind'] = (kir, kiz)
-
-        # ------------
-        # spectro
-
+        doptics[k0]['dvos']['ind'] = (v0['indr']['key'], v0['indz']['key'])
         if spectro:
+            doptics[k0]['dvos']['res_lamb'] = v0['res_lamb']
+            doptics[k0]['dvos']['res_rock_curve'] = v0['res_rock_curve']
 
-            # keys
-            kcos = f"{k0}_vos_cos"
-            kph = f"{k0}_vos_ph"
-            # klambmin =
-            # klambmax =
+        # -----------------
+        # add data keys to doptics
 
-            # add data
-            coll.add_data(
-                key=kcos,
-                data=v0['cos'],
-                ref=(knpts, kchan),
-                units='',
-            )
-
-            coll.add_data(
-                key=kph,
-                data=v0['ph_counts'],
-                ref=(knpts, kchan),
-                units='sr.m3.m',
-            )
-
-            # add in doptics
-            doptics[k0]['dvos']['cos'] = v0['cos']
-            doptics[k0]['dvos']['ph'] = v0['ph']
-
-        else:
-
-            # keys
-            ksa = f'{k0}_vos_sa'
-
-            # add data
-            coll.add_data(
-                key=ksa,
-                data=v0['sang']['data'],
-                ref=ref,
-                units=v0['sang']['units'],
-            )
-
-            # add in doptics
-            doptics[k0]['dvos']['sang'] = ksa
+        for k1 in lk:
+            doptics[k0]['dvos'][k1] = v0[k1]['key']
 
 
 # ###############################################################
@@ -683,48 +584,68 @@ def _check_get_dvos(
     )
     spectro = coll.dobj['diagnostic'][key_diag]['spectro']
 
+    # -------------------
+    # prepare keys
+    
+    lk_sca = ['res_RZ', 'res_phi']
+    if spectro is True:
+        lk_sca += ['res_lamb', 'res_rock_curve']
+        lk = [
+            'lamb',
+            'phi_min', 'phi_max', 'phi_mean',
+            'ph', 'ncounts', 'cos',
+            'lamb0', 'dlamb',
+            'dV', 'etendlen',
+        ]
+    else:
+        lk = ['sang']
+        
+    lk_all = lk_sca + lk + ['keym', 'indr', 'indz']
+
     # ------
     # dvos
 
     if dvos is None:
+        
         dvos = {}
+        doptics = coll.dobj['diagnostic'][key_diag]['doptics']
         for k0 in key_cam:
-            dop = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
+            
+            if doptics[k0].get('dvos') is None:
+                msg = (
+                    "Please provide dvos if coll.dobj['diagnostic']"
+                    f"['{key_diag}']['{k0}']['doptics']['dvos'] is None!"
+                )
+                raise Exception(msg)
+            
+            dop = doptics[k0]['dvos']
             dvos[k0] = {
                 'keym': dop['keym'],
-                'res_RZ': dop['res_RZ'],
-                'indr': coll.ddata[dop['ind'][0]]['data'],
-                'indz': coll.ddata[dop['ind'][1]]['data'],
-                'sang': {
-                    'data': coll.ddata[dop['sang']]['data'],
-                    'units': coll.ddata[dop['sang']]['units'],
-                },
+                'indr': coll.ddata[dop['ind'][0]],
+                'indz': coll.ddata[dop['ind'][1]],
             }
-
+            
+            for k1 in lk_sca:
+                dvos[k0][k1] = dop[k1]
+            
+            for k1 in lk:
+                if k1 in dop.keys():
+                    dvos[k0][k1] = {
+                        'key': dop[k1],
+                        **coll.ddata[dop[k1]],
+                    }
     else:
-        dvos = copy.deepcopy(dvos)
+        pass
 
     # ------------------
     # check keys of dvos
-
-    # default
-    if spectro is True:
-        lk = [
-            'keym', 'res_RZ', 'res_phi', 'indr', 'indz', 
-            'phi_min', 'phi_max', 'phi_mean',
-            'ph_count', 'ncounts', 'cos',
-            'lamb', 'lambmin', 'lambmax',
-            'dV', 'etendlen', 'res_rock_curve',
-        ]
-    else:
-        lk = ['keym', 'res_RZ', 'indr', 'indz', 'sang']
 
     # check
     c0 = (
         isinstance(dvos, dict)
         and all([
             k0 in dvos.keys()
-            and all([k1 in dvos[k0].keys() for k1 in lk])
+            and all([k1 in lk_all for k1 in dvos[k0].keys()])
             for k0 in key_cam
         ])
     )
@@ -733,7 +654,7 @@ def _check_get_dvos(
     if not c0:
         msg = (
             "Arg dvos must be a dict with, for each camera, the keys:\n"
-            + str(lk)
+            + str(lk_all)
         )
         raise Exception(msg)
 
