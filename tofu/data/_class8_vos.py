@@ -496,8 +496,8 @@ def _store(
         ]
     else:
         lk = ['sang']
-        
-    
+
+
     # ------------
     # store
 
@@ -521,8 +521,8 @@ def _store(
                 raise Exception(msg)
 
             coll._dref[kr]['size'] = shape_pcross[0]
-            coll._ddata[kpc0]['data'] = v0['pcross0']
-            coll._ddata[kpc1]['data'] = v0['pcross1']
+            coll._ddata[kpc0]['data'] = v0['pcross0']['data']
+            coll._ddata[kpc1]['data'] = v0['pcross1']['data']
 
         # ----------------
         # add ref
@@ -586,7 +586,7 @@ def _check_get_dvos(
 
     # -------------------
     # prepare keys
-    
+
     lk_sca = ['res_RZ', 'res_phi']
     if spectro is True:
         lk_sca += ['res_lamb', 'res_rock_curve']
@@ -599,35 +599,35 @@ def _check_get_dvos(
         ]
     else:
         lk = ['sang']
-        
+
     lk_all = lk_sca + lk + ['keym', 'indr', 'indz']
 
     # ------
     # dvos
 
     if dvos is None:
-        
+
         dvos = {}
         doptics = coll.dobj['diagnostic'][key_diag]['doptics']
         for k0 in key_cam:
-            
+
             if doptics[k0].get('dvos') is None:
                 msg = (
                     "Please provide dvos if coll.dobj['diagnostic']"
                     f"['{key_diag}']['{k0}']['doptics']['dvos'] is None!"
                 )
                 raise Exception(msg)
-            
+
             dop = doptics[k0]['dvos']
             dvos[k0] = {
                 'keym': dop['keym'],
                 'indr': coll.ddata[dop['ind'][0]],
                 'indz': coll.ddata[dop['ind'][1]],
             }
-            
+
             for k1 in lk_sca:
                 dvos[k0][k1] = dop[k1]
-            
+
             for k1 in lk:
                 if k1 in dop.keys():
                     dvos[k0][k1] = {
