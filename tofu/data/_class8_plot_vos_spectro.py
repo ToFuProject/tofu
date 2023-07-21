@@ -461,15 +461,7 @@ def _prepare_ph(
         ph = dvos['ph']['data'].reshape((-1, npts, nlamb))
         coss = dvos['cos']['data'].reshape((-1, npts))
         lambc = dvos['lamb']['data'][None, None, None, :]
-        indch = indch[0] * nc.shape[1] + indch[1]
-        
-        # nci = dvos['ncounts']['data'][indch[0], indch[1], :]
-        # phi = dvos['ph']['data'][indch[0], indch[1], :, :]
-        # lambmini = dvos['lambmin']['data'][indch[0], indch[1], :]
-        # lambmaxi = dvos['lambmax']['data'][indch[0], indch[1], :]
-        # cossi = dvos['cos']['data'][indch[0], indch[1], :]
-
-        
+        indch = indch[0] * shape_cam[1] + indch[1]
 
     else:
         nc = dvos['ncounts']['data']
@@ -479,26 +471,22 @@ def _prepare_ph(
 
     nci = nc[indch, :]
     phi = ph[indch, :, :]
-        # lambmini = dvos['lambmin']['data'][indch, :]
-        # lambmaxi = dvos['lambmax']['data'][indch, :]
     cossi = coss[indch, :]
 
-        
-
     # lambmax, lambmin
-    lambf = np.repeat(
-        np.repeat(lamb[None, :], npts, axis=0)[None, ...],
-        ph.shape[0],
-        axis=0,
-    )
-    ind0 = nc == 0
+    lambf = np.repeat(dvos['lamb']['data'][None, :], npts, axis=0)
+    for ni in shape_cam[::-1]:
+        lambf = np.repeat(lambf[None, :], ni, axis=0)
+
+    ind0 = dvos['ph']['data'] == 0
     lambf[ind0] = np.inf
     lambmin = np.min(lambf, axis=-1)
     lambf[ind0] = -np.inf
     lambmax = np.max(lambf, axis=-1)
-    
-    lambmini = lambmin[indch]
-    lambmaxi = lambmax[indch]
+    del lambf
+
+    lambmini = lambmin.reshape((-1, npts))[indch]
+    lambmaxi = lambmax.reshape((-1, npts))[indch]
 
     # photon counts
     nc_tot[indr, indz] = np.sum(nc, axis=0)
@@ -526,24 +514,23 @@ def _prepare_ph(
         raise Exception(msg)
 
     ph_tot[ir, iz] = np.sum(np.sum(ph[:, iok, :], axis=0), axis=-1)
-    ph_toti[iri, izi] = np.nansum(phi[ioki, :], axis=-1)
+    ph_toti[iri, izi] = np.sum(phi[ioki, :], axis=-1)
 
     # average wavelength
-    lamb[ir, iz] = np.nansum(
+    lamb[ir, iz] = np.sum(
         np.sum(ph[:, iok, :] * dvos['lamb']['data'][None, None, :], axis=0),
         axis=-1,
     ) / ph_tot[ir, iz]
 
     lambi[iri, izi] = (
-        np.nansum(phi[ioki, :] * dvos['lamb']['data'][None, :], axis=-1)
+        np.sum(phi[ioki, :] * dvos['lamb']['data'][None, :], axis=-1)
         / ph_toti[iri, izi]
     )
 
     # delta wavelength
-    print(lambmax.shape, dlamb.shape, lambf.shape, iok.shape, dvos['lamb']['data'].shape)
     dlamb[ir, iz] = (
-        np.nanmax(lambmax[:, iok], axis=0)
-        - np.nanmin(lambmin[:, iok], axis=0)
+        np.nanmax(lambmax.reshape((-1, npts))[:, iok], axis=0)
+        - np.nanmin(lambmin.reshape((-1, npts))[:, iok], axis=0)
     )
     dlambi[iri, izi] = lambmaxi[ioki] - lambmini[ioki]
 
@@ -570,10 +557,10 @@ def _prepare_ph(
         / nc_cam[iok]
     )
 
-    iok = np.any(np.isfinite(dvos['lambmax']['data']), axis=-1)
+    iok = np.any(np.isfinite(lambmax), axis=-1)
     dlamb_cam[iok] = (
-        np.nanmax(dvos['lambmax']['data'][iok, :], axis=-1)
-        - np.nanmin(dvos['lambmin']['data'][iok, :], axis=-1)
+        np.nanmax(lambmax[iok, :], axis=-1)
+        - np.nanmin(lambmin[iok, :], axis=-1)
     )
 
     # ----------------------
