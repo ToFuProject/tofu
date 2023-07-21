@@ -106,13 +106,14 @@ def _plot_diagnostic_vos(
         dvos=dvos,
     )
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
+    shape_cam = coll.dobj['camera'][key_cam[0]]['dgeom']['shape']
 
     # indch
     if indch is None:
         if is2d:
-            indch = [0, 0]
+            indch = [int(ss/2) for ss in shape_cam]
         else:
-            indch = 0
+            indch = int(shape_cam[0]/2)
 
     # ------------
     # prepare data
@@ -518,26 +519,26 @@ def _prepare_vos(
 
         # -----------------------
         # convex hull if distinct
-        
+
         # pc
-        if len(pc) > 1: 
+        if len(pc) > 1:
             # replace by convex hull
             pts = np.concatenate(
                 tuple([np.array(pc.contour(ii)) for ii in range(len(pc))]),
                 axis=0,
             )
-            pc0, pc1 = pts[ConvexHull(pts).vertices, :].T 
+            pc0, pc1 = pts[ConvexHull(pts).vertices, :].T
         else:
             pc0, pc1 = np.array(pc).T
-            
+
         # ph
-        if len(ph) > 1: 
+        if len(ph) > 1:
             # replace by convex hull
             pts = np.concatenate(
                 tuple([np.array(ph.contour(ii)) for ii in range(len(ph))]),
                 axis=0,
             )
-            ph0, ph1 = pts[ConvexHull(pts).vertices, :].T 
+            ph0, ph1 = pts[ConvexHull(pts).vertices, :].T
         else:
             ph0, ph1 = np.array(ph).T
 
@@ -599,11 +600,11 @@ def _prepare_sang(
     sang_tot = np.full(shape, 0.)
 
     if is2d:
-        for ii in range(dvos['indr'].shape[0]):
-            for jj in range(dvos['indr'].shape[1]):
-                iok = dvos['indr'][ii, jj, :] >= 0
-                indr = dvos['indr'][ii, jj, iok]
-                indz = dvos['indz'][ii, jj, iok]
+        for ii in range(dvos['indr']['data'].shape[0]):
+            for jj in range(dvos['indr']['data'].shape[1]):
+                iok = dvos['indr']['data'][ii, jj, :] >= 0
+                indr = dvos['indr']['data'][ii, jj, iok]
+                indz = dvos['indz']['data'][ii, jj, iok]
                 sang_tot[indr, indz] += dvos['sang']['data'][ii, jj, iok]
 
                 # sang
@@ -611,10 +612,10 @@ def _prepare_sang(
                     sang[indr, indz] = dvos['sang']['data'][ii, jj, iok]
 
     else:
-        for ii in range(dvos['indr'].shape[0]):
-            iok = dvos['indr'][ii, :] >= 0
-            indr = dvos['indr'][ii, iok]
-            indz = dvos['indz'][ii, iok]
+        for ii in range(dvos['indr']['data'].shape[0]):
+            iok = dvos['indr']['data'][ii, :] >= 0
+            indr = dvos['indr']['data'][ii, iok]
+            indz = dvos['indz']['data'][ii, iok]
             sang_tot[indr, indz] += dvos['sang']['data'][ii, iok]
 
             # sang
