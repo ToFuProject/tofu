@@ -540,6 +540,7 @@ def _prepare_ph(
     )
 
     # delta wavelength
+    print(lambmax.shape, dlamb.shape, lambf.shape, iok.shape, dvos['lamb']['data'].shape)
     dlamb[ir, iz] = (
         np.nanmax(lambmax[:, iok], axis=0)
         - np.nanmin(lambmin[:, iok], axis=0)
