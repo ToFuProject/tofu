@@ -36,7 +36,7 @@ def main():
     # add several diagnostics
 
     # add broadband
-    _add_broadband(coll, conf)
+    _add_broadband(coll, conf, vos=True)
 
     # add 2d camera
     # _add_2d(coll, conf)
@@ -45,7 +45,7 @@ def main():
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    _add_spectrometer(coll, conf)   # , crystals=['c0'])
+    _add_spectrometer(coll, conf, vos=True)   # , crystals=['c0'])
 
     # add spectro-like without crystal
     # _add_spectrometer_like(coll, config=conf, key_diag='d02')
@@ -55,7 +55,7 @@ def main():
 
     _compute_synth_signal(
         coll,
-        #ldiag=['diag00']),
+        ldiag=['d01'],
         spectral_binning=True,
     )
 
@@ -217,6 +217,7 @@ def _create_plasma():
 def _add_broadband(
     coll=None,
     conf=None,
+    vos=None,
 ):
 
     # ---------------------
@@ -267,6 +268,16 @@ def _add_broadband(
         compute=True,
         config=conf,
     )
+
+    if vos is True:
+        coll.compute_diagnostic_vos(
+            'd0',
+            key_mesh='m0',
+            res_RZ=0.01,
+            res_phi=0.01,
+            visibility=False,
+            store=True,
+        )
 
     return
 
@@ -465,6 +476,7 @@ def _add_spectrometer(
     coll=None,
     conf=None,
     crystals=None,
+    vos=None,
 ):
 
     # ------------------
@@ -520,6 +532,18 @@ def _add_spectrometer(
             add_points=3,
             rocking_curve_fwhm=0.0001*np.pi/180 if k0 == 'c2' else None,
         )
+
+        if vos is True:
+            coll.compute_diagnostic_vos(
+                list(coll.dobj['diagnostic'].keys())[-1],
+                key_mesh='m0',
+                res_RZ=[0.10, 0.01],
+                res_phi=0.005,
+                res_lamb=0.001e-10,
+                n0=11,
+                n1=21,
+                store=True,
+            )
 
     return
 
@@ -715,7 +739,7 @@ def _compute_synth_signal(coll=None, ldiag=None, spectral_binning=None):
             key_diag=k0,
             key_cam=None,
             key_integrand=key_integrand,
-            method='los',
+            method='vos',
             res=0.001,
             mode='abs',
             groupby=None,

@@ -47,7 +47,7 @@ def compute_signal(
     # return
     returnas=None,
 ):
-    
+
     # -------------
     # check inputs
     # --------------
@@ -917,7 +917,7 @@ def _compute_los(
     # ----------
     # clean up
 
-    if spectral_binning is True:
+    if spectro is True and spectral_binning is True:
         coll.remove_bins(ktemp_bin)
 
     return dout, dt
@@ -996,23 +996,23 @@ def _compute_vos_spectro(
     # check all keym and res_RZ are similar
     lkm = list(set([v0['keym'] for v0 in dvos.values()]))
     lres = list(set([tuple(v0['res_RZ']) for v0 in dvos.values()]))
-    
+
     if len(lkm) != 1:
         lstr = [f"\t- '{k0}': '{v0['keym']}'" for k0, v0 in dvos.items()]
         msg = (
             "All cameras vos were not sampled using the same mesh!\n"
             + "\n".join(lstr)
         )
-        raise Exception(msg)   
-    
+        raise Exception(msg)
+
     if len(lres) != 1:
         lstr = [f"\t- '{k0}': '{v0['res_RZ']}'" for k0, v0 in dvos.items()]
         msg = (
             "All cameras vos were not sampled using the same resolution!\n"
             + "\n".join(lstr)
         )
-        raise Exception(msg)            
-    
+        raise Exception(msg)
+
     # extract
     keym = lkm[0]
     res_RZ = list(lres[0])
@@ -1037,13 +1037,13 @@ def _compute_vos_spectro(
         kx0=None,
         kx1=None,
     )
-    
+
     x0u = dsamp['x0']['data']
     x1u = dsamp['x1']['data']
-    
+
     # --------------
     # prepare
-    
+
     kspect_ref_vect = coll.get_ref_vector(ref=key_ref_spectro)[3]
     units_spectro = coll.ddata[kspect_ref_vect]['units']
 
@@ -1054,13 +1054,14 @@ def _compute_vos_spectro(
 
     dout = {k0: {} for k0 in dvos.keys()}
     for k0, v0 in dvos.items():
-        
-        R = x0u[v0['indr']]
-        Z = x1u[v0['indr']]
-        
+
+        R = x0u[v0['indr']['data']]
+        Z = x1u[v0['indr']['data']]
+
         kapex = coll.dobj[wbs][key_bs_spectro]['apex'][0]
         dlamb_ref = np.mean(np.diff(coll.ddata[kapex]['data']))
-        dlamb = np.mean(np.diff(v0['lamb']))
+        lamb = v0['lamb']['data']
+        dlamb = np.mean(np.diff(lamb))
         if spectral_binning is None:
             spectral_binningi = dlamb > dlamb_ref
         else:
@@ -1073,24 +1074,26 @@ def _compute_vos_spectro(
         # (nt, nbs0, nbs1, nlamb_ref, ncos) => (nt, nbs0, nbs1, nlamb, ncos)
         # or
         # (nt, nbs0, nbs1, nlamb_ref) => (nt, nbs0, nbs1, nlamb)
-        
+
         key_integrand_interp_lamb = f"{key_integrand}_interp_lamb"
         if spectral_binningi is True:
-            
+
             ktemp_bin = f'{key_bs_spectro}_{k0}_temp_bin'
             edge_spectro = np.r_[
-                v0['lamb'][0] - 0.5*(v0['lamb'][1] - v0['lamb'][0]),
-                0.5 * (v0['lamb'][1:] + v0['lamb'][:-1]),
-                v0['lamb'][-1] + 0.5*(v0['lamb'][-1] - v0['lamb'][-2]),
+                lamb[0] - 0.5*(lamb[1] - lamb[0]),
+                0.5 * (lamb[1:] + lamb[:-1]),
+                lamb[-1] + 0.5*(lamb[-1] - lamb[-2]),
             ]
-            
+
             coll.add_bins(
                 key=ktemp_bin,
                 edges=edge_spectro,
                 units=units_spectro,
             )
             ktemp_binc = coll.dobj['bins'][ktemp_bin]['cents'][0]
-            
+
+            import pdb; pdb.set_trace()     # DB
+
             coll.binning(
                 data=key_integrand,
                 bin_data0=key_bs_spectro,
@@ -1101,12 +1104,12 @@ def _compute_vos_spectro(
                 returnas=False,
                 store_keys=key_integrand_interp_lamb,
             )
-        
+
         else:
             douti = coll.interpolate(
-                keys=key_integrand_interp_lamb,
+                keys=key_integrand,
                 ref_key=key_bs_spectro,
-                x0=v0['lamb'],
+                x0=lamb,
                 x1=None,
                 grid=False,
                 submesh=None,
@@ -1121,12 +1124,12 @@ def _compute_vos_spectro(
                 store=True,
                 store_keys=key_integrand_interp_lamb,
             )[key_integrand_interp_lamb]
-            
+
         # -----------------------------
         # interpolate vs local cos
-        
+
         if key_ref_cos is not None:
-            
+
             # (nt, nbs0, nbs1, nlamb, ncos) => (nt, nbs0, nbs1, nlamb)
             douti = coll.interpolate(
                 keys=key_integrand_interp,
@@ -1145,7 +1148,7 @@ def _compute_vos_spectro(
                 return_params=False,
                 store=False,
             )[key_integrand_interp]
-        
+
         # -----------------------------
         # interpolate per spatial pts
 
@@ -1173,23 +1176,23 @@ def _compute_vos_spectro(
         # sum to get signal
 
         print(douti['data'].shape, douti['ref'])        # DB
-        print(v0['ph_count'].shape)
-                
-        # reshape_data = 
-        # reshape_vos = 
+        print(v0['ph']['data'].shape)
+
+        # reshape_data =
+        # reshape_vos =
 
         # (nt, npts, nlamb) => (nt, n0, n1)
         reshape = ()
-        
+
         sig = np.sum(
             np.sum(
                 douti['data'].reshape(reshape_data)
-                * v0['ph_count'].reshape(reshape_vos),
+                * v0['ph']['data'].reshape(reshape_vos),
                 axis=ax_lamb_new,
             ),
             axis=ax_pts_new - 1,
         )
-        
+
         print(sig.shape)
 
         dout[k0] = {
@@ -1198,7 +1201,7 @@ def _compute_vos_spectro(
             'ref': ref,
             'units': units,
         }
-    
+
 
 
     # -----------------
