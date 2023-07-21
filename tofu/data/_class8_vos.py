@@ -529,7 +529,7 @@ def _store(
 
         for k1, v1 in dref[k0].items():
             if v1['key'] in coll.dref.keys():
-                if v1['size'] != coll.dref[k1]['size']:
+                if v1['size'] != coll.dref[v1['key']]['size']:
                     msg = (
                         f"Mismatch between new vs existing size ref {k1} '{v1['key']}'"
                         f"\t- existing size = {coll.dref[k1]['size']}\n"
@@ -543,7 +543,7 @@ def _store(
         # add data
 
         for k1 in lk_com + lk:
-            if k1 not in coll.ddata.keys():
+            if k1 not in coll.ddata.keys() and k1 in v0.keys():
                 coll.add_data(**v0[k1])
 
         # add in doptics
@@ -559,7 +559,8 @@ def _store(
         # add data keys to doptics
 
         for k1 in lk:
-            doptics[k0]['dvos'][k1] = v0[k1]['key']
+            if k1 in v0.keys():
+                doptics[k0]['dvos'][k1] = v0[k1]['key']
 
 
 # ###############################################################
