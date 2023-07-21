@@ -36,7 +36,7 @@ def main():
     # add several diagnostics
 
     # add broadband
-    # _add_broadband(coll, conf)
+    _add_broadband(coll, conf)
 
     # add 2d camera
     # _add_2d(coll, conf)
