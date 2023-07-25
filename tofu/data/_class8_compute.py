@@ -611,6 +611,8 @@ def _dplot_check(
     elements=None,
     vect_length=None,
     axis_length=None,
+    dx0=None,
+    dx1=None,
 ):
     # -----
     # key
@@ -665,8 +667,30 @@ def _dplot_check(
         types=(float, int),
         sign='>= 0.'
     )
+    
+    # ---------------
+    # dx0, dx1
+    
+    # dx0
+    dx0 = float(ds._generic_check._check_var(
+        dx0, 'dx0',
+        types=(int, float),
+        default=0.,
+    ))
+    
+    # dx1
+    dx1 = float(ds._generic_check._check_var(
+        dx1, 'dx1',
+        types=(int, float),
+        default=0.,
+    ))
 
-    return key, key_cam, optics, elements, vect_length, axis_length
+
+    return (
+        key, key_cam, optics, elements,
+        vect_length, axis_length,
+        dx0, dx1,
+    )
 
 
 def _dplot(
@@ -677,12 +701,18 @@ def _dplot(
     elements=None,
     vect_length=None,
     axis_length=None,
+    dx0=None,
+    dx1=None,
 ):
 
     # ------------
     # check inputs
 
-    key, key_cam, optics, elements, vect_length, axis_length = _dplot_check(
+    (
+        key, key_cam, optics, elements,
+        vect_length, axis_length,
+        dx0, dx1,
+    ) = _dplot_check(
         coll=coll,
         key=key,
         key_cam=key_cam,
@@ -690,6 +720,8 @@ def _dplot(
         elements=elements,
         vect_length=vect_length,
         axis_length=axis_length,
+        dx0=dx0,
+        dx1=dx1,
     )
 
     # ------------
@@ -788,8 +820,8 @@ def _dplot(
             )
 
             dplot[k0]['o'] = {
-                'x0': p0,
-                'x1': p1,
+                'x0': p0 + dx0,
+                'x1': p1 + dx1,
                 'x': px,
                 'y': py,
                 'z': pz,

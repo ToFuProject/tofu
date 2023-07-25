@@ -1025,6 +1025,8 @@ class Diagnostic(Previous):
         optics=None,
         elements=None,
         vect_length=None,
+        dx0=None,
+        dx1=None,
     ):
         """ Return a dict with all that's necessary for plotting
 
@@ -1067,6 +1069,8 @@ class Diagnostic(Previous):
             optics=optics,
             elements=elements,
             vect_length=vect_length,
+            dx0=dx0,
+            dx1=dx1,
         )
 
     def plot_diagnostic(
@@ -1084,8 +1088,11 @@ class Diagnostic(Previous):
         vmin=None,
         vmax=None,
         alpha=None,
+        dx0=None,
+        dx1=None,
         # config
         plot_config=None,
+        plot_colorbar=None,
         # figure
         dax=None,
         dmargin=None,
@@ -1113,8 +1120,11 @@ class Diagnostic(Previous):
             vmin=vmin,
             vmax=vmax,
             alpha=alpha,
+            dx0=dx0,
+            dx1=dx1,
             # config
             plot_config=plot_config,
+            plot_colorbar=plot_colorbar,
             # figure
             dax=dax,
             dmargin=dmargin,
