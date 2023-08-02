@@ -404,6 +404,7 @@ class Diagnostic(Previous):
         res_rock_curve=None,
         n0=None,
         n1=None,
+        convexHull=None,
         # margins
         margin_poly=None,
         # raytracing
@@ -441,6 +442,7 @@ class Diagnostic(Previous):
             res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
+            convexHull=convexHull,
             # margins
             margin_poly=margin_poly,
             # spectro-only
@@ -483,12 +485,17 @@ class Diagnostic(Previous):
         res_rock_curve=None,
         n0=None,
         n1=None,
+        convexHull=None,
         # margins
         margin_poly=None,
         nmax_rays=None,
         # spectro-only
         rocking_curve_fw=None,
         rocking_curve_max=None,
+        # optional binning
+        dobin=None,
+        bin0=None,
+        bin1=None,
         # bool
         visibility=None,
         verb=None,
@@ -521,12 +528,17 @@ class Diagnostic(Previous):
             res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
+            convexHull=convexHull,
             # margins
             margin_poly=margin_poly,
             nmax_rays=nmax_rays,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
             rocking_curve_max=rocking_curve_max,
+            # optional binning
+            dobin=dobin,
+            bin0=bin0,
+            bin1=bin1,
             # bool
             visibility=visibility,
             verb=verb,
