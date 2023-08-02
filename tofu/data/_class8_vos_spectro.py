@@ -48,6 +48,7 @@ def _vos(
     res_rock_curve=None,
     n0=None,
     n1=None,
+    convexHull=None,
     bool_cross=None,
     # parameters
     min_threshold=None,
@@ -106,6 +107,7 @@ def _vos(
         doptics=coll.dobj['diagnostic'][key_diag]['doptics'],
         key_cam=key_cam,
         poly='pcross',
+        convexHull=convexHull,
     )
 
     phor0, phor1 = _utilities._get_overall_polygons(
@@ -113,6 +115,7 @@ def _vos(
         doptics=coll.dobj['diagnostic'][key_diag]['doptics'],
         key_cam=key_cam,
         poly='phor',
+        convexHull=convexHull,
     )
 
     # --------------------------

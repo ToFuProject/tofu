@@ -61,6 +61,7 @@ def _get_overall_polygons(
     doptics=None,
     key_cam=None,
     poly=None,
+    convexHull=None,
 ):
 
     # get temporary vos
@@ -70,42 +71,52 @@ def _get_overall_polygons(
     p1 = coll.ddata[kp1]['data'].reshape((shape[0], -1))
 
     # pix indices
-    ipn = (~(np.any(np.isnan(p0), axis=0))).nonzero()[0]
+    iok = np.isfinite(p0)
 
+    # -----------------------
     # envelop pcross and phor
-    pp = plg.Polygon(np.array([p0[:, ipn[0]], p1[:, ipn[0]]]).T)
-    for ii in ipn[1:]:
-        pp |= plg.Polygon(np.array([p0[:, ii], p1[:, ii]]).T)
-
-    if len(pp) > 1:
-        
-        # replace by convex hull
-        pts = np.concatenate(
-            tuple([np.array(pp.contour(ii)) for ii in range(len(pp))]),
-            axis=0,
-        )
-        poly = pts[ConvexHull(pts).vertices, :].T 
     
-        # plot for debugging
-        fig = plt.figure()
-        fig.suptitle("_get_overall_polygons()", size=12)
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-        ax.set_title(f"camera '{key_cam}', vos poly '{poly}'")
-        for ii in range(len(pp)):
-            ax.plot(
-                np.array(pp.contour(ii))[:, 0],
-                np.array(pp.contour(ii))[:, 1],
-                '.-',
-                poly[0, :],
-                poly[1, :],
-                '.-k',
-            )
-        msg = "multiple contours"
-        warnings.warn(msg)
-        return poly
+    if convexHull is True:
+        # replace by convex hull
+        pts = np.array([p0[iok], p1[iok]]).T
+        return pts[ConvexHull(pts).vertices, :].T 
     
     else:
-        return np.array(pp.contour(0)).T
+        
+        ipn = (np.all(iok, axis=0)).nonzero()[0]
+        pp = plg.Polygon(np.array([p0[:, ipn[0]], p1[:, ipn[0]]]).T)
+        for ii in ipn[1:]:
+            pp |= plg.Polygon(np.array([p0[:, ii], p1[:, ii]]).T)
+    
+        if len(pp) > 1:
+            
+            # replace by convex hull
+            pts = np.concatenate(
+                tuple([np.array(pp.contour(ii)) for ii in range(len(pp))]),
+                axis=0,
+            )
+            poly = pts[ConvexHull(pts).vertices, :].T 
+        
+            # plot for debugging
+            fig = plt.figure()
+            fig.suptitle("_get_overall_polygons()", size=12)
+            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+            ax.set_title(f"camera '{key_cam}', vos poly '{poly}'")
+            for ii in range(len(pp)):
+                ax.plot(
+                    np.array(pp.contour(ii))[:, 0],
+                    np.array(pp.contour(ii))[:, 1],
+                    '.-',
+                    poly[0, :],
+                    poly[1, :],
+                    '.-k',
+                )
+            msg = "multiple contours"
+            warnings.warn(msg)
+            return poly
+        
+        else:
+            return np.array(pp.contour(0)).T
 
 
 # ###############################################

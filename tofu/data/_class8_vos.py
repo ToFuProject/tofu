@@ -34,6 +34,7 @@ def compute_vos(
     res_rock_curve=None,
     n0=None,
     n1=None,
+    convexHull=None,
     # margins
     margin_poly=None,
     # options
@@ -68,6 +69,7 @@ def compute_vos(
         res_RZ,
         res_phi,
         res_lamb,
+        convexHull,
         visibility,
         verb,
         debug,
@@ -81,6 +83,7 @@ def compute_vos(
         res_RZ=res_RZ,
         res_phi=res_phi,
         res_lamb=res_lamb,
+        convexHull=convexHull,
         visibility=visibility,
         verb=verb,
         debug=debug,
@@ -191,6 +194,7 @@ def compute_vos(
                 res_rock_curve=res_rock_curve,
                 n0=n0,
                 n1=n1,
+                convexHull=convexHull,
                 bool_cross=bool_cross,
                 # parameters
                 margin_poly=margin_poly,
@@ -266,6 +270,7 @@ def _check(
     res_RZ=None,
     res_phi=None,
     res_lamb=None,
+    convexHull=None,
     visibility=None,
     check=None,
     verb=None,
@@ -394,6 +399,15 @@ def _check(
         res_lamb = 0.01e-10
 
     # -----------
+    # convexHull - to get overall pcross and phor, faster if many pixels
+       
+    convexHull = ds._generic_check._check_var(
+        convexHull, 'convexHull',
+        types=bool,
+        default=False,
+    )
+
+    # -----------
     # visibility
 
     visibility = ds._generic_check._check_var(
@@ -448,6 +462,7 @@ def _check(
         res_RZ,
         res_phi,
         res_lamb,
+        convexHull,
         visibility,
         verb,
         debug,
