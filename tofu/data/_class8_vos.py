@@ -48,7 +48,9 @@ def compute_vos(
     check=None,
     verb=None,
     debug=None,
+    # storing
     store=None,
+    overwrite=None,
     replace_poly=None,
     timing=None,
 ):
@@ -74,6 +76,7 @@ def compute_vos(
         verb,
         debug,
         store,
+        overwrite,
         timing,
     ) = _check(
         coll=coll,
@@ -88,6 +91,7 @@ def compute_vos(
         verb=verb,
         debug=debug,
         store=store,
+        overwrite=overwrite,
         timing=timing,
     )
 
@@ -250,6 +254,7 @@ def compute_vos(
             dvos=dvos,
             dref=dref,
             spectro=spectro,
+            overwrite=overwrite,
             replace_poly=replace_poly,
         )
 
@@ -276,6 +281,7 @@ def _check(
     verb=None,
     debug=None,
     store=None,
+    overwrite=None,
     timing=None,
 ):
 
@@ -400,7 +406,7 @@ def _check(
 
     # -----------
     # convexHull - to get overall pcross and phor, faster if many pixels
-       
+
     convexHull = ds._generic_check._check_var(
         convexHull, 'convexHull',
         types=bool,
@@ -444,6 +450,15 @@ def _check(
     )
 
     # -----------
+    # overwrite
+
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
+        default=False,
+    )
+
+    # -----------
     # timing
 
     timing = ds._generic_check._check_var(
@@ -467,6 +482,7 @@ def _check(
         verb,
         debug,
         store,
+        overwrite,
         timing,
     )
 
@@ -483,6 +499,7 @@ def _store(
     dvos=None,
     dref=None,
     spectro=None,
+    overwrite=None,
     replace_poly=None,
 ):
 
@@ -544,13 +561,18 @@ def _store(
 
         for k1, v1 in dref[k0].items():
             if v1['key'] in coll.dref.keys():
-                if v1['size'] != coll.dref[v1['key']]['size']:
+                if overwrite is True:
+                    coll.remove_ref(v1['key'], propagate=True)
+                    coll.add_ref(**v1)
+                elif v1['size'] != coll.dref[v1['key']]['size']:
                     msg = (
                         f"Mismatch between new vs existing size ref {k1} '{v1['key']}'"
                         f"\t- existing size = {coll.dref[k1]['size']}\n"
                         f"\t- new size      = {v1['size']}\n"
                     )
                     raise Exception(msg)
+                else:
+                    pass
             else:
                 coll.add_ref(**v1)
 
@@ -558,10 +580,25 @@ def _store(
         # add data
 
         for k1 in lk_com + lk:
-            if k1 not in coll.ddata.keys() and k1 in v0.keys():
-                coll.add_data(**v0[k1])
 
+            if k1 not in v0.keys():
+                continue
+
+            if v0[k1]['key'] in coll.ddata.keys():
+                if overwrite is True:
+                    coll.remove_data(key=v0[k1]['key'])
+                else:
+                    msg = (
+                        "Not overwriting existing data {k1}\n"
+                        "To force update use overwrite = True"
+                    )
+                    raise Exception(msg)
+
+            coll.add_data(**v0[k1])
+
+        # ---------------
         # add in doptics
+
         doptics[k0]['dvos']['keym'] = v0['keym']
         doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
         doptics[k0]['dvos']['res_phi'] = v0['res_phi']

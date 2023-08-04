@@ -417,6 +417,7 @@ class Diagnostic(Previous):
         verb=None,
         debug=None,
         store=None,
+        overwrite=None,
         replace_poly=None,
         timing=None,
     ):
@@ -454,6 +455,7 @@ class Diagnostic(Previous):
             verb=verb,
             debug=debug,
             store=store,
+            overwrite=overwrite,
             replace_poly=replace_poly,
             timing=timing,
         )
@@ -496,6 +498,7 @@ class Diagnostic(Previous):
         dobin=None,
         bin0=None,
         bin1=None,
+        remove_raw=None,
         # bool
         visibility=None,
         verb=None,
@@ -539,6 +542,7 @@ class Diagnostic(Previous):
             dobin=dobin,
             bin0=bin0,
             bin1=bin1,
+            remove_raw=remove_raw,
             # bool
             visibility=visibility,
             verb=verb,
