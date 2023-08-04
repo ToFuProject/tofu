@@ -52,6 +52,7 @@ def compute_vos_nobin_at_lamb(
     dobin=None,
     bin0=None,
     bin1=None,
+    remove_raw=None,
     # bool
     visibility=None,
     convex=None,
@@ -85,6 +86,7 @@ def compute_vos_nobin_at_lamb(
         dobin,
         bin0,
         bin1,
+        remove_raw,
         lamb,
         nmax_rays,
         plot,
@@ -192,6 +194,8 @@ def compute_vos_nobin_at_lamb(
                     lamb=lamb,
                     # dout
                     dout=dout,
+                    # remove raw data (lightweight)
+                    remove_raw=remove_raw,
                 )
 
             # -------------
@@ -254,6 +258,7 @@ def _check(
     dobin=None,
     bin0=None,
     bin1=None,
+    remove_raw=None,
     # bool
     visibility=None,
     convex=None,
@@ -349,6 +354,13 @@ def _check(
     else:
         bin0, nin1 = None, None
 
+    # remove_raw
+    remove_raw = ds._generic_check._check_var(
+        remove_raw, 'remove_raw',
+        default=False,
+        types=bool,
+    )
+
     # ------------------
     # check lamb
 
@@ -402,6 +414,7 @@ def _check(
         dobin,
         bin0,
         bin1,
+        remove_raw,
         lamb,
         nmax_rays,
         plot,
@@ -823,6 +836,8 @@ def _dobin(
     lamb=None,
     # dout
     dout=None,
+    # remove raw data
+    remove_raw=None,
 ):
 
     # ----------------------------------
@@ -856,42 +871,37 @@ def _dobin(
         c0 = 0.5 * (bin0[1:] + bin0[:-1])
         c1 = 0.5 * (bin1[1:] + bin1[:-1])
 
-    c0f = np.repeat(c0[:, None], c1.size, axis=1)
-    c1f = np.repeat(c1[:, None], c0.size, axis=0)
+    n0, n1 = c0.size, c1.size
 
     # -----------------------
     # compute
 
     # points with weight
-    bin_x0, bin_x1, bin_ph, iokn = [], [], [], []
+    bin_ph = np.full((n0, n1, lamb.size), 0.)
     for kk, ll in enumerate(lamb):
 
         iok = np.isfinite(dout[k0]['x0'][:, kk])
+        if not np.any(iok):
+            continue
 
-        out = scpstats.binned_statistic_2d(
+        bin_ph[..., kk] = scpstats.binned_statistic_2d(
             dout[k0]['x0'][iok, kk],
             dout[k0]['x1'][iok, kk],
             dout[k0]['ph_count'][iok, kk],
             statistic='sum',
             bins=(bin0, bin1),
-        )
-
-        iok = out.statistic > 0
-
-        iokn.append(iok.nonzero())
-        bin_x0.append(c0f[iok])
-        bin_x1.append(c1f[iok])
-        bin_ph.append(out.statistic[iok])
+        ).statistic
 
     # --------
     # store
 
-    dout[k0]['iokn'] = iokn
     dout[k0]['bin0'] = bin0
     dout[k0]['bin1'] = bin1
-    dout[k0]['bin_x0'] = bin_x0
-    dout[k0]['bin_x1'] = bin_x1
     dout[k0]['bin_ph'] = bin_ph
+
+    if remove_raw is True:
+        for k1 in ['x0', 'x1', 'ph_count']:
+            del dout[k0][k1]
 
     return
 
@@ -940,10 +950,7 @@ def _plot(
                 v0['bin1'][0], v0['bin1'][-1],
             )
 
-            im = np.full((v0['bin0'].size - 1, v0['bin1'].size - 1), 0.)
-            for kk, ll in enumerate(v0['lamb']):
-                im[v0['iokn'][kk]] += v0['bin_ph'][kk]
-
+            im = np.sum(v0['bin_ph'], axis=-1)
             im[im == 0.] = np.nan
 
         # ------------
