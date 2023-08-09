@@ -30,6 +30,7 @@ def sinogram(
     key=None,
     # config
     config=None,
+    kVes=None,
     # sinogram ref point
     R0=None,
     Z0=None,
@@ -44,6 +45,8 @@ def sinogram(
     marker=None,
     label=None,
     sketch=None,
+    # other options
+    verb=None,
     # figure
     dax=None,
     dmargin=None,
@@ -59,39 +62,64 @@ def sinogram(
         key,
         # config
         config,
+        kVes,
         # sinogram options
         ang,
         ang_units,
         impact_pos,
         # plotting options
         plot,
+        # other options
+        verb,
     ) = _check(**locals())
 
     # -----------------
     # get R0, Z0
     # -----------------
 
-    R0, Z0 = _get_RZ0(R0=R0, Z0=Z0, config=config)
+    R0, Z0 = _get_RZ0(R0=R0, Z0=Z0, config=config, kVes=kVes)
 
     # -----------------
     # compute for rays
     # -----------------
 
     dout = {}
+    dfail = {}
     for k0 in key:
         dout[k0] = _compute_rays(
             coll=coll,
             kray=k0,
             R0=R0,
             Z0=Z0,
+            # options
+            verb=verb,
         )
+
+        nans = np.isnan(dout[k0]['ang']).sum()
+        if nans == dout[k0]['ang'].size:
+            dfail[k0] = 'all nans'
+        elif nans > 0:
+            dfail[k0] = f"{nans} / {dout[k0]['ang'].size} nans"
+
+    # warnings
+    if len(dfail) > 0 and verb == 1:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "Some rays seem to have no impact solution:\n"
+            + "\n".join(lstr)
+        )
+        warnings.warn(msg)
 
     # -----------------
     # compute for config
     # -----------------
 
-    # dout_config = _compute_config()
-    dout_config = None
+    dout_config = _compute_config(
+        config=config,
+        kVes=kVes,
+        R0=R0,
+        Z0=Z0,
+    )
 
     # ------------
     # adjust
@@ -107,12 +135,26 @@ def sinogram(
                 np.cos(v0['ang'][ineg] + np.pi),
             )
 
+        if dout_config is not None:
+            ineg = dout_config['ang'] < 0.
+            dout_config['pmax'][ineg] = -dout_config['pmax'][ineg]
+            dout_config['ang'][ineg] = np.arctan2(
+                np.sin(dout_config['ang'][ineg] + np.pi),
+                np.cos(dout_config['ang'][ineg] + np.pi),
+            )
+
     # convert angle
-    if ang == 'ksi':
+    if ang == 'xi':
         for k0, v0 in dout.items():
             dout[k0]['ang'] = np.arctan2(
                 np.sin(v0['ang'] - np.pi/2.),
                 np.cos(v0['ang'] - np.pi/2.),
+            )
+
+        if dout_config is not None:
+            dout_config['ang'] = np.arctan2(
+                np.sin(dout_config['ang'] - np.pi/2),
+                np.cos(dout_config['ang'] - np.pi/2),
             )
 
     # convert angle units
@@ -120,11 +162,19 @@ def sinogram(
         for k0, v0 in dout.items():
             dout[k0]['ang'] = v0['ang'] * 180 / np.pi
 
+        if dout_config is not None:
+            dout_config['ang'] = dout_config['ang'] * 180 / np.pi
+
     # store in dict
     for k0, v0 in dout.items():
         dout[k0]['ang_var'] = ang
         dout[k0]['ang_units'] = ang_units
         dout[k0]['impact_pos'] = impact_pos
+
+    if dout_config is not None:
+        dout_config['ang_var'] = ang
+        dout_config['ang_units'] = ang_units
+        dout_config['impact_pos'] = impact_pos
 
 
     # ------------
@@ -135,6 +185,7 @@ def sinogram(
 
         dax = _plot(
             dout=dout,
+            dout_config=dout_config,
             # sinogram ref point
             R0=R0,
             Z0=Z0,
@@ -171,6 +222,7 @@ def _check(
     key=None,
     # config
     config=None,
+    kVes=None,
     # sinogram ref point
     R0=None,
     Z0=None,
@@ -180,6 +232,8 @@ def _check(
     impact_pos=None,
     # plotting options
     plot=None,
+    # other options
+    verb=None,
     # unused
     **kwdargs,
 ):
@@ -213,13 +267,25 @@ def _check(
 
     # convrt to list of rays
     if key[0] in ldiag:
-        key = []
+        lcam = coll.dobj['diagnostic'][key[0]]['camera']
+        doptics = coll.dobj['diagnostic'][key[0]]['doptics']
+        key = [doptics[k0]['los'] for k0 in lcam]
 
     # -------------------
     # config
 
     if config is not None:
-        pass
+        lkVes = list(config.dStruct['dObj']['Ves'].keys())
+        if kVes is None:
+            lkVes = list(config.dStruct['dObj']['Ves'].keys())
+            ls = [config.dStruct['dObj']['Ves'][k0].dgeom['Surf'] for k0 in lkVes]
+            kVes = lkVes[np.argmin(ls)]
+
+        kVes = ds._generic_check._check_var(
+            kVes, 'kVes',
+            types=str,
+            allowed=lkVes,
+        )
 
     # ------------
     # ang
@@ -227,7 +293,7 @@ def _check(
     ang = ds._generic_check._check_var(
         ang, 'ang',
         types=str,
-        default='xi',
+        default='theta',
         allowed=['xi', 'theta'],
     )
 
@@ -259,16 +325,32 @@ def _check(
         default=True,
     )
 
+    # --------------
+    # verb
+
+    if isinstance(verb, bool):
+        verb = 2 if verb else 0
+
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=int,
+        default=2,
+        allowed=[0, 1, 2],
+    )
+
     return (
         key,
         # config
         config,
+        kVes,
         # sinogram options
         ang,
         ang_units,
         impact_pos,
         # plotting options
         plot,
+        # other options
+        verb,
     )
 
 
@@ -276,6 +358,7 @@ def _get_RZ0(
     R0=None,
     Z0=None,
     config=None,
+    kVes=None,
 ):
 
     # ------------
@@ -286,15 +369,16 @@ def _get_RZ0(
             msg = "Please provide a value for R0!"
             raise Exception(msg)
 
+        R0 = config.dStruct['dObj']['Ves'][kVes].dgeom['BaryS'][0]
+
     # ------------
     # Z0
 
     if Z0 is None:
         if config is None:
             Z0 = 0.
-
         else:
-            pass
+            Z0 = config.dStruct['dObj']['Ves'][kVes].dgeom['BaryS'][1]
 
     return R0, Z0
 
@@ -309,6 +393,8 @@ def _compute_rays(
     kray=None,
     R0=None,
     Z0=None,
+    # options
+    verb=None,
 ):
 
     # --------------------------------
@@ -334,16 +420,16 @@ def _compute_rays(
     # Z = ZA + k (v.ez)
     # R^2 = RA^2 + k^2 vpar^2 + 2 k RA (v.erA)
     # R eR.v = RA eRA.v + (ZA - Z) vz + k
+    #        = RA eRA.v + k vpar^2
     # AM.v = k = AC.v + R0 eR.v + p er.v (=0)
     # ( R0 (R eR.v) )^2 = ( R [k - AC.v]  )^2
+    #                   = ( R [k + CA.v]  )^2
     #
     # Thus:
-    # R0^2 [ (ZA - Z) vz + RA eRA.v + k]^2 = R^2 [ k - AC.v ]^2
-    # R0^2 [ -k vz^2 + RA eRA.v + k]^2 = R^2 [ k - AC.v ]^2
-    # R0^2 [ k vpar^2 + RA eRA.v]^2 = R^2 [ k + CA.v ]^2
+    # R0^2 [ RA eRA.v + k vpar^2 ]^2 = R^2 [ k + CA.v ]^2
     #
     # R0^2 [ k^2 vpar^4 + 2 k vpar^2 RA (eRA.v) + RA^2 (eRA.v)^2 ]
-    # = [RA^2 + k^2 vpar^2 + 2 k RA (erA.v)] [ k^2 + 2k (CA.v) + (CA.v)^2 ]
+    #    = [RA^2 + k^2 vpar^2 + 2 k RA (erA.v)] [ k^2 + 2k (CA.v) + (CA.v)^2 ]
     #
     # Polynom deg 4 = 0
     # k^4:
@@ -384,23 +470,19 @@ def _compute_rays(
 
         # roots
         roots = poly.roots()
-        iok = np.isreal(roots)
-        iok[iok] = roots[iok] >= 0
+        roots = np.real(roots[np.isreal(roots)])
 
-        nsol = np.sum(iok)
+        nsol = roots.size
         if nsol > 2:
-            dwarn[ind] = nsol
+            dwarn[ind] = roots
 
-        elif nsol == 2:
-            roots0[ind] = np.min(roots[iok])
-
-        else:
-            roots0[ind] = roots[iok]
+        elif nsol <= 2:
+            roots0[ind] = roots[np.argmin(np.abs(roots))]
 
     # -----------------------
     # warnings
 
-    if len(dwarn) > 0:
+    if len(dwarn) > 0 and verb == 2:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dwarn.items()]
         msg = (
             "\nSinogram computation\n"
@@ -419,17 +501,25 @@ def _compute_rays(
 
     rootsx = ptsx[iok] + roots0[iok] * vectx[iok]
     rootsy = ptsy[iok] + roots0[iok] * vecty[iok]
-    rootsz = ptsx[iok] + roots0[iok] * vectz[iok]
+    rootsz = ptsz[iok] + roots0[iok] * vectz[iok]
 
     rootphi = np.arctan2(rootsy, rootsx)
-    dMx = rootsx - R0*np.cos(rootphi)
-    dMy = rootsy - R0*np.sin(rootphi)
-    dMz = rootsz - Z0
 
-    impact[iok] = np.sqrt(dMx**2 + dMy**2 + dMz**2)
-    ang[iok] = np.arctan2(dMz, dMx*np.cos(rootphi) + dMy*np.sin(rootphi))
+    erx = rootsx - R0*np.cos(rootphi)
+    ery = rootsy - R0*np.sin(rootphi)
+    erz = rootsz - Z0
 
-    # ------------
+    ern = np.sqrt(erx**2 + ery**2 + erz**2)
+
+    # check dm.v = 0
+    sca = (erx * vectx[iok] + ery * vecty[iok] + erz * vectz[iok]) / ern
+    assert np.allclose(sca, 0.)
+
+    # impact and ang
+    impact[iok] = ern
+    ang[iok] = np.arctan2(erz, erx*np.cos(rootphi) + ery*np.sin(rootphi))
+
+    # -------------
     # format ouput
 
     dout = {
@@ -442,6 +532,47 @@ def _compute_rays(
         'impact': impact,
         'ang': ang,
         'dphi': dphi,
+    }
+
+    return dout
+
+
+
+# ###############################################################
+# ###############################################################
+#               Compute - vessel
+# ###############################################################
+
+
+def _compute_config(
+    config=None,
+    kVes=None,
+    R0=None,
+    Z0=None,
+    # options
+    verb=None,
+):
+
+
+    # --------------
+    # Select polygon
+
+    polyR, polyZ = config.dStruct['dObj']['Ves'][kVes].dgeom['Poly']
+
+    # ----------------
+    # compute
+
+    ang = np.pi * np.linspace(-1, 1, 101)
+
+    pmax = np.max(
+        (polyR[:, None] - R0) * np.cos(ang)[None, :]
+        + (polyZ[:, None] - Z0) * np.sin(ang)[None, :],
+        axis=0,
+    )
+
+    dout = {
+        'ang': ang,
+        'pmax': pmax,
     }
 
     return dout
@@ -480,6 +611,7 @@ def _plot(
     # check
 
     (
+        pmax,
         dprops,
         sketch,
         dax,
@@ -490,7 +622,7 @@ def _plot(
 
 
     # -----------
-    # plot
+    # plot rays
 
     # sinogram
     kax = 'sinogram'
@@ -511,7 +643,41 @@ def _plot(
             bbox_to_anchor=(1, 1),
         )
 
-    # sketch
+        # -----------
+        # plot config
+
+        if dout_config is not None:
+
+            inds = np.argsort(dout_config['ang'])
+            if dout_config['impact_pos'] is True:
+                ax.fill_between(
+                    dout_config['ang'][inds],
+                    dout_config['pmax'][inds],
+                    pmax*np.ones((inds.size,)),
+                    fc=(0.8, 0.8, 0.8),
+                )
+
+            else:
+                ipos = dout_config['pmax'] >= 0
+                inds = np.argsort(dout_config['ang'][ipos])
+                ax.fill_between(
+                    dout_config['ang'][ipos][inds],
+                    dout_config['pmax'][ipos][inds],
+                    pmax*np.ones((ipos.sum(),)),
+                    fc=(0.8, 0.8, 0.8),
+                )
+
+                inds = np.argsort(dout_config['ang'][~ipos])
+                ax.fill_between(
+                    dout_config['ang'][~ipos][inds],
+                    dout_config['pmax'][~ipos][inds],
+                    -pmax*np.ones(((~ipos).sum(),)),
+                    fc=(0.8, 0.8, 0.8),
+                )
+
+    # -----------
+    # plot sketch
+
     kax = 'sketch'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
@@ -529,6 +695,8 @@ def _plot(
 
 def _check_plot(
     dout=None,
+    dout_config=None,
+    # parameters
     R0=None,
     Z0=None,
     # angles
@@ -559,7 +727,7 @@ def _check_plot(
         dprops[k0] = {
             'label': k0 if label is None else label,
             'color': color,
-            'marker': '.' if marker is None else maker,
+            'marker': '.' if marker is None else marker,
         }
 
     # -------------
@@ -575,12 +743,22 @@ def _check_plot(
     # pmax
 
     if pmax is None:
-        pmax = np.nanmax([
-            np.nanmax(np.abs(v0['impact'])) for v0 in dout.values()
-        ])
+
+        lpmax = [np.nanmax(np.abs(v0['impact'])) for v0 in dout.values()]
+
+        if dout_config is not None:
+            lpmax.append(np.nanmax(np.abs(dout_config['pmax'])))
+
+        pmax = np.nanmax(lpmax)
         if not np.isfinite(pmax):
             msg = "Something seems wrong with impact parameters: all nans"
             raise Exception(msg)
+
+    pmax = float(ds._generic_check._check_var(
+        pmax, 'pmax',
+        types=(float, int, np.float, np.int),
+        sign='>=0',
+    ))
 
     # -------------
     # figure
@@ -621,6 +799,7 @@ def _check_plot(
         dax = {'sinogram': {'handle': dax}}
 
     return (
+        pmax,
         dprops,
         sketch,
         dax,
@@ -659,7 +838,10 @@ def _get_ax(
         ax0.set_xlim(-angmax, angmax)
         ax0.set_ylim(0, pmax)
     else:
-        ax0.set_xlim(0, angmax)
+        if ang == 'theta':
+            ax0.set_xlim(0, angmax)
+        else:
+            ax0.set_xlim(-angmax/2., angmax/2.)
         ax0.set_ylim(-pmax, pmax)
 
     # sketch

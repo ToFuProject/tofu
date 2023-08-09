@@ -359,12 +359,16 @@ class Rays(Previous):
             connect=connect,
         )
 
+    # --------------
+    # sinogram
+    # --------------
 
     def get_sinogram(
         self,
         key=None,
         # config
         config=None,
+        kVes=None,
         # sinogram ref
         R0=None,
         Z0=None,
@@ -374,10 +378,13 @@ class Rays(Previous):
         impact_pos=None,
         pmax=None,
         # plotting options
+        plot=None,
         sketch=None,
         color=None,
         marker=None,
         label=None,
+        # other options
+        verb=None,
         # figure
         dax=None,
         dmargin=None,
@@ -401,6 +408,7 @@ class Rays(Previous):
             key=key,
             # config
             config=config,
+            kVes=kVes,
             # sinogram ref
             R0=R0,
             Z0=Z0,
@@ -410,10 +418,13 @@ class Rays(Previous):
             impact_pos=impact_pos,
             pmax=pmax,
             # plotting options
+            plot=plot,
             sketch=sketch,
             color=color,
             marker=marker,
             label=label,
+            # other options
+            verb=verb,
             # figure
             dax=dax,
             dmargin=dmargin,
