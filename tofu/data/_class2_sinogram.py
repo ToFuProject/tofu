@@ -114,12 +114,14 @@ def sinogram(
     # compute for config
     # -----------------
 
-    dout_config = _compute_config(
-        config=config,
-        kVes=kVes,
-        R0=R0,
-        Z0=Z0,
-    )
+    dout_config = None
+    if config is not None:
+        dout_config = _compute_config(
+            config=config,
+            kVes=kVes,
+            R0=R0,
+            Z0=Z0,
+        )
 
     # ------------
     # adjust
