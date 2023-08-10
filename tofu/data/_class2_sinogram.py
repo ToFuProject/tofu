@@ -784,7 +784,7 @@ def _check_plot(
 
     pmax = float(ds._generic_check._check_var(
         pmax, 'pmax',
-        types=(float, int, np.float, np.int),
+        types=(float, int),
         sign='>=0',
     ))
 
