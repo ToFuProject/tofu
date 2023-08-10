@@ -600,3 +600,26 @@ class Test01_Diagnostic():
             )
             plt.close('all')
             del dax
+
+    def test04_sinogram(self):
+
+        lrays = list(self.obj.dobj['rays'].keys())
+        ldiag = [
+            k0 for k0, v0 in self.obj.dobj['diagnostic'].items()
+            if any([v1.get('los') is not None for v1 in v0['doptics'].values()])
+        ]
+        lk = [lrays] + ldiag
+        for ii, k0 in enumerate(lk):
+            dout, dax = self.obj.get_sinogram(
+                key=k0,
+                ang='theta' if ii % 2 == 0 else 'xi',
+                ang_units='deg' if ii % 3 == 0 else 'radian',
+                impact_pos=ii % 3 != 0,
+                R0=2.4 if ii % 3 != 1 else None,
+                config=None if ii % 3 != 1 else self.conf,
+                pmax=None if ii % 3 == 0 else 5,
+                plot=True,
+            )
+            plt.close('all')
+            del dax
+
