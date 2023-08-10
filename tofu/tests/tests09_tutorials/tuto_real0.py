@@ -36,16 +36,16 @@ def main():
     # add several diagnostics
 
     # add broadband
-    # _add_broadband(coll, conf)
+    _add_broadband(coll, conf)
 
     # add 2d camera
-    # _add_2d(coll, conf)
+    _add_2d(coll, conf)
 
     # add PHA
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    _add_spectrometer(coll, conf)   # , crystals=['c0'])
+    # _add_spectrometer(coll, conf)   # , crystals=['c0'])
 
     # add spectro-like without crystal
     # _add_spectrometer_like(coll, config=conf, key_diag='d02')
@@ -53,11 +53,11 @@ def main():
     # ------------------------
     # compute synthetic signal
 
-    _compute_synth_signal(
-        coll,
-        #ldiag=['diag00']),
-        spectral_binning=True,
-    )
+    # _compute_synth_signal(
+        # coll,
+        # #ldiag=['diag00']),
+        # spectral_binning=True,
+    # )
 
     # ------------------
     # geometry matrices
