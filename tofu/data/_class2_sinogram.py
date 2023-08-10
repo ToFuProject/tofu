@@ -73,6 +73,9 @@ def sinogram(
         verb,
     ) = _check(**locals())
 
+    if len(key) == 0 and config is None:
+        return
+
     # -----------------
     # get R0, Z0
     # -----------------
@@ -246,6 +249,10 @@ def _check(
 
     # allowed
     lrays = list(coll.dobj.get('rays', {}).keys())
+    ldiag = [
+        k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
+        if any([v1.get('los') is not None for v1 in v0['doptics'].values()])
+    ]
     ldiag = list(coll.dobj.get('diagnostic', {}).keys())
 
     if isinstance(key, str):
@@ -271,7 +278,10 @@ def _check(
     if key[0] in ldiag:
         lcam = coll.dobj['diagnostic'][key[0]]['camera']
         doptics = coll.dobj['diagnostic'][key[0]]['doptics']
-        key = [doptics[k0]['los'] for k0 in lcam]
+        key = [
+            doptics[k0]['los'] for k0 in lcam
+            if doptics[k0]['los'] is not None
+        ]
 
     # -------------------
     # config
@@ -465,21 +475,24 @@ def _compute_rays(
     roots0 = np.full(ptsx.shape, np.nan)
     for ind in itt.product(*linds):
 
+        coefs = np.r_[c0[ind], c1[ind], c2[ind], c3[ind], c4[ind]]
+        if not np.all(np.isfinite(coefs)):
+            continue
+
         # define polynomial
-        poly = np.polynomial.polynomial.Polynomial(
-            [c0[ind], c1[ind], c2[ind], c3[ind], c4[ind]]
-        )
+        poly = np.polynomial.polynomial.Polynomial(coefs)
 
         # roots
         roots = poly.roots()
         roots = np.real(roots[np.isreal(roots)])
 
         nsol = roots.size
-        if nsol > 2:
-            dwarn[ind] = roots
+        if nsol > 0:
+            if nsol > 2:
+                dwarn[ind] = roots
 
-        elif nsol <= 2:
-            roots0[ind] = roots[np.argmin(np.abs(roots))]
+            elif nsol <= 2:
+                roots0[ind] = roots[np.argmin(np.abs(roots))]
 
     # -----------------------
     # warnings
@@ -515,7 +528,13 @@ def _compute_rays(
 
     # check dm.v = 0
     sca = (erx * vectx[iok] + ery * vecty[iok] + erz * vectz[iok]) / ern
-    assert np.allclose(sca, 0.)
+    if not np.allclose(sca[ern > 1e-10], 0., atol=1e-4):
+        msg = (
+            f"Some rays in '{kray}' seem to have inconsistent solutions:\n"
+            f"sca = {sca}\n"
+            f"ern = {ern}"
+        )
+        raise Exception(msg)
 
     # impact and ang
     impact[iok] = ern
@@ -751,10 +770,17 @@ def _check_plot(
         if dout_config is not None:
             lpmax.append(np.nanmax(np.abs(dout_config['pmax'])))
 
-        pmax = np.nanmax(lpmax)
-        if not np.isfinite(pmax):
-            msg = "Something seems wrong with impact parameters: all nans"
+        if not np.any(np.isfinite(lpmax)):
+            lstr = [f"\t- {k0}" for k0 in dout.keys()]
+            msg = (
+                "Impact parameters are all nans for:\n"
+                + "\n".join(lstr)
+                + f"\nlen(dout) = {len(dout)}\n"
+                + f"dout_config is None: {dout_config is None}"
+            )
             raise Exception(msg)
+
+        pmax = np.nanmax(lpmax)
 
     pmax = float(ds._generic_check._check_var(
         pmax, 'pmax',
