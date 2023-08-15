@@ -1222,6 +1222,9 @@ def _compute_retrofit_data_check(
         dref_vector=dref_vector,
     )
 
+    if hastime and reft is not None and dref_vector.get('ref') is None:
+        dref_vector['ref'] = reft
+
     if hastime and t_out is not None and reft is None:
         reft = f'{key}_nt'
         keyt = f'{key}_t'
@@ -1244,6 +1247,18 @@ def _compute_retrofit_data_check(
         reft = None
         keyt = None
         ref = (None,)
+
+    # safety check
+    if hastime and (not ist_mat) and (not ist_prof):
+        msg = (
+            "Common (time) vector between matrix and profile2d "
+            "not identified:\n"
+            f"\t- matrix: '{lkmat[0]}'\n"
+            f"\t- profile2d: '{key_profile2d}'\n"
+            "Specify common ref vector to use with dref_vector={}\n\n"
+            + str(coll.show('data', verb=False, returnas=str))
+        )
+        raise Exception(msg)
 
     # store
     store = ds._generic_check._check_var(
