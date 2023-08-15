@@ -690,6 +690,15 @@ def _check_get_dvos(
         dvos = {}
         for k0 in key_cam:
             dop = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
+
+            if dop.get('keym') is None:
+                msg = (
+                    "dvos was neither pre-computed nor provided for:\n"
+                    f"\t- diag: '{key_diag}'\n"
+                    f"\t- cam:  '{k0}'"
+                )
+                raise Exception(msg)
+
             dvos[k0] = {
                 'keym': dop['keym'],
                 'res_RZ': dop['res_RZ'],
@@ -710,7 +719,7 @@ def _check_get_dvos(
     # default
     if spectro is True:
         lk = [
-            'keym', 'res_RZ', 'res_phi', 'indr', 'indz', 
+            'keym', 'res_RZ', 'res_phi', 'indr', 'indz',
             'phi_min', 'phi_max', 'phi_mean',
             'ph_count', 'ncounts', 'cos',
             'lamb', 'lambmin', 'lambmax',
