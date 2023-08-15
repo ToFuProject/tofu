@@ -342,10 +342,10 @@ def _get_operator(
     # -----------
     # non-trivial
 
-    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
-        R = opmat
+    # if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+    #     R = opmat
 
-    elif operator == 'D0N2':
+    if operator == 'D0N2':
         R = dopmat['tMM']['data']
 
     elif operator == 'D1N2':
@@ -418,7 +418,7 @@ def _store(
                 "notime = True but sol_full.shape[0] > 1\n"
                 f"\t- key_data: '{key_data}'\n"
                 f"\t- key_matrix: '{key_matrix}'\n"
-                f"\t- ol_full.shape: {ol_full.shape}\n'"
+                f"\t- sol_full.shape: {sol_full.shape}\n'"
             )
             raise Exception(msg)
         sol_full = sol_full[0, ...]
