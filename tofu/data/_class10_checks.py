@@ -239,8 +239,18 @@ def _compute_check(
     # --------------------------------------------
     # valid chan / time indices of data / sigma (+ constraints)
 
-    indok = np.isfinite(ddata['data']) & np.isfinite(dsigma['data'])
+    indok = (
+        np.isfinite(ddata['data'])
+        & np.isfinite(dsigma['data'])
+    )
 
+    # add matrix = 0 to indok
+    if m3d is True:
+        indok &= (np.sum(matrix, axis=-1) > 0)
+    else:
+        indok &= (np.sum(matrix, axis=-1) > 0)[None, ...]
+
+    # if relevant, permanently remove some channels
     if not np.all(indok):
 
         # remove channels
