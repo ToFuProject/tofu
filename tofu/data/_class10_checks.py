@@ -171,7 +171,14 @@ def _compute_check(
                 dsigma['data'] = dsigma['data'][ind0, :]
 
     if m3d:
-        assert matrix.shape[0] == ddata['data'].shape[0]
+        if matrix.ndim != 3 or matrix.shape[0] != ddata['data'].shape[0]:
+            msg = (
+                "Inconsistent interpretation of matrix and data shapes:\n"
+                f"\t- m3d: {m3d}\n"
+                f"\t- matrix.shape: {matrix.shape}\n"
+                f"\t- ddata['data'].shape: {ddata['data'].shape}\n"
+            )
+            raise Exception(msg)
 
     # ------------------
     # constraints update
