@@ -117,10 +117,14 @@ def compute_inversions(
         dop_coefs=dop_coefs,
     )
 
+    # normalize geometry matrix to avoid having 1e-15 * 1e16
+    matnorm = np.mean(matrix, axis=(-2, -1))
+    matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
+
     # prepare computation intermediates
     precond = None
     Tyn = np.full((nbs,), np.nan)
-    mat0 = matrix[0, ...] if m3d else matrix
+    mat0 = matrix_norm[0, ...] if m3d else matrix_norm
     if dalgo['sparse'] is True:
         Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(mat0)
         TTn = Tn.T.dot(Tn)
@@ -174,8 +178,8 @@ def compute_inversions(
         out = _compute_inv_loop(
             sol0=sol0,
             mu0=mu0,
-            matrix=matrix,
-            Tn=Tn,              # normalized geometry matrix (T)
+            matrix=matrix_norm,
+            Tn=Tn,              # normalized geometry matrix (T) by sigma
             TTn=TTn,            # normalized tTT
             Tyn=Tyn,            # normalized
             R=R,                # Regularity operator
@@ -211,7 +215,7 @@ def compute_inversions(
         out = _compute_inv_loop_tomotok(
             sol0=sol0,
             mu0=mu0,
-            matrix=matrix,
+            matrix=matrix_norm,
             Tn=Tn,              # normalized geometry matrix (T)
             TTn=TTn,            # normalized tTT
             Tyn=Tyn,            # normalized
@@ -271,6 +275,12 @@ def compute_inversions(
 
     # -------------
     # format output
+
+    # de-normalize by matnorm
+    if m3d:
+        sol = sol / matnorm[:, None]
+    else:
+        sol = sol / matnorm
 
     # reshape solution
     if crop is True:

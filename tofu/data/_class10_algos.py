@@ -674,6 +674,18 @@ def inv_linear_augTikho_pos_dense(
             end='\n',
         )
 
+        # ---- DEBUG ---
+        # msg = (
+        #     f"\t- R = {R}\n"
+        #     f"\t- sol0 = {sol0}\n"
+        #     f"\t- np.sum(R, axis=1) = {np.sum(R, axis=1)}\n"
+        #     f"\t- R.dot(sol0) = {R.dot(sol0)}\n"
+        #     f"\t- reg = {reg}\n"
+        #     f"\t- R\n"
+        # )
+        # raise Exception(msg)
+        # -------------
+
     while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
         # quadratic method for positivity constraint
         sol = scpop.minimize(
@@ -753,6 +765,7 @@ def _augTikho_update(
     mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
     # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d  # rescale mu with noise estimate
 
+    # ---- DEBUG --------
     # print()
     # print(conv_reg, d)
     # print('\t a0bis, b0:', a0bis, b0)
@@ -761,6 +774,7 @@ def _augTikho_update(
     # print('\t lamb, tau:', lamb, tau)
     # print('\t mu comp.:', lamb/tau, (2*a1bis/res2)**d, mu1)
     # print()
+    # ---- DEBUG END -----
 
     # Compute convergence variable
     if conv_reg:

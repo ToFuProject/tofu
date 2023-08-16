@@ -322,7 +322,7 @@ def _compute_check(
     # get operator
     if regul:
 
-        if 'N2' not in operator:
+        if operator is None or 'N2' not in operator:
             msg = (
                 "Quadratic operator needed for inversions!"
                 f"Provided: {operator}"
