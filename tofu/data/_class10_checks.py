@@ -1287,12 +1287,21 @@ def _algo_check(
                 method = 'trf'
             else:
                 method = 'L-BFGS-B'
+                method = 'TNC'     # more robust ?
 
-        if method == 'L-BFGS-B':
+        # solver-specific options
+        elif method == 'TNC':
             if options.get('ftol') is None:
                 options['ftol'] = conv_crit/100.
             if options.get('disp') is None:
                 options['disp'] = False
+
+        elif method == 'L-BFGS-B':
+            if options.get('ftol') is None:
+                options['ftol'] = conv_crit/100.
+            if options.get('disp') is None:
+                options['disp'] = False
+
         elif dalgo['name'] != 'algo7':
             raise NotImplementedError
 
