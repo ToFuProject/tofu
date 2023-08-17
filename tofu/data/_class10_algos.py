@@ -678,7 +678,7 @@ def inv_linear_augTikho_pos_dense(
         # quadratic method for positivity constraint
         sol = scpop.minimize(
             func_val, sol0,
-            args=(mu0, Tn, yn, TTn, Tyn),
+            args=(mu0, Tn, yn, TTn, Tyn, R),
             jac=func_jac,
             hess=func_hess,
             method=method,

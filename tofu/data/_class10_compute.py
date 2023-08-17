@@ -632,13 +632,13 @@ def _compute_inv_loop(
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
 
-        def func_val(x, mu=mu0, Tn=Tn, yn=data_n[0, :], TTn=None, Tyn=None):
+        def func_val(x, mu=mu0, Tn=Tn, yn=data_n[0, :], TTn=None, Tyn=None, R=R):
             return np.sum((Tn.dot(x) - yn)**2) + mu*x.dot(R.dot(x))
 
-        def func_jac(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
+        def func_jac(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn, R=R):
             return 2.*(TTn + mu*R).dot(x) - 2.*Tyn
 
-        def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
+        def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn, R=R):
             return 2.*(TTn + mu*R)
 
     elif not regul:
@@ -657,6 +657,7 @@ def _compute_inv_loop(
     # Beware of element-wise operations vs matrix operations !!!!
     nbsi = nbs
     bi = bounds
+    Ri = R
     indbsi = np.ones((nbsi,), dtype=bool)
     for ii in range(0, nt):
 
@@ -681,12 +682,14 @@ def _compute_inv_loop(
 
         if dcon is not None:
             ic = 0 if ii == 0 or not dcon['hastime'] else ii
-            nbsi, indbsi, Tni, TTni, Tyni, yni, bi = _update_ttyn_constraints(
+            nbsi, indbsi, Tni, TTni, Tyni, Ri, yni, bi = _update_ttyn_constraints(
                 sparse=sparse,
                 Tni=Tni,
                 TTni=TTni,
                 Tyni=Tyni,
                 yni=yni,
+                Ri=R,
+                mu=mu0,
                 bounds=bounds,
                 ii=ic,
                 dcon=dcon,
@@ -701,7 +704,7 @@ def _compute_inv_loop(
             Tn=Tni,
             TTn=TTni,
             Tyn=Tyni,
-            R=R,
+            R=Ri,
             yn=yni,
             # initial guess
             sol0=sol0[indbsi],
@@ -950,21 +953,36 @@ def _update_ttyn_constraints(
     TTni=None,
     Tyni=None,
     yni=None,
+    Ri=None,
+    mu=None,
     bounds=None,
     ii=None,
     dcon=None,
     regul=None,
 ):
 
-    # regul => Tyni, TTni
-    if regul:
-        raise NotImplementedError()
+    # pre-assign
+    A = dcon['coefs'][ii]
+    At = A.T
+    O = dcon['offset'][ii, :]
 
     # yni
-    yni = yni - Tni.dot(dcon['offset'][ii, :])
+    yni = yni - Tni.dot(O)
 
     # Tni
-    Tni = Tni.dot(dcon['coefs'][ii])
+    Tni = Tni.dot(A)
+
+    # regul => Tyni, TTni
+    if regul:
+
+        # Tyni
+        Tyni = At.dot( Tyni -TTni.dot(O) - mu * Ri.dot(O) )
+
+        # TTni
+        TTni = At.dot( TTni.dot(A) )
+
+        # Ri
+        Ri = At.dot( Ri.dot(A) )
 
     # indbsi
     indbsi = dcon['indbs'][ii]
@@ -975,10 +993,12 @@ def _update_ttyn_constraints(
     # bounds
     if np.isscalar(bounds[0]):
         pass
-    else:
+    elif isinstance(bounds[0], np.ndarray):
         bounds = (bounds[0][indbsi], bounds[1][indbsi])
+    else:
+        bounds = tuple([bounds[ii] for ii in indbsi])
 
-    return nbsi, indbsi, Tni, TTni, Tyni, yni, bounds
+    return nbsi, indbsi, Tni, TTni, Tyni, Ri, yni, bounds
 
 
 # ##################################################################

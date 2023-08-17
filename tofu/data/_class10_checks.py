@@ -305,17 +305,6 @@ def _compute_check(
     if np.all(indok):
         indok = None
 
-    # --------------------
-    # algo vs dconstraints
-
-    if regul and dconstraints is not None:
-        msg = (
-            "Constraints for regularized algorithms not implemented yet!\n"
-            f"\t- algo:         {dalgo['name']}\n"
-            f"\t- dconstraints: {dconstraints}\n"
-        )
-        raise NotImplementedError(msg)
-
     # -------------------
     # regularity operator
 
