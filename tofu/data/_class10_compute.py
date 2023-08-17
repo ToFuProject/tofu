@@ -118,7 +118,11 @@ def compute_inversions(
     )
 
     # normalize geometry matrix to avoid having 1e-15 * 1e16
-    matnorm = np.mean(np.mean(matrix, axis=-1), axis=-1)
+    if hasattr(matrix, 'toarray'):
+        matnorm = np.mean(np.mean(matrix.toarray(), axis=-1), axis=-1)
+    else:
+        matnorm = np.mean(np.mean(matrix, axis=-1), axis=-1)
+
     matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
 
     # prepare computation intermediates

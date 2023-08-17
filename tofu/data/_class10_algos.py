@@ -743,7 +743,7 @@ def _augTikho_update(
         Regularization", Research report, University of Hong Kong, 2008
     """
 
-    res2 = np.sum((Tn.dot(sol)-yn)**2)    # residu**2
+    res2 = np.sum(np.power(Tn.dot(sol)-yn, 2))    # residu**2
     reg = sol.dot(R.dot(sol))             # regularity term
 
     lamb = a0bis/(0.5*reg + b0)           # Update reg. param. estimate
