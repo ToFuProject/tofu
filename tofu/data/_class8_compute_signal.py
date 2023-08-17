@@ -561,7 +561,7 @@ def _compute_los(
 
         # --------------------------
         # optional spectral binning
-        
+
         # spectral_binning
         spectral_binning = ds._generic_check._check_var(
             spectral_binning, 'spectral_binning',
@@ -571,7 +571,7 @@ def _compute_los(
 
         # if spectral binning => add bins of len 2 for temporary storing
         if spectral_binning is True:
-            ktemp_bin = f'{key_bs_spectro}_temp_bin'
+            ktemp_bin = f'{key_ref_spectro}_temp_bin'
             coll.add_bins(
                 key=ktemp_bin,
                 edges=[0, 1],
@@ -616,7 +616,7 @@ def _compute_los(
 
         # ----------------
         # spectro
-        
+
         if spectro:
             E, _ = coll.get_diagnostic_lamb(
                 key_diag,
@@ -706,7 +706,7 @@ def _compute_los(
                 #try:
                 coll.binning(
                     data=key_integrand,
-                    bin_data0=key_bs_spectro,
+                    bin_data0=key_ref_spectro if key_bs_spectro is None else key_bs_spectro,
                     bins0=ktemp_bin,
                     integrate=True,
                     verb=verb,
@@ -861,7 +861,6 @@ def _compute_los(
             else:
                 sh_dE = [-1 if aa == axis else 1 for aa in range(len(refi))]
                 data *= dE_flat.reshape(sh_dE)
-
 
         # reshape if 2d
         if is2d:
