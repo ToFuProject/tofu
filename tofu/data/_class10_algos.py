@@ -326,7 +326,7 @@ def inv_linear_augTikho_dense(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
 
         # call solver
         sol = scplin.solve(
@@ -415,7 +415,7 @@ def inv_linear_augTikho_sparse(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
 
         # sol = scpsp.linalg.spsolve(
         #    TTn + mu0*R, Tyn,
@@ -491,7 +491,7 @@ def inv_linear_augTikho_chol_dense(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
         try:
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # (chol(A).T * chol(A) = A
@@ -577,7 +577,7 @@ def inv_linear_augTikho_chol_sparse(
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     factor = None
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
         try:
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # A = (chol(A).T * chol(A)
@@ -674,7 +674,7 @@ def inv_linear_augTikho_pos_dense(
             end='\n',
         )
 
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
         # quadratic method for positivity constraint
         sol = scpop.minimize(
             func_val, sol0,
