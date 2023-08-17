@@ -118,11 +118,11 @@ def compute_inversions(
     )
 
     # normalize geometry matrix to avoid having 1e-15 * 1e16
+    mmm = matrix
     if hasattr(matrix, 'toarray'):
-        matnorm = np.mean(np.mean(matrix.toarray(), axis=-1), axis=-1)
-    else:
-        matnorm = np.mean(np.mean(matrix, axis=-1), axis=-1)
+        mmm =matrix.toarray()
 
+    matnorm = np.mean(np.mean(mmm, axis=-1, where=mmm>0), axis=-1)
     matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
 
     # prepare computation intermediates
@@ -167,6 +167,7 @@ def compute_inversions(
         # t1 = time.process_time()
         t1 = time.perf_counter()
         print(f"{t1-t0} s", end='\n', flush=True)
+        print(f"Geom matrix normalized to {np.mean(matnorm)} (m3d {m3d})")
         print("Setting inital guess... ", end='', flush=True)
 
     # -------------
