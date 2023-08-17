@@ -167,6 +167,7 @@ def compute_inversions(
         # t1 = time.process_time()
         t1 = time.perf_counter()
         print(f"{t1-t0} s", end='\n', flush=True)
+        print(f"Geom matrix normalized to {np.mean(matnorm)} (m3d {m3d})")
         print("Setting inital guess... ", end='', flush=True)
 
     # -------------
