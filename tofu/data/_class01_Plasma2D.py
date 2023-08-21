@@ -166,6 +166,7 @@ class Plasma2D(Previous):
         dref_vectorZ=None,
         dref_vectorU=None,
         ref_vector_strategy=None,
+        uniform=None,
         # interpolation
         val_out=None,
         nan0=None,
@@ -198,6 +199,7 @@ class Plasma2D(Previous):
             dref_vectorZ=dref_vectorZ,
             dref_vectorU=dref_vectorU,
             ref_vector_strategy=ref_vector_strategy,
+            uniform=uniform,
             # interpolation
             val_out=val_out,
             nan0=nan0,
