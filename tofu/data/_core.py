@@ -2059,7 +2059,7 @@ class DataAbstract(utils.ToFuObject):
             data = opfunc(d0.data)
             dcom = d0._extract_common_params(d0)
 
-        elif isinstance(other, (int, float, np.integer):
+        elif isinstance(other, (int, float, np.integer)):
             data = opfunc(d0.data, other)
             dcom = d0._extract_common_params(d0)
 
