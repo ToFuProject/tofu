@@ -95,11 +95,11 @@ def _format_ind(ind=None, n=None):
 
 
 def _select_ind(v, ref, nRef):
-    ltypes = [int,float,np.int64,np.float64]
-    C0 = type(v) in ltypes
-    C1 = type(v) is np.ndarray
-    C2 = type(v) is list
-    C3 = type(v) is tuple
+    ltypes = (int, float, np.integer)
+    C0 = np.isscalar(v) and isinstance(v, ltypes)
+    C1 = isinstance(v, np.ndarray)
+    C2 = isinstance(v, list)
+    C3 = isinstance(v, tuple)
     assert v is None or np.sum([C0,C1,C2,C3])==1
     nnRef = 1 if ref.ndim==1 else ref.shape[0]
     ind = np.zeros((nnRef,nRef),dtype=bool)
@@ -119,9 +119,9 @@ def _select_ind(v, ref, nRef):
                 ind[ii,np.digitize(v, (ref[ii,1:]+ref[ii,:-1])/2.)] = True
 
     elif C2 or C3:
-        c0 = len(v)==2 and all([type(vv) in ltypes for vv in v])
+        c0 = len(v)==2 and all([isinstance(vv, ltypes) for vv in v])
         c1 = all([(type(vv) is type(v) and len(vv)==2
-                   and all([type(vvv) in ltypes for vvv in vv]))
+                   and all([isinstance(vvv, ltypes) for vvv in vv]))
                   for vv in v])
         assert c0!=c1
         if c0:
@@ -206,7 +206,7 @@ class DataAbstract(utils.ToFuObject):
         assert type(Exp) is str, Exp
         if include is None:
             include = cls._ddef['Id']['include']
-        assert shot is None or type(shot) in [int,np.int64]
+        assert shot is None or isinstance(shot, (int, np.integer))
         if shot is None:
             if 'shot' in include:
                 include.remove('shot')
@@ -1011,7 +1011,7 @@ class DataAbstract(utils.ToFuObject):
 
     def set_dtreat_mask(self, ind=None, val=np.nan):
         assert ind is None or hasattr(ind,'__iter__')
-        assert type(val) in [int, float, np.int64, np.float64]
+        assert isinstance(val, (int, float, np.integer))
         if ind is not None:
             ind = _format_ind(ind, n=self._ddataRef['nch'])
         self._dtreat['mask-ind'] = ind
@@ -1594,14 +1594,14 @@ class DataAbstract(utils.ToFuObject):
                 msg += "    - " + "\n    - ".join(self._dchans.keys())
                 raise Exception(msg)
 
-            ltypes = [str,int,float,np.int64,np.float64]
-            C0 = type(val) in ltypes
+            ltypes = (str, int, float,np.integer)
+            C0 = isinstance(val, ltypes)
             C1 = type(val) in [list,tuple,np.ndarray]
             assert C0 or C1
             if C0:
                 val = [val]
             else:
-                assert all([type(vv) in ltypes for vv in val])
+                assert all([isinstance(vv, ltypes) for vv in val])
             ind = np.vstack([self._dchans[key]==ii for ii in val])
             if log=='any':
                 ind = np.any(ind,axis=0)
@@ -2059,7 +2059,7 @@ class DataAbstract(utils.ToFuObject):
             data = opfunc(d0.data)
             dcom = d0._extract_common_params(d0)
 
-        elif type(other) in [int, float, np.int64, np.float64]:
+        elif isinstance(other, (int, float, np.integer):
             data = opfunc(d0.data, other)
             dcom = d0._extract_common_params(d0)
 

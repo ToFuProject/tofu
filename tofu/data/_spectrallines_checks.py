@@ -283,10 +283,10 @@ def _check_compute_pec(
         key = [kk for kk in key if kk not in lc]
 
     # Check ne, Te
-    ltype = [int, float, np.integer, np.floating]
+    ltype = (int, float, np.integer)
     dnTe = {'ne': ne, 'Te': Te}
     for k0, v0 in dnTe.items():
-        if type(v0) in ltype:
+        if isinstance(v0, ltype):
             dnTe[k0] = np.r_[v0]
         if isinstance(dnTe[k0], list) or isinstance(dnTe[k0], tuple):
             dnTe[k0] = np.array([dnTe[k0]])
