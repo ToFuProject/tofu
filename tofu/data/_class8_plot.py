@@ -29,7 +29,10 @@ def _plot_diagnostic_check(
     vmin=None,
     vmax=None,
     alpha=None,
+    dx0=None,
+    dx1=None,
     # figure
+    plot_colorbar=None,
     proj=None,
     data=None,
     units=None,
@@ -150,6 +153,32 @@ def _plot_diagnostic_check(
         default=5,
     )
 
+    # ---------------
+    # dx0, dx1
+
+    # dx0
+    dx0 = float(ds._generic_check._check_var(
+        dx0, 'dx0',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # dx1
+    dx1 = float(ds._generic_check._check_var(
+        dx1, 'dx1',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # -------
+    # plot_colorbar
+
+    plot_colorbar = ds._generic_check._check_var(
+        plot_colorbar, 'plot_colorbar',
+        types=bool,
+        default=True,
+    )
+
     # -------
     # connect
 
@@ -176,7 +205,10 @@ def _plot_diagnostic_check(
         los_res,
         color_dict,
         nlos,
+        dx0,
+        dx1,
         ylab,
+        plot_colorbar,
         connect,
     )
 
@@ -213,8 +245,11 @@ def _plot_diagnostic(
     vmax=None,
     keyZ=None,
     alpha=None,
+    dx0=None,
+    dx1=None,
     # config
     plot_config=None,
+    plot_colorbar=None,
     # figure
     dax=None,
     dmargin=None,
@@ -247,7 +282,10 @@ def _plot_diagnostic(
         los_res,
         color_dict,
         nlos,
+        dx0,
+        dx1,
         ylab,
+        plot_colorbar,
         connect,
     ) = _plot_diagnostic_check(
         coll=coll,
@@ -257,7 +295,10 @@ def _plot_diagnostic(
         vmin=vmin,
         vmax=vmax,
         alpha=alpha,
+        dx0=dx0,
+        dx1=dx1,
         # figure
+        plot_colorbar=plot_colorbar,
         proj=proj,
         data=data,
         units=units,
@@ -276,6 +317,8 @@ def _plot_diagnostic(
         key_cam=key_cam,
         optics=optics,
         elements=elements,
+        dx0=dx0,
+        dx1=dx1,
     )
 
     # -------------------------
@@ -323,6 +366,8 @@ def _plot_diagnostic(
         drefy=drefy,
         ddata=ddata,
         static=static,
+        dx0=dx0,
+        dx1=dx1,
         is2d=is2d,
     )
 
@@ -405,7 +450,8 @@ def _plot_diagnostic(
                         origin='lower',
                         interpolation='nearest',
                     )
-                    plt.colorbar(im, ax=ax)
+                    if plot_colorbar is True:
+                        plt.colorbar(im, ax=ax)
 
                 else:
                     ax.plot(
@@ -655,7 +701,8 @@ def _plot_diagnostic(
                         origin='lower',
                         interpolation='nearest',
                     )
-                    plt.colorbar(im, ax=ax)
+                    if plot_colorbar is True:
+                        plt.colorbar(im, ax=ax)
 
                     km = f'{k0}_{data}'
                     coll2.add_mobile(
@@ -924,8 +971,31 @@ def _prepare_datarefxy(
     drefy=None,
     ddata=None,
     static=None,
+    dx0=None,
+    dx1=None,
     is2d=None,
 ):
+
+    # ---------------
+    # dx0, dx1
+
+    # dx0
+    dx0 = float(ds._generic_check._check_var(
+        dx0, 'dx0',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # dx1
+    dx1 = float(ds._generic_check._check_var(
+        dx1, 'dx1',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # -----------------
+    # prepare
+
     # prepare dict
     dkeyx, ddatax = {}, {}
     if is2d:
@@ -968,10 +1038,10 @@ def _prepare_datarefxy(
                     ddy = ddatay[k0][1] - ddatay[k0][0]
 
                 dextent[k0] = (
-                    ddatax[k0][0] - 0.5*ddx,
-                    ddatax[k0][-1] + 0.5*ddx,
-                    ddatay[k0][0] - 0.5*ddy,
-                    ddatay[k0][-1] + 0.5*ddy,
+                    ddatax[k0][0] - 0.5*ddx + dx0,
+                    ddatax[k0][-1] + 0.5*ddx + dx0,
+                    ddatay[k0][0] - 0.5*ddy + dx1,
+                    ddatay[k0][-1] + 0.5*ddy + dx1,
                 )
 
     return reft, dkeyx, dkeyy, ddatax, ddatay, dextent

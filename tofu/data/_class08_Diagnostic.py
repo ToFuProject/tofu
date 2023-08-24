@@ -404,6 +404,7 @@ class Diagnostic(Previous):
         res_rock_curve=None,
         n0=None,
         n1=None,
+        convexHull=None,
         # margins
         margin_poly=None,
         # raytracing
@@ -416,6 +417,7 @@ class Diagnostic(Previous):
         verb=None,
         debug=None,
         store=None,
+        overwrite=None,
         replace_poly=None,
         timing=None,
     ):
@@ -441,6 +443,7 @@ class Diagnostic(Previous):
             res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
+            convexHull=convexHull,
             # margins
             margin_poly=margin_poly,
             # spectro-only
@@ -452,6 +455,7 @@ class Diagnostic(Previous):
             verb=verb,
             debug=debug,
             store=store,
+            overwrite=overwrite,
             replace_poly=replace_poly,
             timing=timing,
         )
@@ -483,12 +487,18 @@ class Diagnostic(Previous):
         res_rock_curve=None,
         n0=None,
         n1=None,
+        convexHull=None,
         # margins
         margin_poly=None,
         nmax_rays=None,
         # spectro-only
         rocking_curve_fw=None,
         rocking_curve_max=None,
+        # optional binning
+        dobin=None,
+        bin0=None,
+        bin1=None,
+        remove_raw=None,
         # bool
         visibility=None,
         verb=None,
@@ -521,12 +531,18 @@ class Diagnostic(Previous):
             res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
+            convexHull=convexHull,
             # margins
             margin_poly=margin_poly,
             nmax_rays=nmax_rays,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
             rocking_curve_max=rocking_curve_max,
+            # optional binning
+            dobin=dobin,
+            bin0=bin0,
+            bin1=bin1,
+            remove_raw=remove_raw,
             # bool
             visibility=visibility,
             verb=verb,
@@ -817,6 +833,8 @@ class Diagnostic(Previous):
         # signal
         brightness=None,
         spectral_binning=None,
+        # vos
+        dvos=None,
         # verb
         verb=None,
         # timing
@@ -849,6 +867,8 @@ class Diagnostic(Previous):
             # signal
             brightness=brightness,
             spectral_binning=spectral_binning,
+            # vos
+            dvos=dvos,
             # verb
             verb=verb,
             # timing
@@ -1021,6 +1041,8 @@ class Diagnostic(Previous):
         optics=None,
         elements=None,
         vect_length=None,
+        dx0=None,
+        dx1=None,
     ):
         """ Return a dict with all that's necessary for plotting
 
@@ -1063,6 +1085,8 @@ class Diagnostic(Previous):
             optics=optics,
             elements=elements,
             vect_length=vect_length,
+            dx0=dx0,
+            dx1=dx1,
         )
 
     def plot_diagnostic(
@@ -1080,8 +1104,11 @@ class Diagnostic(Previous):
         vmin=None,
         vmax=None,
         alpha=None,
+        dx0=None,
+        dx1=None,
         # config
         plot_config=None,
+        plot_colorbar=None,
         # figure
         dax=None,
         dmargin=None,
@@ -1109,8 +1136,11 @@ class Diagnostic(Previous):
             vmin=vmin,
             vmax=vmax,
             alpha=alpha,
+            dx0=dx0,
+            dx1=dx1,
             # config
             plot_config=plot_config,
+            plot_colorbar=plot_colorbar,
             # figure
             dax=dax,
             dmargin=dmargin,

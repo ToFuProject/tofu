@@ -169,6 +169,8 @@ def _plot_inversion_prepare(
     key_retro=None,
     los_res=None,
     dref_vector=None,
+    dx0=None,
+    dx1=None,
 ):
 
     # ------------
@@ -223,6 +225,8 @@ def _plot_inversion_prepare(
         drefy=drefy,
         ddata=ddata,
         is2d=is2d,
+        dx0=dx0,
+        dx1=dx1,
     )
 
     # -----------
@@ -374,6 +378,9 @@ def plot_inversion(
     # ref vector specifier
     dref_vector=None,
     ref_vector_strategy=None,
+    # offset
+    dx0=None,
+    dx1=None,
     # interactivity
     color_dict=None,
     nlos=None,
@@ -469,6 +476,8 @@ def plot_inversion(
         key_retro=key_retro,
         los_res=los_res,
         dref_vector=dref_vector,
+        dx0=dx0,
+        dx1=dx1,
     )
 
     # ----------------

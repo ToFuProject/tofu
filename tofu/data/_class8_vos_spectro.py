@@ -48,6 +48,7 @@ def _vos(
     res_rock_curve=None,
     n0=None,
     n1=None,
+    convexHull=None,
     bool_cross=None,
     # parameters
     min_threshold=None,
@@ -106,6 +107,7 @@ def _vos(
         doptics=coll.dobj['diagnostic'][key_diag]['doptics'],
         key_cam=key_cam,
         poly='pcross',
+        convexHull=convexHull,
     )
 
     phor0, phor1 = _utilities._get_overall_polygons(
@@ -113,6 +115,7 @@ def _vos(
         doptics=coll.dobj['diagnostic'][key_diag]['doptics'],
         key_cam=key_cam,
         poly='phor',
+        convexHull=convexHull,
     )
 
     # --------------------------
@@ -203,12 +206,11 @@ def _vos(
     # prepare output
 
     shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
+    is2d = len(shape_cam) == 2
 
     shape0 = tuple(np.r_[shape_cam, nRZ])
     ncounts = np.full(shape0, 0.)
     cos = np.full(shape0, 0.)
-    lambmin = np.full(shape0, np.inf)
-    lambmax = np.full(shape0, 0.)
     phi_mean = np.full(shape0, 0.)
     phi_min = np.full(shape0, np.inf)
     phi_max = np.full(shape0, -np.inf)
@@ -469,18 +471,6 @@ def _vos(
 
                         ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
 
-                        # lambmin
-                        lambmin[ii, jj, ipts] = min(
-                            lambmin[ii, jj, ipts],
-                            lamb[ilamb_n[0]],
-                        )
-
-                        # lambmax
-                        lambmax[ii, jj, ipts] = max(
-                            lambmax[ii, jj, ipts],
-                            lamb[ilamb_n[-1]],
-                        )
-
                         # nphi_all  # DB
                         # nphi_all[ii, jj, ipts, ilamb_n] += 1
 
@@ -537,8 +527,6 @@ def _vos(
         phi_mean = phi_mean[:, :, iin]
         phi_min = phi_min[:, :, iin]
         phi_max = phi_max[:, :, iin]
-        lambmin = lambmin[:, :, iin]
-        lambmax = lambmax[:, :, iin]
         ph_count = ph_count[:, :, iin, :]
         indr = indr[iin]
         indz = indz[iin]
@@ -571,14 +559,19 @@ def _vos(
     phi_mean[iout] = np.nan
     phi_min[iout] = np.nan
     phi_max[iout] = np.nan
-    lambmin[iout] = np.nan
-    lambmax[iout] = np.nan
     # ph_count[iout, :] = np.nan
     # DEBUG
     # sang[iout, :] = np.nan
     # ph_approx[iout, :] = np.nan
     # dang_rel[iout, :] = np.nan
     # nphi_all[iout, :] = np.nan
+
+    lresh = [1, 1, lamb.size]
+    if is2d:
+        lresh.insert(0, 1)
+    phtot = np.sum(ph_count, axis=(-1, -2))
+    lamb0 = np.sum(ph_count * lamb.reshape(lresh), axis=(-1, -2)) / phtot
+    dlamb0 = dlamb * phtot / np.max(np.sum(ph_count, axis=-2), axis=-1)
 
     # ------ DEBUG --------
     if debug is True:
@@ -592,36 +585,139 @@ def _vos(
         )
     # ---------------------
 
-    # ------------
-    # get indices
+    # ----------------
+    # prepare output
 
-    # for ii, i0 in enumerate(iru):
-        # ind0 = irf == i0
-        # for i1 in izru[ii]:
-            # ind = ind0 & (izf == i1)
-            # bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
+    # ref
+    knpts = f'{key_cam}_vos_npts'
+    knlamb = f'{key_cam}_vos_nlamb'
+
+    # data
+    klamb = f'{key_cam}_vos_lamb'
+    kir = f'{key_cam}_vos_ir'
+    kiz = f'{key_cam}_vos_iz'
+    kph = f'{key_cam}_vos_ph'
+    kcos = f'{key_cam}_vos_cos'
+    knc = f"{key_cam}_vos_nc"
+    kphimin = f'{key_cam}_vos_phimin'
+    kphimax = f'{key_cam}_vos_phimax'
+
+    # optional data
+    kdV = f'{key_cam}_vos_dV'
+    ketl = f"{key_cam}_vos_etendl"
+    klamb0 = f'{key_cam}_vos_lamb0'
+    kdlamb = f'{key_cam}_vos_dlamb'
+    kphimean = f'{key_cam}_vos_phimean'
+
+    refcam = coll.dobj['camera'][key_cam]['dgeom']['ref']
+    ref = tuple(list(refcam) + [knpts])
+    refph = tuple(list(ref) + [knlamb])
+
+    # -------------------
+    # format output
+
+    # dref
+    dref = {
+        'npts': {
+            'key': knpts,
+            'size': indr.shape[-1],
+        },
+        'nlamb': {
+            'key': knlamb,
+            'size': lamb.size,
+        },
+    }
+
 
     # dout
     dout = {
         'pcross0': None,
         'pcross1': None,
         # lamb
-        'lamb': lamb,
+        'lamb': {
+            'key': klamb,
+            'data': lamb,
+            'ref': (knlamb,),
+            'units': 'm',
+            'dim': 'distance',
+        },
+
         # coordinates
-        'indr': indr,
-        'indz': indz,
-        'phi_min': phi_min,
-        'phi_max': phi_max,
-        'phi_mean': phi_mean,
-        'dV': dV,
+        'indr': {
+            'key': kir,
+            'data': indr,
+            'ref': (knpts,),
+            'units': None,
+            'dim': 'index',
+        },
+        'indz': {
+            'key': kiz,
+            'data': indz,
+            'ref': (knpts,),
+            'units': None,
+            'dim': 'index',
+        },
+
         # data
-        'cos': cos,
-        'lambmin': lambmin,
-        'lambmax': lambmax,
-        'ph_count': ph_count,
-        'ncounts': ncounts,
+        'cos': {
+            'key': kcos,
+            'data': cos,
+            'ref': ref,
+            'units': None,
+            'dim': 'cos',
+        },
+        'ncounts': {
+            'key': knc,
+            'data': ncounts,
+            'ref': ref,
+            'units': None,
+            'dim': 'counts',
+        },
+        'ph': {
+            'key': kph,
+            'data': ph_count,
+            'ref': refph,
+            'units': None,
+            'dim': 'sr.m3.m',
+        },
+        'phi_min': {
+            'key': kphimin,
+            'data': phi_min,
+            'ref': ref,
+            'units': 'rad',
+            'dim': 'angle',
+        },
+        'phi_max': {
+            'key': kphimax,
+            'data': phi_max,
+            'ref': ref,
+            'units': 'rad',
+            'dim': 'angle',
+        },
+
+        # optional
+        'phi_mean': {
+            'key': kphimean,
+            'data': phi_mean,
+            'ref': ref,
+            'units': 'rad',
+            'dim': 'angle',
+        },
+        'dV': {
+            'key': kdV,
+            'data': dV,
+            'ref': (knpts,),
+            'units': 'm3',
+            'dim': 'volume',
+        },
         # debug
-        'etendlen': etendlen,
+        'etendlen': {
+            'key': ketl,
+            'data': etendlen,
+            'ref': refcam,
+            'units': 'sr.m3',
+            'dim': 'etend*len',
+        },
     }
 
     if timing:
@@ -629,7 +725,7 @@ def _vos(
         dt22 += (t33 - t22).total_seconds()
 
     return (
-        dout,
+        dout, dref,
         dt11, dt22,
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,

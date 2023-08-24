@@ -611,6 +611,8 @@ def _dplot_check(
     elements=None,
     vect_length=None,
     axis_length=None,
+    dx0=None,
+    dx1=None,
 ):
     # -----
     # key
@@ -665,8 +667,30 @@ def _dplot_check(
         types=(float, int),
         sign='>= 0.'
     )
+    
+    # ---------------
+    # dx0, dx1
+    
+    # dx0
+    dx0 = float(ds._generic_check._check_var(
+        dx0, 'dx0',
+        types=(int, float),
+        default=0.,
+    ))
+    
+    # dx1
+    dx1 = float(ds._generic_check._check_var(
+        dx1, 'dx1',
+        types=(int, float),
+        default=0.,
+    ))
 
-    return key, key_cam, optics, elements, vect_length, axis_length
+
+    return (
+        key, key_cam, optics, elements,
+        vect_length, axis_length,
+        dx0, dx1,
+    )
 
 
 def _dplot(
@@ -677,12 +701,18 @@ def _dplot(
     elements=None,
     vect_length=None,
     axis_length=None,
+    dx0=None,
+    dx1=None,
 ):
 
     # ------------
     # check inputs
 
-    key, key_cam, optics, elements, vect_length, axis_length = _dplot_check(
+    (
+        key, key_cam, optics, elements,
+        vect_length, axis_length,
+        dx0, dx1,
+    ) = _dplot_check(
         coll=coll,
         key=key,
         key_cam=key_cam,
@@ -690,6 +720,8 @@ def _dplot(
         elements=elements,
         vect_length=vect_length,
         axis_length=axis_length,
+        dx0=dx0,
+        dx1=dx1,
     )
 
     # ------------
@@ -788,8 +820,8 @@ def _dplot(
             )
 
             dplot[k0]['o'] = {
-                'x0': p0,
-                'x1': p1,
+                'x0': p0 + dx0,
+                'x1': p1 + dx1,
                 'x': px,
                 'y': py,
                 'z': pz,
@@ -1095,7 +1127,12 @@ def _get_data(
     if data is not None:
         lquant = ['etendue', 'amin', 'amax']  # 'los'
         lcomp = ['length', 'tangency radius', 'alpha']
-        llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
+        if spectro:
+            llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
+            lvos = ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']
+        else:
+            llamb = []
+            lvos = ['vos_sang_integ']
         lsynth = coll.dobj['diagnostic'][key]['signal']
 
         if len(key_cam) == 1:
@@ -1108,13 +1145,12 @@ def _get_data(
 
         if lsynth is None:
             lsynth = []
-        if spectro:
-            lcomp += llamb
+        lcomp += llamb
 
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lquant + lcomp + lsynth + lraw,
+            allowed=lquant + lcomp + lsynth + lraw + lvos,
         )
 
     # build ddata
@@ -1299,6 +1335,61 @@ def _get_data(
         dref = {key_cam[0]: coll.dobj['camera'][key_cam[0]]['dgeom']['ref']}
         units = coll.ddata[data]['units']
         static = True
+
+    elif data in lvos:
+
+        static = True
+        ddata, dref = {}, {}
+        doptics = coll.dobj['diagnostic'][key]['doptics']
+        for cc in key_cam:
+
+            # safety check
+            ref = coll.dobj['camera'][cc]['dgeom']['ref']
+            dvos = doptics[cc].get('dvos')
+            if dvos is None:
+                msg = (
+                    f"Data '{data}' cannot be retrived for diag '{key}' "
+                    "cam '{cc}' because no dvos computed"
+                )
+                raise Exception(msg)
+
+            # cases
+            if data == 'vos_sang_integ':
+                kdata = dvos['sang']
+                ddata[cc] = np.nansum(coll.ddata[kdata]['data'], axis=-1)
+                dref[cc] = ref
+                units = coll.ddata[kdata]['units']
+
+            elif data in ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']:
+                kph = dvos['ph']
+                ph = coll.ddata[kph]['data']
+                ph_tot = np.sum(ph, axis=(-1, -2))
+
+                if data == 'vos_ph_integ':
+                    out = ph_tot
+                    kout = kph
+                else:
+                    kout = dvos['lamb']
+                    re_lamb = [1 for rr in ref] + [1, -1]
+                    lamb = coll.ddata[kout]['data'].reshape(re_lamb)
+
+                    i0 = ph == 0
+                    if data == 'vos_lamb':
+                        out = np.sum(ph * lamb, axis=(-1, -2)) / ph_tot
+                    else:
+                        for ii, i1 in enumerate(re_lamb[:-1]):
+                            lamb = np.repeat(lamb, ph.shape[ii], axis=ii)
+
+                        lamb[i0] = -np.inf
+                        lambmax = np.max(lamb, axis=(-1, -2))
+                        lamb[i0] = np.inf
+                        lambmin = np.min(lamb, axis=(-1, -2))
+                        out = lambmax - lambmin
+                    out[np.all(i0, axis=(-1, -2))] = np.nan
+
+                ddata[cc] = out
+                dref[cc] = ref
+                units = coll.ddata[kout]['units']
 
     return ddata, dref, units, static, daxis
 
