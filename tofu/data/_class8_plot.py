@@ -152,17 +152,17 @@ def _plot_diagnostic_check(
         types=int,
         default=5,
     )
-    
+
     # ---------------
     # dx0, dx1
-    
+
     # dx0
     dx0 = float(ds._generic_check._check_var(
         dx0, 'dx0',
         types=(int, float),
         default=0.,
     ))
-    
+
     # dx1
     dx1 = float(ds._generic_check._check_var(
         dx1, 'dx1',
@@ -975,6 +975,27 @@ def _prepare_datarefxy(
     dx1=None,
     is2d=None,
 ):
+
+    # ---------------
+    # dx0, dx1
+
+    # dx0
+    dx0 = float(ds._generic_check._check_var(
+        dx0, 'dx0',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # dx1
+    dx1 = float(ds._generic_check._check_var(
+        dx1, 'dx1',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # -----------------
+    # prepare
+
     # prepare dict
     dkeyx, ddatax = {}, {}
     if is2d:
