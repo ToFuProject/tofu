@@ -15,15 +15,16 @@ from ._class01_Plasma2D import Plasma2D as Previous
 from . import _class2_check as _check
 from . import _class2_compute as _compute
 from . import _class2_plot as _plot
+from . import _class2_sinogram as _sinogram
 
 
 __all__ = ['Rays']
 
 
-# #############################################################################
-# #############################################################################
-#                           Diagnostic
-# #############################################################################
+# ##############################################################
+# ##############################################################
+#                       Rays
+# ##############################################################
 
 
 class Rays(Previous):
@@ -268,7 +269,7 @@ class Rays(Previous):
         return_pts=None,
         return_itot=None,
     ):
-        """ Return the tangancy radius to an axis of each ray segment
+        """ Return the tangency radius to an axis of each ray segment
 
         parameters
         ----------
@@ -356,4 +357,77 @@ class Rays(Previous):
             nlos=nlos,
             dinc=dinc,
             connect=connect,
+        )
+
+    # --------------
+    # sinogram
+    # --------------
+
+    def get_sinogram(
+        self,
+        key=None,
+        # config
+        config=None,
+        kVes=None,
+        # sinogram ref
+        R0=None,
+        Z0=None,
+        # sinogram options
+        ang=None,
+        ang_units=None,
+        impact_pos=None,
+        pmax=None,
+        # plotting options
+        plot=None,
+        sketch=None,
+        color=None,
+        marker=None,
+        label=None,
+        # other options
+        verb=None,
+        # figure
+        dax=None,
+        dmargin=None,
+        fs=None,
+        wintit=None,
+    ):
+        """ plot the sinogram of a set of rays / diagnostic LOS
+
+        Optionally plot also the configuration
+
+        The sinogram can be plotted with:
+            * ang = 'ksi' or 'theta'
+            * ang_units = 'rad' or 'deg'
+            * impact_pos = True or False
+            * sketch = True or False
+
+        """
+
+        return _sinogram.sinogram(
+            coll=self,
+            key=key,
+            # config
+            config=config,
+            kVes=kVes,
+            # sinogram ref
+            R0=R0,
+            Z0=Z0,
+            # sinogram options
+            ang=ang,
+            ang_units=ang_units,
+            impact_pos=impact_pos,
+            pmax=pmax,
+            # plotting options
+            plot=plot,
+            sketch=sketch,
+            color=color,
+            marker=marker,
+            label=label,
+            # other options
+            verb=verb,
+            # figure
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            wintit=wintit,
         )

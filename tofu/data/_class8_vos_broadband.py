@@ -146,6 +146,14 @@ def _vos(
             sh=sh,
         )
 
+        if xx is None:
+            npts_cross = 0
+            lpcross.append((None, None))
+            lsang.append(np.zeros((npts_cross,), dtype=float))
+            lindr.append(np.zeros((npts_cross,), dtype=float))
+            lindz.append(np.zeros((npts_cross,), dtype=float))
+            continue
+
         # re-initialize
         bool_cross[...] = False
         npts_tot = xx.size
@@ -427,6 +435,15 @@ def _vos_points(
     dphi_r = dphi_r[:, iok]
     iru = iru[iok]
 
+    # ------------
+    # safety check
+
+    if iru.size == 0:
+        return None, None, None, None, None
+
+    # ------------
+    # go on
+
     nphi_r = (
         np.ceil(x0u[iru]*(dphi_r[1, :] - dphi_r[0, :]) / res).astype(int)
         + 1
@@ -439,6 +456,7 @@ def _vos_points(
     # get indices
     lind = [ir == i0 for i0 in iru]
     ln = [i0.sum() for i0 in lind]
+
     indrz = np.concatenate([
         np.tile(i0.nonzero()[0], nphi_r[ii]) for ii, i0 in enumerate(lind)
     ])

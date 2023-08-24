@@ -942,8 +942,8 @@ def _no_interaction(
 
     msg = (
         "No interaction detected between:\n"
-        f"\t- camera: {key_cam}\n"
-        f"\t- bsplines: {key_bs}\n"
-        f"\t- submesh: {submesh}\n"
+        f"\t- camera: '{key_cam}'\n"
+        f"\t- bsplines: '{key_bs}'\n"
+        f"\t- submesh: '{submesh}'\n"
     )
     warnings.warn(msg)

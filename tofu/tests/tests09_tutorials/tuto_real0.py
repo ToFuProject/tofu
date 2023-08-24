@@ -39,7 +39,7 @@ def main():
     _add_broadband(coll, conf, vos=True)
 
     # add 2d camera
-    # _add_2d(coll, conf)
+    _add_2d(coll, conf)
 
     # add PHA
     # _add_PHA(coll, conf)

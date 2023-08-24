@@ -104,7 +104,7 @@ def _check_convert_spectral(
                     + str(err)
                 )
                 raise Exception(msg)
-        if data_in.dtype not in [np.int, np.float]:
+        if data_in.dtype not in [int, float]:
             msg = (
                 "Arg data must be a np.ndarray of dtype int or float!\n"
                 f"data.dtype = {data_in.dtype.name}"

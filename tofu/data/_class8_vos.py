@@ -664,6 +664,7 @@ def _check_get_dvos(
         doptics = coll.dobj['diagnostic'][key_diag]['doptics']
         for k0 in key_cam:
 
+            # safety check 1
             if doptics[k0].get('dvos') is None:
                 msg = (
                     "Please provide dvos if coll.dobj['diagnostic']"
@@ -672,15 +673,28 @@ def _check_get_dvos(
                 raise Exception(msg)
 
             dop = doptics[k0]['dvos']
+
+            # safety check 2
+            if dop.get('keym') is None:
+                msg = (
+                    "dvos was neither pre-computed nor provided for:\n"
+                    f"\t- diag: '{key_diag}'\n"
+                    f"\t- cam:  '{k0}'"
+                )
+                raise Exception(msg)
+
+            # fill in dict with mesh and indices
             dvos[k0] = {
                 'keym': dop['keym'],
                 'indr': coll.ddata[dop['ind'][0]],
                 'indz': coll.ddata[dop['ind'][1]],
             }
 
+            # fill in with res
             for k1 in lk_sca:
                 dvos[k0][k1] = dop[k1]
 
+            # fill in with the rest
             for k1 in lk:
                 if k1 in dop.keys():
                     dvos[k0][k1] = {

@@ -117,10 +117,18 @@ def compute_inversions(
         dop_coefs=dop_coefs,
     )
 
+    # normalize geometry matrix to avoid having 1e-15 * 1e16
+    mmm = matrix
+    if hasattr(matrix, 'toarray'):
+        mmm =matrix.toarray()
+
+    matnorm = np.mean(np.mean(mmm, axis=-1, where=mmm>0), axis=-1)
+    matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
+
     # prepare computation intermediates
     precond = None
     Tyn = np.full((nbs,), np.nan)
-    mat0 = matrix[0, ...] if m3d else matrix
+    mat0 = matrix_norm[0, ...] if m3d else matrix_norm
     if dalgo['sparse'] is True:
         Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(mat0)
         TTn = Tn.T.dot(Tn)
@@ -159,6 +167,7 @@ def compute_inversions(
         # t1 = time.process_time()
         t1 = time.perf_counter()
         print(f"{t1-t0} s", end='\n', flush=True)
+        print(f"Geom matrix normalized to {np.mean(matnorm)} (m3d {m3d})")
         print("Setting inital guess... ", end='', flush=True)
 
     # -------------
@@ -174,8 +183,8 @@ def compute_inversions(
         out = _compute_inv_loop(
             sol0=sol0,
             mu0=mu0,
-            matrix=matrix,
-            Tn=Tn,              # normalized geometry matrix (T)
+            matrix=matrix_norm,
+            Tn=Tn,              # normalized geometry matrix (T) by sigma
             TTn=TTn,            # normalized tTT
             Tyn=Tyn,            # normalized
             R=R,                # Regularity operator
@@ -211,7 +220,7 @@ def compute_inversions(
         out = _compute_inv_loop_tomotok(
             sol0=sol0,
             mu0=mu0,
-            matrix=matrix,
+            matrix=matrix_norm,
             Tn=Tn,              # normalized geometry matrix (T)
             TTn=TTn,            # normalized tTT
             Tyn=Tyn,            # normalized
@@ -271,6 +280,12 @@ def compute_inversions(
 
     # -------------
     # format output
+
+    # de-normalize by matnorm
+    if m3d:
+        sol = sol / matnorm[:, None]
+    else:
+        sol = sol / matnorm
 
     # reshape solution
     if crop is True:
@@ -342,10 +357,10 @@ def _get_operator(
     # -----------
     # non-trivial
 
-    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
-        R = opmat
+    # if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+    #     R = opmat
 
-    elif operator == 'D0N2':
+    if operator == 'D0N2':
         R = dopmat['tMM']['data']
 
     elif operator == 'D1N2':
@@ -418,7 +433,7 @@ def _store(
                 "notime = True but sol_full.shape[0] > 1\n"
                 f"\t- key_data: '{key_data}'\n"
                 f"\t- key_matrix: '{key_matrix}'\n"
-                f"\t- ol_full.shape: {ol_full.shape}\n'"
+                f"\t- sol_full.shape: {sol_full.shape}\n'"
             )
             raise Exception(msg)
         sol_full = sol_full[0, ...]
@@ -622,13 +637,13 @@ def _compute_inv_loop(
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
 
-        def func_val(x, mu=mu0, Tn=Tn, yn=data_n[0, :], TTn=None, Tyn=None):
+        def func_val(x, mu=mu0, Tn=Tn, yn=data_n[0, :], TTn=None, Tyn=None, R=R):
             return np.sum((Tn.dot(x) - yn)**2) + mu*x.dot(R.dot(x))
 
-        def func_jac(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
+        def func_jac(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn, R=R):
             return 2.*(TTn + mu*R).dot(x) - 2.*Tyn
 
-        def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
+        def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn, R=R):
             return 2.*(TTn + mu*R)
 
     elif not regul:
@@ -647,6 +662,7 @@ def _compute_inv_loop(
     # Beware of element-wise operations vs matrix operations !!!!
     nbsi = nbs
     bi = bounds
+    Ri = R
     indbsi = np.ones((nbsi,), dtype=bool)
     for ii in range(0, nt):
 
@@ -671,12 +687,14 @@ def _compute_inv_loop(
 
         if dcon is not None:
             ic = 0 if ii == 0 or not dcon['hastime'] else ii
-            nbsi, indbsi, Tni, TTni, Tyni, yni, bi = _update_ttyn_constraints(
+            nbsi, indbsi, Tni, TTni, Tyni, Ri, yni, bi = _update_ttyn_constraints(
                 sparse=sparse,
                 Tni=Tni,
                 TTni=TTni,
                 Tyni=Tyni,
                 yni=yni,
+                Ri=R,
+                mu=mu0,
                 bounds=bounds,
                 ii=ic,
                 dcon=dcon,
@@ -691,7 +709,7 @@ def _compute_inv_loop(
             Tn=Tni,
             TTn=TTni,
             Tyn=Tyni,
-            R=R,
+            R=Ri,
             yn=yni,
             # initial guess
             sol0=sol0[indbsi],
@@ -940,21 +958,36 @@ def _update_ttyn_constraints(
     TTni=None,
     Tyni=None,
     yni=None,
+    Ri=None,
+    mu=None,
     bounds=None,
     ii=None,
     dcon=None,
     regul=None,
 ):
 
-    # regul => Tyni, TTni
-    if regul:
-        raise NotImplementedError()
+    # pre-assign
+    A = dcon['coefs'][ii]
+    At = A.T
+    O = dcon['offset'][ii, :]
 
     # yni
-    yni = yni - Tni.dot(dcon['offset'][ii, :])
+    yni = yni - Tni.dot(O)
 
     # Tni
-    Tni = Tni.dot(dcon['coefs'][ii])
+    Tni = Tni.dot(A)
+
+    # regul => Tyni, TTni
+    if regul:
+
+        # Tyni
+        Tyni = At.dot( Tyni -TTni.dot(O) - mu * Ri.dot(O) )
+
+        # TTni
+        TTni = At.dot( TTni.dot(A) )
+
+        # Ri
+        Ri = At.dot( Ri.dot(A) )
 
     # indbsi
     indbsi = dcon['indbs'][ii]
@@ -965,10 +998,12 @@ def _update_ttyn_constraints(
     # bounds
     if np.isscalar(bounds[0]):
         pass
-    else:
+    elif isinstance(bounds[0], np.ndarray):
         bounds = (bounds[0][indbsi], bounds[1][indbsi])
+    else:
+        bounds = tuple([bounds[ii] for ii in indbsi])
 
-    return nbsi, indbsi, Tni, TTni, Tyni, yni, bounds
+    return nbsi, indbsi, Tni, TTni, Tyni, Ri, yni, bounds
 
 
 # ##################################################################
@@ -1222,6 +1257,9 @@ def _compute_retrofit_data_check(
         dref_vector=dref_vector,
     )
 
+    if hastime and reft is not None and dref_vector.get('ref') is None:
+        dref_vector['ref'] = reft
+
     if hastime and t_out is not None and reft is None:
         reft = f'{key}_nt'
         keyt = f'{key}_t'
@@ -1244,6 +1282,18 @@ def _compute_retrofit_data_check(
         reft = None
         keyt = None
         ref = (None,)
+
+    # safety check
+    if hastime and (not ist_mat) and (not ist_prof):
+        msg = (
+            "Common (time) vector between matrix and profile2d "
+            "not identified:\n"
+            f"\t- matrix: '{lkmat[0]}'\n"
+            f"\t- profile2d: '{key_profile2d}'\n"
+            "Specify common ref vector to use with dref_vector={}\n\n"
+            + str(coll.show('data', verb=False, returnas=str))
+        )
+        raise Exception(msg)
 
     # store
     store = ds._generic_check._check_var(

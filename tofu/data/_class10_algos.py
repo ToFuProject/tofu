@@ -326,7 +326,7 @@ def inv_linear_augTikho_dense(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
 
         # call solver
         sol = scplin.solve(
@@ -415,7 +415,7 @@ def inv_linear_augTikho_sparse(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
 
         # sol = scpsp.linalg.spsolve(
         #    TTn + mu0*R, Tyn,
@@ -491,7 +491,7 @@ def inv_linear_augTikho_chol_dense(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
         try:
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # (chol(A).T * chol(A) = A
@@ -577,7 +577,7 @@ def inv_linear_augTikho_chol_sparse(
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     factor = None
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
         try:
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # A = (chol(A).T * chol(A)
@@ -674,11 +674,11 @@ def inv_linear_augTikho_pos_dense(
             end='\n',
         )
 
-    while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
+    while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
         # quadratic method for positivity constraint
         sol = scpop.minimize(
             func_val, sol0,
-            args=(mu0, Tn, yn, TTn, Tyn),
+            args=(mu0, Tn, yn, TTn, Tyn, R),
             jac=func_jac,
             hess=func_hess,
             method=method,
@@ -743,7 +743,7 @@ def _augTikho_update(
         Regularization", Research report, University of Hong Kong, 2008
     """
 
-    res2 = np.sum((Tn.dot(sol)-yn)**2)    # residu**2
+    res2 = np.sum(np.power(Tn.dot(sol)-yn, 2))    # residu**2
     reg = sol.dot(R.dot(sol))             # regularity term
 
     lamb = a0bis/(0.5*reg + b0)           # Update reg. param. estimate
@@ -753,14 +753,16 @@ def _augTikho_update(
     mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
     # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d  # rescale mu with noise estimate
 
+    # ---- DEBUG --------
     # print()
-    # print(conv_reg, d)
+    # print('\t', conv_reg, d)
     # print('\t a0bis, b0:', a0bis, b0)
     # print('\t a1bis, b1', a1bis, b1)
     # print('\t res2, reg:', res2, reg)
     # print('\t lamb, tau:', lamb, tau)
     # print('\t mu comp.:', lamb/tau, (2*a1bis/res2)**d, mu1)
     # print()
+    # ---- DEBUG END -----
 
     # Compute convergence variable
     if conv_reg:

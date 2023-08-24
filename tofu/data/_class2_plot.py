@@ -16,112 +16,10 @@ from . import _generic_check
 from . import _generic_plot
 
 
-# ##################################################################
-# ##################################################################
-#                           plot check
-# ##################################################################
-
-
-def _plot_rays_check(
-    coll=None,
-    key=None,
-    mode=None,
-    concatenate=None,
-    # figure
-    proj=None,
-    # interactivity
-    color_dict=None,
-    nlos=None,
-    connect=None,
-):
-
-    # -------
-    # key
-
-    lok = list(coll.dobj.get('rays', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
-
-    ref = coll.dobj['rays'][key]['ref']
-    nrays = np.prod(coll.dobj['rays'][key]['shape'])
-    
-    # ------------
-    # concatenate
-
-    concatenate = ds._generic_check._check_var(
-        concatenate, 'concatenate',
-        types=bool,
-        default=True,
-    )
-
-    # -----
-    # mode
-    
-    lok = ['rel']
-    if concatenate is True:
-        lok += ['abs']
-    mode = ds._generic_check._check_var(
-        mode, 'mode',
-        types=str,
-        default='rel',
-        allowed=lok,
-    )
-
-    # -----
-    # proj
-
-    proj = _generic_plot._proj(
-        proj=proj,
-        pall=['cross', 'hor', '3d', 'camera'],
-    )
-
-    # -------
-    # color_dict
-
-    if color_dict is None:
-        lc = ['r', 'g', 'b', 'm', 'c', 'y']
-        color_dict = {
-            'x': lc,
-            'y': lc,
-        }
-
-    # -------
-    # nlos
-
-    nlos = ds._generic_check._check_var(
-        nlos, 'nlos',
-        types=int,
-        default=5,
-    )
-
-    # -------
-    # connect
-
-    connect = ds._generic_check._check_var(
-        connect, 'connect',
-        types=bool,
-        default=True,
-    )
-
-    return (
-        key,
-        ref,
-        mode,
-        concatenate,
-        proj,
-        color_dict,
-        nlos,
-        connect,
-    )
-
-
-# ##################################################################
-# ##################################################################
+# ###############################################################
+# ###############################################################
 #                           plot main
-# ##################################################################
+# ###############################################################
 
 
 def _plot_rays(
@@ -184,7 +82,7 @@ def _plot_rays(
         rays_x = rays_x.reshape(shape)
         rays_y = rays_y.reshape(shape)
         rays_z = rays_z.reshape(shape)
-    
+
     rays_r = np.hypot(rays_x, rays_y)
 
     # -----------------
@@ -287,3 +185,105 @@ def _plot_rays(
             plot_config.plot(lax=ax, proj=kax)
 
     return dax
+
+
+# ###############################################################
+# ###############################################################
+#                           plot check
+# ###############################################################
+
+
+def _plot_rays_check(
+    coll=None,
+    key=None,
+    mode=None,
+    concatenate=None,
+    # figure
+    proj=None,
+    # interactivity
+    color_dict=None,
+    nlos=None,
+    connect=None,
+):
+
+    # -------
+    # key
+
+    lok = list(coll.dobj.get('rays', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    ref = coll.dobj['rays'][key]['ref']
+    nrays = np.prod(coll.dobj['rays'][key]['shape'])
+
+    # ------------
+    # concatenate
+
+    concatenate = ds._generic_check._check_var(
+        concatenate, 'concatenate',
+        types=bool,
+        default=True,
+    )
+
+    # -----
+    # mode
+
+    lok = ['rel']
+    if concatenate is True:
+        lok += ['abs']
+    mode = ds._generic_check._check_var(
+        mode, 'mode',
+        types=str,
+        default='rel',
+        allowed=lok,
+    )
+
+    # -----
+    # proj
+
+    proj = _generic_plot._proj(
+        proj=proj,
+        pall=['cross', 'hor', '3d'],
+    )
+
+    # -------
+    # color_dict
+
+    if color_dict is None:
+        lc = ['r', 'g', 'b', 'm', 'c', 'y']
+        color_dict = {
+            'x': lc,
+            'y': lc,
+        }
+
+    # -------
+    # nlos
+
+    nlos = ds._generic_check._check_var(
+        nlos, 'nlos',
+        types=int,
+        default=5,
+    )
+
+    # -------
+    # connect
+
+    connect = ds._generic_check._check_var(
+        connect, 'connect',
+        types=bool,
+        default=True,
+    )
+
+    return (
+        key,
+        ref,
+        mode,
+        concatenate,
+        proj,
+        color_dict,
+        nlos,
+        connect,
+    )

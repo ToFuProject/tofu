@@ -171,7 +171,14 @@ def _compute_check(
                 dsigma['data'] = dsigma['data'][ind0, :]
 
     if m3d:
-        assert matrix.shape[0] == ddata['data'].shape[0]
+        if matrix.ndim != 3 or matrix.shape[0] != ddata['data'].shape[0]:
+            msg = (
+                "Inconsistent interpretation of matrix and data shapes:\n"
+                f"\t- m3d: {m3d}\n"
+                f"\t- matrix.shape: {matrix.shape}\n"
+                f"\t- ddata['data'].shape: {ddata['data'].shape}\n"
+            )
+            raise Exception(msg)
 
     # ------------------
     # constraints update
@@ -239,8 +246,18 @@ def _compute_check(
     # --------------------------------------------
     # valid chan / time indices of data / sigma (+ constraints)
 
-    indok = np.isfinite(ddata['data']) & np.isfinite(dsigma['data'])
+    indok = (
+        np.isfinite(ddata['data'])
+        & np.isfinite(dsigma['data'])
+    )
 
+    # add matrix = 0 to indok
+    if m3d is True:
+        indok &= (np.sum(matrix, axis=-1) > 0)
+    else:
+        indok &= (np.sum(matrix, axis=-1) > 0)[None, ...]
+
+    # if relevant, permanently remove some channels
     if not np.all(indok):
 
         # remove channels
@@ -288,24 +305,13 @@ def _compute_check(
     if np.all(indok):
         indok = None
 
-    # --------------------
-    # algo vs dconstraints
-
-    if regul and dconstraints is not None:
-        msg = (
-            "Constraints for regularized algorithms not implemented yet!\n"
-            f"\t- algo:         {dalgo['name']}\n"
-            f"\t- dconstraints: {dconstraints}\n"
-        )
-        raise NotImplementedError(msg)
-
     # -------------------
     # regularity operator
 
     # get operator
     if regul:
 
-        if 'N2' not in operator:
+        if operator is None or 'N2' not in operator:
             msg = (
                 "Quadratic operator needed for inversions!"
                 f"Provided: {operator}"
@@ -1270,12 +1276,21 @@ def _algo_check(
                 method = 'trf'
             else:
                 method = 'L-BFGS-B'
+                method = 'TNC'     # more robust ?
 
-        if method == 'L-BFGS-B':
+        # solver-specific options
+        elif method == 'TNC':
             if options.get('ftol') is None:
                 options['ftol'] = conv_crit/100.
             if options.get('disp') is None:
                 options['disp'] = False
+
+        elif method == 'L-BFGS-B':
+            if options.get('ftol') is None:
+                options['ftol'] = conv_crit/100.
+            if options.get('disp') is None:
+                options['disp'] = False
+
         elif dalgo['name'] != 'algo7':
             raise NotImplementedError
 
