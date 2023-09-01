@@ -1266,11 +1266,21 @@ def _compute_retrofit_data_check(
 
     ist_mat = coll.get_ref_vector(
         key=lkmat[0],
-        **dref_vector,
+        **{
+            k0: v0 for k0,v0 in dref_vector.items()
+            if k0 != 'ref'
+            or (k0 == 'ref' and v0 in coll.ddata[lkmat[0]]['ref'])
+        },
+        # **dref_vector,
     )[0]
     ist_prof = coll.get_ref_vector(
         key=key_profile2d,
-        **dref_vector,
+        **{
+            k0: v0 for k0,v0 in dref_vector.items()
+            if k0 != 'ref'
+            or (k0 == 'ref' and v0 in coll.ddata[lkmat[0]]['ref'])
+        },
+        # **dref_vector,
     )[0]
 
     # reft, keyt and refs
