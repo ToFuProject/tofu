@@ -428,6 +428,8 @@ class Diagnostic(Previous):
             - if replace_poly, will replace the vos polygon approximation
             - will store the toroidally-integrated solid angles
 
+        Return dvos, dref
+
         """
 
         return _vos.compute_vos(
@@ -472,6 +474,26 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
             dvos=dvos,
+        )
+
+    def store_diagnostic_vos(
+        self,
+        key_diag=None,
+        dvos=None,
+        dref=None,
+        spectro=None,
+        overwrite=None,
+        replace_poly=None,
+    ):
+        """ Store a pre-computed dvos """
+        _vos._store(
+            coll=self,
+            key_diag=key_diag,
+            dvos=dvos,
+            dref=dref,
+            spectro=spectro,
+            overwrite=overwrite,
+            replace_poly=replace_poly,
         )
 
     def compute_diagnostic_vos_nobin_at_lamb(
