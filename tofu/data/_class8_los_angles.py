@@ -74,7 +74,7 @@ def compute_los_angles(
 
         # ------------
         # add los
-        
+
         print(f"\tComputing los for diag '{key}' with {v0['los_x'].size} rays")
 
         cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=key_cam)
@@ -570,7 +570,7 @@ def _angle_spectro(
 
     # langles = []        # DB
     for ii in range(v0['cx'].size):
-        
+
         # verb
         msg = f"\t\tpixel {ii+1} / {v0['cx'].size}"
         end = "\n" if ii == v0['cx'].size - 1 else "\r"
