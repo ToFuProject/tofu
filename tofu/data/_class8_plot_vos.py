@@ -80,7 +80,10 @@ def _plot_diagnostic_vos(
         los_res,
         color_dict,
         _,
+        _,
+        _,
         ylab,
+        _,
         _,
     ) = _plot._plot_diagnostic_check(
         coll=coll,
