@@ -712,7 +712,7 @@ def _check_get_dvos(
         isinstance(dvos, dict)
         and all([
             k0 in dvos.keys()
-            and all([k1 in lk_all for k1 in dvos[k0].keys()])
+            and all([k1 in dvos[k0].keys() for k1 in lk_all])
             for k0 in key_cam
         ])
     )
