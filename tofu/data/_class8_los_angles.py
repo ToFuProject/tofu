@@ -61,7 +61,8 @@ def compute_los_angles(
     # ---------------
     # loop on cameras
 
-    for key_cam, v0 in dcompute.items():
+    print(f"\tComputing los for diag '{key}'")
+    for ii, (key_cam, v0) in enumerate(dcompute.items()):
 
         if v0['los_x'] is None or not np.any(np.isfinite(v0['los_x'])):
             continue
@@ -75,7 +76,6 @@ def compute_los_angles(
         # ------------
         # add los
 
-        print(f"\tComputing los for diag '{key}' with {v0['los_x'].size} rays")
 
         cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=key_cam)
 
@@ -104,7 +104,8 @@ def compute_los_angles(
         # rough estimate of vos
 
         if compute_vos_from_los is True:
-            print(f"\tComputing vos from los for diag '{key}'")
+            if ii == 0:
+                print(f"\tComputing vos from los for diag '{key}'")
             _vos_from_los(
                 coll=coll,
                 key=key,
