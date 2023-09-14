@@ -174,7 +174,7 @@ def _camera_1d_check(
         raise Exception(msg)
 
     # particular case: scalar because common to all
-    c0 = all([np.isscalar(vv[1]) for vv in lv])
+    c0 = all([np.isscalar(vv[1]) or np.array(vv[1]).size == 1 for vv in lv])
     if c0:
         parallel = True
         nin, e0, e1 = ds._generic_check._check_vectbasis(
