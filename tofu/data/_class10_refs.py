@@ -5,7 +5,7 @@ Created on Wed Mar  8 11:00:59 2023
 @author: dvezinet
 """
 
-
+import warnings
 import itertools as itt
 
 
@@ -24,6 +24,8 @@ def _get_ref_vector_common(
     key_matrix=None,
     key_profile2d=None,
     dconstraints=None,
+    strategy=None,
+    strategy_bounds=None,
     dref_vector=None,
 ):
 
@@ -58,13 +60,25 @@ def _get_ref_vector_common(
             if rr not in camref
             and rr not in refbs
         ]
-        assert len(refi) <= 1
+
+        # safety check
+        if len(refi) > 1:
+            msg = (
+                "Geometry matrix with > 1 extra ref not handled yet\n"
+                f"\t- gome. mat: '{key_matrix}'\n"
+                f"\t- ref: {coll.ddata[k0]['ref']}"
+            )
+            raise NotImplementedError(msg)
+
+        # sort cases
         if len(refi) == 0:
             assert refc0 is None
+
         elif len(refi) == 1:
             if refc0 is None:
                 assert ii == 0
                 refc0 = refi[0]
+
             assert refc0 == refi[0]
 
     lk = list(coll.dobj['geom matrix'][key_matrix]['data'])
@@ -102,6 +116,7 @@ def _get_ref_vector_common(
 
     # ----------
     # profile2d
+
     else:
 
         lrefbs = list(itt.chain.from_iterable([
@@ -113,7 +128,7 @@ def _get_ref_vector_common(
         refi = [
             rr for rr in coll.ddata[key_profile2d]['ref']
             if rr not in refbs
-            and (refc0 is None or rr == refc0)
+            # and (refc0 is None or rr == refc0)
             and rr not in lrefbs
         ]
         if len(refi) > 1:
@@ -130,8 +145,11 @@ def _get_ref_vector_common(
 
     if refc0 is None and refc1 is None:
         return False, None, None, None, None
+
     else:
+
         if refc0 is not None and refc1 is not None:
+
             if refc0 != refc1:
                 msg = (
                     "Non-consistent references with:\n"
@@ -143,15 +161,22 @@ def _get_ref_vector_common(
                     msg += f"\t- {key_profile2d}: {refc1}\n"
                 else:
                     msg += f"\t- {ddata['keys']}: {refc1}\n"
-                raise Exception(msg)
-            refc = refc0
+                warnings.warn(msg)
+                refc = None
+
+            else:
+                refc = refc0
+
         elif refc0 is None:
             refc = refc1
+
         else:
             refc = refc0
 
         return coll.get_ref_vector_common(
             keys=lk,
             ref=refc,
+            strategy=strategy,
+            strategy_bounds=strategy_bounds,
             **dref_vector,
         )

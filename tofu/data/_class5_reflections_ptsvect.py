@@ -15,7 +15,23 @@ def _get_ptsvect(
     coll=None,
     key=None,
     asplane=None,
+    fast=None,
+    isnorm=None,
 ):
+    # ------------
+    # check inputs
+
+    fast = ds._generic_check._check_var(
+        fast, 'fast',
+        types=bool,
+        default=False,
+    )
+
+    isnorm = ds._generic_check._check_var(
+        isnorm, 'isnorm',
+        types=bool,
+        default=False,
+    )
 
     # ---------
     # key
@@ -42,15 +58,26 @@ def _get_ptsvect(
         else:
             x0max, x1max = dgeom['extenthalf']
 
-        ptsvect = _get_ptsvect_plane(
-            plane_cent=dgeom['cent'],
-            plane_nin=dgeom['nin'],
-            plane_e0=dgeom['e0'],
-            plane_e1=dgeom['e1'],
-            # limits
-            x0max=x0max,
-            x1max=x1max,
-        )
+        if fast is True:
+            ptsvect = _get_ptsvect_plane_x01_fast(
+                plane_cent=dgeom['cent'],
+                plane_nin=dgeom['nin'],
+                plane_e0=dgeom['e0'],
+                plane_e1=dgeom['e1'],
+            )
+
+        else:
+            ptsvect = _get_ptsvect_plane(
+                plane_cent=dgeom['cent'],
+                plane_nin=dgeom['nin'],
+                plane_e0=dgeom['e0'],
+                plane_e1=dgeom['e1'],
+                # limits
+                x0max=x0max,
+                x1max=x1max,
+                # isnorm
+                isnorm=isnorm,
+            )
 
     # ----------------
     #   Cylindrical
@@ -91,6 +118,8 @@ def _get_ptsvect(
             xmax=dgeom['extenthalf'][iplan],
             # local coordinates
             nin=dgeom['nin'],
+            # isnorm
+            isnorm=isnorm,
             # return
             strict=None,
             return_x01=None,
@@ -101,10 +130,11 @@ def _get_ptsvect(
 
             """
             # normalize vect
-            vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
-            vect_x = vect_x / vn
-            vect_y = vect_y / vn
-            vect_z = vect_z / vn
+            if isnorm is False:
+                vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
+                vect_x = vect_x / vn
+                vect_y = vect_y / vn
+                vect_z = vect_z / vn
 
             # ------------------------------------------
             # Get local coordinates of reflection points
@@ -215,10 +245,11 @@ def _get_ptsvect(
                             iok[iout] = False
 
                 # enforce normalization
-                vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
-                vrx[iok] = vrx[iok] / vnorm
-                vry[iok] = vry[iok] / vnorm
-                vrz[iok] = vrz[iok] / vnorm
+                if isnorm is False:
+                    vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
+                    vrx[iok] = vrx[iok] / vnorm
+                    vry[iok] = vry[iok] / vnorm
+                    vrz[iok] = vrz[iok] / vnorm
 
             # return
             if return_x01:
@@ -253,12 +284,14 @@ def _get_ptsvect(
             rcs=rcs,
             rca=rca,
             # limits
-            dthetamax=dgeom['extenthalf'][0],
-            phimax=dgeom['extenthalf'][1],
+            dthetamax=dgeom['extenthalf'][1],
+            phimax=dgeom['extenthalf'][0],
             # local coordinates
             nin=dgeom['nin'],
             e0=dgeom['e0'],
             e1=dgeom['e1'],
+            # isnorm
+            isnorm=isnorm,
             # return
             strict=None,
             return_x01=None,
@@ -271,10 +304,11 @@ def _get_ptsvect(
 
             """
             # normalize vect
-            vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
-            vect_x = vect_x / vn
-            vect_y = vect_y / vn
-            vect_z = vect_z / vn
+            if isnorm is False:
+                vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
+                vect_x = vect_x / vn
+                vect_y = vect_y / vn
+                vect_z = vect_z / vn
 
             # ------------------------------------------
             # Get local coordinates of reflection points
@@ -360,10 +394,11 @@ def _get_ptsvect(
                             iok[iout] = False
 
                 # enforce normalization
-                vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
-                vrx[iok] = vrx[iok] / vnorm
-                vry[iok] = vry[iok] / vnorm
-                vrz[iok] = vrz[iok] / vnorm
+                if isnorm is False:
+                    vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
+                    vrx[iok] = vrx[iok] / vnorm
+                    vry[iok] = vry[iok] / vnorm
+                    vrz[iok] = vrz[iok] / vnorm
 
             # return
             if return_x01:
@@ -382,10 +417,10 @@ def _get_ptsvect(
     return ptsvect
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                   preparation routine
-# ##################################################################
+# ################################################################
 
 
 def _get_ptsvect_plane(
@@ -396,6 +431,8 @@ def _get_ptsvect_plane(
     # limits
     x0max=None,
     x1max=None,
+    # isnorm
+    isnorm=None,
 ):
 
     def ptsvect(
@@ -414,6 +451,8 @@ def _get_ptsvect_plane(
         # limits
         x0max=x0max,
         x1max=x1max,
+        #isnorm
+        isnorm=isnorm,
         # return
         strict=None,
         return_x01=None,
@@ -425,10 +464,11 @@ def _get_ptsvect_plane(
         # Get local coordinates of reflection points
 
         # normalize vect
-        vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
-        vect_x = vect_x / vn
-        vect_y = vect_y / vn
-        vect_z = vect_z / vn
+        if isnorm is False:
+            vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
+            vect_x = vect_x / vn
+            vect_y = vect_y / vn
+            vect_z = vect_z / vn
 
         # get parameters for k
         scavn = vect_x*nin[0] + vect_y*nin[1] + vect_z*nin[2]
@@ -441,6 +481,17 @@ def _get_ptsvect_plane(
             )
             / scavn
         )
+
+        # negative => wrong side or both sides
+        if np.any(kk < 0):
+            Dx, Dy, Dz = None, None, None
+            vrx, vry, vrz = None, None, None
+            angle, iok = None, None
+            if return_x01:
+                x0, x1 = None, None
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, x0, x1
+            else:
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok
 
         # get D
         Dx = pts_x + kk * vect_x
@@ -488,10 +539,79 @@ def _get_ptsvect_plane(
     return ptsvect
 
 
-# #################################################################
-# #################################################################
+def _get_ptsvect_plane_x01_fast(
+    plane_cent=None,
+    plane_nin=None,
+    plane_e0=None,
+    plane_e1=None,
+):
+
+    def ptsvect(
+        pts_x=None,
+        pts_y=None,
+        pts_z=None,
+        # pts
+        vect_x=None,
+        vect_y=None,
+        vect_z=None,
+        # surface
+        cent=plane_cent,
+        nin=plane_nin,
+        e0=plane_e0,
+        e1=plane_e1,
+    ):
+        """
+        Faster version to return only x0, x1
+        Used for vos_spectro
+        assumed normalized vectors
+        """
+
+        # ------------------------------------------
+        # Get local coordinates of reflection points
+
+        # get parameters for k
+        scavn = vect_x*nin[0] + vect_y*nin[1] + vect_z*nin[2]
+
+        kk = (
+            (
+                (cent[0] - pts_x)*nin[0]
+                + (cent[1] - pts_y)*nin[1]
+                + (cent[2] - pts_z)*nin[2]
+            )
+            / scavn
+        )
+
+        # negative => wrong side or both sides
+        if np.any(kk < 0):
+            return None, None, None, None, None
+
+        # get D
+        Dx = pts_x + kk * vect_x
+        Dy = pts_y + kk * vect_y
+        Dz = pts_z + kk * vect_z
+
+        # x0, x1
+        return (
+            (
+                (Dx - cent[0])*e0[0]
+                + (Dy - cent[1])*e0[1]
+                + (Dz - cent[2])*e0[2]
+            ),
+            (
+                (Dx - cent[0])*e1[0]
+                + (Dy - cent[1])*e1[1]
+                + (Dz - cent[2])*e1[2]
+            ),
+            Dx, Dy, Dz,
+        )
+
+    return ptsvect
+
+
+# ###############################################################
+# ###############################################################
 #           Common formulas
-# #################################################################
+# ###############################################################
 
 
 def _common_coefs(rc=None, OAz2=None, OAzez=None, ez2=None):

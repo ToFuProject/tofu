@@ -7,6 +7,7 @@ import copy
 import numpy as np
 import scipy.integrate as scpinteg
 import datastock as ds
+from scipy.interpolate import interp1d
 
 
 from ..spectro import _rockingcurve_def
@@ -50,8 +51,8 @@ def _dmat(
     if dmat is None:
         return dmat
 
-    # known crystal
-    ready_to_compute = False
+    # If using hardcoded known crystal
+    err = False
     if isinstance(dmat, str):
         if dmat not in _rockingcurve_def._DCRYST.keys():
             msg = (
@@ -61,11 +62,48 @@ def _dmat(
         dmat = _rockingcurve_def._DCRYST[dmat]
         ready_to_compute = True
 
+    elif isinstance(dmat, dict):
+        lk = ['name', 'material', 'miller', 'target']
+
+        c0 = (
+            isinstance(dmat.get('drock'), dict)
+            and isinstance(dmat.get('d_hkl'), float)
+        )
+        if isinstance(dmat.get('drock'), dict):
+            if not isinstance(dmat.get('d_hkl'), float):
+                msg = (
+                    "If dmat is provided as a dict with 'drock' "
+                    "(user-provided rocking curve), "
+                    "it must also have:\n"
+                    "\t- 'd_hkl': float\n"
+                    "\t- 'target': {'lamb': float}\n"
+                )
+                raise Exception(msg)
+
+            ready_to_compute = False
+
+        elif all([kk in dmat.keys() for kk in lk]):
+            ready_to_compute = True
+
+        else:
+            err = True
+
+    else:
+        err = True
+
+    # Raise error
+    if err is True:
+        msg = f"Don't know how to interpret dmat for crystal '{key}':\n{dmat}"
+        raise Exception(msg)
+
+    dmat['ready_to_compute'] = ready_to_compute
+
     # ---------------------
     # check dict integrity
     # ---------------------
+    # NOTE: Especially in the case of user-defined crystals
 
-    # Check dict typeand content (each key is a valid string)
+    # Check dict type and content (each key is a valid string)
     dmat = ds._generic_check._check_dict_valid_keys(
         var=dmat,
         varname='dmat',
@@ -74,31 +112,6 @@ def _dmat(
         keys_can_be_None=True,
         dkeys=_DMAT_KEYS,
     )
-
-    # -----------
-    # safety check
-
-    c0 = (
-        isinstance(dmat.get('d_hkl'), float)
-        and dmat.get('target') is not None
-        and isinstance(dmat['target'].get('lamb'), float)
-    )
-    if not c0:
-        msg = (
-            f"For crystal '{key}', "
-            "if dmat is provided, it should contain at least:\n"
-            "\t- 'd_hkl': inter-reticular planes distance\n"
-            "\t- 'target': {'lamb': float} the target wavelength\n"
-            "Optionally, you can also provide:\n"
-            "\t- 'drock': a sub-dict with the rocking curve:\n"
-            "\t\t- 'angle_rel': (na,) array of angles (rad)\n"
-            "\t\t- 'power_ratio': (na,) array of power ratio\n"
-            "Provided:\n"
-            f"{dmat}"
-        )
-        raise Exception(msg)
-
-    dmat['ready_to_compute'] = ready_to_compute
 
     # -------------------------------
     # check parallelism
@@ -117,12 +130,18 @@ def _dmat(
 
     dref = None
     if ready_to_compute:
+
+        # provide lamb is AA
+        lamb = dmat['target']['lamb']
+        if lamb < 1e-6:
+            lamb *= 1e10
+
         drock = _rockingcurve.compute_rockingcurve(
             # Type of crystal
             crystal=dmat['name'],
-            din=None,
+            din=dmat,
             # Wavelength
-            lamb=dmat['target']['lamb'],
+            lamb=lamb,     # rocking_curve/py uses AA
             # Lattice modifications
             miscut=dmat['miscut'],
             nn=None,
@@ -160,8 +179,10 @@ def _dmat(
             k0: copy.deepcopy(drock[k0])
             for k0 in lk0
         }
-        dmat['d_hkl'] *= 1e-10
-        dmat['target']['lamb'] *= 1e-10
+
+        if dmat['d_hkl'] > 1e-6:
+            dmat['d_hkl'] *= 1e-10
+        dmat['target']['lamb'] = lamb * 1e-10
 
         dmat['mesh'] = {'type': str(drock['mesh']['type'])}
 
@@ -250,11 +271,22 @@ def _extract_rocking_curve(key=None, drock=None, alpha=None):
     # amin, amax = np.nanmin(ang_rel), np.nanmax(ang_rel)
     # angles = np.linspace(amin, amax, na)
 
-    # power_ratio
+    # power ratio, accounting for slight difference in angle basis
     power_ratio = np.nanmean(
-        drock['Power ratio'][:, indtref, ind_alpha, :],
-        axis=0,
-    )
+        [
+            drock['Power ratio'][0, indtref, ind_alpha, :],
+            interp1d(
+                drock['Glancing angles'][1, indtref, ind_alpha, :],
+                drock['Power ratio'][1, indtref, ind_alpha, :],
+                bounds_error=False,
+                fill_value=(
+                    drock['Power ratio'][1,indtref,ind_alpha,0],
+                    drock['Power ratio'][1,indtref,ind_alpha,-1]
+                    )
+                )(drock['Glancing angles'][0, indtref, ind_alpha, :])
+            ],
+            axis = 0
+        )
 
     # ---------------
     # interpolate

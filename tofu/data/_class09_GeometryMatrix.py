@@ -57,6 +57,13 @@ class GeometryMatrix(Previous):
         mode=None,
         method=None,
         crop=None,
+        dvos=None,
+        # common ref
+        ref_com=None,
+        ref_vector_strategy=None,
+        # options
+        brightness=None,
+        # output
         verb=None,
         store=None,
     ):
@@ -72,6 +79,13 @@ class GeometryMatrix(Previous):
             mode=mode,
             method=method,
             crop=crop,
+            dvos=dvos,
+            # common ref
+            ref_com=ref_com,
+            ref_vector_strategy=ref_vector_strategy,
+            # options
+            brightness=brightness,
+            # output
             verb=verb,
             store=store,
         )

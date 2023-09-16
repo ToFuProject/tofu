@@ -4,6 +4,7 @@
 import numpy as np
 import scipy.interpolate as scpinterp
 from scipy.spatial import ConvexHull
+import matplotlib.pyplot as plt     # DB
 
 
 import datastock as ds
@@ -15,10 +16,10 @@ from ..geom import CamLOS1D
 __all__ = ['compute_los_angles']
 
 
-# ################################################################
-# ################################################################
+# ##############################################################
+# ##############################################################
 #                       Main
-# ################################################################
+# ##############################################################
 
 
 def compute_los_angles(
@@ -60,7 +61,8 @@ def compute_los_angles(
     # ---------------
     # loop on cameras
 
-    for key_cam, v0 in dcompute.items():
+    print(f"\tComputing los for diag '{key}'")
+    for ii, (key_cam, v0) in enumerate(dcompute.items()):
 
         if v0['los_x'] is None or not np.any(np.isfinite(v0['los_x'])):
             continue
@@ -73,6 +75,7 @@ def compute_los_angles(
 
         # ------------
         # add los
+
 
         cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=key_cam)
 
@@ -101,6 +104,8 @@ def compute_los_angles(
         # rough estimate of vos
 
         if compute_vos_from_los is True:
+            if ii == 0:
+                print(f"\tComputing vos from los for diag '{key}'")
             _vos_from_los(
                 coll=coll,
                 key=key,
@@ -205,9 +210,9 @@ def _vos_from_los(
             cz=v0['cz'][ii],
             x0=v0['x0'][ii, :],
             x1=v0['x1'][ii, :],
-            dx=dx,
-            dy=dy,
-            dz=dz,
+            dx=np.r_[0],
+            dy=np.r_[0],
+            dz=np.r_[0],
             coords=coll.get_optics_x01toxyz(key=v0['kref']),
             lspectro=lspectro,
             config=config,
@@ -344,8 +349,8 @@ def _vos_from_los_store(
     # dref
 
     # keys
-    knc = f'{key_cam}_vos_pc_n'
-    knh = f'{key_cam}_vos_ph_n'
+    knc = f'{key}_{key_cam}_vos_pc_n'
+    knh = f'{key}_{key_cam}_vos_ph_n'
 
     # dict
     dref = {
@@ -357,10 +362,10 @@ def _vos_from_los_store(
     # data
 
     # keys
-    kpc0 = f'{key_cam}_vos_pc0'
-    kpc1 = f'{key_cam}_vos_pc1'
-    kph0 = f'{key_cam}_vos_ph0'
-    kph1 = f'{key_cam}_vos_ph1'
+    kpc0 = f'{key}_{key_cam}_vos_pc0'
+    kpc1 = f'{key}_{key_cam}_vos_pc1'
+    kph0 = f'{key}_{key_cam}_vos_ph0'
+    kph1 = f'{key}_{key_cam}_vos_ph1'
 
     # reshape for 2d camera
     if coll.dobj['camera'][key_cam]['dgeom']['nd'] == '2d':
@@ -554,35 +559,47 @@ def _angle_spectro(
     ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
     coords = coll.get_optics_x01toxyz(key=v0['kref'])
 
-    dx, dy, dz = coll.get_camera_dxyz(
-        key=key_cam,
-        include_center=True,
-    )
+    # dx, dy, dz = coll.get_camera_dxyz(
+    #     key=key_cam,
+    #     include_center=True,
+    # )
 
     # ------
     # loop
 
+    print(f"\tComputing angles for spectro diag '{key}':")
+
+    # langles = []        # DB
     for ii in range(v0['cx'].size):
+
+        # verb
+        msg = f"\t\tpixel {ii+1} / {v0['cx'].size}"
+        end = "\n" if ii == v0['cx'].size - 1 else "\r"
+        print(msg, end=end, flush=True)
 
         if not v0['iok'][ii]:
             continue
 
-        cxi = v0['cx'][ii] + dx
-        cyi = v0['cy'][ii] + dy
-        czi = v0['cz'][ii] + dz
+        # get 3d coordiantes of points on pixel
+        cxi = v0['cx'][ii] # + dx
+        cyi = v0['cy'][ii] # + dy
+        czi = v0['cz'][ii] # + dz
 
-        nc = cxi.size
+        nc = 1 # cxi.size
 
+        # get 3d coords of points on crystal
         exi, eyi, ezi = coords(
             v0['x0'][ii, :],
             v0['x1'][ii, :],
         )
         ne = exi.size
 
+        # cross
         cxi = np.repeat(cxi, ne)
         cyi = np.repeat(cyi, ne)
         czi = np.repeat(czi, ne)
 
+        # get angles of incidence on crystal
         angles = ptsvect(
             pts_x=cxi,
             pts_y=cyi,
@@ -594,8 +611,14 @@ def _angle_spectro(
             return_x01=False,
         )[6]
 
-        angmin[ii] = np.nanmin(angles)
-        angmax[ii] = np.nanmax(angles)
+        # Correct for approximation of using
+        # the same projected reflection from the center for all
+        ang0 = np.nanmean(angles[:ne])
+        # angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
+
+        angmin[ii] = np.nanmin(angles[:ne])
+        angmax[ii] = np.nanmax(angles[:ne])
+        # langles.append(angles)      # DB
 
     if is2d:
         angmin = angmin.reshape(v0['shape0'])

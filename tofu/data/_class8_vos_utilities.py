@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
 
+import warnings
+
+
 import numpy as np
 import bsplines2d as bs2
 from contourpy import contour_generator
 from matplotlib.path import Path
 from scipy.spatial import ConvexHull
+import matplotlib.pyplot as plt
 import datastock as ds
 import Polygon as plg
 
@@ -27,12 +31,12 @@ def _get_poly_margin(
     # ----------
     # check
 
-    margin = ds._generic_check._check_var(
+    margin = float(ds._generic_check._check_var(
         margin, 'margin',
-        types=float,
-        default=0.2,
+        types=(float, int),
+        default=0.3,
         sign='>0'
-    )
+    ))
 
     # ---------------------------
     # add extra margin to pcross
@@ -57,6 +61,7 @@ def _get_overall_polygons(
     doptics=None,
     key_cam=None,
     poly=None,
+    convexHull=None,
 ):
 
     # get temporary vos
@@ -66,14 +71,52 @@ def _get_overall_polygons(
     p1 = coll.ddata[kp1]['data'].reshape((shape[0], -1))
 
     # pix indices
-    ipn = (~(np.any(np.isnan(p0), axis=0))).nonzero()[0]
+    iok = np.isfinite(p0)
 
+    # -----------------------
     # envelop pcross and phor
-    pp = plg.Polygon(np.array([p0[:, ipn[0]], p1[:, ipn[0]]]).T)
-    for ii in ipn[1:]:
-        pp |= plg.Polygon(np.array([p0[:, ii], p1[:, ii]]).T)
-
-    return np.array(pp)[0].T
+    
+    if convexHull is True:
+        # replace by convex hull
+        pts = np.array([p0[iok], p1[iok]]).T
+        return pts[ConvexHull(pts).vertices, :].T 
+    
+    else:
+        
+        ipn = (np.all(iok, axis=0)).nonzero()[0]
+        pp = plg.Polygon(np.array([p0[:, ipn[0]], p1[:, ipn[0]]]).T)
+        for ii in ipn[1:]:
+            pp |= plg.Polygon(np.array([p0[:, ii], p1[:, ii]]).T)
+    
+        if len(pp) > 1:
+            
+            # replace by convex hull
+            pts = np.concatenate(
+                tuple([np.array(pp.contour(ii)) for ii in range(len(pp))]),
+                axis=0,
+            )
+            poly = pts[ConvexHull(pts).vertices, :].T 
+        
+            # plot for debugging
+            fig = plt.figure()
+            fig.suptitle("_get_overall_polygons()", size=12)
+            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+            ax.set_title(f"camera '{key_cam}', vos poly '{poly}'")
+            for ii in range(len(pp)):
+                ax.plot(
+                    np.array(pp.contour(ii))[:, 0],
+                    np.array(pp.contour(ii))[:, 1],
+                    '.-',
+                    poly[0, :],
+                    poly[1, :],
+                    '.-k',
+                )
+            msg = "multiple contours"
+            warnings.warn(msg)
+            return poly
+        
+        else:
+            return np.array(pp.contour(0)).T
 
 
 # ###############################################
@@ -268,10 +311,10 @@ def _simplify_concave(
     return lind
 
 
-# #################################################################
-# #################################################################
+# ################################################################
+# ################################################################
 #               Get dphi from R and phor
-# #################################################################
+# ################################################################
 
 
 def _get_dphi_from_R_phor(
@@ -281,10 +324,19 @@ def _get_dphi_from_R_phor(
     phimin=None,
     phimax=None,
     res=None,
+    out=None
 ):
 
     # ------------
     # check inputs
+
+    # out
+    out = ds._generic_check._check_var(
+        out, 'out',
+        types=bool,
+        default=True,
+    )
+    sign = 1. if out is True else -1.
 
     # R
     R = np.unique(np.atleast_1d(R).ravel())
@@ -306,7 +358,7 @@ def _get_dphi_from_R_phor(
         )
 
         if np.any(ind):
-            dphi[0, ir] = np.min(phi[ind]) - (phi[1] - phi[0])
-            dphi[1, ir] = np.max(phi[ind]) + (phi[1] - phi[0])
+            dphi[0, ir] = np.min(phi[ind]) - sign*(phi[1] - phi[0])
+            dphi[1, ir] = np.max(phi[ind]) + sign*(phi[1] - phi[0])
 
     return dphi

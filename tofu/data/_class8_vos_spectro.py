@@ -7,12 +7,13 @@ import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
 from matplotlib.path import Path
 import matplotlib.pyplot as plt       # DB
+import matplotlib.gridspec as gridspec
 import Polygon as plg
 
 
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_vos_utilities as _utilities
-# from ..geom import _comp_solidangles
+from . import _class8_reverse_ray_tracing as _reverse_rt
 
 
 # ###########################################################
@@ -42,11 +43,15 @@ def _vos(
     phor1=None,
     dphi_r=None,
     sh=None,
-    res=None,
+    res_phi=None,
     res_lamb=None,
-    res_ang_rocking_curve=None,
+    res_rock_curve=None,
+    n0=None,
+    n1=None,
+    convexHull=None,
     bool_cross=None,
     # parameters
+    min_threshold=None,
     margin_poly=None,
     visibility=None,
     verb=None,
@@ -74,50 +79,25 @@ def _vos(
     # -----------------
     # prepare optics
 
-    lop = doptics[key_cam]['optics'][::-1]
-    lop, lcls = coll.get_optics_cls(lop)
-
-    kspectro = lop[lcls.index('crystal')]
-    ispectro = lop.index(kspectro)
-    if len(lop[ispectro:]) > 1:
-        msg = "Not yet implemented optics between crystal and camera!"
-        raise NotImplementedError()
-
-    lpoly_pre = [
-        coll.get_optics_poly(
-            key=k0,
-            add_points=None,
-            return_outline=False,
-        )
-        for k0 in lop[:ispectro]
-    ]
-
-    # get initial polygon
-    p0x, p0y, p0z = coll.get_optics_poly(key=kspectro, add_points=None)
-
-    # get functions
-    ptsvect_plane = coll.get_optics_reflect_ptsvect(key=kspectro, asplane=True)
-    ptsvect_spectro = coll.get_optics_reflect_ptsvect(key=kspectro)
-    ptsvect_cam = coll.get_optics_reflect_ptsvect(key=key_cam)
-
-    coords_x01toxyz_plane = coll.get_optics_x01toxyz(
-        key=kspectro,
-        asplane=True,
+    (
+        kspectro,
+        lpoly_post,
+        p0x, p0y, p0z,
+        nin, e0, e1,
+        ptsvect_plane,
+        ptsvect_spectro,
+        ptsvect_cam,
+        coords_x01toxyz_plane,
+        cent_spectro,
+        cent_cam,
+        dist_to_cam,
+        pix_size,
+        cbin0, cbin1,
+    ) = _reverse_rt._prepare_optics(
+        coll=coll,
+        key=key_diag,
+        key_cam=key_cam,
     )
-
-    # Get centers of crystal and camera to estimate distance
-    cent_spectro = coll.get_optics_x01toxyz(key=kspectro)(x0=0, x1=0)
-    cent_cam = coll.dobj['camera'][key_cam]['dgeom']['cent']
-    dist_to_cam = np.linalg.norm(cent_spectro - cent_cam)
-    pix_size = np.sqrt(coll.dobj['camera'][key_cam]['dgeom']['pix_area'])
-
-    # prepare camera bin edges
-    kcc = coll.dobj['camera'][key_cam]['dgeom']['cents']
-    cc0 = coll.ddata[kcc[0]]['data']
-    cc1 = coll.ddata[kcc[1]]['data']
-    cout0, cout1 = coll.get_optics_outline(key_cam, total=False)
-    cbin0 = np.r_[cc0 + np.min(cout0), cc0[-1] + np.max(cout0)]
-    cbin1 = np.r_[cc1 + np.min(cout1), cc1[-1] + np.max(cout1)]
 
     # --------------------------
     # get overall polygons
@@ -127,6 +107,7 @@ def _vos(
         doptics=coll.dobj['diagnostic'][key_diag]['doptics'],
         key_cam=key_cam,
         poly='pcross',
+        convexHull=convexHull,
     )
 
     phor0, phor1 = _utilities._get_overall_polygons(
@@ -134,6 +115,7 @@ def _vos(
         doptics=coll.dobj['diagnostic'][key_diag]['doptics'],
         key_cam=key_cam,
         poly='phor',
+        convexHull=convexHull,
     )
 
     # --------------------------
@@ -163,6 +145,7 @@ def _vos(
         dsamp['ind']['data']
         & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
     )
+    nRZ = ind.sum()
 
     # R and Z indices
     ir, iz = ind.nonzero()
@@ -171,9 +154,13 @@ def _vos(
     # ----------
     # get dphi_r
 
-    dphi = doptics[key_cam]['dvos']['dphi']
-    phimin = np.nanmin(dphi[0, :])
-    phimax = np.nanmin(dphi[1, :])
+    # dphi = doptics[key_cam]['dvos']['dphi']
+    # phimin = np.nanmin(dphi[0, :])
+    # phimax = np.nanmax(dphi[1, :])
+
+    phi_hor = np.arctan2(phor1, phor0)
+    phimin = np.nanmin(phi_hor)
+    phimax = np.nanmax(phi_hor)
 
     # get dphi vs phor
     dphi_r = _utilities._get_dphi_from_R_phor(
@@ -182,65 +169,66 @@ def _vos(
         phor1=phor1,
         phimin=phimin,
         phimax=phimax,
-        res=res,
+        res=res_phi,
+        out=True,
     )
 
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
 
-    lamb = coll.get_diagnostic_data(
-        key=key_diag,
+    (
+        nlamb,
+        lamb,
+        dlamb,
+        pow_ratio,
+        ang_rel,
+        dang,
+        angbragg,
+    ) = _reverse_rt._prepare_lamb(
+        coll=coll,
+        key_diag=key_diag,
         key_cam=key_cam,
-        data='lamb',
-    )[0][key_cam]
+        kspectro=kspectro,
+        res_lamb=res_lamb,
+        res_rock_curve=res_rock_curve,
+        verb=verb,
+    )
 
-    lambmin = np.nanmin(lamb)
-    lambmax = np.nanmax(lamb)
-    dlamb = (lambmax - lambmin) * 1.1
-    lambmean = 0.5*(lambmin + lambmax)
-    nlamb = int(np.ceil(dlamb / res_lamb))
-    lamb = np.linspace(lambmean - 0.5*dlamb, lambmean + 0.5*dlamb, nlamb)
+    angbragg0 = angbragg[:1, :]
+    angbragg1 = angbragg[-1:, :]
 
-    bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
-
-    # power ratio
-    kpow = coll.dobj['crystal'][kspectro]['dmat']['drock']['power_ratio']
-    pow_ratio = coll.ddata[kpow]['data']
-
-    # angle relative
-    kang_rel = coll.dobj['crystal'][kspectro]['dmat']['drock']['angle_rel']
-    ang_rel = coll.ddata[kang_rel]['data']
-    if res_ang_rocking_curve is not None:
-        nang = int((np.max(ang_rel) - np.min(ang_rel)) / res_ang_rocking_curve)
-        ang_rel2 = np.linspace(np.min(ang_rel), np.max(ang_rel), nang)
-        dang = np.mean(np.diff(ang_rel))
-        pow_ratio = scpinterp.interp1d(
-            ang_rel,
-            pow_ratio,
-            kind='linear',
-        )(ang_rel2)
-        ang_rel = ang_rel2
-
-    dang = np.mean(np.diff(ang_rel))
-
-    # overall bragg angle with rocking curve
-    angbragg = bragg[None, :] + ang_rel[:, None]
+    # linterpbragg = [
+        # scpinterp.interp1d(angbragg[:, kk], pow_ratio, kind='linear')
+        # for kk in range(angbragg.shape[1])
+    # ]
 
     # --------------
     # prepare output
 
     shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
+    is2d = len(shape_cam) == 2
 
-    shape0 = tuple(np.r_[shape_cam, ind.sum()])
+    shape0 = tuple(np.r_[shape_cam, nRZ])
     ncounts = np.full(shape0, 0.)
     cos = np.full(shape0, 0.)
-    lambmin = np.full(shape0, np.inf)
-    lambmax = np.full(shape0, 0.)
-    indr = np.zeros((ind.sum(),), dtype=int)
-    indz = np.zeros((ind.sum(),), dtype=int)
+    phi_mean = np.full(shape0, 0.)
+    phi_min = np.full(shape0, np.inf)
+    phi_max = np.full(shape0, -np.inf)
+    indr = np.zeros((nRZ,), dtype=int)
+    indz = np.zeros((nRZ,), dtype=int)
+    dV = np.full((nRZ,), np.nan)
 
-    shape1 = tuple(np.r_[shape_cam, ind.sum(), nlamb])
+    shape1 = tuple(np.r_[shape_cam, nRZ, nlamb])
     ph_count = np.full(shape1, 0.)
+
+    etendlen = np.full(shape_cam, 0.)
+    # ph_approx = np.full(shape1, 0.)
+    # sang = np.full(shape1, 0.)
+    # dang_rel = np.full(shape1, 0.)
+    # nphi_all = np.full(shape1, 0.)
+    # FW = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['FW']
+    # kp = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
+    # POW = coll.ddata[kp]['data'].max()
 
     if timing:
         t11 = dtm.datetime.now()     # DB
@@ -254,12 +242,26 @@ def _vos(
             f"\tlamb.shape: {lamb.shape}\n"
             f"\tang_rel.shape: {ang_rel.shape}\n"
             f"\tiru.size: {iru.size}\n"
-            f"\tind.sum(): {ind.sum()}\n"
+            f"\tnRZ: {nRZ}\n"
         )
         print(msg)
 
     # ---------------------
     # loop in plasma points
+
+    if debug is True:
+        dx0 = {
+            i0: {
+                i1: [] for i1 in np.unique(iz[ir == i0])
+            }
+            for i0 in iru
+        }
+        dx1 = {
+            i0: {
+                i1: [] for i1 in np.unique(iz[ir == i0])
+            }
+            for i0 in iru
+        }
 
     dr = np.mean(np.diff(x0u))
     dz = np.mean(np.diff(x1u))
@@ -268,34 +270,36 @@ def _vos(
     nru = iru.size
     for i00, i0 in enumerate(iru):
 
-        if np.all(np.isnan(dphi_r[:, i00])):
-            continue
-
-        nphi = np.ceil(x0u[i0]*(dphi_r[1, i00] - dphi_r[0, i00]) / res).astype(int)
-        phi = np.linspace(dphi_r[0, i00], dphi_r[1, i00], nphi)
-        dphi = phi[1] - phi[0]
-        dV = dr * x0u[i0] * dphi * dz
         indiz = ir == i0
         nz = indiz.sum()
+        if np.all(np.isnan(dphi_r[:, i00])):
+            ipts += nz
+            continue
+
+        nphi = np.ceil(x0u[i0]*(dphi_r[1, i00] - dphi_r[0, i00]) / res_phi).astype(int)
+        phir = np.linspace(dphi_r[0, i00], dphi_r[1, i00], nphi)
+        cosphi = np.cos(phir)
+        sinphi = np.sin(phir)
+
+        dphi = phir[1] - phir[0]
+        dv = dr * x0u[i0] * dphi * dz
 
         for i11, i1 in enumerate(iz[indiz]):
 
             indr[ipts] = i0
             indz[ipts] = i1
+            dV[ipts] = dv
             pti[2] = x1u[i1]
 
-            for i2, phii in enumerate(phi):
+            for i2, phii in enumerate(phir):
 
                 if timing:
                     t000 = dtm.datetime.now()     # DB
 
                 # set point
-                pti[0] = x0u[i0]*np.cos(phii)
-                pti[1] = x0u[i0]*np.sin(phii)
-
-                # anuglar resolution associated to pixels
-                dist_spectro = np.linalg.norm(pti - cent_spectro)
-                dang_pix = pix_size / (dist_to_cam + dist_spectro)
+                pti[0] = x0u[i0]*cosphi[i2]
+                pti[1] = x0u[i0]*sinphi[i2]
+                # phi[ipts] = phii
 
                 # ------------------------------------------
                 # initial polygon (crystal on its own plane)
@@ -312,14 +316,15 @@ def _vos(
                 )[-2:]
                 p_a = plg.Polygon(np.array([p0, p1]).T)
 
-                if len(lpoly_pre) > 0:
+                if len(lpoly_post) > 0:
                     # get equivalent aperture
                     p0, p1 = _equivalent_apertures._get_equivalent_aperture(
                         p_a=p_a,
                         pt=pti,
-                        nop_pre=len(lpoly_pre),
-                        lpoly_pre=lpoly_pre,
+                        nop_pre=len(lpoly_post),
+                        lpoly_pre=lpoly_post,
                         ptsvect=ptsvect_plane,
+                        min_threshold=min_threshold,
                     )
 
                     # skip if no intersection
@@ -333,24 +338,35 @@ def _vos(
                 # compute image
                 (
                     x0c, x1c, angles, dsang, cosi, iok,
-                ) = _get_points_on_camera_from_pts(
+                    dangmin_str, x0if, x1if,
+                ) = _reverse_rt._get_points_on_camera_from_pts(
                     p0=p0,
                     p1=p1,
                     pti=pti,
-                    dist=dist_spectro,
+                    # ref
+                    cent=cent_spectro,
+                    nin=nin,
+                    e0=e0,
+                    e1=e1,
+                    # dang
+                    pix_size=pix_size,
+                    dist_to_cam=dist_to_cam,
                     dang=dang,
-                    dang_pix=dang_pix,
                     phi=phii,
+                    # resoluions
+                    n0=n0,
+                    n1=n1,
                     # functions
                     coords_x01toxyz_plane=coords_x01toxyz_plane,
                     ptsvect_spectro=ptsvect_spectro,
                     ptsvect_cam=ptsvect_cam,
-                )[:6]
+                )[:9]
 
                 if verb is True:
                     msg = (
                         f"\t\t{i00} / {nru}, {i11} / {nz}, {i2} / {nphi}"
-                        f":  {iok.sum()} pts"
+                        f":  {iok.sum()} pts   "
+                        f"\t dangmin: {dangmin_str}"
                     )
                     print(msg, end='\r')
 
@@ -359,21 +375,6 @@ def _vos(
                     t222 = dtm.datetime.now()     # DB
                     dt222 += (t222-t111).total_seconds()
 
-                # ---------- DEBUG ------------
-                if debug is True:
-                    _plot_debug(
-                        coll=coll,
-                        key_cam=key_cam,
-                        cbin0=cbin0,
-                        cbin1=cbin1,
-                        x0c=x0c,
-                        x1c=x1c,
-                        cos=cosi,
-                        angles=angles,
-                        iok=iok,
-                    )
-                # -------- END DEBUG ----------
-
                 # safety check
                 iok2 = (
                     (x0c[iok] >= cbin0[0])
@@ -381,9 +382,33 @@ def _vos(
                     & (x1c[iok] >= cbin1[0])
                     & (x1c[iok] <= cbin1[-1])
                 )
+
+                # ---------- DEBUG ------------
+                if debug is True:
+                    # _plot_debug(
+                        # coll=coll,
+                        # key_cam=key_cam,
+                        # cbin0=cbin0,
+                        # cbin1=cbin1,
+                        # x0c=x0c,
+                        # x1c=x1c,
+                        # cos=cosi,
+                        # angles=angles,
+                        # iok=iok,
+                        # p0=p0,
+                        # p1=p1,
+                        # x0if=x0if,
+                        # x1if=x1if,
+                    # )
+                    dx0[i0][i1].append(x0c)
+                    dx1[i0][i1].append(x1c)
+                # -------- END DEBUG ----------
+
+
                 if not np.any(iok2):
                     continue
 
+                # update index
                 iok[iok] = iok2
 
                 # 2d pixel by binning
@@ -399,24 +424,46 @@ def _vos(
                 ipixok = out.statistic > 0
                 ncounts[ipixok, ipts] += out.statistic[ipixok]
 
+                # temporary
+                outsa = scpstats.binned_statistic_2d(
+                    x0c[iok],
+                    x1c[iok],
+                    dsang[iok],
+                    statistic='sum',
+                    bins=(cbin0, cbin1),
+                    expand_binnumbers=True,
+                )
+                etendlen[ipixok] += outsa.statistic[ipixok] * dv
+
+                # adjust phimean
+                phi_mean[ipixok, ipts] += phii * out.statistic[ipixok]
+
                 cosi = cosi[iok]
                 angles = angles[iok]
+                dsang = dsang[iok]
 
                 ip0, ip1 = ipixok.nonzero()
+                indi = np.zeros((out.binnumber.shape[1],), dtype=bool)
+                indj = np.zeros((out.binnumber.shape[1],), dtype=bool)
                 for ii in np.unique(ip0):
-                    indi = out.binnumber[0, :] == ii + 1
+                    indi[:] = (out.binnumber[0, :] == (ii + 1))
                     for jj in np.unique(ip1[ip0 == ii]):
 
                         # indices
-                        indj = indi & (out.binnumber[1, :] == jj + 1)
+                        indj[:] = indi & (out.binnumber[1, :] == jj + 1)
+
+                        # phi_min, phi_max
+                        phi_min[ii, jj, ipts] = min(phi_min[ii, jj, ipts], phii)
+                        phi_max[ii, jj, ipts] = max(phi_max[ii, jj, ipts], phii)
 
                         # cos
                         cos[ii, jj, ipts] += np.sum(cosi[indj])
 
                         # ilamb
+                        angj = angles[indj]
                         ilamb = (
-                            (angles[indj][:, None] >= angbragg[:1, ...])
-                            & (angles[indj][:, None] < angbragg[-1:, ...])
+                            (angj[:, None] >= angbragg0)
+                            & (angj[:, None] < angbragg1)
                         )
 
                         if not np.any(ilamb):
@@ -424,30 +471,39 @@ def _vos(
 
                         ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
 
-                        # lambmin
-                        lambmin[ii, jj, ipts] = min(
-                            lambmin[ii, jj, ipts],
-                            np.min(lamb[ilamb_n]),
-                        )
+                        # nphi_all  # DB
+                        # nphi_all[ii, jj, ipts, ilamb_n] += 1
 
-                        # lambmax
-                        lambmax[ii, jj, ipts] = max(
-                            lambmax[ii, jj, ipts],
-                            np.max(lamb[ilamb_n]),
-                        )
-
+                        # if False:
                         # binning of angles
                         for kk in ilamb_n:
                             inds = np.searchsorted(
                                 angbragg[:, kk],
-                                angles[indj][ilamb[:, kk]],
+                                angj[ilamb[:, kk]],
                             )
 
-                            # update power_ratio
-                            ph_count[ii, jj, ipts, kk] += np.sum(pow_ratio[inds])
+                            # update power_ratio * solid angle
+                            ph_count[ii, jj, ipts, kk] += np.sum(
+                                pow_ratio[inds]
+                                * dsang[indj][ilamb[:, kk]]
+                            ) * dv
 
-                # multiply by dsang
-                ph_count[ii, jj, ipts, :] *= dsang
+                            # ------  DEBUG -------
+                            # ph_approx[ii, jj, ipts, kk] += (
+                                # POW
+                                # * FW
+                                # * np.sum(dang1[0, np.any(iok, axis=0)])
+                            # ) * dv
+
+                            # # sang
+                            # sang[ii, jj, ipts, kk] += np.sum(
+                                # dsang[indj][ilamb[:, kk]]
+                            # )
+
+                            # # dang_rel
+                            # dang_rel[ii, jj, ipts, kk] += np.sum(
+                                # dsang[indj][ilamb[:, kk]]
+                            # )
 
                 if timing:
                     t333 = dtm.datetime.now()     # DB
@@ -456,8 +512,9 @@ def _vos(
             # update index
             ipts += 1
 
-        # multiply by increments
-        ph_count[ii, ...] *= (dV * dlamb)
+    # multiply by dlamb
+    ph_count *= dlamb
+    # ph_approx *= dlamb    # DB
 
     if timing:
         t22 = dtm.datetime.now()     # DB
@@ -467,11 +524,18 @@ def _vos(
     if not np.all(iin):
         ncounts = ncounts[:, :, iin]
         cos = cos[:, :, iin]
-        lambmin = lambmin[:, :, iin]
-        lambmax = lambmax[:, :, iin]
-        ph_count = ph_count[:, :, iin]
+        phi_mean = phi_mean[:, :, iin]
+        phi_min = phi_min[:, :, iin]
+        phi_max = phi_max[:, :, iin]
+        ph_count = ph_count[:, :, iin, :]
         indr = indr[iin]
         indz = indz[iin]
+        dV = dV[iin]
+        # DEBUG
+        # sang = sang[:, :, iin]
+        # ph_approx = ph_approx[:, :, iin, :]
+        # dang_rel = dang_rel[:, :, iin, :]
+        # nphi_all = nphi_all[:, :, iin, :]
 
     # remove useless lamb
     iin = ph_count > 0.
@@ -479,35 +543,181 @@ def _vos(
     if not np.all(ilamb):
         ph_count = ph_count[..., ilamb]
         lamb = lamb[ilamb]
+        # DEBUG
+        # sang = sang[..., ilamb]
+        # ph_approx = ph_approx[..., ilamb]
+        # dang_rel = dang_rel[..., ilamb]
+        # nphi_all = nphi_all[..., ilamb]
 
-    # average cos + adjust
+    # average cos and phi_mean
     iout = ncounts == 0
     cos[~iout] = cos[~iout] / ncounts[~iout]
+    phi_mean[~iout] = phi_mean[~iout] / ncounts[~iout]
+
+    # clear
     cos[iout] = np.nan
-    lambmin[iout] = np.nan
-    lambmax[iout] = np.nan
-    ph_count[iout, :] = np.nan
+    phi_mean[iout] = np.nan
+    phi_min[iout] = np.nan
+    phi_max[iout] = np.nan
+    # ph_count[iout, :] = np.nan
+    # DEBUG
+    # sang[iout, :] = np.nan
+    # ph_approx[iout, :] = np.nan
+    # dang_rel[iout, :] = np.nan
+    # nphi_all[iout, :] = np.nan
 
-    # ------------
-    # get indices
+    lresh = [1, 1, lamb.size]
+    if is2d:
+        lresh.insert(0, 1)
+    phtot = np.sum(ph_count, axis=(-1, -2))
+    lamb0 = np.sum(ph_count * lamb.reshape(lresh), axis=(-1, -2)) / phtot
+    dlamb0 = dlamb * phtot / np.max(np.sum(ph_count, axis=-2), axis=-1)
 
-    # for ii, i0 in enumerate(iru):
-        # ind0 = irf == i0
-        # for i1 in izru[ii]:
-            # ind = ind0 & (izf == i1)
-            # bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
+    # ------ DEBUG --------
+    if debug is True:
+        _plot_debug(
+            coll=coll,
+            key_cam=key_cam,
+            cbin0=cbin0,
+            cbin1=cbin1,
+            dx0=dx0,
+            dx1=dx1,
+        )
+    # ---------------------
+
+    # ----------------
+    # prepare output
+
+    # ref
+    knpts = f'{key_cam}_vos_npts'
+    knlamb = f'{key_cam}_vos_nlamb'
+
+    # data
+    klamb = f'{key_cam}_vos_lamb'
+    kir = f'{key_cam}_vos_ir'
+    kiz = f'{key_cam}_vos_iz'
+    kph = f'{key_cam}_vos_ph'
+    kcos = f'{key_cam}_vos_cos'
+    knc = f"{key_cam}_vos_nc"
+    kphimin = f'{key_cam}_vos_phimin'
+    kphimax = f'{key_cam}_vos_phimax'
+
+    # optional data
+    kdV = f'{key_cam}_vos_dV'
+    ketl = f"{key_cam}_vos_etendl"
+    klamb0 = f'{key_cam}_vos_lamb0'
+    kdlamb = f'{key_cam}_vos_dlamb'
+    kphimean = f'{key_cam}_vos_phimean'
+
+    refcam = coll.dobj['camera'][key_cam]['dgeom']['ref']
+    ref = tuple(list(refcam) + [knpts])
+    refph = tuple(list(ref) + [knlamb])
+
+    # -------------------
+    # format output
+
+    # dref
+    dref = {
+        'npts': {
+            'key': knpts,
+            'size': indr.shape[-1],
+        },
+        'nlamb': {
+            'key': knlamb,
+            'size': lamb.size,
+        },
+    }
+
 
     # dout
     dout = {
         'pcross0': None,
         'pcross1': None,
-        'lamb': lamb,
-        'indr': indr,
-        'indz': indz,
-        'cos': cos,
-        'lambmin': lambmin,
-        'lambmax': lambmax,
-        'ph_count': ph_count,
+        # lamb
+        'lamb': {
+            'key': klamb,
+            'data': lamb,
+            'ref': (knlamb,),
+            'units': 'm',
+            'dim': 'distance',
+        },
+
+        # coordinates
+        'indr': {
+            'key': kir,
+            'data': indr,
+            'ref': (knpts,),
+            'units': None,
+            'dim': 'index',
+        },
+        'indz': {
+            'key': kiz,
+            'data': indz,
+            'ref': (knpts,),
+            'units': None,
+            'dim': 'index',
+        },
+
+        # data
+        'cos': {
+            'key': kcos,
+            'data': cos,
+            'ref': ref,
+            'units': None,
+            'dim': 'cos',
+        },
+        'ncounts': {
+            'key': knc,
+            'data': ncounts,
+            'ref': ref,
+            'units': None,
+            'dim': 'counts',
+        },
+        'ph': {
+            'key': kph,
+            'data': ph_count,
+            'ref': refph,
+            'units': None,
+            'dim': 'sr.m3.m',
+        },
+        'phi_min': {
+            'key': kphimin,
+            'data': phi_min,
+            'ref': ref,
+            'units': 'rad',
+            'dim': 'angle',
+        },
+        'phi_max': {
+            'key': kphimax,
+            'data': phi_max,
+            'ref': ref,
+            'units': 'rad',
+            'dim': 'angle',
+        },
+
+        # optional
+        'phi_mean': {
+            'key': kphimean,
+            'data': phi_mean,
+            'ref': ref,
+            'units': 'rad',
+            'dim': 'angle',
+        },
+        'dV': {
+            'key': kdV,
+            'data': dV,
+            'ref': (knpts,),
+            'units': 'm3',
+            'dim': 'volume',
+        },
+        # debug
+        'etendlen': {
+            'key': ketl,
+            'data': etendlen,
+            'ref': refcam,
+            'units': 'sr.m3',
+            'dim': 'etend*len',
+        },
     }
 
     if timing:
@@ -515,101 +725,11 @@ def _vos(
         dt22 += (t33 - t22).total_seconds()
 
     return (
-        dout,
+        dout, dref,
         dt11, dt22,
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,
     )
-
-
-# ################################################
-# ################################################
-#           Sub-routine
-# ################################################
-
-
-def _get_points_on_camera_from_pts(
-    p0=None,
-    p1=None,
-    pti=None,
-    dist=None,
-    dang=None,
-    dang_pix=None,
-    phi=None,
-    # functions
-    coords_x01toxyz_plane=None,
-    ptsvect_spectro=None,
-    ptsvect_cam=None,
-):
-
-    # dang
-    dang_min = min(dang, 0.25*dang_pix)
-
-    # set n0, n1
-    p0min, p0max = p0.min(), p0.max()
-    p1min, p1max = p1.min(), p1.max()
-    n0 = int(np.ceil(((p0max - p0min) / dist) / dang_min))
-    n1 = int(np.ceil(((p1max - p1min) / dist) / dang_min))
-    dsang = ((p0max - p0min) / n0) * ((p1max - p1min) / n1)
-
-    # sample 2d equivalent aperture
-    x0i = np.linspace(p0.min(), p0.max(), n0)
-    x1i = np.linspace(p1.min(), p1.max(), n1)
-
-    # mesh
-    x0if = np.repeat(x0i[:, None], n1, axis=1)
-    x1if = np.repeat(x1i[None, :], n0, axis=0)
-    ind = Path(np.array([p0, p1]).T).contains_points(
-        np.array([x0if.ravel(), x1if.ravel()]).T
-    ).reshape((n0, n1))
-
-    # back to 3d
-    xx, yy, zz = coords_x01toxyz_plane(
-        x0=x0if,
-        x1=x1if,
-    )
-
-    # get normalized vector from plasma point to crystal
-    vectx = xx - pti[0]
-    vecty = yy - pti[1]
-    vectz = zz - pti[2]
-    norm = np.sqrt(vectx**2 + vecty**2 + vectz**2)
-    vectx = vectx / norm
-    vecty = vecty / norm
-    vectz = vectz / norm
-
-    # get local cosine vs toroidal direction (for doppler)
-    cos = -vectx*np.sin(phi) + vecty*np.cos(phi)
-
-    # get reflexion
-    (
-        ptsx, ptsy, ptsz,
-        vx, vy, vz,
-        angles, iok,
-    ) = ptsvect_spectro(
-        pts_x=pti[0],
-        pts_y=pti[1],
-        pts_z=pti[2],
-        vect_x=vectx,
-        vect_y=vecty,
-        vect_z=vectz,
-        strict=True,
-        return_x01=False,
-    )
-
-    # get x0, x1 on camera
-    x0c, x1c = ptsvect_cam(
-        pts_x=ptsx,
-        pts_y=ptsy,
-        pts_z=ptsz,
-        vect_x=vx,
-        vect_y=vy,
-        vect_z=vz,
-        strict=False,
-        return_x01=True,
-    )[-2:]
-
-    return x0c, x1c, angles, dsang, cos, ind, ptsx, ptsy, ptsz
 
 
 # ################################################
@@ -623,11 +743,17 @@ def _plot_debug(
     key_cam=None,
     cbin0=None,
     cbin1=None,
+    dx0=None,
+    dx1=None,
     x0c=None,
     x1c=None,
     cos=None,
     angles=None,
     iok=None,
+    p0=None,
+    p1=None,
+    x0if=None,
+    x1if=None,
 ):
 
     out0, out1 = coll.get_optics_outline(key_cam, total=True)
@@ -636,40 +762,152 @@ def _plot_debug(
     ck01 = np.r_[np.min(cbin1), np.max(cbin1), np.nan]
     ck10 = np.r_[np.min(cbin0), np.max(cbin0), np.nan]
 
-    ldata = [
-        ('cos vs toroidal', cos),
-        ('angles vs crystal', angles),
-        ('iok', iok)
-    ]
-
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(14, 8))
-    for ii, v0 in enumerate(ldata):
-        ax = fig.add_subplot(1, 3, ii + 1, aspect='equal')
-        ax.set_title(v0[0], size=12, fontweight='bold')
+    if dx0 is None:
+        ldata = [
+            ('cos vs toroidal', cos),
+            ('angles vs crystal', angles),
+            ('iok', iok)
+        ]
+
+        for ii, v0 in enumerate(ldata):
+            ax = fig.add_subplot(2, 2, ii + 1, aspect='equal')
+            ax.set_title(v0[0], size=12, fontweight='bold')
+            ax.set_xlabel('x0 (m)', size=12, fontweight='bold')
+            ax.set_xlabel('x1 (m)', size=12, fontweight='bold')
+
+            # grid
+            ax.plot(np.r_[out0, out0[0]], np.r_[out1, out1[0]], '.-k')
+            ax.plot(
+                ck0f.T.ravel(),
+                np.tile(ck01, cbin0.size),
+                '-k',
+            )
+            ax.plot(
+                np.tile(ck10, cbin1.size),
+                ck1f.T.ravel(),
+                '-k',
+            )
+
+            # points
+            im = ax.scatter(
+                x0c,
+                x1c,
+                c=v0[1],
+                s=4,
+                edgecolors='None',
+                marker='o',
+            )
+            plt.colorbar(im, ax=ax)
+
+        # projected polygon
+        ax = fig.add_subplot(2, 2, 4, aspect='equal', adjustable='datalim')
+        ax.set_title('Projected polygon', size=12, fontweight='bold')
         ax.set_xlabel('x0 (m)', size=12, fontweight='bold')
         ax.set_xlabel('x1 (m)', size=12, fontweight='bold')
 
-        ax.plot(np.r_[out0, out0[0]], np.r_[out1, out1[0]], '.-k')
         ax.plot(
+            np.r_[p0, p0[0]],
+            np.r_[p1, p1[0]],
+            c='k',
+            ls='-',
+            lw=1.,
+        )
+        ax.plot(
+            x0if[iok],
+            x1if[iok],
+            '.g',
+        )
+        ax.plot(
+            x0if[~iok],
+            x1if[~iok],
+            '.r',
+        )
+
+    else:
+
+        dmargin = {
+            'bottom': 0.08, 'top': 0.95,
+            'left': 0.10, 'right': 0.95,
+            'wspace': 0.50, 'hspace': 0.10,
+        }
+
+        gs = gridspec.GridSpec(ncols=20, nrows=2, **dmargin)
+        ax0 = fig.add_subplot(gs[0, :-1], aspect='equal')
+        ax1 = fig.add_subplot(
+            gs[1, :-1],
+            sharex=ax0,
+            sharey=ax0,
+        )
+        ax2 = fig.add_subplot(gs[1, -1])
+
+        ax0.set_ylabel('x1 (m)', size=12, fontweight='bold')
+
+        ax1.set_xlabel('x0 (m)', size=12, fontweight='bold')
+        ax1.set_ylabel('x1 (m)', size=12, fontweight='bold')
+
+        # grid
+        ax0.plot(np.r_[out0, out0[0]], np.r_[out1, out1[0]], '.-k')
+        ax0.plot(
             ck0f.T.ravel(),
             np.tile(ck01, cbin0.size),
             '-k',
         )
-        ax.plot(
+        ax0.plot(
             np.tile(ck10, cbin1.size),
             ck1f.T.ravel(),
             '-k',
         )
-        im = ax.scatter(
-            x0c,
-            x1c,
-            c=v0[1],
-            s=4,
-            edgecolors='None',
-            marker='o',
+
+        # pre-concatenate
+        for i0, v0 in dx0.items():
+            for i1, v1 in v0.items():
+                if len(v1) > 0:
+                    dx0[i0][i1] = np.concatenate([vv.ravel() for vv in v1])
+                    dx1[i0][i1] = np.concatenate([vv.ravel() for vv in dx1[i0][i1]])
+
+        # points
+        for i0, v0 in dx0.items():
+            for i1, v1 in v0.items():
+                if len(v1) > 0:
+                    ax0.plot(v1, dx1[i0][i1], '.')
+
+        # concatenate
+        x0_all = np.concatenate([
+            np.concatenate([v1 for v1 in v0.values() if len(v1) > 0])
+            for v0 in dx0.values()
+        ])
+        x1_all = np.concatenate([
+            np.concatenate([v1 for v1 in v0.values() if len(v1) > 0])
+            for v0 in dx1.values()
+        ])
+
+        # binning
+        out = scpstats.binned_statistic_2d(
+            x0_all,
+            x1_all,
+            None,
+            statistic='count',
+            bins=(cbin0, cbin1),
+            expand_binnumbers=True,
         )
-        plt.colorbar(im, ax=ax)
+
+        # set binned
+        binned = out.statistic
+
+        # plot binning
+        im = ax1.imshow(
+            binned.T,
+            origin='lower',
+            interpolation='nearest',
+            aspect='equal',
+            extent=(cbin0[0], cbin0[-1], cbin1[0], cbin1[-1]),
+        )
+
+        plt.colorbar(im, ax=ax1, cax=ax2)
+        ax1.set_xlim(cbin0[0], cbin0[-1])
+        plt.show()
 
     import pdb
     pdb.set_trace()     # DB

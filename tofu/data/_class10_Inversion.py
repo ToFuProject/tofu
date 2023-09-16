@@ -69,6 +69,7 @@ class Inversion(Previous):
         dconstraints=None,
         # ref vector specifier
         dref_vector=None,
+        ref_vector_strategy=None,
     ):
         """ Compute tomographic inversion
 
@@ -107,6 +108,7 @@ class Inversion(Previous):
             dconstraints=dconstraints,
             # ref vector specifier
             dref_vector=dref_vector,
+            ref_vector_strategy=ref_vector_strategy,
         )
 
     # -----------------
@@ -122,6 +124,7 @@ class Inversion(Previous):
         t=None,
         # ref vector specifier
         dref_vector=None,
+        ref_vector_strategy=None,
         store=None,
     ):
         """ Compute synthetic data using matching geometry matrix and profile2d
@@ -141,6 +144,7 @@ class Inversion(Previous):
             t=t,
             # ref vector specifier
             dref_vector=dref_vector,
+            ref_vector_strategy=ref_vector_strategy,
             store=store,
         )
 
@@ -157,6 +161,7 @@ class Inversion(Previous):
         plot_details=None,
         # ref vector specifier
         dref_vector=None,
+        ref_vector_strategy=None,
         cmap=None,
         # config
         plot_config=None,
@@ -177,6 +182,7 @@ class Inversion(Previous):
             plot_details=plot_details,
             # ref vector specifier
             dref_vector=dref_vector,
+            ref_vector_strategy=ref_vector_strategy,
             cmap=cmap,
             # config
             plot_config=plot_config,

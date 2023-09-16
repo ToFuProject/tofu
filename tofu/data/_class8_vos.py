@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
+import copy
+
+
 import numpy as np
 import datastock as ds
 
@@ -8,7 +11,6 @@ import datastock as ds
 import datetime as dtm      # DB
 
 
-from . import _class8_vos_utilities as _vos_utilities
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
 
@@ -22,15 +24,19 @@ from . import _class8_vos_spectro as _vos_spectro
 def compute_vos(
     coll=None,
     key_diag=None,
+    key_cam=None,
     key_mesh=None,
     config=None,
     # parameters
-    res=None,
+    res_RZ=None,
+    res_phi=None,
     res_lamb=None,
-    res_ang_rocking_curve=None,
+    res_rock_curve=None,
+    n0=None,
+    n1=None,
+    convexHull=None,
+    # margins
     margin_poly=None,
-    margin_par=None,
-    margin_perp=None,
     # options
     add_points=None,
     # spectro-only
@@ -42,8 +48,10 @@ def compute_vos(
     check=None,
     verb=None,
     debug=None,
-    plot=None,
+    # storing
     store=None,
+    overwrite=None,
+    replace_poly=None,
     timing=None,
 ):
 
@@ -60,29 +68,30 @@ def compute_vos(
         is2d,
         doptics,
         dcompute,
-        res,
+        res_RZ,
+        res_phi,
         res_lamb,
-        margin_par,
-        margin_perp,
+        convexHull,
         visibility,
         verb,
         debug,
-        plot,
         store,
+        overwrite,
         timing,
     ) = _check(
         coll=coll,
         key_diag=key_diag,
+        key_cam=key_cam,
         key_mesh=key_mesh,
-        res=res,
+        res_RZ=res_RZ,
+        res_phi=res_phi,
         res_lamb=res_lamb,
-        margin_par=margin_par,
-        margin_perp=margin_perp,
+        convexHull=convexHull,
         visibility=visibility,
         verb=verb,
         debug=debug,
-        plot=plot,
         store=store,
+        overwrite=overwrite,
         timing=timing,
     )
 
@@ -106,7 +115,7 @@ def compute_vos(
 
     dsamp = coll.get_sample_mesh(
         key=key_mesh,
-        res=res,
+        res=res_RZ,
         mode='abs',
         grid=True,
         in_mesh=True,
@@ -138,16 +147,6 @@ def compute_vos(
     dx0 = x0u[1] - x0u[0]
     dx1 = x1u[1] - x1u[0]
 
-    # ------------
-    # prepare output
-
-    # dvos = _prepare_output(
-        # coll=coll,
-        # key_diag=key_diag,
-        # shape_samp=sh,
-        # spectro=spectro,
-    # )
-
     # --------------
     # prepare optics
 
@@ -164,14 +163,14 @@ def compute_vos(
     # --------------
     # prepare optics
 
-    dvos = {}
-    for key_cam in dcompute.keys():
+    dvos, dref = {}, {}
+    for k0 in dcompute.keys():
 
             # ------------------
             # call relevant func
 
             (
-                dvos[key_cam],
+                dvos[k0], dref[k0],
                 dt11, dt22,
                 dt111, dt222, dt333,
                 dt1111, dt2222, dt3333, dt4444,
@@ -180,7 +179,7 @@ def compute_vos(
                 coll=coll,
                 doptics=doptics,
                 key_diag=key_diag,
-                key_cam=key_cam,
+                key_cam=k0,
                 dsamp=dsamp,
                 # inputs sample points
                 x0u=x0u,
@@ -193,9 +192,13 @@ def compute_vos(
                 dx1=dx1,
                 # options
                 sh=sh,
-                res=res,
+                res_RZ=res_RZ,
+                res_phi=res_phi,
                 res_lamb=res_lamb,
-                res_ang_rocking_curve=res_ang_rocking_curve,
+                res_rock_curve=res_rock_curve,
+                n0=n0,
+                n1=n1,
+                convexHull=convexHull,
                 bool_cross=bool_cross,
                 # parameters
                 margin_poly=margin_poly,
@@ -217,8 +220,12 @@ def compute_vos(
                 dt22=dt22,
             )
 
-            dvos[key_cam]['keym'] = key_mesh
-            dvos[key_cam]['res'] = res
+            dvos[k0]['keym'] = key_mesh
+            dvos[k0]['res_RZ'] = res_RZ
+            dvos[k0]['res_phi'] = res_phi
+            if spectro is True:
+                dvos[k0]['res_lamb'] = res_lamb
+                dvos[k0]['res_rock_curve'] = res_rock_curve
 
     # timing
     if timing:
@@ -245,10 +252,13 @@ def compute_vos(
             coll=coll,
             key_diag=key_diag,
             dvos=dvos,
+            dref=dref,
             spectro=spectro,
+            overwrite=overwrite,
+            replace_poly=replace_poly,
         )
 
-    return dvos
+    return dvos, dref
 
 
 # ###########################################################
@@ -260,17 +270,18 @@ def compute_vos(
 def _check(
     coll=None,
     key_diag=None,
+    key_cam=None,
     key_mesh=None,
-    res=None,
+    res_RZ=None,
+    res_phi=None,
     res_lamb=None,
-    margin_par=None,
-    margin_perp=None,
+    convexHull=None,
     visibility=None,
     check=None,
     verb=None,
     debug=None,
-    plot=None,
     store=None,
+    overwrite=None,
     timing=None,
 ):
 
@@ -293,6 +304,25 @@ def _check(
 
     # doptics
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+
+    # ------------
+    # key_cam
+
+    lok = [k0 for k0, v0 in doptics.items() if len(v0['optics']) > 0]
+    if isinstance(key_cam, str):
+        key_cam = [key_cam]
+    key_cam = ds._generic_check._check_var_iter(
+        key_cam, 'key_cam',
+        types=list,
+        types_iter=str,
+        allowed=lok,
+    )
+
+    # -----------------
+    # doptics, dcompute
+
+    doptics = {k0: v0 for k0, v0 in doptics.items() if k0 in key_cam}
+
     dcompute = {
         k0: {'compute': len(v0['optics']) > 0}
         for k0, v0 in doptics.items()
@@ -352,10 +382,21 @@ def _check(
         ]
 
     # -----------
-    # res
+    # res_RZ
 
-    if res is None:
-        res = 0.01
+    if res_RZ is None:
+        res_RZ = 0.01
+    if np.isscalar(res_RZ):
+        res_RZ = np.r_[res_RZ, res_RZ]
+    res_RZ = np.atleast_1d(res_RZ).ravel().astype(float)
+    assert res_RZ.size == 2
+    res_RZ = res_RZ.tolist()
+
+    # -----------
+    # res_phi
+
+    if res_phi is None:
+        res_phi = 0.01
 
     # -----------
     # res_lamb
@@ -364,21 +405,12 @@ def _check(
         res_lamb = 0.01e-10
 
     # -----------
-    # margin_par
+    # convexHull - to get overall pcross and phor, faster if many pixels
 
-    margin_par = ds._generic_check._check_var(
-        margin_par, 'margin_par',
-        types=float,
-        default=0.05,
-    )
-
-    # -----------
-    # margin_perp
-
-    margin_perp = ds._generic_check._check_var(
-        margin_perp, 'margin_perp',
-        types=float,
-        default=0.05,
+    convexHull = ds._generic_check._check_var(
+        convexHull, 'convexHull',
+        types=bool,
+        default=False,
     )
 
     # -----------
@@ -409,21 +441,21 @@ def _check(
     )
 
     # -----------
-    # plot
-
-    if plot is None:
-        plot = True
-    if not isinstance(plot, bool):
-        msg = "Arg plot must be a bool"
-        raise Exception(msg)
-
-    # -----------
     # store
 
     store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
-        default=True,
+        default=False,
+    )
+
+    # -----------
+    # overwrite
+
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
+        default=False,
     )
 
     # -----------
@@ -442,76 +474,17 @@ def _check(
         is2d,
         doptics,
         dcompute,
-        res,
+        res_RZ,
+        res_phi,
         res_lamb,
-        margin_par,
-        margin_perp,
+        convexHull,
         visibility,
         verb,
         debug,
-        plot,
         store,
+        overwrite,
         timing,
     )
-
-
-# ###########################################################
-# ###########################################################
-#               Prepare ouput
-# ###########################################################
-
-
-def _prepare_output(
-    coll=None,
-    key_diag=None,
-    shape_samp=None,
-    spectro=None,
-):
-
-    # -------
-    # spectro
-
-    if spectro is True:
-        pass
-
-    # -----------
-    # non-spectro
-
-    else:
-
-        dvos = {'solid_angle_int': {}}
-        for k0 in coll.dobj['diagnostic'][key_diag]['doptics'].keys():
-            dgeom = coll.dobj['camera'][k0]['dgeom']
-            sh = dgeom['shape']
-            shape = tuple(np.r_[shape_samp, sh])
-            ref = tuple([None, None] + list(dgeom['ref']))
-
-            # --------
-            # slice
-
-            if is2d:
-                def sli(ir, iz, ii):
-                    pass
-
-            else:
-                def sli(ir, iz, ii):
-                    pass
-
-
-
-            # --------
-            # dvos
-
-            dvos['solid_angle_int'][k0] = {
-                'data': None,
-                'units': 'sr.m',
-                'dim': '',
-                'quant': '',
-                'name': '',
-                'ref': ref,
-            }
-
-    return dvos
 
 
 # ###########################################################
@@ -524,101 +497,240 @@ def _store(
     coll=None,
     key_diag=None,
     dvos=None,
+    dref=None,
     spectro=None,
+    overwrite=None,
+    replace_poly=None,
 ):
+
+    # ------------
+    # check inputs
+
+    replace_poly = ds._generic_check._check_var(
+        replace_poly, 'replace_poly',
+        types=bool,
+        default=True,
+    )
+
+    # ----------------------
+    # prepare what to store
+
+    lk_com = ['indr', 'indz']
+    if spectro is True:
+        lk = [
+            'lamb',
+            'ph', 'cos', 'ncounts',
+            'phi_min', 'phi_max',
+            # optional
+            'lamb0', 'dlamb',
+            'phi_mean',
+            'dV', 'etendlen',
+        ]
+    else:
+        lk = ['sang']
+
+
+    # ------------
+    # store
 
     doptics = coll._dobj['diagnostic'][key_diag]['doptics']
 
     for k0, v0 in dvos.items():
 
-        # re-use previous keys
-        kpc0, kpc1 = doptics[k0]['dvos']['pcross']
-        kr = coll.ddata[kpc0]['ref'][0]
+        # ----------------
+        # pcross replacement
 
-        # safety check
-        if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
-            msg = "Something is wrong"
-            raise Exception(msg)
+        if replace_poly and v0.get('pcross0') is not None:
 
-        coll._dref[kr]['size'] = v0['pcross0'].shape[0]
-        coll._ddata[kpc0]['data'] = v0['pcross0']
-        coll._ddata[kpc1]['data'] = v0['pcross1']
+            # re-use previous keys
+            kpc0, kpc1 = doptics[k0]['dvos']['pcross']
+            kr = coll.ddata[kpc0]['ref'][0]
+
+            # safety check
+            shape_pcross = v0['pcross0']['data'].shape
+            if coll.ddata[kpc0]['data'].shape[1:] != shape_pcross[1:]:
+                msg = "Something is wrong"
+                raise Exception(msg)
+
+            coll._dref[kr]['size'] = shape_pcross[0]
+            coll._ddata[kpc0]['data'] = v0['pcross0']['data']
+            coll._ddata[kpc1]['data'] = v0['pcross1']['data']
 
         # ----------------
-        # 2d mesh sampling
+        # add ref
 
-        knpts = f'{k0}_vos_npts'
-        kir = f'{k0}_vos_ir'
-        kiz = f'{k0}_vos_iz'
+        for k1, v1 in dref[k0].items():
+            if v1['key'] in coll.dref.keys():
+                if overwrite is True:
+                    coll.remove_ref(v1['key'], propagate=True)
+                    coll.add_ref(**v1)
+                elif v1['size'] != coll.dref[v1['key']]['size']:
+                    msg = (
+                        f"Mismatch between new vs existing size ref {k1} '{v1['key']}'"
+                        f"\t- existing size = {coll.dref[k1]['size']}\n"
+                        f"\t- new size      = {v1['size']}\n"
+                    )
+                    raise Exception(msg)
+                else:
+                    pass
+            else:
+                coll.add_ref(**v1)
 
-        if knpts not in coll.dref.keys():
-            coll.add_ref(knpts, size=v0['indr'].size)
+        # ----------------
+        # add data
 
-        if kir not in coll.ddata.keys():
-            coll.add_data(
-                key=kir,
-                data=v0['indr'],
-                ref=knpts,
-                units='',
-                dim='index',
-            )
+        for k1 in lk_com + lk:
 
-        if kiz not in coll.ddata.keys():
-            coll.add_data(
-                key=kiz,
-                data=v0['indz'],
-                ref=knpts,
-                units='',
-                dim='index',
-            )
+            if k1 not in v0.keys():
+                continue
 
+            if v0[k1]['key'] in coll.ddata.keys():
+                if overwrite is True:
+                    coll.remove_data(key=v0[k1]['key'])
+                else:
+                    msg = (
+                        "Not overwriting existing data {k1}\n"
+                        "To force update use overwrite = True"
+                    )
+                    raise Exception(msg)
+
+            coll.add_data(**v0[k1])
+
+        # ---------------
         # add in doptics
+
         doptics[k0]['dvos']['keym'] = v0['keym']
-        doptics[k0]['dvos']['res'] = v0['res']
-        doptics[k0]['dvos']['ind'] = (kir, kiz)
-
-        # ------------
-        # spectro
-
+        doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
+        doptics[k0]['dvos']['res_phi'] = v0['res_phi']
+        doptics[k0]['dvos']['ind'] = (v0['indr']['key'], v0['indz']['key'])
         if spectro:
+            doptics[k0]['dvos']['res_lamb'] = v0['res_lamb']
+            doptics[k0]['dvos']['res_rock_curve'] = v0['res_rock_curve']
 
-            # keys
-            kcos = f"{k0}_vos_cos"
-            kph = f"{k0}_vos_ph"
-            # klambmin =
-            # klambmax =
+        # -----------------
+        # add data keys to doptics
 
-            # add data
-            coll.add_data(
-                key=kcos,
-                data=v0['cos'],
-                ref=(knpts, kchan),
-                units='',
-            )
+        for k1 in lk:
+            if k1 in v0.keys():
+                doptics[k0]['dvos'][k1] = v0[k1]['key']
 
-            coll.add_data(
-                key=kph,
-                data=v0['ph_counts'],
-                ref=(knpts, kchan),
-                units='sr.m3.m',
-            )
 
-            # add in doptics
-            doptics['dvos']['cos'] = v0['cos']
-            doptics['dvos']['ph'] = v0['ph']
+# ###############################################################
+# ###############################################################
+#                       Main
+# ###############################################################
 
-        else:
 
-            # keys
-            ksa = f'{k0}_vos_sa'
+def _check_get_dvos(
+    coll=None,
+    key=None,
+    key_cam=None,
+    dvos=None,
+):
 
-            # add data
-            coll.add_data(
-                key=ksa,
-                data=v0['sang'],
-                ref=(knpts, kchan),
-                units='sr.m3',
-            )
+    # ------------
+    # keys
 
-            # add in doptics
-            doptics['dvos']['sang'] = ksa
+    key_diag, key_cam = coll.get_diagnostic_cam(
+        key=key,
+        key_cam=key_cam,
+    )
+    spectro = coll.dobj['diagnostic'][key_diag]['spectro']
+
+    # -------------------
+    # prepare keys
+
+    lk_sca = ['res_RZ', 'res_phi']
+    if spectro is True:
+        lk_sca += ['res_lamb', 'res_rock_curve']
+        lk = [
+            'lamb',
+            'phi_min', 'phi_max', 'phi_mean',
+            'ph', 'ncounts', 'cos',
+            'lamb0', 'dlamb',
+            'dV', 'etendlen',
+        ]
+    else:
+        lk = ['sang']
+
+    lk_all = lk_sca + lk + ['keym', 'indr', 'indz']
+
+    # ------
+    # dvos
+
+    if dvos is None:
+
+        dvos = {}
+        doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+        for k0 in key_cam:
+
+            # safety check 1
+            if doptics[k0].get('dvos') is None:
+                msg = (
+                    "Please provide dvos if coll.dobj['diagnostic']"
+                    f"['{key_diag}']['{k0}']['doptics']['dvos'] is None!"
+                )
+                raise Exception(msg)
+
+            dop = doptics[k0]['dvos']
+
+            # safety check 2
+            if dop.get('keym') is None:
+                msg = (
+                    "dvos was neither pre-computed nor provided for:\n"
+                    f"\t- diag: '{key_diag}'\n"
+                    f"\t- cam:  '{k0}'"
+                )
+                raise Exception(msg)
+
+            # fill in dict with mesh and indices
+            dvos[k0] = {
+                'keym': dop['keym'],
+                'indr': coll.ddata[dop['ind'][0]],
+                'indz': coll.ddata[dop['ind'][1]],
+            }
+
+            # fill in with res
+            for k1 in lk_sca:
+                dvos[k0][k1] = dop[k1]
+
+            # fill in with the rest
+            for k1 in lk:
+                if k1 in dop.keys():
+                    dvos[k0][k1] = {
+                        'key': dop[k1],
+                        **coll.ddata[dop[k1]],
+                    }
+    else:
+        pass
+
+    # copy to avoid changing the original
+    dvos = copy.deepcopy(dvos)
+
+    # ------------------
+    # check keys of dvos
+
+    # check
+    c0 = (
+        isinstance(dvos, dict)
+        and all([
+            k0 in dvos.keys()
+            and all([k1 in dvos[k0].keys() for k1 in lk_all])
+            for k0 in key_cam
+        ])
+    )
+
+    # raise exception
+    if not c0:
+        msg = (
+            "Arg dvos must be a dict with, for each camera, the keys:\n"
+            + str(lk_all)
+        )
+        raise Exception(msg)
+
+    # only keep desired cams
+    lkout = [k0 for k0 in dvos.keys() if k0 not in key_cam]
+    for k0 in lkout:
+        del dvos[k0]
+
+    return dvos

@@ -34,7 +34,8 @@ def _vos(
     dx0=None,
     dx1=None,
     sh=None,
-    res=None,
+    res_RZ=None,
+    res_phi=None,
     bool_cross=None,
     # parameters
     margin_poly=None,
@@ -59,6 +60,7 @@ def _vos(
 
     # ---------------
     # prepare polygon
+
 
     if timing:
         t00 = dtm.datetime.now()     # DB
@@ -137,25 +139,35 @@ def _vos(
             x1f=x1f,
             x0u=x0u,
             x1u=x1u,
-            res=res,
+            res=res_phi,
             dx0=dx0,
             dx1=dx1,
             # shape
             sh=sh,
         )
 
+        if xx is None:
+            npts_cross = 0
+            lpcross.append((None, None))
+            lsang.append(np.zeros((npts_cross,), dtype=float))
+            lindr.append(np.zeros((npts_cross,), dtype=float))
+            lindz.append(np.zeros((npts_cross,), dtype=float))
+            continue
+
         # re-initialize
         bool_cross[...] = False
-        npts = xx.size
-        sang = np.zeros((npts,), dtype=float)
-        indr = np.zeros((npts,), dtype=int)
-        indz = np.zeros((npts,), dtype=int)
+        npts_tot = xx.size
+        npts_cross = np.sum([v0['iz'].size for v0 in dind.values()])
 
-        # verb
+        sang = np.zeros((npts_cross,), dtype=float)
+        indr = np.zeros((npts_cross,), dtype=int)
+        indz = np.zeros((npts_cross,), dtype=int)
+
         if verb is True:
             msg = (
-                f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
-                f"npts in cross_section = {npts}   "
+                f"\tcam '{key_cam}' pixel {ii+1} / {npix}"
+                f"\tnpts in cross_section = {npts_cross}"
+                f"\t({npts_tot} total)"
             )
             end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
             print(msg, end=end, flush=True)
@@ -235,7 +247,7 @@ def _vos(
                 bool_cross=bool_cross,
                 x0=x0l,
                 x1=x1l,
-                res=res,
+                res=np.min(np.atleast_1d(res_RZ)),
             )
         else:
             pc0, pc1 = None, None
@@ -278,14 +290,57 @@ def _vos(
     )
 
     # ----------------
-    # format output
+    # prepare output
 
+    knpts = f'{key_cam}_vos_npts'
+    kir = f'{key_cam}_vos_ir'
+    kiz = f'{key_cam}_vos_iz'
+    ksa = f'{key_cam}_vos_sa'
+    
+    ref = tuple(list(coll.dobj['camera'][key_cam]['dgeom']['ref']) + [knpts])
+
+    # ----------------
+    # format output
+    
+    dref = {
+        'npts': {
+            'key': knpts,
+            'size': indr.shape[-1],
+        },
+    }
+    
     dout = {
-        'pcross0': pcross0,
-        'pcross1': pcross1,
-        'sang': sang,
-        'indr': indr,
-        'indz': indz,
+        'pcross0': {
+            'data': pcross0,
+            'units': 'm',
+            'dim': 'distance',
+        },
+        'pcross1': {
+            'data': pcross1,
+            'units': 'm',
+            'dim': 'distance',
+        },
+        'indr': {
+            'key': kir,
+            'data': indr,
+            'ref': ref,
+            'units': '',
+            'dim': 'index',
+        },
+        'indz': {
+            'key': kiz,
+            'data': indz,
+            'ref': ref,
+            'units': '',
+            'dim': 'index',
+        },
+        'sang': {
+            'key': ksa,
+            'data': sang,
+            'ref': ref,
+            'units': 'sr.m3',
+            'dim': 'sang',
+        },
     }
 
     if timing:
@@ -293,7 +348,7 @@ def _vos(
         dt22 += (t33 - t22).total_seconds()
 
     return (
-        dout,
+        dout, dref,
         dt11, dt22,
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,
@@ -380,6 +435,15 @@ def _vos_points(
     dphi_r = dphi_r[:, iok]
     iru = iru[iok]
 
+    # ------------
+    # safety check
+
+    if iru.size == 0:
+        return None, None, None, None, None
+
+    # ------------
+    # go on
+
     nphi_r = (
         np.ceil(x0u[iru]*(dphi_r[1, :] - dphi_r[0, :]) / res).astype(int)
         + 1
@@ -392,6 +456,7 @@ def _vos_points(
     # get indices
     lind = [ir == i0 for i0 in iru]
     ln = [i0.sum() for i0 in lind]
+
     indrz = np.concatenate([
         np.tile(i0.nonzero()[0], nphi_r[ii]) for ii, i0 in enumerate(lind)
     ])
@@ -625,19 +690,19 @@ def _harmonize_reshape_others(
     lnpts = [sa.size for sa in lsang]
     nmax = np.max(lnpts)
 
-    sang = np.full((nmax, npix), np.nan)
-    indr = -np.ones((nmax, npix), dtype=int)
-    indz = -np.ones((nmax, npix), dtype=int)
+    sang = np.full((npix, nmax), np.nan)
+    indr = -np.ones((npix, nmax), dtype=int)
+    indz = -np.ones((npix, nmax), dtype=int)
     for ii, sa in enumerate(lsang):
-        sang[:lnpts[ii], ii] = sa
-        indr[:lnpts[ii], ii] = lindr[ii]
-        indz[:lnpts[ii], ii] = lindz[ii]
+        sang[ii, :lnpts[ii]] = sa
+        indr[ii, :lnpts[ii]] = lindr[ii]
+        indz[ii, :lnpts[ii]] = lindz[ii]
 
     # -------
     # reshape
 
     if is2d:
-        newsh = tuple(np.r_[nmax, shape])
+        newsh = tuple(np.r_[shape, nmax])
         sang = sang.reshape(newsh)
         indr = indr.reshape(newsh)
         indz = indz.reshape(newsh)

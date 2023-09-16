@@ -28,6 +28,7 @@ def get_optics_outline(
     coll=None,
     key=None,
     add_points=None,
+    min_threshold=None,
     mode=None,
     closed=None,
     ravel=None,
@@ -63,9 +64,21 @@ def get_optics_outline(
         cx0 = coll.ddata[cx0]['data']
         cx1 = coll.ddata[cx1]['data']
 
+        k0, k1 = dgeom['outline']
+
         # derive half-spacing
-        dx0 = np.mean(np.diff(cx0)) / 2.
-        dx1 = np.mean(np.diff(cx1)) / 2.
+        if cx0.size == 1:
+            dx0 = coll.ddata[k0]['data'].max() - coll.ddata[k0]['data'].min()
+        else:
+            dx0 = np.mean(np.diff(cx0))
+
+        if cx1.size == 1:
+            dx1 = coll.ddata[k1]['data'].max() - coll.ddata[k1]['data'].min()
+        else:
+            dx1 = np.mean(np.diff(cx1))
+
+        # half
+        dx0, dx1 = 0.5*dx0, 0.5*dx1
 
         # derive global outline (not pixel outline)
         p0 = np.r_[
@@ -101,6 +114,8 @@ def get_optics_outline(
         isclosed=False,
         closed=closed,
         ravel=ravel,
+        min_threshold=min_threshold,
+        debug=None,
     )
 
 
@@ -114,6 +129,7 @@ def get_optics_poly(
     coll=None,
     key=None,
     add_points=None,
+    min_threshold=None,
     mode=None,
     closed=None,
     ravel=None,
@@ -149,6 +165,7 @@ def get_optics_poly(
             p0, p1 = coll.get_optics_outline(
                 key=key,
                 add_points=add_points,
+                min_threshold=min_threshold,
                 mode=mode,
                 closed=closed,
                 ravel=ravel,
@@ -177,6 +194,7 @@ def get_optics_poly(
         p0, p1 = coll.get_optics_outline(
             key=key,
             add_points=add_points,
+            min_threshold=min_threshold,
             mode=mode,
             closed=closed,
             ravel=ravel,
@@ -292,6 +310,7 @@ def _interp_poly_check(
     mode=None,
     closed=None,
     ravel=None,
+    min_threshold=None,
 ):
 
     # -------
@@ -300,7 +319,7 @@ def _interp_poly_check(
     mode = ds._generic_check._check_var(
         mode, 'mode',
         default=None,
-        allowed=[None, 'mean', 'min'],
+        allowed=[None, 'mean', 'min', 'thr'],
     )
 
     # ----------
@@ -331,7 +350,18 @@ def _interp_poly_check(
         default=False,
         types=bool,
     )
-    return add_points, mode, closed, ravel
+
+    # -------
+    # min_threshold
+
+    min_threshold = ds._generic_check._check_var(
+        min_threshold, 'min_threshold',
+        default=100e-6,
+        types=float,
+        sign='>=0',
+    )
+
+    return add_points, mode, closed, ravel, min_threshold
 
 
 def _interp_poly(
@@ -341,17 +371,32 @@ def _interp_poly(
     isclosed=None,
     closed=None,
     ravel=None,
-    min_threshold=1.e-6,
+    min_threshold=None,
+    debug=None,
 ):
+    """ Interpolate list of polygons by adding points ons segments
+
+    lp = list of coordinates arrays describing polygons
+        - [px, py]
+        - [px, py, pz]
+    Each coordinate array can be 1d or 2d
+
+    modes: determine a multiplicative factor to add_points
+        - None: 1
+        - min: determined by minimum segment length
+        - mean: determined by mean segment length
+
+    """
 
     # ------------
     # check inputs
 
-    add_points, mode, closed, ravel = _interp_poly_check(
+    add_points, mode, closed, ravel, min_threshold = _interp_poly_check(
         add_points=add_points,
         mode=mode,
         closed=closed,
         ravel=ravel,
+        min_threshold=min_threshold,
     )
 
     # ------------
@@ -414,13 +459,17 @@ def _interp_poly(
         if dist.ndim == 2:
             import pdb; pdb.set_trace()     # DB
 
-        min_threshold = min(min_threshold, np.max(dist)/3.)
-        if mode == 'min':
-            mindist = np.min(dist[dist > min_threshold])
-        elif mode == 'mean':
-            mindist = np.mean(dist[dist > min_threshold])
+        if mode == 'thr':
+            mindist = min_threshold
+            add_points = np.ceil(dist / mindist).astype(int) - 1
+        else:
+            min_threshold = min(min_threshold, np.max(dist)/3.)
+            if mode == 'min':
+                mindist = np.min(dist[dist > min_threshold])
+            elif mode == 'mean':
+                mindist = np.mean(dist[dist > min_threshold])
 
-        add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
+            add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
 
     # -----------
     # add_points
@@ -477,13 +526,81 @@ def _interp_poly(
         nan = np.full((pp.shape[0], 1), np.nan)
         for ii, pp in enumerate(lp[2:]):
             lp[ii+2] = np.concatenate((pp, nan), axis=1).ravel()
+
     return lp
 
 
-# ##################################################################
-# ##################################################################
+def _harmonize_polygon_sizes(
+    lp0=None,
+    lp1=None,
+    nmin=0,
+):
+    """ From a list of polygons return an array
+
+    """
+
+    # prepare
+    npoly = len(lp0)
+    ln = [p0.size if p0 is not None else 0 for p0 in lp0]
+    nmax = max(np.max(ln), nmin)
+    nan = np.full((nmax,), np.nan)
+
+    # prepare output
+    x0 = np.full((npoly, nmax), np.nan)
+    x1 = np.full((npoly, nmax), np.nan)
+
+    for ii, p0 in enumerate(lp0):
+
+        if p0 is None:
+            continue
+
+        elif ln[ii] < nmax:
+
+            ndif = nmax - ln[ii]
+            ind0 = np.arange(0, ln[ii] + 1)
+
+            # create imax
+            iseg = np.arange(0, ndif) % ln[ii]
+            npts = np.unique(iseg, return_counts=True)[1]
+            if npts.size < ln[ii]:
+                npts = np.r_[
+                    npts, np.zeros((ln[ii] - npts.size,))
+                ].astype(int)
+
+            imax = np.concatenate(tuple([
+                np.linspace(
+                    ind0[ii],
+                    ind0[ii+1],
+                    2 + npts[ii],
+                    endpoint=True,
+                )[:-1]
+                for ii in range(ln[ii])
+            ]))
+
+            # interpolate
+            x0[ii, :] = scpinterp.interp1d(
+                ind0,
+                np.r_[p0, p0[0]],
+                kind='linear',
+            )(imax)
+            x1[ii, :] = scpinterp.interp1d(
+                ind0,
+                np.r_[lp1[ii], lp1[ii][0]],
+                kind='linear',
+            )(imax)
+
+        else:
+            x0[ii, :] = p0
+            x1[ii, :] = lp1[ii]
+
+    return x0, x1
+
+
+
+# ###############################################################
+# ###############################################################
 #                       dplot
-# ##################################################################
+# ###############################################################
 
 
 def _dplot_check(
@@ -494,6 +611,8 @@ def _dplot_check(
     elements=None,
     vect_length=None,
     axis_length=None,
+    dx0=None,
+    dx1=None,
 ):
     # -----
     # key
@@ -549,7 +668,29 @@ def _dplot_check(
         sign='>= 0.'
     )
 
-    return key, key_cam, optics, elements, vect_length, axis_length
+    # ---------------
+    # dx0, dx1
+
+    # dx0
+    dx0 = float(ds._generic_check._check_var(
+        dx0, 'dx0',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # dx1
+    dx1 = float(ds._generic_check._check_var(
+        dx1, 'dx1',
+        types=(int, float),
+        default=0.,
+    ))
+
+
+    return (
+        key, key_cam, optics, elements,
+        vect_length, axis_length,
+        dx0, dx1,
+    )
 
 
 def _dplot(
@@ -560,12 +701,18 @@ def _dplot(
     elements=None,
     vect_length=None,
     axis_length=None,
+    dx0=None,
+    dx1=None,
 ):
 
     # ------------
     # check inputs
 
-    key, key_cam, optics, elements, vect_length, axis_length = _dplot_check(
+    (
+        key, key_cam, optics, elements,
+        vect_length, axis_length,
+        dx0, dx1,
+    ) = _dplot_check(
         coll=coll,
         key=key,
         key_cam=key_cam,
@@ -573,6 +720,8 @@ def _dplot(
         elements=elements,
         vect_length=vect_length,
         axis_length=axis_length,
+        dx0=dx0,
+        dx1=dx1,
     )
 
     # ------------
@@ -671,8 +820,8 @@ def _dplot(
             )
 
             dplot[k0]['o'] = {
-                'x0': p0,
-                'x1': p1,
+                'x0': p0 + dx0,
+                'x1': p1 + dx1,
                 'x': px,
                 'y': py,
                 'z': pz,
@@ -978,17 +1127,30 @@ def _get_data(
     if data is not None:
         lquant = ['etendue', 'amin', 'amax']  # 'los'
         lcomp = ['length', 'tangency radius', 'alpha']
-        llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
+        if spectro:
+            llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
+            lvos = ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']
+        else:
+            llamb = []
+            lvos = ['vos_sang_integ']
         lsynth = coll.dobj['diagnostic'][key]['signal']
+
+        if len(key_cam) == 1:
+            lraw = [
+                k0 for k0, v0 in coll.ddata.items()
+                if v0['ref'] == coll.dobj['camera'][key_cam[0]]['dgeom']['ref']
+            ]
+        else:
+            lraw = []
+
         if lsynth is None:
             lsynth = []
-        if spectro:
-            lcomp += llamb
+        lcomp += llamb
 
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lquant + lcomp + lsynth,
+            allowed=lquant + lcomp + lsynth + lraw + lvos,
         )
 
     # build ddata
@@ -1167,6 +1329,67 @@ def _get_data(
             dref[cc] = ref
 
             units = coll.ddata[kdat]['units']
+
+    elif data in lraw:
+        ddata = {key_cam[0]: coll.ddata[data]['data']}
+        dref = {key_cam[0]: coll.dobj['camera'][key_cam[0]]['dgeom']['ref']}
+        units = coll.ddata[data]['units']
+        static = True
+
+    elif data in lvos:
+
+        static = True
+        ddata, dref = {}, {}
+        doptics = coll.dobj['diagnostic'][key]['doptics']
+        for cc in key_cam:
+
+            # safety check
+            ref = coll.dobj['camera'][cc]['dgeom']['ref']
+            dvos = doptics[cc].get('dvos')
+            if dvos is None:
+                msg = (
+                    f"Data '{data}' cannot be retrived for diag '{key}' "
+                    "cam '{cc}' because no dvos computed"
+                )
+                raise Exception(msg)
+
+            # cases
+            if data == 'vos_sang_integ':
+                kdata = dvos['sang']
+                ddata[cc] = np.nansum(coll.ddata[kdata]['data'], axis=-1)
+                dref[cc] = ref
+                units = coll.ddata[kdata]['units']
+
+            elif data in ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']:
+                kph = dvos['ph']
+                ph = coll.ddata[kph]['data']
+                ph_tot = np.sum(ph, axis=(-1, -2))
+
+                if data == 'vos_ph_integ':
+                    out = ph_tot
+                    kout = kph
+                else:
+                    kout = dvos['lamb']
+                    re_lamb = [1 for rr in ref] + [1, -1]
+                    lamb = coll.ddata[kout]['data'].reshape(re_lamb)
+
+                    i0 = ph == 0
+                    if data == 'vos_lamb':
+                        out = np.sum(ph * lamb, axis=(-1, -2)) / ph_tot
+                    else:
+                        for ii, i1 in enumerate(re_lamb[:-1]):
+                            lamb = np.repeat(lamb, ph.shape[ii], axis=ii)
+
+                        lamb[i0] = -np.inf
+                        lambmax = np.max(lamb, axis=(-1, -2))
+                        lamb[i0] = np.inf
+                        lambmin = np.min(lamb, axis=(-1, -2))
+                        out = lambmax - lambmin
+                    out[np.all(i0, axis=(-1, -2))] = np.nan
+
+                ddata[cc] = out
+                dref[cc] = ref
+                units = coll.ddata[kout]['units']
 
     return ddata, dref, units, static, daxis
 
