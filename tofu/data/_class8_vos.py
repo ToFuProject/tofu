@@ -704,6 +704,9 @@ def _check_get_dvos(
     else:
         pass
 
+    # copy to avoid changing the original
+    dvos = copy.deepcopy(dvos)
+
     # ------------------
     # check keys of dvos
 
