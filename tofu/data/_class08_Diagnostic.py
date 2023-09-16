@@ -1197,6 +1197,7 @@ class Diagnostic(Previous):
         vmax_cam=None,
         dvminmax=None,
         alpha=None,
+        plot_colorbar=None,
         # config
         plot_config=None,
         # figure
@@ -1230,6 +1231,7 @@ class Diagnostic(Previous):
             vmax_cam=vmax_cam,
             dvminmax=dvminmax,
             alpha=alpha,
+            plot_colorbar=plot_colorbar,
             # config
             plot_config=plot_config,
             # figure

@@ -49,6 +49,7 @@ def _plot_diagnostic_vos(
     vmax_cam=None,
     dvminmax=None,
     alpha=None,
+    plot_colorbar=None,
     # config
     plot_config=None,
     # figure
@@ -83,7 +84,7 @@ def _plot_diagnostic_vos(
         _,
         _,
         ylab,
-        _,
+        plot_colorbar,
         _,
     ) = _plot._plot_diagnostic_check(
         coll=coll,
@@ -94,6 +95,7 @@ def _plot_diagnostic_vos(
         vmax=vmax,
         alpha=alpha,
         # figure
+        plot_colorbar=plot_colorbar,
         proj=proj,
         units=units,
         los_res=los_res,
@@ -232,6 +234,7 @@ def _plot_diagnostic_vos(
     if dax is None:
 
         dax = _get_dax(
+            proj=proj,
             dmargin=dmargin,
             fs=fs,
             wintit=wintit,
@@ -317,7 +320,9 @@ def _plot_diagnostic_vos(
             lw=1.,
             ls='-',
         )
-        plt.colorbar(im, ax=ax, label=sang_units)
+
+        if plot_colorbar is True:
+            plt.colorbar(im, ax=ax, label=sang_units)
 
     # cross
     kax = 'cross'
@@ -333,7 +338,9 @@ def _plot_diagnostic_vos(
             vmin=vmin,
             vmax=vmax,
         )
-        plt.colorbar(im, ax=ax, label=sang_units)
+
+        if plot_colorbar is True:
+            plt.colorbar(im, ax=ax, label=sang_units)
 
     # ------------------
     # plot los / vos
