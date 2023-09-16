@@ -138,8 +138,8 @@ cdef inline void are_points_reflex_2d(
 
     # do first point:
     are_reflex[0] = is_reflex_2d(
-        &diff[0*nvert + 9],         # u0
-        &diff[1*nvert + 9],         # u1
+        &diff[0*nvert + nvert - 1],         # u0
+        &diff[1*nvert + nvert - 1],         # u1
         &diff[0*nvert + 0],     # v0
         &diff[1*nvert + 0],     # v1
     )
@@ -318,15 +318,15 @@ cdef inline int get_one_ear(
                 return i # if not, we found an ear
 
     # if we havent returned, either, there was an error somerwhere
-    with gil:
-        msg = (
-            "Got here but shouldn't have\n"
-            f"\t- polygon x: {[polygon[0*nvert + ii] for ii in range(nv)]}\n"
-            f"\t- polygon y: {[polygon[1*nvert + ii] for ii in range(nv)]}\n"
-            f"\t- i: {i} / {nv-1}\n"
-            f"\t- j: {j} / {nv}\n"
-        )
-        raise Exception(msg)
+    # with gil:
+        # msg = (
+            # "Got here but shouldn't have\n"
+            # f"\t- polygon x: {[polygon[0*nvert + ii] for ii in range(nv)]}\n"
+            # f"\t- polygon y: {[polygon[1*nvert + ii] for ii in range(nv)]}\n"
+            # f"\t- i: {i} / {nv-1}\n"
+            # f"\t- j: {j} / {nv}\n"
+        # )
+        # raise Exception(msg)
 
     return -1
 

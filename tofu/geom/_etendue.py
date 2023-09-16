@@ -12,7 +12,6 @@ import matplotlib.lines as mlines
 import Polygon as plg
 import datastock as ds
 
-
 from . import _comp_solidangles
 
 
@@ -868,6 +867,7 @@ def _compute_etendue_numerical(
             # compute solid angle for each pixel
 
             if check is True:
+
                 solid_angle = _comp_solidangles.calc_solidangle_apertures(
                     # observation points
                     pts_x=pts_x,

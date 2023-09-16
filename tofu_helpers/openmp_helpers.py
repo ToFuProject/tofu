@@ -7,6 +7,8 @@ import tempfile
 import platform
 import subprocess
 
+
+import distutils
 from distutils.dist import Distribution
 from distutils.sysconfig import customize_compiler
 from numpy.distutils.ccompiler import new_compiler
@@ -45,9 +47,13 @@ def get_compiler():
         - python setup.py build_ext --compiler=<compiler>
         - CC=<compiler> python setup.py build_ext
     """
-    dist = Distribution({'script_name': os.path.basename(sys.argv[0]),
-                         'script_args': sys.argv[1:],
-                         'cmdclass': {'config_cc': config_cc}})
+
+    dist = Distribution({
+        'script_name': os.path.basename(sys.argv[0]),
+        'script_args': sys.argv[1:],
+        'cmdclass': {'config_cc': config_cc}
+    })
+
     dist.parse_config_files()
     dist.parse_command_line()
 
@@ -56,10 +62,44 @@ def get_compiler():
     if cmd_opts is not None and 'compiler' in cmd_opts:
         compiler = cmd_opts['compiler'][1]
     else:
+        if sys.platform == "darwin":
+            os.environ['CC'] = 'clang'
+            os.environ['CXX'] = 'clang++'
         compiler = None
 
     ccompiler = new_compiler(compiler=compiler)
     customize_compiler(ccompiler)
+
+    # -----
+    # print
+
+    lstr = '\n'.join([
+        str((ss, getattr(ccompiler, ss)))
+        for ss in [
+            'compiler', 'compiler_cxx', 'compiler_so', 'compiler_type',
+            'executables', 'language_map', 'language_order', 'linker_exe',
+            'linker_so', 'obj_extension', 'preprocessor',
+            'shared_lib_extension', 'src_extensions',
+        ]
+    ])
+    msg = (
+        "\n--------------------"
+        "\nopenmp_helpers.py:"
+        + f"\nsys.platform = {sys.platform}"
+        + f"\nos.name = {sys.platform}"
+        + f"\nshow_compilers = {distutils.ccompiler.show_compilers()}"
+        f"\nscript_name = {os.path.basename(sys.argv[0])}"
+        f"\nscript_args = {sys.argv[1:]}"
+        f"\nconfig_cc = \n{config_cc}"
+        f"\ndist = {dist}"
+        f"\ncmd_opts = {cmd_opts}"
+        f"\ncompiler = {compiler}"
+        f"\nccompiler = {ccompiler}"
+        f"\ndir(ccompiler) = \n{lstr}"
+        "\n"
+    )
+    print(msg)
+
     return ccompiler
 
 
@@ -87,7 +127,8 @@ def get_openmp_flag(compiler):
     elif sys.platform == "darwin" and 'openmp' in os.getenv('CPPFLAGS', ''):
         return ['-openmp']
     # Default flag for GCC and clang:
-    return ['-fopenmp']
+    # return ['-fopenmp']
+    return ['-openmp']
 
 
 def check_for_openmp():
@@ -119,14 +160,22 @@ def check_for_openmp():
 
     try:
         with open(filename, "w") as file:
-            file.write(omp_source)
+            ret = file.write(omp_source)
+            print(f"file.write({omp_source}) -> {ret}")
         with open(os.devnull, "w") as fnull:
-            result = subprocess.call(
-                [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull,
-                shell=is_platform_windows()
+            # result = subprocess.call(
+                # [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull,
+                # shell=is_platform_windows()
+            # )
+            result = subprocess.run(
+                [compiler] + flag_omp + [filename],
+                shell=is_platform_windows(),
+                capture_output=True
             )
-    except subprocess.CalledProcessError:
-        result = -1
+            print(f"subprocess.call(..) -> {result}")
+    except subprocess.CalledProcessError as err:
+        result = err    # -1
+        print("except")
 
     finally:
         # in any case, go back to previous cwd and clean up
@@ -134,6 +183,10 @@ def check_for_openmp():
         shutil.rmtree(tmpdir)
         if not result == 0:
             flag_omp = []
+            # raise result        # DB
+
+    print(f"\nreturning {result}, {flag_omp}")
+
     return result, flag_omp
 
 

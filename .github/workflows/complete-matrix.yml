@@ -13,11 +13,17 @@ jobs:
 
     strategy:
       matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9']
+        os: [macOS-latest]  # , ubuntu-latest, windows-latest]
+        python-version: ['3.7'] #, '3.8', '3.9']
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install LLVM and Clang
+      run: |
+         # brew uninstall --ignore-dependencies gcc
+         brew reinstall llvm
+         brew reinstall libomp
+      if: contains(matrix.os, 'macOS')
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -36,6 +42,23 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
+        #export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"
+        #echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> /Users/runner/.bash_profile
+        #export LDFLAGS="-L/usr/local/opt/llvm/lib"
+        #export CPPFLAGS="-I/usr/local/opt/llvm/include"
+        #export CFLAGS+="-I/usr/lib/gcc/x86_64-linux-gnu/4.8/include/"
+        #export CPP=/usr/local/opt/llvm/bin/clang
+        #export CC=/usr/local/bin/clang
+        #export CFLAGS=-I${HOME}/include
+        #export LDFLAGS=-lboost
+        # export LDSHARED=/usr/local/bin/clang -shared
+        echo "CFLAGS: $CFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "CC: $CC"
+        echo "CXX: $CXX"
+        echo "CPP: $CPP"
+        echo "CPPFLAGS: $CPPFLAGS"
+        echo "LDSHARED: $LDSHARED"
         pip install -e ".[dev]" --no-build-isolation
     - name: Test with pytest and coverage
       run: |

@@ -36,8 +36,8 @@ class SolidAngle:
     # Attributes reckognized by asv
 
     # time before benchmark is killed
-    timeout = 500
-    repeat = (1, 10, 20.0)
+    timeout = 10
+    repeat = (1, 1, 20)
     sample_time = 0.100
 
     # -------------------------------------------------------
