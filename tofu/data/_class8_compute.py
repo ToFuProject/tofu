@@ -667,17 +667,17 @@ def _dplot_check(
         types=(float, int),
         sign='>= 0.'
     )
-    
+
     # ---------------
     # dx0, dx1
-    
+
     # dx0
     dx0 = float(ds._generic_check._check_var(
         dx0, 'dx0',
         types=(int, float),
         default=0.,
     ))
-    
+
     # dx1
     dx1 = float(ds._generic_check._check_var(
         dx1, 'dx1',

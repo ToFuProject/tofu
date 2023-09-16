@@ -28,11 +28,15 @@ _LALLOWED_AXESTYPES = [
 
 def _check_dax(dax=None, main=None):
 
-    # None
+    # ------------
+    # trivial case
+
     if dax is None:
         return dax
 
-    # Axes
+    # -------------
+    # Axes provided
+
     if issubclass(dax.__class__, plt.Axes):
         if main is None:
             msg = (
@@ -41,7 +45,9 @@ def _check_dax(dax=None, main=None):
         else:
             return {main: dax}
 
-    # dict
+    # --------------
+    # check dict
+
     c0 = (
         isinstance(dax, dict)
         and all([
@@ -53,7 +59,7 @@ def _check_dax(dax=None, main=None):
                 or (
                     isinstance(v0, dict)
                     and issubclass(v0.get('handle').__class__, plt.Axes)
-                    and v0.get('type') in _LALLOWED_AXESTYPES
+                    # and v0.get('type') in _LALLOWED_AXESTYPES
                 )
             )
             for k0, v0 in dax.items()
@@ -64,6 +70,9 @@ def _check_dax(dax=None, main=None):
         )
         import pdb; pdb.set_trace()     # DB
         raise Exception(msg)
+
+    # --------------
+    # make dict
 
     for k0, v0 in dax.items():
         if issubclass(v0.__class__, plt.Axes):
