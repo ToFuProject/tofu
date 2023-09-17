@@ -51,7 +51,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
-        conda build conda_recipe/
+        conda build -c conda-forge conda_recipe/
         conda install --use-local tofu
     - name: Test with pytest and coverage
       run: |
