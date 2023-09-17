@@ -1,4 +1,4 @@
-name: Complete testing matrix
+name: Conda package
 
 on:
   push:
@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
          $CONDA/bin/conda config --append channels conda-forge
-         $CONDA/bin/conda install flake8 pytest coverage 
+         # $CONDA/bin/conda install flake8 pytest coverage 
          $CONDA/bin/conda install --file requirements.txt 
     - name: Lint with flake8
       run: |
