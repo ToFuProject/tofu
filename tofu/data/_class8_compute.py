@@ -1126,7 +1126,7 @@ def _get_data(
     # basic check on data
     if data is not None:
         lquant = ['etendue', 'amin', 'amax']  # 'los'
-        lcomp = ['length', 'tangency radius', 'alpha']
+        lcomp = ['length', 'tangency radius', 'alpha', 'alpha_pixel']
         if spectro:
             llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
             lvos = ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']
@@ -1292,6 +1292,22 @@ def _get_data(
             if data in ['length', 'tangency radius']:
                 units = 'm'
             else:
+                units = 'rad'
+
+        elif data == 'alpha_pixel':
+            for cc in key_cam:
+
+                klos = coll.dobj['diagnostic'][key]['doptics'][cc]['los']
+                vectx, vecty, vectz = coll.get_rays_vect(klos)
+                dvect = coll.get_camera_unit_vectors(cc)
+                sca = (
+                    dvect['nin_x'] * vectx
+                    + dvect['nin_y'] * vecty
+                    + dvect['nin_z'] * vectz
+                )
+
+                ddata[cc] = np.arccos(sca)
+                dref[cc] = coll.dobj['camera'][cc]['dgeom']['ref']
                 units = 'rad'
 
     elif data in lsynth:
