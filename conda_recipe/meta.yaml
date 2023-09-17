@@ -20,26 +20,25 @@ requirements:
     - setuptools >=40.8.0
     - setuptools_scm
     - numpy
-    - scipy
-    - matplotlib
     - Cython >=0.26
     - pytest
-    - pygments
+    # - pygments
 
 
   # for running the library
   run:
     - python
-    - setuptools
-    - setuptools_scm
     - numpy
     - scipy
     - matplotlib
+      contourpy
     - Cython >=0.26
-    - pytest
-    - pygments
+    # - pygments
     - requests
     - svg.path
+    - Polygon3
+    - bsplines2d >= 0.0.6
+    - pytest
     # - scikit-sparse   # not available on Windows
     # - scikit-umfpack  # not available on Windows
 
@@ -47,7 +46,7 @@ test:
   requires:
     - pytest
   imports:
-    - tofu.geom
+    - tofu
 
 about:
   home: https://github.com/ToFuProject/tofu
