@@ -17,11 +17,13 @@ jobs:
         python-version: ['3.9']
 
     steps:
+
     - uses: actions/checkout@v2
     #- name: Set up Python ${{ matrix.python-version }}
       #uses: actions/setup-python@v2
       #with:
         #python-version: ${{ matrix.python-version }}
+
     - name: Setup Miniconda
       uses: conda-incubator/setup-miniconda@v2
       with:
@@ -46,7 +48,7 @@ jobs:
          # $CONDA/bin/conda env update --name base --file requirements.txt 
          # conda install numpy scipy matplotlib contourpy requests Cython>=0.26
          # $CONDA/bin/conda config --append channels conda-forge
-         conda install -c conda-forge svg.path polygon3 bsplines2d
+         # conda install -c conda-forge svg.path polygon3 bsplines2d
 
     - name: Lint with flake8
       run: |
