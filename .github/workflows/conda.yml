@@ -37,7 +37,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-         conda install flake8 pytest coverage numpy scipy matplotlib contourpy requests Cython>=0.26
+         conda install conda-build flake8 pytest coverage numpy scipy matplotlib contourpy requests Cython>=0.26
          echo "----------  Update  ------------"
          # $CONDA/bin/conda env update --name base --file requirements.txt 
          # conda install numpy scipy matplotlib contourpy requests Cython>=0.26
