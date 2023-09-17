@@ -30,7 +30,7 @@ jobs:
       run: |
          $CONDA/bin/conda config --append channels conda-forge
          $CONDA/bin/conda install flake8 pytest coverage 
-         $CONDA/bin/conda env update --file requirements.txt
+         $CONDA/bin/conda install --file requirements.txt 
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
