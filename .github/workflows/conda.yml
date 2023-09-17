@@ -41,10 +41,12 @@ jobs:
 
     - name: Install dependencies
       run: |
-         $CONDA/bin/conda config --append channels conda-forge
          $CONDA/bin/conda install flake8 pytest coverage
          echo "----------  Update  ------------"
-         $CONDA/bin/conda env update --name base --file requirements.txt 
+         # $CONDA/bin/conda env update --name base --file requirements.txt 
+         $CONDA/bin/conda install numpy scipy matplotlib contourpy requests Cython>=0.26
+         # $CONDA/bin/conda config --append channels conda-forge
+         $CONDA/bin/conda install -c conda-forge svg.path polygon3 bsplines2d
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
