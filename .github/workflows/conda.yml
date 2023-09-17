@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
          $CONDA/bin/conda config --append channels conda-forge
-         $CONDA/bin/conda install flake8, pytest, coverage 
+         $CONDA/bin/conda install flake8 pytest coverage 
          $CONDA/bin/conda env update --file requirements.txt
     - name: Lint with flake8
       run: |
@@ -39,7 +39,8 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
-        pip install -e ".[dev]" --no-build-isolation
+        conda build conda_recipe/
+        conda install --use-local tofu
     - name: Test with pytest and coverage
       run: |
               coverage run --source=tofu/ -m pytest tofu/tests -v -x --durations=10
