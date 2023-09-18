@@ -579,7 +579,7 @@ def _CrystalBragg_plot(
             dax['3d'].quiver(
                 p0[0, :], p0[1, :], p0[2, :],
                 v[0, :], v[1, :], v[2, :],
-                c=np.r_[0., 0.5, 1.],
+                # c=np.r_[0., 0.5, 1.],
                 length=0.1,
                 normalize=True,
                 cmap=quiver_cmap,
