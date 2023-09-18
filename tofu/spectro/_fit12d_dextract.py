@@ -462,12 +462,23 @@ def fit1d_extract(
         k0=None,
         k1=None,
         d3=d3,
+        dinput=dfit1d['dinput'],
         dind=dind,
         sol_x=dfit1d['sol_x'],
         scales=dfit1d['scales'],
     ):
         ind = dind[d3[k0]['field']][k1][0, d3[k0][k1]['ind']]
-        return sol_x[:, ind] * scales[:, ind]
+        coefs = sol_x[:, ind] * scales[:, ind]
+
+        # rebuild from constraints
+        if k0 in ['amp', 'width', 'shift']:
+            if k1 == 'lines':
+                coefs[...] = (
+                    coefs[...] * dinput[k0]['coefs'][None, :]
+                    + dinput[k0]['offset'][None, :]
+                )
+
+        return coefs
 
     # -------------------
     # Prepare output
@@ -697,6 +708,7 @@ def fit2d_extract(
         k1=None,
         indtok=dfit2d['validity'] == 0,
         phi_prof2=phi_prof2,
+        dinput=dfit2d['dinput'],
         d3=d3,
         nspect=nspect,
         BS=BS,
@@ -713,9 +725,18 @@ def fit2d_extract(
         # coefs
         shape = tuple(np.r_[nspect, ind.shape])
         coefs = np.full(shape, np.nan)
-        coefs[indtok, :] = (
+
+        coefs[indtok, ...] = (
             sol_x[indtok, ...][:, ind] * scales[indtok, ...][:, ind]
         )
+
+        # rebuild from constraints
+        if k0 in ['amp', 'width', 'shift']:
+            if k1 == 'lines':
+                coefs[indtok, ...] = (
+                    coefs[indtok, ...] * dinput[k0]['coefs'][None, :]
+                    + dinput[k0]['offset'][None, :]
+                )
 
         # values at phi_prof
         shape = tuple(np.r_[nspect, phi_prof2.size, ind.shape[1]])
