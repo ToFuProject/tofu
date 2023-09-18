@@ -34,20 +34,9 @@ jobs:
     - name: Build sdist
       run: |
         python setup.py sdist
-    - name: Build manylinux Python wheels
-      uses: RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2010_x86_64
-      with:
-        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
-        build-requirements: 'cython numpy'
     - name: Publish source to PyPI
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
         twine upload dist/*.tar.gz
-    - name: Publish wheels to PyPI
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: |
-        twine upload dist/*-manylinux*.whl
