@@ -154,6 +154,7 @@ class Diagnostic(Previous):
         data=None,
         rocking_curve=None,
         units=None,
+        default=None,
         **kwdargs,
         ):
         """ Return dict of data for chosen cameras
@@ -176,6 +177,7 @@ class Diagnostic(Previous):
             data=data,
             rocking_curve=rocking_curve,
             units=units,
+            default=default,
             **kwdargs,
         )
 
@@ -1070,6 +1072,7 @@ class Diagnostic(Previous):
         vect_length=None,
         dx0=None,
         dx1=None,
+        default=None,
     ):
         """ Return a dict with all that's necessary for plotting
 
@@ -1114,6 +1117,7 @@ class Diagnostic(Previous):
             vect_length=vect_length,
             dx0=dx0,
             dx1=dx1,
+            default=default,
         )
 
     def plot_diagnostic(

@@ -613,11 +613,16 @@ def _dplot_check(
     axis_length=None,
     dx0=None,
     dx1=None,
+    default=None,
 ):
     # -----
     # key
 
-    key, key_cam = coll.get_diagnostic_cam(key, key_cam)
+    key, key_cam = coll.get_diagnostic_cam(
+        key,
+        key_cam,
+        default=default,
+    )
 
     # ------
     # optics
@@ -703,6 +708,7 @@ def _dplot(
     axis_length=None,
     dx0=None,
     dx1=None,
+    default=None,
 ):
 
     # ------------
@@ -722,6 +728,7 @@ def _dplot(
         axis_length=axis_length,
         dx0=dx0,
         dx1=dx1,
+        default=default,
     )
 
     # ------------
@@ -1115,11 +1122,16 @@ def _get_data(
     data=None,
     rocking_curve=None,
     units=None,
+    default=None,
     **kwdargs,
 ):
 
     # key, key_cam
-    key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
+    key, key_cam = coll.get_diagnostic_cam(
+        key=key,
+        key_cam=key_cam,
+        default=default,
+    )
     spectro = coll.dobj['diagnostic'][key]['spectro']
     # is2d = coll.dobj['diagnostic'][key]['is2d']
 
