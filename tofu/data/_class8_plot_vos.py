@@ -1014,7 +1014,7 @@ def _get_dax(
     # Create figure
 
     fig = plt.figure(figsize=fs)
-    fig.canvas.set_window_title(wintit)
+    fig.canvas.manager.set_window_title(wintit)
     fig.suptitle(tit, size=12, fontweight='bold')
 
     if is2d:
