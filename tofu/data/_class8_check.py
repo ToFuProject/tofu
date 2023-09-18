@@ -73,7 +73,7 @@ def _diagnostics_check(
             for k0, v0 in doptics.items()
             if k0 not in lcam
             or any([k1 not in lop for k1 in v0])
-            }
+        }
         if len(dkout) > 0:
             err = True
 
@@ -94,7 +94,7 @@ def _diagnostics_check(
     # types of camera
 
     lcam = list(doptics.keys())
-    types = [coll.dobj['camera'][k0]['dgeom']['type'] for k0 in lcam]
+    types = [coll.dobj['camera'][k0]['dgeom']['nd'] for k0 in lcam]
 
     if len(set(types)) > 1:
         msg = (
@@ -126,7 +126,6 @@ def _diagnostics_check(
                 cls = 'grating'
 
             dgeom = coll.dobj[cls][oo]['dgeom']
-
             px, py, pz = coll.get_optics_poly(key=oo)
 
             dgeom_lastref = coll.dobj[last_ref_cls][last_ref]['dgeom']
@@ -143,9 +142,12 @@ def _diagnostics_check(
                 if np.any(iout):
                     msg = (
                         f"diag '{key}':\n"
-                        f"The following points of aperture '{oo}' are on the wrong"
-                        f"side of lastref '{cam}':\n"
-                        f"{iout.nonzero()[0]}"
+                        f"The following points of {cls} '{oo}' are on the wrong"
+                        f"side of lastref {last_ref_cls} '{last_ref}':\n"
+                        f"{iout.nonzero()[0]}\n\n"
+                        f"'{oo}':\n{dgeom}\n\n"
+                        f"'{last_ref}':\n{dgeom_lastref}\n\n"
+                        
                     )
                     raise Exception(msg)
 

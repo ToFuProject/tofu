@@ -103,6 +103,14 @@ def _surface3d(
             return_area=True,
         )
 
+        # if rectangle, try to derive extenthalf and r_curve
+        if np.unique(outline_x0).size == 2:
+            if np.unique(outline_x1).size == 2:
+                dx0 = outline_x0.max() - outline_x0.min()
+                dx1 = outline_x1.max() - outline_x1.min()
+                extenthalf = [dx0*0.5, dx1*0.5]
+                curve_r = [np.inf, np.inf]
+
         # derive poly 3d
         # poly_x = cent[0] + outline_x0 * e0[0] + outline_x1 * e1[0]
         # poly_y = cent[1] + outline_x0 * e0[1] + outline_x1 * e1[1]
@@ -300,9 +308,9 @@ def _get_curved_poly(
         rc = curve_r[0]
         rcs = np.sign(rc)
         rca = np.abs(rc)
-        
+
         centbis = cent + rc * nin
-        dtheta, psi = outline_x0, outline_x1
+        psi, dtheta = outline_x0, outline_x1
 
         vpsix = np.cos(psi) * (-rcs*nin[0]) + np.sin(psi) * e0[0]
         vpsiy = np.cos(psi) * (-rcs*nin[1]) + np.sin(psi) * e0[1]
@@ -318,7 +326,7 @@ def _get_curved_poly(
 
     # toroidal
     elif gtype == 'toroidal':
-        
+
         imax = np.argmax(np.abs(curve_r))
         imin = 1 - imax
         rmax = curve_r[imax]
@@ -355,10 +363,10 @@ def _get_curved_poly(
     return poly_x, poly_y, poly_z
 
 
-# #################################################################
-# #################################################################
+# ###############################################################
+# ###############################################################
 #               outline from poly 3d
-# #################################################################
+# ###############################################################
 
 
 def _get_outline_from_poly(

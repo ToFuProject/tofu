@@ -4,6 +4,7 @@
 import numpy as np
 
 
+import matplotlib.pyplot as plt
 import Polygon as plg
 
 
@@ -34,6 +35,10 @@ def _get_reflection(
     ptsvect_poly=None,
     # timing
     dt=None,
+    # debug
+    ii=None,
+    ij=None,
+    jj=None,
 ):
 
     # -------------------
@@ -56,7 +61,7 @@ def _get_reflection(
     )[3:]
 
     if not np.any(iok):
-        # print('iok')
+        # print(ii, ij, 'iok', '\n')      # DB
         return None, None
 
     # project on target plane
@@ -72,35 +77,47 @@ def _get_reflection(
     )[-2:]
 
     pa = plg.Polygon(np.array([poly_x0, poly_x1]).T)
+    all_inside = np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)])
+    p_a = pa & plg.Polygon(np.array([p0, p1]).T)
+    pts3 = p_a.nPoints() < 3
+
+    # ----------- DEBUG ---------------------
+    # if ij in [236, 239, 387]:
+    #     plt.figure()
+    #     plt.gcf().suptitle(f"ii = {ii}, ij = {ij}, projection on aperture plane\n")
+    #     plt.plot(
+    #         np.r_[poly_x0, poly_x0[0]],
+    #         np.r_[poly_x1, poly_x1[0]],
+    #         '.-k',
+    #         p0, p1,
+    #         '.-r',
+    #     )
+    #     if not pts3:
+    #         plt.plot(
+    #             np.array(p_a.contour(0))[:, 0],
+    #             np.array(p_a.contour(0))[:, 1],
+    #             '.-b',
+    #         )
+
+    #     msg = (
+    #         f"all inside: {all_inside}\n"
+    #         f"npts:  {p_a.nPoints()}"
+    #     )
+    #     plt.gca().set_title(msg)
+    #     print('\n', pa & plg.Polygon(np.array([p0, p1]).T), '\n')
+    # -----------------------------------------
 
     # isinside
-    if np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
+    if all_inside:
         return x0, x1
 
     # intersection
-    p_a = pa & plg.Polygon(np.array([p0, p1]).T)
-    if p_a.nPoints() < 3:
-        # print('pts < 3')
+    if pts3:
+        # print(ii, ij, 'pts < 3\n')      # DB
         return None, None
 
-    # plt.figure()
-    # plt.plot(
-        # poly_x0, poly_x1, '.-k',
-        # p0, p1, '.-r',
-    # )
-
+    # get outline on aperture plane
     p0, p1 = np.array(p_a.contour(0)).T
-
-    # interpolate to add points
-    if p0.size < 50:
-        p0, p1 = _class8_compute._interp_poly(
-            lp=[p0, p1],
-            add_points=add_points,
-            mode='min',
-            isclosed=False,
-            closed=False,
-            ravel=True,
-        )
 
     # back to 3d
     px, py, pz = coord_x01toxyz_poly(x0=p0, x1=p1)
@@ -130,6 +147,7 @@ def _get_reflection(
 # ##############################################################
 #           Global to local coordinates
 # ##############################################################
+
 
 # DEPRECATED ????
 # def _get_project_plane(

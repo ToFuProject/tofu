@@ -1789,7 +1789,7 @@ def _ind_tofrom_key(
             and (
                 (ind.dtype == np.bool and ind.size == len(dd))
                 or (
-                    ind.dtype == np.int
+                    ind.dtype == int
                     and np.all(np.isfinite(ind))
                     and np.max(ind) <= len(dd)
                 )

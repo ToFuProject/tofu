@@ -81,9 +81,11 @@ def _plot_geometry_matrix_check(
         indt = 0
 
     # plot_mesh
+    wm = coll._which_mesh
     plot_mesh = ds._generic_check._check_var(
         plot_mesh, 'plot_mesh',
-        default=coll.dobj[coll._which_mesh][keym]['type'] != 'polar',
+        # default=coll.dobj[wm][keym]['type'] != 'polar',
+        default=False,
         types=bool,
     )
 
@@ -272,6 +274,7 @@ def _plot_geometry_matrix_prepare(
         nan0=True,
         details=True,
         return_params=False,
+        store=False,
     )[f'{keybs}_details']['data']
 
     gmat0 = coll.ddata[key_data[0]]['data']
@@ -292,14 +295,21 @@ def _plot_geometry_matrix_prepare(
     if axis_other is not None:
         coefstot = coefstot.take(indt, axis=axis_other)
 
-    bsplinetot = np.nansum(bsplinebase * coefstot[None, None, :], axis=-1)
+    bsplinetot = np.full(bsplinebase.shape[:-1], np.nan)
+    for ii in range(bsplinebase.shape[0]):
+        for jj in range(bsplinebase.shape[1]):
+            bsplinetot[ii, jj] = np.sum(bsplinebase[ii, jj, :] * coefstot)
 
     # bsplinedet
     gmat0 = gmat0.take(indchan, axis=axis_chan)
     if axis_other is not None:
         axo = axis_other - 1 if axis_other > axis_chan else axis_other
         gmat0 = gmat0.take(indt, axis=axo)
-    bsplinedet = np.nansum(bsplinebase * gmat0[None, None, :], axis=-1)
+
+    bsplinedet = np.full(bsplinebase.shape[:-1], np.nan)
+    for ii in range(bsplinebase.shape[0]):
+        for jj in range(bsplinebase.shape[1]):
+            bsplinedet[ii, jj] = np.sum(bsplinebase[ii, jj, :] * gmat0)
 
     # --------
     # LOS

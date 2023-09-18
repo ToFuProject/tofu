@@ -515,6 +515,10 @@ class Test01_Diagnostic():
         for k0, v0 in dcrystals.items():
 
             for ii, cc in enumerate(dconfig[k0]):
+
+                apdim = [100e-6, 8e-2] if cc != 'pinhole' else None
+                pinrad = 500e-6 if cc == 'pinhole' else None
+
                 loptics = self.obj.get_crystal_ideal_configuration(
                     key=k0,
                     configuration=cc,
@@ -522,12 +526,12 @@ class Test01_Diagnostic():
                     cam_on_e0=False,
                     cam_tangential=True,
                     cam_dimensions=[8e-2, 5e-2],
-                    pinhole_distance=2.,
+                    focal_distance=2.,
                     # store
                     store=True,
                     key_cam=f'{k0}-cam{ii}',
-                    aperture_dimensions=[100e-6, 8e-2],
-                    pinhole_radius=500e-6,
+                    aperture_dimensions=apdim,
+                    pinhole_radius=pinrad,
                     cam_pixels_nb=[5, 3],
                     # returnas
                     returnas=list,
@@ -596,3 +600,26 @@ class Test01_Diagnostic():
             )
             plt.close('all')
             del dax
+
+    def test04_sinogram(self):
+
+        lrays = list(self.obj.dobj['rays'].keys())
+        ldiag = [
+            k0 for k0, v0 in self.obj.dobj['diagnostic'].items()
+            if any([v1.get('los') is not None for v1 in v0['doptics'].values()])
+        ]
+        lk = [lrays] + ldiag
+        for ii, k0 in enumerate(lk):
+            dout, dax = self.obj.get_sinogram(
+                key=k0,
+                ang='theta' if ii % 2 == 0 else 'xi',
+                ang_units='deg' if ii % 3 == 0 else 'radian',
+                impact_pos=ii % 3 != 0,
+                R0=2.4 if ii % 3 != 1 else None,
+                config=None if ii % 3 != 1 else self.conf,
+                pmax=None if ii % 3 == 0 else 5,
+                plot=True,
+            )
+            plt.close('all')
+            del dax
+

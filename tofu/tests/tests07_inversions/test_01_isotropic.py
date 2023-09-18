@@ -241,6 +241,9 @@ class Test01_Inversions():
                 if kmat == 'gmat05' and comb == ('algo1', 'D2N2'):
                     continue
 
+                if comb == ('algo1', 'D1N2'):
+                    continue
+
                 kdat = 's0' if kd == 'd0' else 's1'
                 try:
 

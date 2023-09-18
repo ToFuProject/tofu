@@ -174,7 +174,7 @@ def _camera_1d_check(
         raise Exception(msg)
 
     # particular case: scalar because common to all
-    c0 = all([np.isscalar(vv[1]) for vv in lv])
+    c0 = all([np.isscalar(vv[1]) or np.array(vv[1]).size == 1 for vv in lv])
     if c0:
         parallel = True
         nin, e0, e1 = ds._generic_check._check_vectbasis(
@@ -414,7 +414,8 @@ def _camera_1d(
         'camera': {
             key: {
                 'dgeom': {
-                    'type': '1d',
+                    'type': '',
+                    'nd': '1d',
                     'parallel': parallel,
                     'shape': (npix,),
                     'ref': (knpix,),
@@ -616,6 +617,12 @@ def _camera_2d_check(
         dim=3,
     )
 
+    # extenthalf for compatibility with other surfaces
+    extenthalf = [
+        0.5*(outline_x0.max() - outline_x0.min()),
+        0.5*(outline_x1.max() - outline_x1.min()),
+    ]
+
     return (
         key,
         outline_x0, outline_x1,
@@ -624,6 +631,7 @@ def _camera_2d_check(
         cents_x0, cents_x1,
         npix0, npix1,
         nin, e0, e1,
+        extenthalf,
     )
 
 
@@ -654,6 +662,7 @@ def _camera_2d(
         cents_x0, cents_x1,
         npix0, npix1,
         nin, e0, e1,
+        extenthalf,
     ) = _camera_2d_check(
         coll=coll,
         key=key,
@@ -735,7 +744,8 @@ def _camera_2d(
         'camera': {
             key: {
                 'dgeom': {
-                    'type': '2d',
+                    'type': 'planar',
+                    'nd': '2d',
                     'parallel': True,
                     'shape': (npix0, npix1),
                     'ref': (knpix0, knpix1),
@@ -748,6 +758,7 @@ def _camera_2d(
                     'nin': nin,
                     'e0': e0,
                     'e1': e1,
+                    'extenthalf': extenthalf,
                 },
             },
         },
@@ -983,7 +994,7 @@ def get_camera_cents_xyz(coll=None, key=None):
     # get unit vector components
 
     dgeom = coll.dobj['camera'][key]['dgeom']
-    if dgeom['type'] == '1d':
+    if dgeom['nd'] == '1d':
         cx = coll.ddata[dgeom['cents'][0]]['data']
         cy = coll.ddata[dgeom['cents'][1]]['data']
         cz = coll.ddata[dgeom['cents'][2]]['data']
@@ -1008,57 +1019,3 @@ def get_camera_cents_xyz(coll=None, key=None):
         )
 
     return cx, cy, cz
-
-
-def get_camera_2d_outline(coll=None, key=None, closed=None):
-
-    # ---------
-    # check key
-
-    lok = [
-        k0 for k0, v0 in coll.dobj.get('camera', {}).items()
-        if v0['dgeom']['type'] == '2d'
-    ]
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
-    
-    # closed
-    closed = ds._generic_check._check_var(
-        closed, 'closed',
-        types=bool,
-        default=False,
-    )
-
-    # ------------------
-    # prepare
-
-    dgeom = coll.dobj['camera'][key]['dgeom']
-
-    # camera nb pixels and pixel outline
-    n0, n1 = dgeom['shape']
-    kout0, kout1 = dgeom['outline']
-    out0 = coll.ddata[kout0]['data']
-    out1 = coll.ddata[kout1]['data']
-    
-    # ------------------
-    # get total outline
-    
-    # assuming pixels are rectangular
-    dx0 = out0.max() - out0.min()
-    dx1 = out1.max() - out1.min()
-    
-    # indices
-    ind0 = np.r_[-1, 1, 1, -1, -1]
-    ind1 = np.r_[-1, -1, 1, 1, -1]
-    if closed is True:
-        ind0 = np.r_[ind0, ind0[0]]
-        ind1 = np.r_[ind1, ind1[0]]
-        
-    # outline total
-    out_tot0 = dx0 * (n0/2.) * ind0
-    out_tot1 = dx1 * (n1/2.) * ind1
-    
-    return out_tot0, out_tot1

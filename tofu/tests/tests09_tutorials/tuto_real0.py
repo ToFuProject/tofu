@@ -4,10 +4,16 @@ Creating and using diagnostic
 
 """
 
+
+import os
+import copy
 import numpy as np
 
 
 import tofu as tf
+
+
+_PATH_HERE = os.path.dirname(__file__)
 
 
 __all__ = ['main']
@@ -30,21 +36,28 @@ def main():
     # add several diagnostics
 
     # add broadband
-    _add_broadband(coll, conf)
+    _add_broadband(coll, conf, vos=True)
 
     # add 2d camera
-    # _add_2d(coll, conf)
+    _add_2d(coll, conf)
 
     # add PHA
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    # _add_spectrometer(coll, conf) # , crystals=['c0'])
+    _add_spectrometer(coll, conf, vos=True)   # , crystals=['c0'])
+
+    # add spectro-like without crystal
+    # _add_spectrometer_like(coll, config=conf, key_diag='d02')
 
     # ------------------------
     # compute synthetic signal
 
-    # _compute_synth_signal(coll) # , ldiag=['diag00'])
+    _compute_synth_signal(
+        coll,
+        ldiag=['d01'],
+        spectral_binning=True,
+    )
 
     # ------------------
     # geometry matrices
@@ -78,11 +91,19 @@ def _create_plasma():
 
     coll.add_mesh_2d_rect(
         key='m0',
-        res=0.1,
+        res=0.10,
         crop_poly=conf,
         units='m',
         deg=1,
     )
+
+    # coll.add_mesh_2d_rect(
+        # key='m1',
+        # res=0.03,
+        # crop_poly=conf,
+        # units='m',
+        # deg=0,
+    # )
 
     # --------
     # add time
@@ -196,41 +217,42 @@ def _create_plasma():
 def _add_broadband(
     coll=None,
     conf=None,
+    vos=None,
 ):
 
     # ---------------------
     # add 2 pinhole cameras
 
-    coll.add_camera_pinhole(
-        key='bb0',
-        key_pinhole=None,
-        key_diag='d0',
-        cam_type='1d',
-        R=3.2,
-        z=-0.5,
-        phi=0,
-        theta=3.*np.pi/4,
-        dphi=np.pi/10,
-        tilt=np.pi/2,
-        focal=0.1,
-        pix_nb=10,
-        pix_size=3e-3,
-        pix_spacing=5e-3,
-        pinhole_radius=None,
-        pinhole_size=[1e-3, 1e-3],
-        reflections_nb=0,
-        reflections_type=None,
-        compute=False,
-        config=conf,
-    )
+    # coll.add_camera_pinhole(
+        # key='bb0',
+        # key_pinhole=None,
+        # key_diag='d0',
+        # cam_type='1d',
+        # R=3.3,
+        # z=-0.6,
+        # phi=0,
+        # theta=3.*np.pi/4,
+        # dphi=np.pi/10,
+        # tilt=np.pi/2,
+        # focal=0.1,
+        # pix_nb=10,
+        # pix_size=3e-3,
+        # pix_spacing=5e-3,
+        # pinhole_radius=None,
+        # pinhole_size=[1e-3, 1e-3],
+        # reflections_nb=0,
+        # reflections_type=None,
+        # compute=False,
+        # config=conf,
+    # )
 
     coll.add_camera_pinhole(
         key='bb1',
         key_pinhole=None,
         key_diag='d0',
         cam_type='1d',
-        R=3.2,
-        z=0.5,
+        R=3.3,
+        z=0.6,
         phi=0,
         theta=-3.*np.pi/4,
         dphi=np.pi/10,
@@ -246,6 +268,16 @@ def _add_broadband(
         compute=True,
         config=conf,
     )
+
+    if vos is True:
+        coll.compute_diagnostic_vos(
+            'd0',
+            key_mesh='m0',
+            res_RZ=0.01,
+            res_phi=0.01,
+            visibility=False,
+            store=True,
+        )
 
     return
 
@@ -263,17 +295,17 @@ def _add_2d(
         key_diag='d1',
         key_pinhole=None,
         cam_type='2d',
-        R=3.2,
-        z=-0.5,
+        R=3.3,
+        z=-0.6,
         phi=0,
         theta=3.*np.pi/4,
-        dphi=np.pi/10,
+        dphi=np.pi/6,
         tilt=np.pi/2,
         focal=0.1,
-        pix_nb=15,
-        pix_size=3e-3,
+        pix_nb=[5, 3],
+        pix_size=1e-3,
         pix_spacing=5e-3,
-        pinhole_radius=1e-2,
+        pinhole_radius=5e-3,
         pinhole_size=None,
         reflections_nb=0,
         reflections_type=None,
@@ -318,10 +350,133 @@ def _add_PHA(
     return
 
 
+def _add_spectrometer_like(
+    coll=None,
+    config=None,
+    key_diag=None,
+):
+
+    # --------
+    # aperture
+
+    doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+    key_cam = list(doptics.keys())[0]
+    kcryst, kslit = doptics[key_cam]['optics']
+
+    # ------------
+    # flat crystal
+
+    # dgeom
+    dgeom = copy.deepcopy({
+        k0: coll.dobj['crystal'][kcryst]['dgeom'][k0]
+        for k0 in ['cent', 'nin', 'e0', 'e1']
+    })
+    dgeom['curve_r'] = [np.inf, np.inf]
+    dgeom['extenthalf'] = 0.2 * np.r_[1, 1]
+
+    # dmat
+    dmat = copy.deepcopy({
+        k0: coll.dobj['crystal'][kcryst]['dmat'][k0]
+        for k0 in ['d_hkl', 'target', 'drock']
+    })
+
+    for k0 in ['angle_rel', 'power_ratio']:
+        dmat['drock'][k0] = coll.ddata[dmat['drock'][k0]]['data']
+
+    coll.add_crystal(
+        key='c0_flat',
+        dgeom=dgeom,
+        dmat=dmat,
+    )
+
+    # ---------------
+    # camera replica
+
+    # dgeom
+    dgeom = copy.deepcopy({
+        k0: coll.dobj['camera'][key_cam]['dgeom'][k0]
+        for k0 in ['cent', 'nin', 'e0', 'e1']
+    })
+    kout0, kout1 = coll.dobj['camera'][key_cam]['dgeom']['outline']
+    dgeom['outline_x0'] = coll.ddata[kout0]['data']
+    dgeom['outline_x1'] = coll.ddata[kout1]['data']
+    cx0, cx1 = coll.dobj['camera'][key_cam]['dgeom']['cents']
+    dgeom['cents_x0'] = coll.ddata[cx0]['data']
+    dgeom['cents_x1'] = coll.ddata[cx1]['data']
+
+    # add camera replica
+    coll.add_camera_2d(
+        key='c0_camf',
+        dgeom=dgeom,
+    )
+
+    # ---------------
+    # camera rotated
+
+    dgeom = copy.deepcopy(dgeom)
+
+    # bragg angle
+    cent = coll.dobj['crystal'][kcryst]['dgeom']['cent']
+    nin = coll.dobj['crystal'][kcryst]['dgeom']['nin']
+    e0 = coll.dobj['crystal'][kcryst]['dgeom']['e0']
+    e1 = coll.dobj['crystal'][kcryst]['dgeom']['e1']
+    ang = 2*coll.get_crystal_bragglamb('c0')[0]
+
+    # rotate cent
+
+    dv = (dgeom['cent'] - cent)
+    scain = np.sum(dv * nin)
+    sca0 = np.sum(dv * e0)
+    sca1 = np.sum(dv * e1)
+    assert np.abs(sca1) < 1e-8
+
+    dvbis = (
+        np.cos(ang) * (scain * nin + sca0 * e0)
+        + np.sin(ang) * (sca0 * nin - scain * e0)
+        + sca1 * e1
+    )
+    dgeom['cent'] = cent + dvbis
+
+    # unite vectors
+    for k0 in ['nin', 'e0', 'e1']:
+        scain = np.sum(dgeom[k0] * nin)
+        sca0 = np.sum(dgeom[k0] * e0)
+        sca1 = np.sum(dgeom[k0] * e1)
+        dgeom[k0] = (
+            np.cos(ang) * (scain * nin + sca0 * e0)
+            + np.sin(ang) * (sca0 * nin - scain * e0)
+            + sca1 * e1
+        )
+
+    # add rotated camera
+    coll.add_camera_2d(
+        key='c0_cam1',
+        dgeom=dgeom,
+    )
+
+    # -----------
+    # diagnostic
+
+    # flat crystal
+    coll.add_diagnostic(
+        doptics={'c0_camf': ['c0_flat', kslit]},
+        config=config,
+        compute=True,
+    )
+
+    # no crystal
+    coll.add_diagnostic(
+        doptics={'c0_cam1': [kslit]},
+        config=config,
+        compute=True,
+    )
+
+
 def _add_spectrometer(
     coll=None,
     conf=None,
     crystals=None,
+    vos=None,
 ):
 
     # ------------------
@@ -335,20 +490,26 @@ def _add_spectrometer(
 
     for k0, v0 in dcrystals.items():
 
+        if k0 != 'c0':
+            continue
+
         loptics = coll.get_crystal_ideal_configuration(
             key=k0,
             configuration=v0['configuration'],
             # parameters
             cam_on_e0=False,
             cam_tangential=True,
-            cam_dimensions=[5e-2, 3e-2],
-            pinhole_distance=2.,
+            cam_dimensions=np.r_[1028, 512]*75e-6,
+            focal_distance=2.,
+            defocus=0.,
+            # defocus=-1.5,
             # store
             store=True,
             key_cam=f'{k0}_cam',
             aperture_dimensions=[100e-6, 1e-2],
-            pinhole_radius=100e-6,
-            cam_pixels_nb=[10, 5],
+            pinhole_radius=100e-6 if v0['configuration'] == 'pinhole' else None,
+            cam_pixels_nb=[21, 11],
+            # cam_pixels_nb=[41, 41],
             # returnas
             returnas=list,
         )
@@ -369,9 +530,20 @@ def _add_spectrometer(
             config=conf,
             compute=True,
             add_points=3,
-            rocking_curve_fwhm=0.0001*np.pi/180,
-            # rocking_curve_fwhm=None,
+            rocking_curve_fwhm=0.0001*np.pi/180 if k0 == 'c2' else None,
         )
+
+        if vos is True:
+            coll.compute_diagnostic_vos(
+                list(coll.dobj['diagnostic'].keys())[-1],
+                key_mesh='m0',
+                res_RZ=[0.10, 0.01],
+                res_phi=0.005,
+                res_lamb=0.001e-10,
+                n0=11,
+                n1=21,
+                store=True,
+            )
 
     return
 
@@ -387,7 +559,11 @@ def _crystals(coll=None, crystals=None):
     # -------
     # geom
 
-    start, vect, v0, v1 = _ref_line(start=np.r_[7, 0., 0.001])
+    start, vect, v0, v1 = _ref_line(
+        start=np.r_[17.918, -2.157, 0.043],
+        vect=np.r_[-0.29770273, 0.95465862, 0.],
+    )
+    # start, vect, v0, v1 = _ref_line(start=np.r_[7., 0, 0.001])
 
     # cryst0: planar
     cent = start + 0. * vect
@@ -396,7 +572,8 @@ def _crystals(coll=None, crystals=None):
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=-np.pi/4,
+        # theta=-np.pi/4,
+        theta=0,
         phi=0.,
     )
 
@@ -404,8 +581,18 @@ def _crystals(coll=None, crystals=None):
 
     # c1: cylindrical (von hamos)
     if 'c0' in crystals:
+
+        # load rocking curve
+        pfe = os.path.join(_PATH_HERE, 'Ge242.txt')
+        out = np.loadtxt(pfe)
+        drock = {
+            'angle_rel': out[:, 0],
+            'power_ratio': out[:, 1],
+        }
+
         size = 1.e-2
-        rc = 2.
+        rc = 1.03
+
         c0 = {
             'key': 'c0',
             'dgeom': {
@@ -416,7 +603,14 @@ def _crystals(coll=None, crystals=None):
                 'extenthalf': size * np.r_[1, 1/rc],
                 'curve_r': [np.inf, rc],
             },
-            'dmat': 'Quartz_110',
+            # 'dmat': 'Quartz_110',
+            'dmat': {
+                'material': 'Germanium',
+                'name': 'Ge224',
+                'miller': np.r_[2,2,4],
+                # 'd_hkl': 0.944e-10 / (2*np.sin(24.2*np.pi/180.)),
+                'target': {'lamb': 0.944e-10},
+            },
             'configuration': 'von hamos',
         }
         dc['c0'] = c0
@@ -512,17 +706,13 @@ def _nine0e1_from_orientations(
 # #####################################################
 
 
-def _compute_synth_signal(coll=None, ldiag=None):
+def _compute_synth_signal(coll=None, ldiag=None, spectral_binning=None):
 
     # -------------
     # list of diags
 
     if ldiag is None:
-        ldiag = [
-            'd0',
-            'd1',
-            'diag00', 'diag01', 'diag02',
-        ]
+        ldiag = list(coll.dobj['diagnostic'])
 
     # ------------
     # loop n diags
@@ -549,13 +739,16 @@ def _compute_synth_signal(coll=None, ldiag=None):
             key_diag=k0,
             key_cam=None,
             key_integrand=key_integrand,
-            method='los',
+            method='vos',
             res=0.001,
             mode='abs',
             groupby=None,
             val_init=None,
             ref_com=ref_com,
             brightness=None,
+            spectral_binning=spectral_binning,
+            verb=True,
+            timing=False,
             store=True,
             returnas=False,
         )

@@ -37,6 +37,7 @@ class Camera(Previous):
     _dshow.update({
         'camera': [
             'dgeom.type',
+            'dgeom.nd',
             'dmat.mode',
             'dgeom.parallel',
             'dgeom.shape',
@@ -326,10 +327,6 @@ class Camera(Previous):
             coll=self,
             key=key,
         )
-
-    def get_camera_2d_outline(self, key=None, closed=None):
-        """ Return the total 2d outline of a 2d camera """
-        return _check.get_camera_2d_outline(coll=self, key=key, closed=closed)
 
     def get_as_dict(self, key=None):
         """ Return the desired object as a dict (input to some routines) """

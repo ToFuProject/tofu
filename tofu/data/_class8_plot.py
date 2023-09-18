@@ -15,10 +15,10 @@ from . import _generic_check
 from . import _generic_plot
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                           plot check
-# ##################################################################
+# ################################################################
 
 
 def _plot_diagnostic_check(
@@ -29,7 +29,10 @@ def _plot_diagnostic_check(
     vmin=None,
     vmax=None,
     alpha=None,
+    dx0=None,
+    dx1=None,
     # figure
+    plot_colorbar=None,
     proj=None,
     data=None,
     units=None,
@@ -150,6 +153,32 @@ def _plot_diagnostic_check(
         default=5,
     )
 
+    # ---------------
+    # dx0, dx1
+
+    # dx0
+    dx0 = float(ds._generic_check._check_var(
+        dx0, 'dx0',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # dx1
+    dx1 = float(ds._generic_check._check_var(
+        dx1, 'dx1',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # -------
+    # plot_colorbar
+
+    plot_colorbar = ds._generic_check._check_var(
+        plot_colorbar, 'plot_colorbar',
+        types=bool,
+        default=True,
+    )
+
     # -------
     # connect
 
@@ -176,7 +205,10 @@ def _plot_diagnostic_check(
         los_res,
         color_dict,
         nlos,
+        dx0,
+        dx1,
         ylab,
+        plot_colorbar,
         connect,
     )
 
@@ -213,8 +245,11 @@ def _plot_diagnostic(
     vmax=None,
     keyZ=None,
     alpha=None,
+    dx0=None,
+    dx1=None,
     # config
     plot_config=None,
+    plot_colorbar=None,
     # figure
     dax=None,
     dmargin=None,
@@ -247,7 +282,10 @@ def _plot_diagnostic(
         los_res,
         color_dict,
         nlos,
+        dx0,
+        dx1,
         ylab,
+        plot_colorbar,
         connect,
     ) = _plot_diagnostic_check(
         coll=coll,
@@ -257,7 +295,10 @@ def _plot_diagnostic(
         vmin=vmin,
         vmax=vmax,
         alpha=alpha,
+        dx0=dx0,
+        dx1=dx1,
         # figure
+        plot_colorbar=plot_colorbar,
         proj=proj,
         data=data,
         units=units,
@@ -276,6 +317,8 @@ def _plot_diagnostic(
         key_cam=key_cam,
         optics=optics,
         elements=elements,
+        dx0=dx0,
+        dx1=dx1,
     )
 
     # -------------------------
@@ -323,6 +366,8 @@ def _plot_diagnostic(
         drefy=drefy,
         ddata=ddata,
         static=static,
+        dx0=dx0,
+        dx1=dx1,
         is2d=is2d,
     )
 
@@ -377,86 +422,12 @@ def _plot_diagnostic(
     # -----------------
     # plot static parts
 
-    for k0, v0 in dplot.items():
-
-        for k1, v1 in v0.items():
-
-            # cross
-            kax = 'cross'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-
-                if k1.startswith('v-'):
-                    ax.quiver(
-                        v1['r'],
-                        v1['z'],
-                        v1['ur'],
-                        v1['uz'],
-                        **v1.get('props', {}),
-                    )
-
-                else:
-                    ax.plot(
-                        v1['r'],
-                        v1['z'],
-                        **v1.get('props', {}),
-                    )
-
-            # hor
-            kax = 'hor'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-
-                if k1.startswith('v-'):
-                    ax.quiver(
-                        v1['x'],
-                        v1['y'],
-                        v1['ux'],
-                        v1['uy'],
-                        **v1.get('props', {}),
-                    )
-
-                else:
-                    ax.plot(
-                        v1['x'],
-                        v1['y'],
-                        **v1.get('props', {}),
-                    )
-
-            # 3d
-            kax = '3d'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-
-                if k1.startswith('v-'):
-                    ax.quiver(
-                        v1['x'],
-                        v1['y'],
-                        v1['z'],
-                        v1['ux'],
-                        v1['uy'],
-                        v1['uz'],
-                        **v1.get('props', {}),
-                    )
-
-                else:
-                    ax.plot(
-                        v1['x'],
-                        v1['y'],
-                        v1['z'],
-                        **v1.get('props', {}),
-                    )
-
-            # plotting of 2d camera contour
-            kax = f"{k0}_sig"
-            if is2d and k0 in key_cam and dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-                if k1 == 'o':
-                    ax.plot(
-                        v1['x0'],
-                        v1['x1'],
-                        **v1.get('props', {}),
-                    )
+    _plot_diag_geom(
+        dax=dax,
+        key_cam=key_cam,
+        dplot=dplot,
+        is2d=is2d,
+    )
 
     # plot data
     if static is True:
@@ -479,7 +450,8 @@ def _plot_diagnostic(
                         origin='lower',
                         interpolation='nearest',
                     )
-                    plt.colorbar(im, ax=ax)
+                    if plot_colorbar is True:
+                        plt.colorbar(im, ax=ax)
 
                 else:
                     ax.plot(
@@ -584,7 +556,10 @@ def _plot_diagnostic(
         if dlos_n[k0] is not None:
 
             nan_los = np.full((dlos_n[k0],), np.nan)
-            nan_vos = np.full((dvos_n[k0],), np.nan)
+            if dvos_n is None:
+                nan_vos = None
+            else:
+                nan_vos = np.full((dvos_n[k0],), np.nan)
 
             # cross
             kax = 'cross'
@@ -726,7 +701,8 @@ def _plot_diagnostic(
                         origin='lower',
                         interpolation='nearest',
                     )
-                    plt.colorbar(im, ax=ax)
+                    if plot_colorbar is True:
+                        plt.colorbar(im, ax=ax)
 
                     km = f'{k0}_{data}'
                     coll2.add_mobile(
@@ -847,10 +823,10 @@ def _plot_diagnostic(
         return dax
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                       Prepare
-# ##################################################################
+# ################################################################
 
 
 def _prepare_dcamref(
@@ -935,7 +911,7 @@ def _prepare_vos(
 ):
 
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
-    if doptics[key_cam[0]].get('vos_pcross') is None:
+    if doptics[key_cam[0]].get('dvos') is None:
         return None, None
 
     # -----------------
@@ -943,7 +919,7 @@ def _prepare_vos(
 
     # dvos
     dvos_n = {
-        k0: {'pc': doptics[k0]['vos_pcross']}
+        k0: {'pc': doptics[k0]['dvos']['pcross']}
         for k0 in key_cam
     }
     dref_vos = {}
@@ -963,10 +939,10 @@ def _prepare_vos(
             pc0 = coll.ddata[dvos_n[k0]['pc'][0]]['data']
             pc1 = coll.ddata[dvos_n[k0]['pc'][1]]['data']
             pcref = coll.ddata[dvos_n[k0]['pc'][0]]['ref']
-            if doptics[k0].get('vos_phor') is not None:
-                ph0 = coll.ddata[doptics[k0]['vos_phor'][0]]['data']
-                ph1 = coll.ddata[doptics[k0]['vos_phor'][1]]['data']
-                phref = coll.ddata[doptics[k0]['vos_phor'][0]]['ref']
+            if doptics[k0].get('dvos') is not None:
+                ph0 = coll.ddata[doptics[k0]['dvos']['phor'][0]]['data']
+                ph1 = coll.ddata[doptics[k0]['dvos']['phor'][1]]['data']
+                phref = coll.ddata[doptics[k0]['dvos']['phor'][0]]['ref']
 
             if pcref[0] not in coll2.dref.keys():
                 coll2.add_ref(key=pcref[0], size=pc0.shape[0])
@@ -976,7 +952,7 @@ def _prepare_vos(
             ref = tuple(list(pcref[::-1]) + [krxy])
             pcxy = np.array([pc0, pc1]).T
             coll2.add_data(key=f'{k0}_vos_cross', data=pcxy, ref=ref)
-            if doptics[k0].get('vos_phor') is not None:
+            if doptics[k0].get('dvos') is not None:
                 ref = tuple(list(phref[::-1]) + [krxy])
                 phxy = np.array([ph0, ph1]).T
                 coll2.add_data(key=f'{k0}_vos_hor', data=phxy, ref=ref)
@@ -995,8 +971,31 @@ def _prepare_datarefxy(
     drefy=None,
     ddata=None,
     static=None,
+    dx0=None,
+    dx1=None,
     is2d=None,
 ):
+
+    # ---------------
+    # dx0, dx1
+
+    # dx0
+    dx0 = float(ds._generic_check._check_var(
+        dx0, 'dx0',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # dx1
+    dx1 = float(ds._generic_check._check_var(
+        dx1, 'dx1',
+        types=(int, float),
+        default=0.,
+    ))
+
+    # -----------------
+    # prepare
+
     # prepare dict
     dkeyx, ddatax = {}, {}
     if is2d:
@@ -1039,19 +1038,114 @@ def _prepare_datarefxy(
                     ddy = ddatay[k0][1] - ddatay[k0][0]
 
                 dextent[k0] = (
-                    ddatax[k0][0] - 0.5*ddx,
-                    ddatax[k0][-1] + 0.5*ddx,
-                    ddatay[k0][0] - 0.5*ddy,
-                    ddatay[k0][-1] + 0.5*ddy,
+                    ddatax[k0][0] - 0.5*ddx + dx0,
+                    ddatax[k0][-1] + 0.5*ddx + dx0,
+                    ddatay[k0][0] - 0.5*ddy + dx1,
+                    ddatay[k0][-1] + 0.5*ddy + dx1,
                 )
 
     return reft, dkeyx, dkeyy, ddatax, ddatay, dextent
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
+#                       add diag geom
+# ################################################################
+
+
+def _plot_diag_geom(
+    dax=None,
+    key_cam=None,
+    dplot=None,
+    is2d=None,
+):
+
+    for k0, v0 in dplot.items():
+
+        for k1, v1 in v0.items():
+
+            # cross
+            kax = 'cross'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['r'],
+                        v1['z'],
+                        v1['ur'],
+                        v1['uz'],
+                        **v1.get('props', {}),
+                    )
+
+                else:
+                    ax.plot(
+                        v1['r'],
+                        v1['z'],
+                        **v1.get('props', {}),
+                    )
+
+            # hor
+            kax = 'hor'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['x'],
+                        v1['y'],
+                        v1['ux'],
+                        v1['uy'],
+                        **v1.get('props', {}),
+                    )
+
+                else:
+                    ax.plot(
+                        v1['x'],
+                        v1['y'],
+                        **v1.get('props', {}),
+                    )
+
+            # 3d
+            kax = '3d'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['x'],
+                        v1['y'],
+                        v1['z'],
+                        v1['ux'],
+                        v1['uy'],
+                        v1['uz'],
+                        **v1.get('props', {}),
+                    )
+
+                else:
+                    ax.plot(
+                        v1['x'],
+                        v1['y'],
+                        v1['z'],
+                        **v1.get('props', {}),
+                    )
+
+            # plotting of 2d camera contour
+            kax = f"{k0}_sig"
+            if is2d and k0 in key_cam and dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+                if k1 == 'o':
+                    ax.plot(
+                        v1['x0'],
+                        v1['x1'],
+                        **v1.get('props', {}),
+                    )
+
+
+# ################################################################
+# ################################################################
 #                       add mobile
-# ##################################################################
+# ################################################################
 
 
 def _add_camera_los_cross(
@@ -1096,26 +1190,27 @@ def _add_camera_los_cross(
         # ------
         # vos
 
-        l0, = ax.fill(
-            nan_vos,
-            nan_vos,
-            fc=color_dict['x'][ii],
-            alpha=alpha,
-            ls='None',
-            lw=0.,
-        )
+        if nan_vos is not None:
+            l0, = ax.fill(
+                nan_vos,
+                nan_vos,
+                fc=color_dict['x'][ii],
+                alpha=alpha,
+                ls='None',
+                lw=0.,
+            )
 
-        # add mobile
-        kl0 = f'{k0}_vos_cross{ii}'
-        coll2.add_mobile(
-            key=kl0,
-            handle=l0,
-            refs=dref_vos[k0],
-            data=[f'{k0}_vos_cross'],
-            dtype=['xy'],
-            axes=kax,
-            ind=ii,
-        )
+            # add mobile
+            kl0 = f'{k0}_vos_cross{ii}'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=dref_vos[k0],
+                data=[f'{k0}_vos_cross'],
+                dtype=['xy'],
+                axes=kax,
+                ind=ii,
+            )
 
 
 def _add_camera_los_hor(
@@ -1162,26 +1257,27 @@ def _add_camera_los_hor(
 
         if f'{k0}_vos_hor' in coll2.ddata.keys():
 
-            l0, = ax.fill(
-                nan_vos,
-                nan_vos,
-                fc=color_dict['x'][ii],
-                alpha=alpha,
-                ls='None',
-                lw=0.,
-            )
+            if nan_vos is not None:
+                l0, = ax.fill(
+                    nan_vos,
+                    nan_vos,
+                    fc=color_dict['x'][ii],
+                    alpha=alpha,
+                    ls='None',
+                    lw=0.,
+                )
 
-            # add mobile
-            kl0 = f'{k0}_vos_hor{ii}'
-            coll2.add_mobile(
-                key=kl0,
-                handle=l0,
-                refs=dref_vos[k0],
-                data=[f'{k0}_vos_hor'],
-                dtype=['xy'],
-                axes=kax,
-                ind=ii,
-            )
+                # add mobile
+                kl0 = f'{k0}_vos_hor{ii}'
+                coll2.add_mobile(
+                    key=kl0,
+                    handle=l0,
+                    refs=dref_vos[k0],
+                    data=[f'{k0}_vos_hor'],
+                    dtype=['xy'],
+                    axes=kax,
+                    ind=ii,
+                )
 
 
 def _add_camera_vlines_marker(
