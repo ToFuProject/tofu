@@ -139,8 +139,13 @@ class Diagnostic(Previous):
     def get_diagnostic_ref(self, key=None, key_cam=None):
         return _check.get_ref(coll=self, key=key, key_cam=key_cam)
 
-    def get_diagnostic_cam(self, key=None, key_cam=None):
-        return _check._get_default_cam(coll=self, key=key, key_cam=key_cam)
+    def get_diagnostic_cam(self, key=None, key_cam=None, default=None):
+        return _check._get_default_cam(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            default=default,
+        )
 
     def get_diagnostic_data(
         self,

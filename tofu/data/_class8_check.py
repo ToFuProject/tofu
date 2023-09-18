@@ -440,7 +440,7 @@ def _diagnostics(
 # ##################################################################
 
 
-def _get_default_cam(coll=None, key=None, key_cam=None):
+def _get_default_cam(coll=None, key=None, key_cam=None, default=None):
 
     # ----------
     # key
@@ -454,11 +454,21 @@ def _get_default_cam(coll=None, key=None, key_cam=None):
     is2d = coll.dobj['diagnostic'][key]['is2d']
     # spectro = coll.dobj['diagnostic'][key]['spectro']
 
+    # ---------------
+    # default
+
+    default = ds._generic_check._check_var(
+        default, 'default',
+        types=str,
+        default='first' if is2d else 'all',
+        allowed=['all', 'first'],
+    )
+
     # -----------------------
     # key_cam (only 1 if is2d)
 
     lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
-    if is2d:
+    if default == 'first':
         # 2d: can only select one camera at a time
         key_cam_def = [coll.dobj['diagnostic'][key]['camera'][0]]
     else:
