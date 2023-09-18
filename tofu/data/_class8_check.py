@@ -46,9 +46,10 @@ def _diagnostics_check(
         err = True
 
     c0 = any([
-        not isinstance(k0, str) or not isinstance(v0, (str, list))
+        not isinstance(k0, str)
+        or not isinstance(v0, (str, list))
         for k0, v0 in doptics.items()
-        ])
+    ])
     if c0:
         err = True
 
@@ -69,10 +70,18 @@ def _diagnostics_check(
         lop = lap + lfilt + lcryst + lgrat
 
         dkout = {
-            k0: [k1 for k1 in v0 if k1 not in lop]
+            k0: [
+                k1 for k1 in v0
+                if k1 not in lop
+                or not (isinstance(k1, tuple) and all([k2 in lop for k2 in k1]))
+            ]
             for k0, v0 in doptics.items()
             if k0 not in lcam
-            or any([k1 not in lop for k1 in v0])
+            or any([
+                k1 not in lop
+                or not (isinstance(k1, tuple) and all([k2 in lop for k2 in k1]))
+                for k1 in v0
+            ])
         }
         if len(dkout) > 0:
             err = True
@@ -81,8 +90,10 @@ def _diagnostics_check(
         msg = (
             f"diag '{key}': arg doptics must be a dict with:\n"
             "\t- keys: key to existing camera\n"
-            "\t- values: list of existing optics (aperture, filter, crystal)\n"
-            )
+            "\t- values: existing optics (aperture, filter, crystal)\n"
+            "\t\t- as a list of str for regular cameras\n"
+            "\t\t- as a list of (tuples of str) for collimator cameras\n"
+        )
         if dkout is not None and len(dkout) > 0:
             lstr = [f"\t- {k0}: {v0}" for k0, v0 in dkout.items()]
             msg += "Wrong key / value pairs:\n" + "\n".join(lstr)
@@ -106,6 +117,31 @@ def _diagnostics_check(
 
     is2d = types[0] == '2d'
 
+    # -----------------
+    # collimator or not
+
+    c0 = all([
+        all([isinstance(v1, str) for v1 in v0])
+        or (
+            all([isinstance(v1, tuple) for v1 in v0])
+            and len(v0) == np.prod(coll.dobj['camera'][k0]['dgeom']['shape'])
+        )
+        for v0 in doptics.values()
+    ])
+
+    if np.sum(lc) != 1:
+        msg = (
+            "Please provide, for each camera in doptics either (xor):\n"
+            "\t- regular cameras: value is a list of str\n"
+            "\t- collimator cameras: value is a list of tuples of str"
+            " (one per pixel)"
+        )
+        raise Exception(msg)
+
+    dcollimator = {
+        k0: isinstance(v0[0], tuple) for k0, v0 in doptics.items()
+    }
+
     # -------------------------------------------------
     # check all optics are on good side of each camera
 
@@ -116,84 +152,58 @@ def _diagnostics_check(
         last_ref_cls = 'camera'
         for oo in doptics[cam]:
 
-            if oo in lap:
-                cls = 'aperture'
-            elif oo in lfilt:
-                cls = 'filter'
-            elif oo in lcryst:
-                cls = 'crystal'
-            else:
-                cls = 'grating'
-
-            dgeom = coll.dobj[cls][oo]['dgeom']
-            px, py, pz = coll.get_optics_poly(key=oo)
-
-            dgeom_lastref = coll.dobj[last_ref_cls][last_ref]['dgeom']
-
-            if (last_ref == cam and is2d) or last_ref != cam:
-                cent = dgeom_lastref['cent']
-                nin = dgeom_lastref['nin']
-
-                iout = (
-                    (px - cent[0])*nin[0]
-                    + (py - cent[1])*nin[1]
-                    + (pz - cent[2])*nin[2]
-                ) <= 0
-                if np.any(iout):
-                    msg = (
-                        f"diag '{key}':\n"
-                        f"The following points of {cls} '{oo}' are on the wrong"
-                        f"side of lastref {last_ref_cls} '{last_ref}':\n"
-                        f"{iout.nonzero()[0]}\n\n"
-                        f"'{oo}':\n{dgeom}\n\n"
-                        f"'{last_ref}':\n{dgeom_lastref}\n\n"
-                        
+            if isinstance(oo, tuple):
+                last_ref = cam
+                last_ref_cls = 'camera'
+                for o2 in oo:
+                    last_ref_cls, last_ref = _check_optic(
+                        coll=coll,
+                        key=key,
+                        lap=lap,
+                        lfilt=lfilt,
+                        lcryst=lcryst,
+                        # optic
+                        oo=o2,
+                        cam=cam,
+                        is2d=is2d,
+                        dgeom_cam=dgeom_cam,
+                        # iterated over
+                        last_ref_cls=last_ref_cls,
+                        last_ref=last_ref,
                     )
-                    raise Exception(msg)
+
+                # no spectro
+                assert last_ref_cls == 'camera'
 
             else:
-                assert last_ref == cam and not is2d
-
-                cx, cy, cz = dgeom_cam['cents']
-                cx = coll.ddata[cx]['data'][None, :]
-                cy = coll.ddata[cy]['data'][None, :]
-                cz = coll.ddata[cz]['data'][None, :]
-
-                if dgeom_cam['parallel']:
-                    ninx, niny, ninz = dgeom_cam['nin']
-                else:
-                    ninx, niny, ninz = dgeom_cam['nin']
-                    ninx = coll.ddata[ninx]['data'][None, :]
-                    niny = coll.ddata[niny]['data'][None, :]
-                    ninz = coll.ddata[ninz]['data'][None, :]
-
-                iout = (
-                    (px[:, None] - cx)*ninx
-                    + (py[:, None] - cy)*niny
-                    + (pz[:, None] - cz)*ninz
-                ) <= 0
-                if np.any(iout):
-                    msg = (
-                        f"The following points of {cls} '{oo}' are on the wrong"
-                        f"side of camera '{cam}':\n"
-                        f"{np.unique(iout.nonzero()[0])}"
-                    )
-                    warnings.warn(msg)
-
-            # update last_ref ?
-            if cls in ['crystal', 'grating']:
-                last_ref = oo
-                last_ref_cls = cls
+                last_ref_cls, last_ref = _check_optic(
+                    coll=coll,
+                    key=key,
+                    lap=lap,
+                    lfilt=lfilt,
+                    lcryst=lcryst,
+                    # optic
+                    oo=oo,
+                    cam=cam,
+                    is2d=is2d,
+                    dgeom_cam=dgeom_cam,
+                    # iterated over
+                    last_ref_cls=last_ref_cls,
+                    last_ref=last_ref,
+                )
 
     # -----------------
     # is spectro
 
     dspectro = {
-        k0 : any([
-            k1 in coll.dobj.get('crystal', {}).keys()
-            or k1 in coll.dobj.get('grating', {}).keys()
-            for k1 in v0
+        k0 : (
+            (not dcollimator[k0])
+            and any([
+                k1 in coll.dobj.get('crystal', {}).keys()
+                or k1 in coll.dobj.get('grating', {}).keys()
+                for k1 in v0
             ])
+        )
         for k0, v0 in doptics.items()
     }
 
@@ -254,7 +264,11 @@ def _diagnostics_check(
         doptics2[k0]['optics'], doptics2[k0]['cls'] = _get_optics_cls(
             coll=coll,
             optics=v0,
+            collimator=dcollimator[k0],
         )
+
+        # collimator
+        doptics[k0]['collimator'] = dcollimator[k0]
 
     # -----------
     # ispectro
@@ -274,9 +288,96 @@ def _diagnostics_check(
         types=str,
         default='horizontal',
         allowed=['horizontal', 'vertical'],
-        )
+    )
 
     return key, lcam, doptics2, is2d, spectro, stack, PHA
+
+
+def _check_optic(
+    coll=None,
+    key=None,
+    lap=None,
+    lfilt=None,
+    lcryst=None,
+    # optic
+    oo=None,
+    cam=None,
+    is2d=None,
+    dgeom_cam=None,
+    # iterated over
+    last_ref_cls=None,
+    last_ref=None,
+):
+
+    if oo in lap:
+        cls = 'aperture'
+    elif oo in lfilt:
+        cls = 'filter'
+    elif oo in lcryst:
+        cls = 'crystal'
+    else:
+        cls = 'grating'
+
+    dgeom = coll.dobj[cls][oo]['dgeom']
+    px, py, pz = coll.get_optics_poly(key=oo)
+
+    dgeom_lastref = coll.dobj[last_ref_cls][last_ref]['dgeom']
+
+    if (last_ref == cam and is2d) or last_ref != cam:
+        cent = dgeom_lastref['cent']
+        nin = dgeom_lastref['nin']
+
+        iout = (
+            (px - cent[0])*nin[0]
+            + (py - cent[1])*nin[1]
+            + (pz - cent[2])*nin[2]
+        ) <= 0
+        if np.any(iout):
+            msg = (
+                f"diag '{key}':\n"
+                f"The following points of {cls} '{oo}' are on the wrong"
+                f"side of lastref {last_ref_cls} '{last_ref}':\n"
+                f"{iout.nonzero()[0]}\n\n"
+                f"'{oo}':\n{dgeom}\n\n"
+                f"'{last_ref}':\n{dgeom_lastref}\n\n"
+            )
+            raise Exception(msg)
+
+    else:
+        assert last_ref == cam and not is2d
+
+        cx, cy, cz = dgeom_cam['cents']
+        cx = coll.ddata[cx]['data'][None, :]
+        cy = coll.ddata[cy]['data'][None, :]
+        cz = coll.ddata[cz]['data'][None, :]
+
+        if dgeom_cam['parallel']:
+            ninx, niny, ninz = dgeom_cam['nin']
+        else:
+            ninx, niny, ninz = dgeom_cam['nin']
+            ninx = coll.ddata[ninx]['data'][None, :]
+            niny = coll.ddata[niny]['data'][None, :]
+            ninz = coll.ddata[ninz]['data'][None, :]
+
+        iout = (
+            (px[:, None] - cx)*ninx
+            + (py[:, None] - cy)*niny
+            + (pz[:, None] - cz)*ninz
+        ) <= 0
+        if np.any(iout):
+            msg = (
+                f"The following points of {cls} '{oo}' are on the wrong"
+                f"side of camera '{cam}':\n"
+                f"{np.unique(iout.nonzero()[0])}"
+            )
+            warnings.warn(msg)
+
+    # update last_ref ?
+    if cls in ['crystal', 'grating']:
+        last_ref = oo
+        last_ref_cls = cls
+
+    return last_ref, last_ref_cls
 
 
 def _diagnostics(
@@ -290,7 +391,9 @@ def _diagnostics(
     # ------------
     # check inputs
 
-    key, lcam, doptics, is2d, spectro, stack, PHA = _diagnostics_check(
+    (
+        key, lcam, doptics, is2d, spectro, stack, PHA,
+    ) = _diagnostics_check(
         coll=coll,
         key=key,
         doptics=doptics,
@@ -400,7 +503,7 @@ def get_ref(coll=None, key=None):
 # ################################################################
 
 
-def _get_optics_cls(coll=None, optics=None):
+def _get_optics_cls(coll=None, optics=None, collimator=None):
 
     # ---------
     # check key
@@ -414,31 +517,57 @@ def _get_optics_cls(coll=None, optics=None):
         list(coll.dobj.get(cc, {}).keys())
         for cc in lcls
     ]))
-    optics = ds._generic_check._check_var_iter(
-        optics, 'optics',
-        types=list,
-        types_iter=str,
-        allowed=lok,
-    )
 
-    # -----------
-    # return
-
+    # check
     optics_cls = []
-    derr = {}
-    for ii, oo in enumerate(optics):
-        lc = [cc for cc in lcls if oo in coll.dobj.get(cc, {}).keys()]
-        if len(lc) == 1:
-            optics_cls.append(lc[0])
-        else:
-            derr[oo] = lc
+    if collimator:
+        for oo in optics:
+            oo = ds._generic_check._check_var_iter(
+                oo, 'oo',
+                types=tuple,
+                types_iter=str,
+                allowed=lok,
+            )
+
+            # -----------
+            # optics_cls
+
+            derr = {}
+            opcls = []
+            for ii, o2 in enumerate(oo):
+                lc = [cc for cc in lcls if o2 in coll.dobj.get(cc, {}).keys()]
+                if len(lc) == 1:
+                    opcls.append(lc[0])
+                else:
+                    derr[o2] = lc
+
+            optics_cls.append(tuple(opcls))
+
+    else:
+        optics = ds._generic_check._check_var_iter(
+            optics, 'optics',
+            types=list,
+            types_iter=str,
+            allowed=lok,
+        )
+
+        # -----------
+        # optics_cls
+
+        derr = {}
+        for ii, oo in enumerate(optics):
+            lc = [cc for cc in lcls if oo in coll.dobj.get(cc, {}).keys()]
+            if len(lc) == 1:
+                optics_cls.append(lc[0])
+            else:
+                derr[oo] = lc
 
     # --------
     # error
 
     if len(derr) > 0:
         msg = (
-            f"The following have no / several classes:\n"
+            "The following have no / several classes:\n"
             + "\n".join([f"\t- {k0}: {v0}" for k0, v0 in derr.items()])
         )
         raise Exception(msg)
@@ -547,6 +676,7 @@ def _set_optics_color(
 # ##################################################################
 #                           remove
 # ##################################################################
+
 
 def _remove(
     coll=None,
