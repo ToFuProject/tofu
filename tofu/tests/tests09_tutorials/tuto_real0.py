@@ -38,6 +38,9 @@ def main():
     # add broadband
     _add_broadband(coll, conf, vos=True)
 
+    # add collimator
+    _add_collimator(coll, conf, vos=True)
+
     # add 2d camera
     _add_2d(coll, conf)
 
@@ -281,6 +284,67 @@ def _add_broadband(
 
     return
 
+
+
+def _add_collimator(
+    coll=None,
+    conf=None,
+    vos=None,
+):
+
+    # ---------------------
+    # add 2 pinhole cameras
+
+    # aperture 0
+    dgeom = {
+        'cent': np.r_[3.3, 0, 0],
+        'nin': np.r_[-1, 0, 0],
+        'e0': np.r_[0, -1, 0],
+        'e1': np.r_[0, 0, 1],
+        'outline_x0': 0.005 * np.r_[-1, 1, 1, -1],
+        'outline_x1': 0.005 * np.r_[-1, -1, 1, 1],
+    }
+
+    coll.add_aperture(
+        key='coll_ap00',
+        **dgeom,
+    )
+
+    # add camera
+    del dgeom['cent']
+    dgeom['cents_x'] = 3.5 * np.r_[1, 1, 1]
+    dgeom['cents_y'] = np.r_[0, 0, 0]
+    dgeom['cents_z'] = np.r_[-0.05, 0, 0.05]
+
+    coll.add_camera_1d(
+        key='coll_cam',
+        dgeom=dgeom,
+    )
+
+    # create diagnostic
+    coll.add_diagnostic(
+        key='coll',
+        doptics={
+            'coll_cam': [
+                ('coll_ap00',),
+                ('coll_ap00',),
+                ('coll_ap00',),
+            ],
+        },
+        compute=True,
+    )
+
+    if vos is True:
+        coll.compute_diagnostic_vos(
+            'dcoll',
+            key_mesh='m0',
+            res_RZ=0.01,
+            res_phi=0.01,
+            visibility=False,
+            store=True,
+        )
+
+    return
 
 def _add_2d(
     coll=None,
