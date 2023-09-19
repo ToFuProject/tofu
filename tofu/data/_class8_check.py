@@ -145,7 +145,8 @@ def _diagnostics_check(
         raise Exception(msg)
 
     dcollimator = {
-        k0: isinstance(v0[0], tuple) for k0, v0 in doptics.items()
+        k0: len(v0) > 0 and isinstance(v0[0], tuple)
+        for k0, v0 in doptics.items()
     }
 
     # -------------------------------------------------
