@@ -139,8 +139,13 @@ class Diagnostic(Previous):
     def get_diagnostic_ref(self, key=None, key_cam=None):
         return _check.get_ref(coll=self, key=key, key_cam=key_cam)
 
-    def get_diagnostic_cam(self, key=None, key_cam=None):
-        return _check._get_default_cam(coll=self, key=key, key_cam=key_cam)
+    def get_diagnostic_cam(self, key=None, key_cam=None, default=None):
+        return _check._get_default_cam(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            default=default,
+        )
 
     def get_diagnostic_data(
         self,
@@ -149,6 +154,7 @@ class Diagnostic(Previous):
         data=None,
         rocking_curve=None,
         units=None,
+        default=None,
         **kwdargs,
         ):
         """ Return dict of data for chosen cameras
@@ -171,6 +177,7 @@ class Diagnostic(Previous):
             data=data,
             rocking_curve=rocking_curve,
             units=units,
+            default=default,
             **kwdargs,
         )
 
@@ -1065,6 +1072,7 @@ class Diagnostic(Previous):
         vect_length=None,
         dx0=None,
         dx1=None,
+        default=None,
     ):
         """ Return a dict with all that's necessary for plotting
 
@@ -1109,6 +1117,7 @@ class Diagnostic(Previous):
             vect_length=vect_length,
             dx0=dx0,
             dx1=dx1,
+            default=default,
         )
 
     def plot_diagnostic(
