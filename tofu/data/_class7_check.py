@@ -51,7 +51,6 @@ _DMAT_KEYS = {
 }
 
 
-
 # #####################################################################
 # #####################################################################
 #                   Camera 1d
@@ -207,7 +206,9 @@ def _camera_1d_check(
             raise Exception(msg)
 
         # particular case: scalar because common to all
-        c0 = all([np.isscalar(vv[1]) or np.array(vv[1]).size == 1 for vv in lv])
+        c0 = all([
+            np.isscalar(vv[1]) or np.array(vv[1]).size == 1 for vv in lv
+        ])
         if c0:
             parallel = True
             nin, e0, e1 = ds._generic_check._check_vectbasis(
@@ -226,7 +227,9 @@ def _camera_1d_check(
                 vv[1] = np.atleast_1d(vv[1]).ravel().astype(float)
 
             # check shapes
-            dshape = {vv[0]: vv[1].shape for vv in lv if vv[1].shape != (npix,)}
+            dshape = {
+                vv[0]: vv[1].shape for vv in lv if vv[1].shape != (npix,)
+            }
             if len(set(dshape.values())) > 1:
                 lstr = [f"\t- {k0}: {v0}" for k0, v0 in dshape.items()]
                 msg = (
@@ -254,17 +257,26 @@ def _camera_1d_check(
             # check perpendicularity
             sca = (nin_x*e0_x + nin_y*e0_y + nin_z*e0_z)
             if np.any(np.abs(sca) > 1e-14):
-                msg = "Non-perpendicular nin vs e0:\n{(sca > 1.e-14).nonzero()[0]}"
+                msg = (
+                    "Non-perpendicular nin vs e0:\n"
+                    f"{(sca > 1.e-14).nonzero()[0]}"
+                )
                 raise Exception(msg)
 
             sca = (nin_x*e1_x + nin_y*e1_y + nin_z*e1_z)
             if np.any(np.abs(sca) > 1e-14):
-                msg = "Non-perpendicular nin vs e1:\n{(sca > 1.e-14).nonzero()[0]}"
+                msg = (
+                    "Non-perpendicular nin vs e1:\n"
+                    f"{(sca > 1.e-14).nonzero()[0]}"
+                )
                 raise Exception(msg)
 
             sca = (e0_x*e1_x + e0_y*e1_y + e0_z*e1_z)
             if np.any(np.abs(sca) > 1e-14):
-                msg = "Non-perpendicular e0 vs e1:\n{(sca > 1.e-14).nonzero()[0]}"
+                msg = (
+                    "Non-perpendicular e0 vs e1:\n"
+                    f"{(sca > 1.e-14).nonzero()[0]}"
+                )
                 raise Exception(msg)
 
             # check right-handedness

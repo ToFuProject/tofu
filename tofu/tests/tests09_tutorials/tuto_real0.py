@@ -285,7 +285,6 @@ def _add_broadband(
     return
 
 
-
 def _add_collimator(
     coll=None,
     conf=None,

@@ -73,13 +73,17 @@ def _diagnostics_check(
             k0: [
                 k1 for k1 in v0
                 if (k1 not in lop)
-                and not (isinstance(k1, tuple) and all([k2 in lop for k2 in k1]))
+                and not (
+                    isinstance(k1, tuple) and all([k2 in lop for k2 in k1])
+                )
             ]
             for k0, v0 in doptics.items()
             if k0 not in lcam
             or any([
                 (k1 not in lop)
-                and not (isinstance(k1, tuple) and all([k2 in lop for k2 in k1]))
+                and not (
+                    isinstance(k1, tuple) and all([k2 in lop for k2 in k1])
+                )
                 for k1 in v0
             ])
         }
@@ -198,7 +202,7 @@ def _diagnostics_check(
     # is spectro
 
     dspectro = {
-        k0 : (
+        k0: (
             (not dcollimator[k0])
             and any([
                 k1 in coll.dobj.get('crystal', {}).keys()
