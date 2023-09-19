@@ -10,10 +10,10 @@ import matplotlib.colors as mcolors
 import datastock as ds
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                       Diagnostics
-# ##################################################################
+# ################################################################
 
 
 def _diagnostics_check(
@@ -72,14 +72,14 @@ def _diagnostics_check(
         dkout = {
             k0: [
                 k1 for k1 in v0
-                if k1 not in lop
-                or not (isinstance(k1, tuple) and all([k2 in lop for k2 in k1]))
+                if (k1 not in lop)
+                and not (isinstance(k1, tuple) and all([k2 in lop for k2 in k1]))
             ]
             for k0, v0 in doptics.items()
             if k0 not in lcam
             or any([
-                k1 not in lop
-                or not (isinstance(k1, tuple) and all([k2 in lop for k2 in k1]))
+                (k1 not in lop)
+                and not (isinstance(k1, tuple) and all([k2 in lop for k2 in k1]))
                 for k1 in v0
             ])
         }
@@ -125,13 +125,15 @@ def _diagnostics_check(
         or (
             all([isinstance(v1, tuple) for v1 in v0])
             and len(v0) == np.prod(coll.dobj['camera'][k0]['dgeom']['shape'])
+            and all([len(v1) > 0 for v1 in v0])
         )
         for v0 in doptics.values()
     ])
 
-    if np.sum(lc) != 1:
+    if not c0:
         msg = (
-            "Please provide, for each camera in doptics either (xor):\n"
+            "Please provide, for diag '{key}', "
+            "for each camera in doptics either (xor):\n"
             "\t- regular cameras: value is a list of str\n"
             "\t- collimator cameras: value is a list of tuples of str"
             " (one per pixel)"
@@ -173,7 +175,7 @@ def _diagnostics_check(
                     )
 
                 # no spectro
-                assert last_ref_cls == 'camera'
+                assert last_ref_cls == 'camera', (last_ref_cls, last_ref)
 
             else:
                 last_ref_cls, last_ref = _check_optic(
@@ -268,7 +270,7 @@ def _diagnostics_check(
         )
 
         # collimator
-        doptics[k0]['collimator'] = dcollimator[k0]
+        doptics2[k0]['collimator'] = dcollimator[k0]
 
     # -----------
     # ispectro
@@ -377,7 +379,7 @@ def _check_optic(
         last_ref = oo
         last_ref_cls = cls
 
-    return last_ref, last_ref_cls
+    return last_ref_cls, last_ref
 
 
 def _diagnostics(
