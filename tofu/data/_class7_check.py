@@ -52,10 +52,10 @@ _DMAT_KEYS = {
 
 
 
-# #############################################################################
-# #############################################################################
+# #####################################################################
+# #####################################################################
 #                   Camera 1d
-# #############################################################################
+# #####################################################################
 
 
 def _camera_1d_check(
@@ -68,6 +68,10 @@ def _camera_1d_check(
     cents_x=None,
     cents_y=None,
     cents_z=None,
+    # unique vectors
+    nin=None,
+    e0=None,
+    e1=None,
     # inwards normal vectors
     nin_x=None,
     nin_y=None,
@@ -155,101 +159,130 @@ def _camera_1d_check(
             )
             raise Exception(msg)
 
-    # -----------
+    # -------------
     # unit vectors
+    # -------------
 
-    lv = [
-        ['nin_x', nin_x], ['nin_y', nin_y], ['nin_z', nin_z],
-        ['e0_x', e0_x], ['e0_y', e0_y], ['e0_z', e0_z],
-        ['e1_x', e1_x], ['e1_y', e1_y], ['e1_z', e1_z],
+    # ---------
+    # check
+
+    lc = [
+        nin is not None,
+        nin_x is not None,
     ]
 
-    # check they are all provided
-    lNone = [vv[0] for vv in lv if vv[1] is None]
-    if len(lNone) > 0:
+    if np.sum(lc) != 1:
         msg = (
-            f"All unit vectors must be provided for camera '{key}'!\n"
-            f"The following are not provided: {lNone}"
+            "Please provide nin xor nin_x!"
         )
         raise Exception(msg)
 
-    # particular case: scalar because common to all
-    c0 = all([np.isscalar(vv[1]) or np.array(vv[1]).size == 1 for vv in lv])
-    if c0:
+    # ---------
+    # unique
+
+    if lc[0]:
         parallel = True
         nin, e0, e1 = ds._generic_check._check_vectbasis(
-            e0=np.r_[nin_x, nin_y, nin_z],
-            e1=np.r_[e0_x, e0_y, e0_z],
-            e2=np.r_[e1_x, e1_y, e1_z],
+            e0=nin,
+            e1=e0,
+            e2=e1,
             dim=3,
         )
 
     else:
 
-        parallel = False
+        lv = [
+            ['nin_x', nin_x], ['nin_y', nin_y], ['nin_z', nin_z],
+            ['e0_x', e0_x], ['e0_y', e0_y], ['e0_z', e0_z],
+            ['e1_x', e1_x], ['e1_y', e1_y], ['e1_z', e1_z],
+        ]
 
-        # force into numpy array
-        for vv in lv:
-            vv[1] = np.atleast_1d(vv[1]).ravel().astype(float)
-
-        # check shapes
-        dshape = {vv[0]: vv[1].shape for vv in lv if vv[1].shape != (npix,)}
-        if len(set(dshape.values())) > 1:
-            lstr = [f"\t- {k0}: {v0}" for k0, v0 in dshape.items()]
+        # check they are all provided
+        lNone = [vv[0] for vv in lv if vv[1] is None]
+        if len(lNone) > 0:
             msg = (
-                f"All unit vector componant must have shape ({npix},)!\n"
-                + "\n".join(lstr)
+                f"All unit vectors must be provided for camera '{key}'!\n"
+                f"The following are not provided: {lNone}"
             )
             raise Exception(msg)
 
-        # force normalization
-        norm = np.sqrt((lv[0][1]**2 + lv[1][1]**2 + lv[2][1]**2))
-        nin_x = lv[0][1] / norm
-        nin_y = lv[1][1] / norm
-        nin_z = lv[2][1] / norm
-
-        norm = np.sqrt((lv[3][1]**2 + lv[4][1]**2 + lv[5][1]**2))
-        e0_x = lv[3][1] / norm
-        e0_y = lv[4][1] / norm
-        e0_z = lv[5][1] / norm
-
-        norm = np.sqrt((lv[6][1]**2 + lv[7][1]**2 + lv[8][1]**2))
-        e1_x = lv[6][1] / norm
-        e1_y = lv[7][1] / norm
-        e1_z = lv[8][1] / norm
-
-        # check perpendicularity
-        sca = (nin_x*e0_x + nin_y*e0_y + nin_z*e0_z)
-        if np.any(np.abs(sca) > 1e-14):
-            msg = "Non-perpendicular nin vs e0:\n{(sca > 1.e-14).nonzero()[0]}"
-            raise Exception(msg)
-
-        sca = (nin_x*e1_x + nin_y*e1_y + nin_z*e1_z)
-        if np.any(np.abs(sca) > 1e-14):
-            msg = "Non-perpendicular nin vs e1:\n{(sca > 1.e-14).nonzero()[0]}"
-            raise Exception(msg)
-
-        sca = (e0_x*e1_x + e0_y*e1_y + e0_z*e1_z)
-        if np.any(np.abs(sca) > 1e-14):
-            msg = "Non-perpendicular e0 vs e1:\n{(sca > 1.e-14).nonzero()[0]}"
-            raise Exception(msg)
-
-        # check right-handedness
-        sca = (
-            e1_x * (nin_y * e0_z - nin_z * e0_y)
-            + e1_y * (nin_z * e0_x - nin_x * e0_z)
-            + e1_z * (nin_x * e0_y - nin_y * e0_x)
-        )
-        if np.any(sca <= 0.):
-            msg = (
-                "The following unit vectors do not seem right-handed:\n"
-                f"{(sca <= 0.).nonzero()[0]}"
+        # particular case: scalar because common to all
+        c0 = all([np.isscalar(vv[1]) or np.array(vv[1]).size == 1 for vv in lv])
+        if c0:
+            parallel = True
+            nin, e0, e1 = ds._generic_check._check_vectbasis(
+                e0=np.r_[nin_x, nin_y, nin_z],
+                e1=np.r_[e0_x, e0_y, e0_z],
+                e2=np.r_[e1_x, e1_y, e1_z],
+                dim=3,
             )
-            raise Exception(msg)
 
-        nin = (nin_x, nin_y, nin_z)
-        e0 = (e0_x, e0_y, e0_z)
-        e1 = (e1_x, e1_y, e1_z)
+        else:
+
+            parallel = False
+
+            # force into numpy array
+            for vv in lv:
+                vv[1] = np.atleast_1d(vv[1]).ravel().astype(float)
+
+            # check shapes
+            dshape = {vv[0]: vv[1].shape for vv in lv if vv[1].shape != (npix,)}
+            if len(set(dshape.values())) > 1:
+                lstr = [f"\t- {k0}: {v0}" for k0, v0 in dshape.items()]
+                msg = (
+                    f"All unit vector componant must have shape ({npix},)!\n"
+                    + "\n".join(lstr)
+                )
+                raise Exception(msg)
+
+            # force normalization
+            norm = np.sqrt((lv[0][1]**2 + lv[1][1]**2 + lv[2][1]**2))
+            nin_x = lv[0][1] / norm
+            nin_y = lv[1][1] / norm
+            nin_z = lv[2][1] / norm
+
+            norm = np.sqrt((lv[3][1]**2 + lv[4][1]**2 + lv[5][1]**2))
+            e0_x = lv[3][1] / norm
+            e0_y = lv[4][1] / norm
+            e0_z = lv[5][1] / norm
+
+            norm = np.sqrt((lv[6][1]**2 + lv[7][1]**2 + lv[8][1]**2))
+            e1_x = lv[6][1] / norm
+            e1_y = lv[7][1] / norm
+            e1_z = lv[8][1] / norm
+
+            # check perpendicularity
+            sca = (nin_x*e0_x + nin_y*e0_y + nin_z*e0_z)
+            if np.any(np.abs(sca) > 1e-14):
+                msg = "Non-perpendicular nin vs e0:\n{(sca > 1.e-14).nonzero()[0]}"
+                raise Exception(msg)
+
+            sca = (nin_x*e1_x + nin_y*e1_y + nin_z*e1_z)
+            if np.any(np.abs(sca) > 1e-14):
+                msg = "Non-perpendicular nin vs e1:\n{(sca > 1.e-14).nonzero()[0]}"
+                raise Exception(msg)
+
+            sca = (e0_x*e1_x + e0_y*e1_y + e0_z*e1_z)
+            if np.any(np.abs(sca) > 1e-14):
+                msg = "Non-perpendicular e0 vs e1:\n{(sca > 1.e-14).nonzero()[0]}"
+                raise Exception(msg)
+
+            # check right-handedness
+            sca = (
+                e1_x * (nin_y * e0_z - nin_z * e0_y)
+                + e1_y * (nin_z * e0_x - nin_x * e0_z)
+                + e1_z * (nin_x * e0_y - nin_y * e0_x)
+            )
+            if np.any(sca <= 0.):
+                msg = (
+                    "The following unit vectors do not seem right-handed:\n"
+                    f"{(sca <= 0.).nonzero()[0]}"
+                )
+                raise Exception(msg)
+
+            nin = (nin_x, nin_y, nin_z)
+            e0 = (e0_x, e0_y, e0_z)
+            e1 = (e1_x, e1_y, e1_z)
 
     return (
         key,
@@ -274,6 +307,10 @@ def _camera_1d(
     cents_x=None,
     cents_y=None,
     cents_z=None,
+    # unique vectors
+    nin=None,
+    e0=None,
+    e1=None,
     # inwards normal vectors
     nin_x=None,
     nin_y=None,
@@ -310,6 +347,10 @@ def _camera_1d(
         cents_x=cents_x,
         cents_y=cents_y,
         cents_z=cents_z,
+        # unique vectors
+        nin=nin,
+        e0=e0,
+        e1=e1,
         # inwards normal vectors
         nin_x=nin_x,
         nin_y=nin_y,
