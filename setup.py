@@ -324,7 +324,7 @@ setup(
         "svg.path",
         "Polygon3",
         "cython>=0.26",
-        "bsplines2d>=0.0.7",
+        "bsplines2d>=0.0.8",
     ],
     python_requires=">=3.6",
 
@@ -359,6 +359,7 @@ setup(
         "tofu.tests.tests04_spectro.test_data": ["*.npz"],
         "tofu.tests.tests06_mesh.test_data": ['*.txt', '*.npz'],
         "tofu.geom.inputs": ["*.txt"],
+        "tofu.spectro": ["*.txt"],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
     include_package_data=True,

@@ -185,7 +185,7 @@ def equivalent_apertures(
         # if ij not in [236, 239, 387]:
         #     iok[ii] = False
         #     continue
-        # -------------------        
+        # -------------------
 
         if verb is True:
             msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {pixel.size}"
@@ -433,7 +433,11 @@ def _check(
 
     lok = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if any([len(v1['optics']) > 0 for v1 in v0['doptics'].values()])
+        if any([
+            v1['collimator']
+            or len(v1['optics']) > 0
+            for v1 in v0['doptics'].values()
+        ])
     ]
     key = ds._generic_check._check_var(
         key, 'key',
@@ -456,8 +460,15 @@ def _check(
     # doptics
 
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
-    optics = doptics['optics']
-    optics_cls = doptics['cls']
+    collimator = doptics['collimator']
+
+    if collimator:
+        raise NotImplementedError("Collimator camera, TBF")
+
+    else:
+        optics = doptics['optics']
+        optics_cls = doptics['cls']
+
     ispectro = doptics.get('ispectro')
 
     # --------
@@ -531,6 +542,11 @@ def _check(
         else:
             raise NotImplementedError()
 
+    elif collimator:
+        raise NotImplementedError()
+        lop_post = []
+        lop_post_cls = []
+
     else:
         kref = optics[-1]
         cref = optics_cls[-1]
@@ -570,7 +586,7 @@ def _check(
         types=bool,
         default=isconvex,
     )
-    
+
     # -----------
     # min_threshold
 
@@ -625,7 +641,7 @@ def _check(
         default=False,
         types=bool,
     )
-    
+
     # -----------
     # debug
 
@@ -836,7 +852,7 @@ def _get_equivalent_aperture_spectro(
         if p_a.nPoints() < 3:
             # print('\n\t \t None 1\n')       # DB
             return None, None
-       
+
             # print(f'\t\t interp => {p0.size} pts')       # DB
             # print('inter: ', p0)
 
@@ -852,45 +868,45 @@ def _check_self_intersect_rectify(
 
     # ---------------
     # get segments
-    
+
     npts = p0.size
-    
+
     A0, A1 = p0, p1
     B0, B1 = np.r_[p0[1:], p0[0]], np.r_[p1[1:], p1[0]]
-    
+
     s0 = B0 - A0
     s1 = B1 - A1
-    
+
     # -----------------------
     # get intersection matrix
-    
+
     # k horizontal
     kA = np.full((npts, npts), -1, dtype=float)
-    
+
     det_up = (
         (A0[None, :] - A0[:, None]) * s1[None, :]
         - (A1[None, :] - A1[:, None]) * s0[None, :]
     )
     det_lo = s0[:, None] * s1[None, :] - s1[:, None] * s0[None, :]
-    
-    iok = np.abs(det_lo) > 0 
+
+    iok = np.abs(det_lo) > 0
     kA[iok] = det_up[iok] / det_lo[iok]
     iok[iok] = (kA[iok] > 0) & (kA[iok] < 1)
-    
+
     if not np.any(iok):
         if debug is True:
             _debug_intersect(tit="No kA", **locals())
         return p0, p1
-    
+
     kB = np.full((npts, npts), -1, dtype=float)
     A0f = np.repeat(A0[:, None], npts, axis=1)
     A1f = np.repeat(A1[:, None], npts, axis=1)
     s0f = np.repeat(s0[:, None], npts, axis=1)
     s1f = np.repeat(s1[:, None], npts, axis=1)
-    
+
     M0 = A0f[iok] + kA[iok] * s0f[iok]
     M1 = A1f[iok] + kA[iok] * s1f[iok]
-    
+
     kB[iok] = (
         (M0 - A0f.T[iok]) * s0f.T[iok] + (M1 - A1f.T[iok]) * s1f.T[iok]
     ) / (s0f.T[iok]**2 + s1f.T[iok]**2)
@@ -898,13 +914,13 @@ def _check_self_intersect_rectify(
 
     # ---------------
     # trivial cases
-    
+
     # no intersection
     if not np.any(iok):
         if debug is True:
             _debug_intersect(tit="No kB", **locals())
         return p0, p1
-    
+
     # several intersections
     if np.sum(iok) != 2:
         msg = "Multiple intersections detected"
@@ -914,24 +930,24 @@ def _check_self_intersect_rectify(
 
     # --------------------
     # single intersection
-    
+
     indA, indB = np.nonzero(iok)
     assert np.all(indA == indB[::-1]), (indA, indB)
-    
+
     indpts = indA[:, None] + np.r_[0, 1][None, :]
-    
+
     ind = np.r_[
         np.arange(0, indpts[0, 0] + 1),
         np.arange(indpts[1, 0], indpts[0, 1] - 1, -1),
         np.arange(indpts[1, 1], npts)
     ]
-    
+
     # ----------------
     # DEBUG
-    
+
     if debug is True or debug == 'intersect':
         _debug_intersect(tit='found', **locals())
-    
+
     return p0[ind], p1[ind]
 
 
@@ -947,12 +963,12 @@ def _debug_intersect(
     tit=None,
     **kwdargs,
 ):
-     
+
     fig, axs = plt.subplots(figsize=(12, 10), nrows=2, ncols=4)
     fig.suptitle(tit, size=12, fontweight='bold')
-    
+
     axs[0, 0].plot(np.r_[p0, p0[0]], np.r_[p1, p1[0]], '.-k')
-    
+
     axs[0, 1].imshow(iok, origin='upper', interpolation='nearest')
     axs[0, 2].imshow(
         kA,
@@ -962,7 +978,7 @@ def _debug_intersect(
         vmax=1,
     )
     axs[1, 1].imshow(
-        det_up, 
+        det_up,
         origin='upper',
         interpolation='nearest',
         vmin=-np.max(np.abs(det_up)),
@@ -971,7 +987,7 @@ def _debug_intersect(
     )
     axs[1, 2].imshow(
         det_lo,
-        origin='upper', 
+        origin='upper',
         interpolation='nearest',
         vmin=-np.max(np.abs(det_lo)),
         vmax=np.max(np.abs(det_lo)),
@@ -981,11 +997,11 @@ def _debug_intersect(
     axs[0, 2].set_title("kA")
     axs[1, 1].set_title("det_up")
     axs[1, 2].set_title("det_lo")
-    
+
     print('kA\n',kA)
     print('det_up\n', det_up)
     print('det_lo\n', det_lo)
-    
+
     if kB is not None:
         axs[0, 3].imshow(
             kB,
@@ -994,18 +1010,18 @@ def _debug_intersect(
             vmin=0,
             vmax=1,
         )
-        
+
         print('kB\n', kB)
-    
+
     if ind is not None:
         axs[0, 0].plot(
-            np.r_[p0[ind], p0[ind[0]]], 
-            np.r_[p1[ind], p1[ind[0]]], 
+            np.r_[p0[ind], p0[ind[0]]],
+            np.r_[p1[ind], p1[ind[0]]],
             '.-b',
         )
-        
+
         print('ind', ind)
-        
+
     raise Exception()
 
 # ##############################################################
