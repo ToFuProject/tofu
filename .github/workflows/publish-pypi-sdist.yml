@@ -1,4 +1,4 @@
-name: Publish pip sdist and wheels to PyPI
+name: Publish pip sdist to PyPI
 
 on:
   release:
