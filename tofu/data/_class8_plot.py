@@ -1011,14 +1011,14 @@ def _prepare_datarefxy(
             if is2d:
                 dkeyx[k0], dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents']
 
-                ddatax[k0] = coll.ddata[dkeyx[k0]]['data']
-                ddatay[k0] = coll.ddata[dkeyy[k0]]['data']
+                ddatax[k0] = coll.ddata[dkeyx[k0]]['data'] + dx0
+                ddatay[k0] = coll.ddata[dkeyy[k0]]['data'] + dx1
 
                 coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
                 coll2.add_data(key=dkeyy[k0], data=ddatay[k0], ref=drefy[k0])
             else:
                 dkeyx[k0] = f'{k0}_i0'
-                ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size'])
+                ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size']) + dx0
                 coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
 
             # -------------------------
@@ -1038,10 +1038,10 @@ def _prepare_datarefxy(
                     ddy = ddatay[k0][1] - ddatay[k0][0]
 
                 dextent[k0] = (
-                    ddatax[k0][0] - 0.5*ddx + dx0,
-                    ddatax[k0][-1] + 0.5*ddx + dx0,
-                    ddatay[k0][0] - 0.5*ddy + dx1,
-                    ddatay[k0][-1] + 0.5*ddy + dx1,
+                    ddatax[k0][0] - 0.5*ddx,
+                    ddatax[k0][-1] + 0.5*ddx,
+                    ddatay[k0][0] - 0.5*ddy,
+                    ddatay[k0][-1] + 0.5*ddy,
                 )
 
     return reft, dkeyx, dkeyy, ddatax, ddatay, dextent
