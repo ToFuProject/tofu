@@ -182,9 +182,11 @@ def equivalent_apertures(
     for ii, ij in enumerate(pixel):
 
         # ----- DEBUG -------
-        # if ij not in [236, 239, 387]:
-        #     iok[ii] = False
-        #     continue
+        if ij not in [1148]:
+            iok[ii] = False
+            x0.append(None)
+            x1.append(None)
+            continue
         # -------------------
 
         if verb is True:
@@ -329,16 +331,16 @@ def equivalent_apertures(
             ).center()
 
             # --- DEBUG ---------
-            # if ii in [97]:
-                # _debug_plot2(
-                    # p0=p0, p1=p1,
-                    # cents0=cents0, cents1=cents1,
-                    # ii=ii,
-                    # ip=ip,
-                    # coord_x01toxyz=coord_x01toxyz,
-                    # cx=cx, cy=cy, cz=cz,
-                    # area=area,
-                # )
+            if ii in [1148]:
+                _debug_plot2(
+                    p0=p0, p1=p1,
+                    cents0=cents0, cents1=cents1,
+                    ii=ii,
+                    ip=ip,
+                    coord_x01toxyz=coord_x01toxyz,
+                    cx=cx, cy=cy, cz=cz,
+                    area=area,
+                )
             # --------------------
 
         centsx, centsy, centsz = coord_x01toxyz(
@@ -797,7 +799,7 @@ def _get_equivalent_aperture_spectro(
 
     # loop on optics after crystal
     for jj in range(nop_post):
-        # print(f'\t {jj} / {nop_post}')      # DB
+        print(f'\t {jj} / {nop_post}')      # DB
 
         # reflection
         p0, p1 = _class5_projections._get_reflection(
@@ -825,7 +827,7 @@ def _get_equivalent_aperture_spectro(
         )
 
         if p0 is None:
-            # print('\n\t \t None 0\n')       # DB
+            print('\n\t \t None 0\n')       # DB
             return p0, p1
 
         if convex:
@@ -836,25 +838,25 @@ def _get_equivalent_aperture_spectro(
             )
 
         # --- DEBUG ---------
-        # if ij in [236, 239, 387]:
-        #     _debug_plot(
-        #         p_a=p_a,
-        #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
-        #         pa0=p0,
-        #         pa1=p1,
-        #         ii=ii,
-        #         tit='not all',
-        #     )
+        if ij in [1148]:
+            _debug_plot(
+                p_a=p_a,
+                # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
+                pa0=p0,
+                pa1=p1,
+                ii=ii,
+                tit='not all',
+            )
         # ----------------------
 
         # intersection
         p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
         if p_a.nPoints() < 3:
-            # print('\n\t \t None 1\n')       # DB
+            print('\n\t \t None 1\n')       # DB
             return None, None
 
-            # print(f'\t\t interp => {p0.size} pts')       # DB
-            # print('inter: ', p0)
+            print(f'\t\t interp => {p0.size} pts')       # DB
+            print('inter: ', p0)
 
     return p0, p1
 
