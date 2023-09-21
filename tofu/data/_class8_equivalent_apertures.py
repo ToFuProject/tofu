@@ -444,7 +444,7 @@ def _get_centroid(p0, p1, cent, debug=None):
     detABu = AB0 * vect[1] - AB1 * vect[0]
     detACu = (cent[0] - p0) * vect[1] - (cent[1] - p1) * vect[0]
     kk = detACu / detABu
-    ind = ((kk>=0) & (kk<1)).nonzero()[0]
+    ind = ((kk >= 0) & (kk < 1)).nonzero()[0]
 
     # pathological cases
     if ind.size != 2:
