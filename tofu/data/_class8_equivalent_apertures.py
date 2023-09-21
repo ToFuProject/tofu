@@ -182,8 +182,10 @@ def equivalent_apertures(
     for ii, ij in enumerate(pixel):
 
         # ----- DEBUG -------
-        # if ij not in [236, 239, 387]:
+        # if ij not in [1148]:
         #     iok[ii] = False
+        #     x0.append(None)
+        #     x1.append(None)
         #     continue
         # -------------------
 
@@ -324,21 +326,29 @@ def equivalent_apertures(
             area[ii] = plg.Polygon(np.array([p0, p1]).T).area()
 
             # centroid in 3d
-            cents0[ii], cents1[ii] = plg.Polygon(
-                np.array([x0[ii, :], x1[ii, :]]).T
-            ).center()
+            polyi = plg.Polygon(np.array([x0[ii, :], x1[ii, :]]).T)
+            cent = polyi.center()
+            if not polyi.isInside(*cent):
+                cent = _get_centroid(
+                    x0[ii, :],
+                    x1[ii, :],
+                    cent,
+                    debug=False,
+                )
+
+            cents0[ii], cents1[ii] = cent
 
             # --- DEBUG ---------
-            # if ii in [97]:
-                # _debug_plot2(
-                    # p0=p0, p1=p1,
-                    # cents0=cents0, cents1=cents1,
-                    # ii=ii,
-                    # ip=ip,
-                    # coord_x01toxyz=coord_x01toxyz,
-                    # cx=cx, cy=cy, cz=cz,
-                    # area=area,
-                # )
+            # if ii in [1148]:
+            #     _debug_plot2(
+            #         p0=p0, p1=p1,
+            #         cents0=cents0, cents1=cents1,
+            #         ii=ii,
+            #         ip=ip,
+            #         coord_x01toxyz=coord_x01toxyz,
+            #         cx=cx, cy=cy, cz=cz,
+            #         area=area,
+            #     )
             # --------------------
 
         centsx, centsy, centsz = coord_x01toxyz(
@@ -402,6 +412,84 @@ def equivalent_apertures(
         )
     else:
         return x0, x1, kref, iok
+
+
+def _get_centroid(p0, p1, cent, debug=None):
+
+    # ------------
+    # compute
+
+    # get unit vectors of lines going through centroid
+    mid0 = np.r_[0.5*(p0[1:] + p0[:-1]), 0.5*(p0[-1] + p0[0]), p0]
+    mid1 = np.r_[0.5*(p1[1:] + p1[:-1]), 0.5*(p1[-1] + p1[0]), p1]
+    u0 = mid0 - cent[0]
+    u1 = mid1 - cent[1]
+    un = np.sqrt(u0**2 + u1**2)
+    u0n = u0/un
+    u1n = u1/un
+
+    # get minimum of total algebraic distance from line
+    dist = np.sum(
+        u0n[:, None] * p1[None, :] - u1n[:, None] * p0[None, :],
+        axis=1,
+    )
+    imin = np.argmin(np.abs(dist))
+
+    # build unit vector
+    vect = np.r_[u0n[imin], u1n[imin]]
+
+    # get intersections
+    AB0 = np.r_[p0[1:] - p0[:-1], p0[0] - p0[-1]]
+    AB1 = np.r_[p1[1:] - p1[:-1], p1[0] - p1[-1]]
+    detABu = AB0 * vect[1] - AB1 * vect[0]
+    detACu = (cent[0] - p0) * vect[1] - (cent[1] - p1) * vect[0]
+    kk = detACu / detABu
+    ind = ((kk >= 0) & (kk < 1)).nonzero()[0]
+
+    # pathological cases
+    if ind.size != 2:
+        # return the point is question
+        cent2 = np.r_[mid0[imin], mid1[imin]]
+    else:
+        # normal case
+        cent2 = np.r_[
+            np.mean(p0[ind] + kk[ind] * AB0[ind]),
+            np.mean(p1[ind] + kk[ind] * AB1[ind]),
+        ]
+
+    # --------------
+    # debug
+
+    if debug:
+
+        indclose = np.r_[np.arange(p0.size), 0]
+        plt.figure()
+        plt.plot(dist, '.-')
+        plt.gca().axvline(imin, c='k', ls='--')
+
+        dim = 0.5 * max(np.max(p0) - np.min(p0), np.max(p1) - np.min(p1))
+        plt.figure()
+        plt.plot(
+            p0[indclose],
+            p1[indclose],
+            '.-',
+            cent[0] + np.r_[0, vect[0]*dim],
+            cent[1] + np.r_[0, vect[1]*dim],
+            'x-k',
+            cent2[0],
+            cent2[1],
+            'ok',
+            mid0[imin],
+            mid1[imin],
+            'sk',
+            p0[ind],
+            p1[ind],
+            '.-r',
+        )
+        plt.gca().set_aspect('equal', adjustable='datalim')
+        plt.gca().set_title(f"ind.size = {ind.size}")
+
+    return cent2
 
 
 # ##############################################################
@@ -836,7 +924,7 @@ def _get_equivalent_aperture_spectro(
             )
 
         # --- DEBUG ---------
-        # if ij in [236, 239, 387]:
+        # if ij in [1148]:
         #     _debug_plot(
         #         p_a=p_a,
         #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
