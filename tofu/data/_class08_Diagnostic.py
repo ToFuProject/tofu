@@ -283,6 +283,9 @@ class Diagnostic(Previous):
                 compute_vos_from_los=compute_vos_from_los,
             )
 
+        if store is False:
+            return dcompute
+
     def compute_diagnostic_solidangle_from_plane(
         self,
         key_diag=None,
