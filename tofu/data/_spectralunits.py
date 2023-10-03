@@ -53,8 +53,8 @@ def convert_spectral(
         return data_in
 
     coef, inv, cat = _convert_spectral_coef(
-        units_in=units_in,
-        units_out=units_out,
+        uin=uin,
+        uout=uout,
     )
 
     # -----------
