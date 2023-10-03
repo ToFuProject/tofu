@@ -1,21 +1,24 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Sep 10 21:01:58 2023
 
-
-# standard
-import itertools as itt
+@author: dvezinet
+"""
 
 
 # common
 import numpy as np
 import scipy.constants as scpct
+import astropy.units as asunits
 
 
 __all__ = ['convert_spectral']
 
 
-_SPECTRAL_DUNITS = {
-    'wavelength': ['m', 'mm', 'um', 'nm', 'pm', 'A'],
-    'energy': ['TeV', 'GeV', 'MeV', 'keV', 'eV', 'J'],
-    'frequency': ['THz', 'GHz', 'MHz', 'kHz', 'Hz'],
+_DREF = {
+    'length': 'm',
+    'frequency': 'Hz',
+    'energy': 'J',
 }
 
 
@@ -30,11 +33,13 @@ def convert_spectral(
     units_in=None,
     units_out=None,
 ):
+    """ convert wavelength / energy/ frequency
+    """
 
     # -------------
     # Check inputs
 
-    data_in = _check_convert_spectral(
+    data_in, uin, uout = _check_convert_spectral(
         data_in=data_in,
         units_in=units_in,
         units_out=units_out,
@@ -64,20 +69,6 @@ def convert_spectral(
             data = coef * data_in
 
     return data, coef, inv, cat
-
-
-# #########################
-# set docstring dynamically
-
-convert_spectral.__doc__ = (
-    f""" convert wavelength / energy/ frequency
-
-    Available units:
-        wavelength: {_SPECTRAL_DUNITS['wavelength']}
-        energy:     {_SPECTRAL_DUNITS['energy']}
-        frequency:  {_SPECTRAL_DUNITS['frequency']}
-    """
-)
 
 
 # ###############################
@@ -112,30 +103,32 @@ def _check_convert_spectral(
             raise Exception(msg)
 
     # units
-    units = list(
-        itt.chain.from_iterable([vv for vv in _SPECTRAL_DUNITS.values()])
-    )
-    if units_in not in units or units_out not in units:
-        msg = (
-            """
-            Both units_in and units_out must be in:
-            - {}
-            - {}
-            - {}
+    uin = asunits.Unit(units_in)
+    uout = asunits.Unit(units_out)
 
-            Provided:
-            - units_in: {}
-            - units_out: {}
-            """.format(
-                'wavelength: {}'.format(_SPECTRAL_DUNITS['wavelength']),
-                'energy: {}'.format(_SPECTRAL_DUNITS['energy']),
-                'frequency: {}'.format(_SPECTRAL_DUNITS['frequency']),
-                units_in, units_out,
-            )
+    ltypes = ['energy', 'length', 'frequency']
+
+    c0 = any([ss in uin.physical_type for ss in ltypes])
+    if not c0:
+        msg = (
+            "units_in is not recognized as a relevant spectral quantity:\n"
+            f"\t- units_in: {units_in}\n"
+            f"\t- physical_type: {uin.physical_type}\n"
+            f"\t- relevant physical types: {ltypes}"
         )
         raise Exception(msg)
 
-    return data_in
+    c0 = any([ss in uout.physical_type for ss in ltypes])
+    if not c0:
+        msg = (
+            "units_out is not recognized as a relevant spectral quantity:\n"
+            f"\t- units_out: {units_out}\n"
+            f"\t- physical_type: {uout.physical_type}\n"
+            f"\t- relevant physical types: {ltypes}"
+        )
+        raise Exception(msg)
+
+    return data_in, uin, uout
 
 
 # ###############################
@@ -144,83 +137,40 @@ def _check_convert_spectral(
 
 
 def _convert_spectral_coef(
-    units_in=None,
-    units_out=None,
+    uin=None,
+    uout=None,
 ):
     """ Get conversion coef """
 
-    k0_in = [k0 for k0, v0 in _SPECTRAL_DUNITS.items() if units_in in v0][0]
-    k0_out = [k0 for k0, v0 in _SPECTRAL_DUNITS.items() if units_out in v0][0]
+    ltypes = ['energy', 'length', 'frequency']
+    k0_in = [ss for ss in ltypes if ss in uin.physical_type][0]
+    k0_out = [ss for ss in ltypes if ss in uout.physical_type][0]
 
-    if units_in == units_out:
+    if uin == uout:
         return 1., False
 
     # ---------
-    # First case: same category
+    # First case: same physical type
 
     inv = False
     if k0_in == k0_out:
-        indin = _SPECTRAL_DUNITS[k0_in].index(units_in)
-        indout = _SPECTRAL_DUNITS[k0_out].index(units_out)
-
-        if k0_in == 'frequency':
-            coef = 10**(3*(indout-indin))
-
-        elif k0_in == 'wavelength':
-            if units_in == 'A':
-                coef = 10**(3*(indout-(indin-1)) + 2)
-            elif units_out == 'A':
-                coef = 10**(3*((indout-1)-indin) - 2)
-            else:
-                coef = 10**(3*(indout-indin))
-
-        elif k0_in == 'energy':
-            if units_in == 'J':
-                coef = 10**(3*(indout-(indin-1))) / scpct.e
-            elif units_out == 'J':
-                coef = 10**(3*((indout-1)-indin)) * scpct.e
-            else:
-                coef = 10**(3*(indout-indin))
+        coef = uin.in_units(uout)
 
     # ---------
     # For each category, convert to reference (m, eV, Hz)
     else:
 
         # coefs_in
-        if k0_in == 'wavelength':
-            # units_in -> eV
-            coef_in = _convert_spectral_coef(
-                units_in=units_in, units_out='m',
-            )[0]
-        elif k0_in == 'energy':
-            coef_in = _convert_spectral_coef(
-                units_in=units_in, units_out='J',
-            )[0]
-        elif k0_in == 'frequency':
-            coef_in = _convert_spectral_coef(
-                units_in=units_in, units_out='Hz',
-            )[0]
+        coef_in = uin.in_units(_DREF[k0_in])
 
         # coefs_out
-        if k0_out == 'wavelength':
-            # units_in -> eV
-            coef_out = _convert_spectral_coef(
-                units_in='m', units_out=units_out,
-            )[0]
-        elif k0_out == 'energy':
-            coef_out = _convert_spectral_coef(
-                units_in='J', units_out=units_out,
-            )[0]
-        elif k0_out == 'frequency':
-            coef_out = _convert_spectral_coef(
-                units_in='Hz', units_out=units_out,
-            )[0]
+        coef_out = uin.in_units(_DREF[k0_out])
 
         # ------------------
         # Cross combinations between (m, J, Hz)
 
         # E = h*f = h*c/lambda
-        if k0_in == 'wavelength':
+        if k0_in == 'length':
             inv = True
             if k0_out == 'energy':
                 # m -> J
@@ -230,7 +180,7 @@ def _convert_spectral_coef(
                 coef_cross = scpct.c
 
         elif k0_in == 'energy':
-            if k0_out == 'wavelength':
+            if k0_out == 'length':
                 # J -> m
                 inv = True
                 coef_cross = scpct.h * scpct.c
@@ -239,7 +189,7 @@ def _convert_spectral_coef(
                 coef_cross = 1./scpct.h
 
         elif k0_in == 'frequency':
-            if k0_out == 'wavelength':
+            if k0_out == 'length':
                 # Hz -> m
                 inv = True
                 coef_cross = scpct.c
