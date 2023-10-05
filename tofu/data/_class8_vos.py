@@ -13,6 +13,7 @@ import datetime as dtm      # DB
 
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
+from . import _class8_los_angles
 
 
 # ###############################################################
@@ -644,21 +645,35 @@ def _store(
         if replace_poly and v0.get('pcross0') is not None:
 
             # re-use previous keys
-            kpc0, kpc1 = doptics[k0]['dvos']['pcross']
-            kr = coll.ddata[kpc0]['ref'][0]
+            if doptics[k0].get('dvos') is None:
 
-            # safety check
-            shape_pcross = v0['pcross0']['data'].shape
-            if coll.ddata[kpc0]['data'].shape[1:] != shape_pcross[1:]:
-                msg = "Something is wrong"
-                raise Exception(msg)
+                _class8_los_angles._vos_from_los_store(
+                    coll=coll,
+                    key=key_diag,
+                    key_cam=k0,
+                    pcross0=v0['pcross0']['data'],
+                    pcross1=v0['pcross1']['data'],
+                    phor0=None,
+                    phor1=None,
+                    dphi=None,
+                )
 
-            coll._dref[kr]['size'] = shape_pcross[0]
-            coll._ddata[kpc0]['data'] = v0['pcross0']['data']
-            coll._ddata[kpc1]['data'] = v0['pcross1']['data']
+            else:
+                kpc0, kpc1 = doptics[k0]['dvos']['pcross']
+                kr = coll.ddata[kpc0]['ref'][0]
+
+                # safety check
+                shape_pcross = v0['pcross0']['data'].shape
+                if coll.ddata[kpc0]['data'].shape[1:] != shape_pcross[1:]:
+                    msg = "Something is wrong"
+                    raise Exception(msg)
+
+                coll._dref[kr]['size'] = shape_pcross[0]
+                coll._ddata[kpc0]['data'] = v0['pcross0']['data']
+                coll._ddata[kpc1]['data'] = v0['pcross1']['data']
 
         # ----------------
-        # add ref
+        # add ref of sang
 
         for k1, v1 in dref[k0].items():
             if v1['key'] in coll.dref.keys():
@@ -690,7 +705,7 @@ def _store(
                     coll.remove_data(key=v0[k1]['key'])
                 else:
                     msg = (
-                        "Not overwriting existing data {k1}\n"
+                        f"Not overwriting existing data '{k1}'\n"
                         "To force update use overwrite = True"
                     )
                     raise Exception(msg)
