@@ -68,17 +68,47 @@ def _vos(
     if timing:
         t00 = dtm.datetime.now()     # DB
 
-    # get temporary vos
-    kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
-    shape = coll.ddata[kpc0]['data'].shape
-    pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
-    pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
-    kph0, kph1 = doptics[key_cam]['dvos']['phor']
-    shapeh = coll.ddata[kph0]['data'].shape
-    phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
-    phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
+    # ----------------
+    # user-defined vos
 
-    dphi = doptics[key_cam]['dvos']['dphi']
+    if pcross_user is not None:
+        xx, yy, zz, dind, iz = _vos_points(
+            # polygons
+            pcross0=pcross_user[0, :],
+            pcross1=pcross_user[1, :],
+            phor0=phor_user[0, :],
+            phor1=phor_user[1, :],
+            margin_poly=margin_poly,
+            dphi=np.r_[-np.pi, np.pi],
+            # sampling
+            dsamp=dsamp,
+            x0f=x0f,
+            x1f=x1f,
+            x0u=x0u,
+            x1u=x1u,
+            res=res_phi,
+            dx0=dx0,
+            dx1=dx1,
+            # shape
+            sh=sh,
+        )
+
+        shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
+        shape = np.r_[0, shape]
+
+    else:
+
+        # get temporary vos
+        kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
+        shape = coll.ddata[kpc0]['data'].shape
+        pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
+        pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
+        kph0, kph1 = doptics[key_cam]['dvos']['phor']
+        shapeh = coll.ddata[kph0]['data'].shape
+        phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
+        phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
+
+        dphi = doptics[key_cam]['dvos']['dphi']
 
     # ---------------
     # prepare det
@@ -108,31 +138,6 @@ def _vos(
         t11 = dtm.datetime.now()     # DB
         dt11 += (t11-t00).total_seconds()
 
-    # ----------------
-    # user-defined vos
-
-    if pcross_user is not None:
-        xx, yy, zz, dind, iz = _vos_points(
-            # polygons
-            pcross0=pcross_user[0, :],
-            pcross1=pcross_user[1, :],
-            phor0=phor_user[0, :],
-            phor1=phor_user[1, :],
-            margin_poly=margin_poly,
-            dphi=np.r_[-np.pi, np.pi],
-            # sampling
-            dsamp=dsamp,
-            x0f=x0f,
-            x1f=x1f,
-            x0u=x0u,
-            x1u=x1u,
-            res=res_phi,
-            dx0=dx0,
-            dx1=dx1,
-            # shape
-            sh=sh,
-        )
-
     # -----------
     # loop on pix
 
@@ -140,7 +145,7 @@ def _vos(
     lsang = []
     lindr = []
     lindz = []
-    npix = pcross0.shape[1]
+    npix = coll.dobj['camera'][key_cam]['dgeom']['pix_nb']
     for ii in range(npix):
 
         # -----------------
