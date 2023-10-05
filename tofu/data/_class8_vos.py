@@ -43,6 +43,7 @@ def compute_vos(
     DR=None,
     DZ=None,
     Dphi=None,
+    force_user_limits=None,
     # options
     add_points=None,
     # spectro-only

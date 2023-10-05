@@ -377,7 +377,7 @@ def _vos_from_los_store(
             pcross0 = pcross0.reshape(shape)
             pcross1 = pcross1.reshape(shape)
 
-        if phor0 is None:
+        if phor0 is not None:
             shape = tuple(np.r_[phor0.shape[0], shape0])
             phor0 = phor0.reshape(shape)
             phor1 = phor1.reshape(shape)
