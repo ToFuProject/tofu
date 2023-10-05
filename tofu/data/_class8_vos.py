@@ -144,11 +144,6 @@ def compute_vos(
     sh1 = tuple([ss + 2 for ss in sh])
     bool_cross = np.zeros(sh1, dtype=bool)
 
-    print()
-    print('dsamp', dsamp.keys())
-    # print(dsamp)
-    print()
-
     x0u = dsamp['x0']['data'][:, 0]
     x1u = dsamp['x1']['data'][0, :]
     x0l = np.r_[x0u[0] - (x0u[1] - x0u[0]), x0u, x0u[-1] + (x0u[-1] - x0u[-2])]
@@ -676,6 +671,11 @@ def _store(
 
         if replace_poly and v0.get('pcross0') is not None:
 
+            if v0.get('phor0') is None:
+                phor0, phor1 = None, None
+            else:
+                phor0, phor1 = v0['phor0']['data'], v0['phor1']['data']
+
             # re-use previous keys
             if doptics[k0].get('dvos') is None:
 
@@ -685,13 +685,14 @@ def _store(
                     key_cam=k0,
                     pcross0=v0['pcross0']['data'],
                     pcross1=v0['pcross1']['data'],
-                    phor0=None,
-                    phor1=None,
+                    phor0=phor0,
+                    phor1=phor1,
                     dphi=None,
                 )
 
             else:
                 kpc0, kpc1 = doptics[k0]['dvos']['pcross']
+                kph0, kph1 = doptics[k0]['dvos']['phor']
                 kr = coll.ddata[kpc0]['ref'][0]
 
                 # safety check
@@ -703,6 +704,9 @@ def _store(
                 coll._dref[kr]['size'] = shape_pcross[0]
                 coll._ddata[kpc0]['data'] = v0['pcross0']['data']
                 coll._ddata[kpc1]['data'] = v0['pcross1']['data']
+                if phor0 is not None:
+                    coll._ddata[kph0]['data'] = v0['phor0']['data']
+                    coll._ddata[kph1]['data'] = v0['phor1']['data']
 
         # ----------------
         # add ref of sang
