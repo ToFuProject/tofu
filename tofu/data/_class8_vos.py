@@ -144,6 +144,11 @@ def compute_vos(
     sh1 = tuple([ss + 2 for ss in sh])
     bool_cross = np.zeros(sh1, dtype=bool)
 
+    print()
+    print('dsamp', dsamp.keys())
+    # print(dsamp)
+    print()
+
     x0u = dsamp['x0']['data'][:, 0]
     x1u = dsamp['x1']['data'][0, :]
     x0l = np.r_[x0u[0] - (x0u[1] - x0u[0]), x0u, x0u[-1] + (x0u[-1] - x0u[-2])]

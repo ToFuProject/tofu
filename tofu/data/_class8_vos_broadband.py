@@ -95,6 +95,11 @@ def _vos(
         shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
         shape = np.r_[0, shape]
 
+        print()
+        print('dind: ', dind.keys())
+        print(dind)
+        print()
+
     else:
 
         # get temporary vos
@@ -253,7 +258,7 @@ def _vos(
             t0 = dtm.datetime.now()     # DB
             out, dt1, dt2, dt3 = out
 
-        # update
+        # update cross
         ipt = 0
         for i0, v0 in dind.items():
             for i1 in v0['iz']:
@@ -263,6 +268,15 @@ def _vos(
                 indz[ipt] = i1
                 bool_cross[i0 + 1, i1 + 1] = sang[ipt] > 0.
                 ipt += 1
+
+        # update hor
+        for i0, v0 in dind.items():
+            ind1 =
+            sang_hor[ipt] = np.sum(out[0, ind1]) * v0['dV']
+            indr_hor[ipt] = i0
+            indphi[ipt] = i1
+            bool_hor[i0 + 1, i1 + 1] = sang_hor[ipt] > 0.
+            ipt += 1
 
         # timing
         if timing:
