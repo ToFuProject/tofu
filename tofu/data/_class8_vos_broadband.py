@@ -38,8 +38,7 @@ def _vos(
     res_phi=None,
     bool_cross=None,
     # user-defined limits
-    pcross_user=None,
-    phor_user=None,
+    user_limits=None,
     # parameters
     margin_poly=None,
     config=None,
@@ -71,13 +70,13 @@ def _vos(
     # ----------------
     # user-defined vos
 
-    if pcross_user is not None:
+    if user_limits is not None:
         xx, yy, zz, dind, iz = _vos_points(
             # polygons
-            pcross0=pcross_user[0, :],
-            pcross1=pcross_user[1, :],
-            phor0=phor_user[0, :],
-            phor1=phor_user[1, :],
+            pcross0=user_limits['pcross_user'][0, :],
+            pcross1=user_limits['pcross_user'][1, :],
+            phor0=user_limits['phor_user'][0, :],
+            phor1=user_limits['phor_user'][1, :],
             margin_poly=margin_poly,
             dphi=np.r_[-np.pi, np.pi],
             # sampling
@@ -155,7 +154,7 @@ def _vos(
             t000 = dtm.datetime.now()     # DB
 
         # get points
-        if pcross_user is None:
+        if user_limits is None:
 
             if np.isnan(pcross0[0, ii]):
                 continue
@@ -536,82 +535,82 @@ def _vos_points(
 # ###########################################################
 
 
-def _vos_pixel(
-    x0=None,
-    x1=None,
-    ind=None,
-    npts=None,
-    dphi=None,
-    deti=None,
-    lap=None,
-    res=None,
-    config=None,
-    visibility=None,
-    # output
-    key_cam=None,
-    sli=None,
-    ii=None,
-    bool_cross=None,
-    sang=None,
-    indr=None,
-    indz=None,
-    # timing
-    timing=None,
-    dt1111=None,
-    dt2222=None,
-    dt3333=None,
-    dt4444=None,
-):
+# def _vos_pixel(
+#     x0=None,
+#     x1=None,
+#     ind=None,
+#     npts=None,
+#     dphi=None,
+#     deti=None,
+#     lap=None,
+#     res=None,
+#     config=None,
+#     visibility=None,
+#     # output
+#     key_cam=None,
+#     sli=None,
+#     ii=None,
+#     bool_cross=None,
+#     sang=None,
+#     indr=None,
+#     indz=None,
+#     # timing
+#     timing=None,
+#     dt1111=None,
+#     dt2222=None,
+#     dt3333=None,
+#     dt4444=None,
+# ):
 
 
-    out = _comp_solidangles.calc_solidangle_apertures(
-        # observation points
-        pts_x=xx,
-        pts_y=yy,
-        pts_z=zz,
-        # polygons
-        apertures=lap,
-        detectors=deti,
-        # possible obstacles
-        config=config,
-        # parameters
-        summed=False,
-        visibility=visibility,
-        return_vector=False,
-        return_flat_pts=None,
-        return_flat_det=None,
-        timing=timing,
-    )
+#     out = _comp_solidangles.calc_solidangle_apertures(
+#         # observation points
+#         pts_x=xx,
+#         pts_y=yy,
+#         pts_z=zz,
+#         # polygons
+#         apertures=lap,
+#         detectors=deti,
+#         # possible obstacles
+#         config=config,
+#         # parameters
+#         summed=False,
+#         visibility=visibility,
+#         return_vector=False,
+#         return_flat_pts=None,
+#         return_flat_det=None,
+#         timing=timing,
+#     )
 
-    # ------------
-    # get indices
+#     # ------------
+#     # get indices
 
-    if timing:
-        t0 = dtm.datetime.now()     # DB
-        out, dt1, dt2, dt3 = out
+#     if timing:
+#         t0 = dtm.datetime.now()     # DB
+#         out, dt1, dt2, dt3 = out
 
-    ipt = 0
-    for ii, i0 in enumerate(iru):
-        ind0 = irf == i0
-        for i1 in izru[ii]:
-            ind = ind0 & (izf == i1)
-            bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
-            sang[ipt] = np.sum(out[0, ind])
-            indr[ipt] = i0
-            indz[ipt] = i1
-            ipt += 1
-    assert ipt == npts
+#     ipt = 0
+#     for ii, i0 in enumerate(iru):
+#         ind0 = irf == i0
+#         for i1 in izru[ii]:
+#             ind = ind0 & (izf == i1)
+#             bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
+#             sang[ipt] = np.sum(out[0, ind])
+#             indr[ipt] = i0
+#             indz[ipt] = i1
+#             ipt += 1
+#     assert ipt == npts
 
-    # timing
-    if timing:
-        dt4444 += (dtm.datetime.now() - t0).total_seconds()
-        dt1111 += dt1
-        dt2222 += dt2
-        dt3333 += dt3
+#     # timing
+#     if timing:
+#         dt4444 += (dtm.datetime.now() - t0).total_seconds()
+#         dt1111 += dt1
+#         dt2222 += dt2
+#         dt3333 += dt3
 
-        return dt1111, dt2222, dt3333, dt4444
-    else:
-        return
+#         return dt1111, dt2222, dt3333, dt4444
+#     else:
+#         return
 
 
 # ###########################################################
