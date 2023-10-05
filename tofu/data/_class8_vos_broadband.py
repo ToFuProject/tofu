@@ -4,6 +4,7 @@
 import datetime as dtm      # DB
 import numpy as np
 import scipy.interpolate as scpinterp
+import scipy.stats as scpstats
 from matplotlib.path import Path
 import datastock as ds
 
@@ -44,6 +45,8 @@ def _vos(
     config=None,
     visibility=None,
     verb=None,
+    # debug
+    debug=False,
     # timing
     timing=None,
     dt11=None,
@@ -273,6 +276,19 @@ def _vos(
                 ind1 = dind[i0]['indrz'] & (iphi == i1)
                 dsang_hor[i0][i1] = np.sum(out[0, ind1]) * v0['dV']
 
+        # ----- DEBUG --------
+        if debug:
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+
+            ipos = out[0, :] > 0
+            #ax.scatter(xx[ipos], yy[ipos], c=out[0, ipos], s=6, marker='o', vmin=0)
+            #ax.plot(xx[~ipos], yy[~ipos], c='r', marker='x')
+            ax.scatter(np.arctan2(yy, xx), out[0, :], c=np.hypot(xx, yy), s=6, marker='.')
+        # ----- END DEBUG ----
+
+
         # timing
         if timing:
             dt4444 += (dtm.datetime.now() - t0).total_seconds()
@@ -296,11 +312,21 @@ def _vos(
             )
 
             # phor
-            ph0, ph1 = _get_phor(
-                dind=dind,
-                dsang_hor=dsang_hor,
-                x0=x0l[:, 0],
-                res=np.min(np.atleast_1d(res_RZ)),
+            # ph0, ph1 = _get_phor(
+            #     dind=dind,
+            #     xx=xx,
+            #     yy=yy,
+            #     out=out[0, :],
+            #     dsang_hor=dsang_hor,
+            #     x0=x0l[:, 0],
+            #     res=np.min(np.atleast_1d(res_RZ)),
+            # )
+
+            ph0, ph1 = _get_phor2(
+                xx=xx,
+                yy=yy,
+                out=out[0, :],
+                res=min(res_RZ[0], res_phi),
             )
 
         else:
@@ -582,87 +608,139 @@ def _vos_points(
 # ###########################################################
 
 
-def _get_phor(dind=None, dsang_hor=None, x0=None, res=None):
+def _get_phor2(xx=None, yy=None, out=None, res=None, debug=False):
 
-    # ------------
-    # get phi map
+    # boundaries
+    xmin, xmax = xx.min(), xx.max()
+    ymin, ymax = yy.min(), yy.max()
 
-    dphi = np.min([
-        (v0['phi'][1] - v0['phi'][0]) for v0 in dind.values()
-        if v0['phi'].size >= 2
-    ])
+    # grid
+    nx = int(np.ceil((xmax - xmin) / (2 * res)))
+    ny = int(np.ceil((ymax - ymin) / (2 * res)))
 
-    phi_min = np.min([np.min(v0['phi']) for v0 in dind.values()])
-    phi_max = np.max([np.max(v0['phi']) for v0 in dind.values()])
+    xb = np.linspace(xmin - 4*res, xmax + 4*res, nx+4)
+    yb = np.linspace(ymin - 4*res, ymax + 4*res, ny+4)
 
-    nphi = int(np.ceil((phi_max - phi_min) / dphi))
-    phi = np.linspace(phi_min - dphi, phi_max + dphi, nphi + 2)
+    binned = scpstats.binned_statistic_2d(
+        xx,
+        yy,
+        out,
+        bins=(xb, yb),
+        statistic='mean',
+    ).statistic
 
-    # --------------
-    # get sang map
+    # ------- DEBUG -------
+    if debug:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        ax.scatter(xx, yy, c=out, s=6, marker='.')
 
-    nr = x0.size
-    bool_hor = np.zeros((nr, nphi + 2), dtype=float)
-
-    for ii, (i0, v0) in enumerate(dind.items()):
-
-        bool_hor[i0 + 1, :] = scpinterp.UnivariateSpline(
-            v0['phi'],
-            dsang_hor[i0],
-            w=None,
-            bbox=[None, None],
-            k=1,
-            s=None,
-            ext=0,
-            check_finite=False,
-        )(phi) > 0
-    bool_hor[:, 0] = 0.
-    bool_hor[:, -1] = 0.
-
-    # ----------------
-    # convert to x, y
-
-    rf = np.repeat(x0[:, None], nphi+2, axis=1)
-    phif = np.repeat(phi[None, :], nr, axis=0)
-
-    xf = rf * np.cos(phif)
-    yf = rf * np.sin(phif)
-
-    xmin, xmax = xf.min(), xf.max()
-    ymin, ymax = yf.min(), yf.max()
-
-    res = min(res, dphi*x0[0])
-    nx = int(np.ceil((xmax - xmin) / res))
-    ny = int(np.ceil((ymax - ymin) / res))
-
-    xx = np.linspace(np.min(xf), np.max(xf), nx)
-    yy = np.linspace(np.min(xf), np.max(xf), ny)
-    rr = np.hypot(xx[:, None], yy[None, :])
-    pp = np.arctan2(yy[None, :], xx[:, None])
-
-    bool_xy = np.zeros((nx, ny), dtype=float)
-
-    iok = (rr > x0[0]) & (rr < x0[-1])
-    bool_xy[iok] = scpinterp.RectBivariateSpline(
-        x0,
-        phi,
-        bool_hor,
-        kx=1,
-        ky=1,
-        s=0,
-    )(rr[iok], pp[iok], grid=False)
+        fig = plt.figure()
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        ax.imshow(
+            binned.T,
+            extent=(xb[0], xb[-1], yb[0], yb[-1]),
+            aspect='equal',
+            interpolation='nearest',
+            origin='lower',
+        )
+    # -----------------------
 
     # --------------------------
     # get phor in (r, phi) space
 
     phx, phy = _utilities._get_polygons(
-        bool_cross=bool_xy,
-        x0=xx,
-        x1=yy,
-        res=res,
+        bool_cross=binned > 0,
+        x0=np.repeat(0.5*(xb[1:] + xb[:-1])[:, None], ny+3, axis=1),
+        x1=np.repeat(0.5*(yb[1:] + yb[:-1])[None, :], nx+3, axis=0),
+        res=2*res,
     )
 
     return phx, phy
+
+
+# def _get_phor(dind=None, dsang_hor=None, x0=None, res=None):
+
+#     # ------------
+#     # get phi map
+
+#     dphi = np.min([
+#         (v0['phi'][1] - v0['phi'][0]) for v0 in dind.values()
+#         if v0['phi'].size >= 2
+#     ])
+
+#     phi_min = np.min([np.min(v0['phi']) for v0 in dind.values()])
+#     phi_max = np.max([np.max(v0['phi']) for v0 in dind.values()])
+
+#     nphi = int(np.ceil((phi_max - phi_min) / dphi))
+#     phi = np.linspace(phi_min - dphi, phi_max + dphi, nphi + 2)
+
+#     # --------------
+#     # get sang map
+
+#     nr = x0.size
+#     bool_hor = np.zeros((nr, nphi + 2), dtype=float)
+
+#     for ii, (i0, v0) in enumerate(dind.items()):
+
+#         bool_hor[i0 + 1, :] = scpinterp.UnivariateSpline(
+#             v0['phi'],
+#             dsang_hor[i0],
+#             w=None,
+#             bbox=[None, None],
+#             k=1,
+#             s=None,
+#             ext=0,
+#             check_finite=False,
+#         )(phi) > 0
+#     bool_hor[:, 0] = 0.
+#     bool_hor[:, -1] = 0.
+
+#     # ----------------
+#     # convert to x, y
+
+#     rf = np.repeat(x0[:, None], nphi+2, axis=1)
+#     phif = np.repeat(phi[None, :], nr, axis=0)
+
+#     xf = rf * np.cos(phif)
+#     yf = rf * np.sin(phif)
+
+#     xmin, xmax = xf.min(), xf.max()
+#     ymin, ymax = yf.min(), yf.max()
+
+#     res = min(res, dphi*x0[0])
+#     nx = int(np.ceil((xmax - xmin) / res))
+#     ny = int(np.ceil((ymax - ymin) / res))
+
+#     xx = np.linspace(np.min(xf), np.max(xf), nx)
+#     yy = np.linspace(np.min(xf), np.max(xf), ny)
+#     rr = np.hypot(xx[:, None], yy[None, :])
+#     pp = np.arctan2(yy[None, :], xx[:, None])
+
+#     bool_xy = np.zeros((nx, ny), dtype=float)
+
+#     iok = (rr > x0[0]) & (rr < x0[-1])
+#     bool_xy[iok] = scpinterp.RectBivariateSpline(
+#         x0,
+#         phi,
+#         bool_hor,
+#         kx=1,
+#         ky=1,
+#         s=0,
+#     )(rr[iok], pp[iok], grid=False)
+
+#     # --------------------------
+#     # get phor in (r, phi) space
+
+#     phx, phy = _utilities._get_polygons(
+#         bool_cross=bool_xy,
+#         x0=xx,
+#         x1=yy,
+#         res=res,
+#     )
+
+#     return phx, phy
 
 
 # ###########################################################
