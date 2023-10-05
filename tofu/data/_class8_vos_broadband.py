@@ -283,8 +283,11 @@ def _vos(
             ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 
             ipos = out[0, :] > 0
-            #ax.scatter(xx[ipos], yy[ipos], c=out[0, ipos], s=6, marker='o', vmin=0)
-            #ax.plot(xx[~ipos], yy[~ipos], c='r', marker='x')
+            # ax.scatter(
+            #     xx[ipos], yy[ipos],
+            #     c=out[0, ipos], s=6, marker='o', vmin=0,
+            # )
+            # ax.plot(xx[~ipos], yy[~ipos], c='r', marker='x')
             ax.scatter(np.arctan2(yy, xx), out[0, :], c=np.hypot(xx, yy), s=6, marker='.')
         # ----- END DEBUG ----
 
@@ -599,7 +602,6 @@ def _vos_points(
     }
 
     return xx, yy, zz, dind, iz[indrz], iphi
-
 
 
 # ###########################################################

@@ -692,7 +692,6 @@ def _store(
 
             else:
                 kpc0, kpc1 = doptics[k0]['dvos']['pcross']
-                kph0, kph1 = doptics[k0]['dvos']['phor']
                 kr = coll.ddata[kpc0]['ref'][0]
 
                 # safety check
@@ -705,6 +704,7 @@ def _store(
                 coll._ddata[kpc0]['data'] = v0['pcross0']['data']
                 coll._ddata[kpc1]['data'] = v0['pcross1']['data']
                 if phor0 is not None:
+                    kph0, kph1 = doptics[k0]['dvos']['phor']
                     coll._ddata[kph0]['data'] = v0['phor0']['data']
                     coll._ddata[kph1]['data'] = v0['phor1']['data']
 
