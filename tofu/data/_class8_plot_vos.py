@@ -457,7 +457,15 @@ def _prepare_los(
     indch=None,
 ):
 
+    # -----------
+    # safety check
+
+    if doptics['los'] is None:
+        return [None] * 8
+
+    # ----------
     # los
+
     los_x, los_y, los_z = coll.sample_rays(
         key=doptics['los'],
         res=los_res,
@@ -465,7 +473,9 @@ def _prepare_los(
         concatenate=False,
     )
 
+    # ------------------
     # for chosen index
+
     if is2d:
         los_xi = los_x[:, indch[0], indch[1]]
         los_yi = los_y[:, indch[0], indch[1]]
@@ -500,7 +510,15 @@ def _prepare_vos(
     indch=None,
 ):
 
+    # -----------
+    # safety check
+
+    if doptics['los'] is None:
+        return [None] * 8
+
+    # -------
     # vos
+
     kpc = doptics['dvos']['pcross']
     pc0 = coll.ddata[kpc[0]]['data']
     pc1 = coll.ddata[kpc[1]]['data']
@@ -665,6 +683,12 @@ def _get_etendue_length(
     poly=None,
 ):
 
+    # -----------
+    # safety check
+
+    if doptics['etendue'] is None:
+        return None, None
+
     # ----------------------
     # get etendue and length
 
@@ -743,7 +767,7 @@ def _add_camera_los_cross(
     # ------
     # los
 
-    if not is2d:
+    if (not is2d) and (los_r is not None):
         l0, = ax.plot(
             los_r,
             los_z,
@@ -803,7 +827,7 @@ def _add_camera_los_hor(
     # ------
     # los
 
-    if not is2d:
+    if (not is2d) and (los_x is not None):
         l0, = ax.plot(
             los_x,
             los_y,
@@ -875,53 +899,57 @@ def _add_camera_data(
     if is2d:
 
         # sang
-        mi = ax.imshow(
-            sang_integ.T,
-            origin='lower',
-            extent=extent_cam,
-            interpolation='nearest',
-            vmin=vmin_cam,
-            vmax=vmax_cam,
-        )
+        if sang_integ is not None:
+            mi = ax.imshow(
+                sang_integ.T,
+                origin='lower',
+                extent=extent_cam,
+                interpolation='nearest',
+                vmin=vmin_cam,
+                vmax=vmax_cam,
+            )
 
         # etendue
-        etendle = etendue * length
-        mi = ax_etend.imshow(
-            etendle.T,
-            origin='lower',
-            extent=extent_cam,
-            interpolation='nearest',
-            vmin=vmin_cam,
-            vmax=vmax_cam,
-        )
-        plt.colorbar(mi, ax=[ax, ax_etend])
+        if etendue is not None:
+            etendle = etendue * length
+            mi = ax_etend.imshow(
+                etendle.T,
+                origin='lower',
+                extent=extent_cam,
+                interpolation='nearest',
+                vmin=vmin_cam,
+                vmax=vmax_cam,
+            )
+            plt.colorbar(mi, ax=[ax, ax_etend])
 
         # diff
-        diff = (sang_integ - etendle).T
-        dmax = np.abs(max(np.nanmin(diff), np.nanmax(diff)))
-        imd = ax_diff.imshow(
-            (sang_integ - etendle).T,
-            origin='lower',
-            extent=extent_cam,
-            interpolation='nearest',
-            cmap=plt.cm.seismic,
-            vmin=-dmax,
-            vmax=dmax,
-        )
+        if sang_integ is not None and etendue is not None:
+            diff = (sang_integ - etendle).T
+            dmax = np.abs(max(np.nanmin(diff), np.nanmax(diff)))
+            imd = ax_diff.imshow(
+                (sang_integ - etendle).T,
+                origin='lower',
+                extent=extent_cam,
+                interpolation='nearest',
+                cmap=plt.cm.seismic,
+                vmin=-dmax,
+                vmax=dmax,
+            )
 
-        plt.colorbar(imd, ax=ax_diff)
+            plt.colorbar(imd, ax=ax_diff)
 
         # marker
-        for aa in [ax, ax_etend, ax_diff]:
-            aa.plot(
-                [x0[indch[0]]],
-                [x1[indch[1]]],
-                c='k',
-                marker='s',
-                ms=6,
-                ls='None',
-                lw=1.,
-            )
+        if x0 is not None:
+            for aa in [ax, ax_etend, ax_diff]:
+                aa.plot(
+                    [x0[indch[0]]],
+                    [x1[indch[1]]],
+                    c='k',
+                    marker='s',
+                    ms=6,
+                    ls='None',
+                    lw=1.,
+                )
 
     else:
 
@@ -929,26 +957,32 @@ def _add_camera_data(
         ind = np.arange(0, nlos)
 
         # vos
-        ax.plot(
-            ind,
-            sang_integ,
-            c='b',
-            marker='.',
-            ls='-',
-            lw=1.,
-            label="sang * dV (sr.m3)",
-        )
+        if sang_integ is not None:
+            nlos = sang_integ.shape[0]
+            ind = np.arange(0, nlos)
+            ax.plot(
+                ind,
+                sang_integ,
+                c='b',
+                marker='.',
+                ls='-',
+                lw=1.,
+                label="sang * dV (sr.m3)",
+            )
 
         # los
-        ax.plot(
-            ind,
-            etendue * length,
-            c='k',
-            marker='.',
-            ls='-',
-            lw=1.,
-            label="etendue * length (sr.m3)",
-        )
+        if etendue is not None:
+            nlos = etendue.shape[0]
+            ind = np.arange(0, nlos)
+            ax.plot(
+                ind,
+                etendue * length,
+                c='k',
+                marker='.',
+                ls='-',
+                lw=1.,
+                label="etendue * length (sr.m3)",
+            )
 
         # indch
         ax.axvline(
