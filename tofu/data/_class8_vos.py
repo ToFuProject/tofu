@@ -22,6 +22,7 @@ from . import _class8_vos_spectro as _vos_spectro
 
 
 def compute_vos(
+    # resources
     coll=None,
     key_diag=None,
     key_cam=None,
@@ -37,6 +38,10 @@ def compute_vos(
     convexHull=None,
     # margins
     margin_poly=None,
+    # user-defined limits
+    DR=None,
+    DZ=None,
+    Dphi=None,
     # options
     add_points=None,
     # spectro-only
@@ -79,14 +84,17 @@ def compute_vos(
         overwrite,
         timing,
     ) = _check(
+        # resources
         coll=coll,
         key_diag=key_diag,
         key_cam=key_cam,
         key_mesh=key_mesh,
+        # parameters
         res_RZ=res_RZ,
         res_phi=res_phi,
         res_lamb=res_lamb,
         convexHull=convexHull,
+        # bool
         visibility=visibility,
         verb=verb,
         debug=debug,
@@ -147,6 +155,18 @@ def compute_vos(
     dx0 = x0u[1] - x0u[0]
     dx1 = x1u[1] - x1u[0]
 
+    # -------------
+    # user-defined
+
+    pcross_user, phor_user = _get_user_limits(
+        DR=DR,
+        DZ=DZ,
+        Dphi=Dphi,
+        # lims
+        x0u=x0u,
+        x1u=x1u,
+    )
+
     # --------------
     # prepare optics
 
@@ -200,6 +220,9 @@ def compute_vos(
                 n1=n1,
                 convexHull=convexHull,
                 bool_cross=bool_cross,
+                # user-defined limits
+                pcross_user=pcross_user,
+                phor_user=phor_user,
                 # parameters
                 margin_poly=margin_poly,
                 config=config,
@@ -276,6 +299,7 @@ def _check(
     res_phi=None,
     res_lamb=None,
     convexHull=None,
+    # bool
     visibility=None,
     check=None,
     verb=None,
@@ -485,6 +509,83 @@ def _check(
         overwrite,
         timing,
     )
+
+
+def _get_user_limits(
+    DR=None,
+    DZ=None,
+    Dphi=None,
+    # lims
+    x0u=None,
+    x1u=None,
+):
+
+    # ---------------
+    # check
+
+    c0 = any([
+        DR is not None,
+        DZ is not None,
+        Dphi is not None,
+    ])
+
+    # ---------------
+    # user-defined limits
+
+    if c0 is True:
+
+        # DR
+        if DR is None:
+            DR = [x0u[0]-1e-9, x0u[-1]+1e-9]
+        DR = ds._generic_check._check_flat1darray(
+            DR, 'DR',
+            dtype=float,
+            size=2,
+            unique=True,
+            sign='>=0',
+        )
+
+        # DZ
+        if DZ is None:
+            DZ = [x1u[0]-1e-9, x1u[-1]+1e-9]
+        DZ = ds._generic_check._check_flat1darray(
+            DZ, 'DZ',
+            dtype=float,
+            size=2,
+            unique=True,
+        )
+
+        # pcross_user
+        pcross_user = np.array([
+            np.r_[DR[0], DR[1], DR[1], DR[0]],
+            np.r_[DZ[0], DZ[0], DZ[1], DZ[1]],
+        ])
+
+        # phor_user
+        if Dphi is None:
+            phor_user = np.array([
+                DR[1] * np.r_[-1, 1, 1, -1],
+                DR[1] * np.r_[-1, -1, 1, 1],
+            ])
+
+        else:
+            phi = np.linspace(Dphi[0], Dphi[1], 50)
+            phor_user = np.array([
+                np.r_[
+                    DR[0]*np.cos(phi),
+                    DR[1]*np.cos(phi[::-1]),
+                ],
+                np.r_[
+                    DR[0]*np.sin(phi),
+                    DR[1]*np.sin(phi[::-1]),
+                ],
+            ])
+
+    else:
+        pcross_user = None
+        phor_user = None
+
+    return pcross_user, phor_user
 
 
 # ###########################################################

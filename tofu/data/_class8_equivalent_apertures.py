@@ -355,6 +355,8 @@ def equivalent_apertures(
             x0=cents0,
             x1=cents1,
         )
+        # add centroid to x0, x1
+
 
         plane_nin = coll.dobj[cref][kref]['dgeom']['nin']
 
@@ -406,6 +408,7 @@ def equivalent_apertures(
             x0, x1, kref, iok,
             px, py, pz,
             cx, cy, cz,
+            cents0, cents1,
             centsx, centsy, centsz,
             area, plane_nin,
             spectro, dist_cryst2ap

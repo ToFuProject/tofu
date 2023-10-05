@@ -37,6 +37,9 @@ def _vos(
     res_RZ=None,
     res_phi=None,
     bool_cross=None,
+    # user-defined limits
+    pcross_user=None,
+    phor_user=None,
     # parameters
     margin_poly=None,
     config=None,
@@ -105,6 +108,31 @@ def _vos(
         t11 = dtm.datetime.now()     # DB
         dt11 += (t11-t00).total_seconds()
 
+    # ----------------
+    # user-defined vos
+
+    if pcross_user is not None:
+        xx, yy, zz, dind, iz = _vos_points(
+            # polygons
+            pcross0=pcross_user[0, :],
+            pcross1=pcross_user[1, :],
+            phor0=phor_user[0, :],
+            phor1=phor_user[1, :],
+            margin_poly=margin_poly,
+            dphi=np.r_[-np.pi, np.pi],
+            # sampling
+            dsamp=dsamp,
+            x0f=x0f,
+            x1f=x1f,
+            x0u=x0u,
+            x1u=x1u,
+            res=res_phi,
+            dx0=dx0,
+            dx1=dx1,
+            # shape
+            sh=sh,
+        )
+
     # -----------
     # loop on pix
 
@@ -121,30 +149,32 @@ def _vos(
         if timing:
             t000 = dtm.datetime.now()     # DB
 
-        if np.isnan(pcross0[0, ii]):
-            continue
-
         # get points
-        xx, yy, zz, dind, iz = _vos_points(
-            # polygons
-            pcross0=pcross0[:, ii],
-            pcross1=pcross1[:, ii],
-            phor0=phor0[:, ii],
-            phor1=phor1[:, ii],
-            margin_poly=margin_poly,
-            dphi=dphi[:, ii],
-            # sampling
-            dsamp=dsamp,
-            x0f=x0f,
-            x1f=x1f,
-            x0u=x0u,
-            x1u=x1u,
-            res=res_phi,
-            dx0=dx0,
-            dx1=dx1,
-            # shape
-            sh=sh,
-        )
+        if pcross_user is None:
+
+            if np.isnan(pcross0[0, ii]):
+                continue
+
+            xx, yy, zz, dind, iz = _vos_points(
+                # polygons
+                pcross0=pcross0[:, ii],
+                pcross1=pcross1[:, ii],
+                phor0=phor0[:, ii],
+                phor1=phor1[:, ii],
+                margin_poly=margin_poly,
+                dphi=dphi[:, ii],
+                # sampling
+                dsamp=dsamp,
+                x0f=x0f,
+                x1f=x1f,
+                x0u=x0u,
+                x1u=x1u,
+                res=res_phi,
+                dx0=dx0,
+                dx1=dx1,
+                # shape
+                sh=sh,
+            )
 
         if xx is None:
             npts_cross = 0
@@ -169,7 +199,7 @@ def _vos(
                 f"\tnpts in cross_section = {npts_cross}"
                 f"\t({npts_tot} total)"
             )
-            end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
+            end = '\n 'if ii == npix - 1 else '\r'
             print(msg, end=end, flush=True)
 
         # ---------------------
@@ -296,19 +326,19 @@ def _vos(
     kir = f'{key_cam}_vos_ir'
     kiz = f'{key_cam}_vos_iz'
     ksa = f'{key_cam}_vos_sa'
-    
+
     ref = tuple(list(coll.dobj['camera'][key_cam]['dgeom']['ref']) + [knpts])
 
     # ----------------
     # format output
-    
+
     dref = {
         'npts': {
             'key': knpts,
             'size': indr.shape[-1],
         },
     }
-    
+
     dout = {
         'pcross0': {
             'data': pcross0,
@@ -382,8 +412,8 @@ def _vos_points(
     sh=None,
 ):
 
-    # ------------
-    # get polygons
+    # ---------------------
+    # get polygons - cross
 
     # get cross-section polygon with margin
     pc0, pc1 = _utilities._get_poly_margin(
@@ -394,20 +424,12 @@ def _vos_points(
         margin=margin_poly,
     )
 
-    # get cross-section polygon with margin
-    ph0, ph1 = _utilities._get_poly_margin(
-        # polygon
-        p0=phor0,
-        p1=phor1,
-        # margin
-        margin=margin_poly,
-    )
+    pcross = Path(np.array([pc0, pc1]).T)
 
     # ------------
     # get indices
 
-    # indixes of points in pcross
-    pcross = Path(np.array([pc0, pc1]).T)
+    # indices
     ind = (
         dsamp['ind']['data']
         & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
@@ -416,6 +438,18 @@ def _vos_points(
     # R and Z indices
     ir, iz = ind.nonzero()
     iru = np.unique(ir)
+
+    # ------------
+    # get polygons - cross dphi_r
+
+    # get cross-section polygon with margin
+    ph0, ph1 = _utilities._get_poly_margin(
+        # polygon
+        p0=phor0,
+        p1=phor1,
+        # margin
+        margin=margin_poly,
+    )
 
     # ------------
     # get dphi_r

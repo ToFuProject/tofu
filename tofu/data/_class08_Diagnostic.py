@@ -412,6 +412,10 @@ class Diagnostic(Previous):
         n0=None,
         n1=None,
         convexHull=None,
+        # user-defined limits
+        DR=None,
+        DZ=None,
+        Dphi=None,
         # margins
         margin_poly=None,
         # raytracing
@@ -453,6 +457,10 @@ class Diagnostic(Previous):
             n0=n0,
             n1=n1,
             convexHull=convexHull,
+            # user-defined limits
+            DR=DR,
+            DZ=DZ,
+            Dphi=Dphi,
             # margins
             margin_poly=margin_poly,
             # spectro-only
