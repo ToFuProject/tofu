@@ -567,7 +567,7 @@ def _get_user_limits(
     if user_limits.get('DR') is None:
         user_limits['DR'] = [x0u[0]-1e-9, x0u[-1]+1e-9]
     user_limits['DR'] = ds._generic_check._check_flat1darray(
-        user_limits.get('DR'), "user_limits.get('DR')",
+        user_limits['DR'], "user_limits.get('DR')",
         dtype=float,
         size=2,
         unique=True,
@@ -575,7 +575,7 @@ def _get_user_limits(
     )
 
     # DZ
-    if user_limits.get('DR') is None:
+    if user_limits.get('DZ') is None:
         user_limits['DZ'] = [x1u[0]-1e-9, x1u[-1]+1e-9]
     user_limits['DZ'] = ds._generic_check._check_flat1darray(
         user_limits['DZ'], "user_limits['DZ']",
@@ -594,7 +594,7 @@ def _get_user_limits(
 
     # Dphi
     # phor_user
-    if user_limits['Dphi'] is None:
+    if user_limits.get('Dphi') is None:
         user_limits['phor_user'] = np.array([
             DR[1] * np.r_[-1, 1, 1, -1],
             DR[1] * np.r_[-1, -1, 1, 1],
