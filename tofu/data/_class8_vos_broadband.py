@@ -37,6 +37,8 @@ def _vos(
     res_RZ=None,
     res_phi=None,
     bool_cross=None,
+    # user-defined limits
+    user_limits=None,
     # parameters
     margin_poly=None,
     config=None,
@@ -65,17 +67,47 @@ def _vos(
     if timing:
         t00 = dtm.datetime.now()     # DB
 
-    # get temporary vos
-    kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
-    shape = coll.ddata[kpc0]['data'].shape
-    pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
-    pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
-    kph0, kph1 = doptics[key_cam]['dvos']['phor']
-    shapeh = coll.ddata[kph0]['data'].shape
-    phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
-    phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
+    # ----------------
+    # user-defined vos
 
-    dphi = doptics[key_cam]['dvos']['dphi']
+    if user_limits is not None:
+        xx, yy, zz, dind, iz = _vos_points(
+            # polygons
+            pcross0=user_limits['pcross_user'][0, :],
+            pcross1=user_limits['pcross_user'][1, :],
+            phor0=user_limits['phor_user'][0, :],
+            phor1=user_limits['phor_user'][1, :],
+            margin_poly=margin_poly,
+            dphi=np.r_[-np.pi, np.pi],
+            # sampling
+            dsamp=dsamp,
+            x0f=x0f,
+            x1f=x1f,
+            x0u=x0u,
+            x1u=x1u,
+            res=res_phi,
+            dx0=dx0,
+            dx1=dx1,
+            # shape
+            sh=sh,
+        )
+
+        shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
+        shape = np.r_[0, shape]
+
+    else:
+
+        # get temporary vos
+        kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
+        shape = coll.ddata[kpc0]['data'].shape
+        pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
+        pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
+        kph0, kph1 = doptics[key_cam]['dvos']['phor']
+        shapeh = coll.ddata[kph0]['data'].shape
+        phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
+        phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
+
+        dphi = doptics[key_cam]['dvos']['dphi']
 
     # ---------------
     # prepare det
@@ -112,7 +144,7 @@ def _vos(
     lsang = []
     lindr = []
     lindz = []
-    npix = pcross0.shape[1]
+    npix = coll.dobj['camera'][key_cam]['dgeom']['pix_nb']
     for ii in range(npix):
 
         # -----------------
@@ -121,30 +153,32 @@ def _vos(
         if timing:
             t000 = dtm.datetime.now()     # DB
 
-        if np.isnan(pcross0[0, ii]):
-            continue
-
         # get points
-        xx, yy, zz, dind, iz = _vos_points(
-            # polygons
-            pcross0=pcross0[:, ii],
-            pcross1=pcross1[:, ii],
-            phor0=phor0[:, ii],
-            phor1=phor1[:, ii],
-            margin_poly=margin_poly,
-            dphi=dphi[:, ii],
-            # sampling
-            dsamp=dsamp,
-            x0f=x0f,
-            x1f=x1f,
-            x0u=x0u,
-            x1u=x1u,
-            res=res_phi,
-            dx0=dx0,
-            dx1=dx1,
-            # shape
-            sh=sh,
-        )
+        if user_limits is None:
+
+            if np.isnan(pcross0[0, ii]):
+                continue
+
+            xx, yy, zz, dind, iz = _vos_points(
+                # polygons
+                pcross0=pcross0[:, ii],
+                pcross1=pcross1[:, ii],
+                phor0=phor0[:, ii],
+                phor1=phor1[:, ii],
+                margin_poly=margin_poly,
+                dphi=dphi[:, ii],
+                # sampling
+                dsamp=dsamp,
+                x0f=x0f,
+                x1f=x1f,
+                x0u=x0u,
+                x1u=x1u,
+                res=res_phi,
+                dx0=dx0,
+                dx1=dx1,
+                # shape
+                sh=sh,
+            )
 
         if xx is None:
             npts_cross = 0
@@ -169,7 +203,7 @@ def _vos(
                 f"\tnpts in cross_section = {npts_cross}"
                 f"\t({npts_tot} total)"
             )
-            end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
+            end = '\n 'if ii == npix - 1 else '\r'
             print(msg, end=end, flush=True)
 
         # ---------------------
@@ -296,19 +330,19 @@ def _vos(
     kir = f'{key_cam}_vos_ir'
     kiz = f'{key_cam}_vos_iz'
     ksa = f'{key_cam}_vos_sa'
-    
+
     ref = tuple(list(coll.dobj['camera'][key_cam]['dgeom']['ref']) + [knpts])
 
     # ----------------
     # format output
-    
+
     dref = {
         'npts': {
             'key': knpts,
             'size': indr.shape[-1],
         },
     }
-    
+
     dout = {
         'pcross0': {
             'data': pcross0,
@@ -382,8 +416,8 @@ def _vos_points(
     sh=None,
 ):
 
-    # ------------
-    # get polygons
+    # ---------------------
+    # get polygons - cross
 
     # get cross-section polygon with margin
     pc0, pc1 = _utilities._get_poly_margin(
@@ -394,20 +428,12 @@ def _vos_points(
         margin=margin_poly,
     )
 
-    # get cross-section polygon with margin
-    ph0, ph1 = _utilities._get_poly_margin(
-        # polygon
-        p0=phor0,
-        p1=phor1,
-        # margin
-        margin=margin_poly,
-    )
+    pcross = Path(np.array([pc0, pc1]).T)
 
     # ------------
     # get indices
 
-    # indixes of points in pcross
-    pcross = Path(np.array([pc0, pc1]).T)
+    # indices
     ind = (
         dsamp['ind']['data']
         & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
@@ -416,6 +442,18 @@ def _vos_points(
     # R and Z indices
     ir, iz = ind.nonzero()
     iru = np.unique(ir)
+
+    # ------------
+    # get polygons - cross dphi_r
+
+    # get cross-section polygon with margin
+    ph0, ph1 = _utilities._get_poly_margin(
+        # polygon
+        p0=phor0,
+        p1=phor1,
+        # margin
+        margin=margin_poly,
+    )
 
     # ------------
     # get dphi_r
@@ -497,82 +535,82 @@ def _vos_points(
 # ###########################################################
 
 
-def _vos_pixel(
-    x0=None,
-    x1=None,
-    ind=None,
-    npts=None,
-    dphi=None,
-    deti=None,
-    lap=None,
-    res=None,
-    config=None,
-    visibility=None,
-    # output
-    key_cam=None,
-    sli=None,
-    ii=None,
-    bool_cross=None,
-    sang=None,
-    indr=None,
-    indz=None,
-    # timing
-    timing=None,
-    dt1111=None,
-    dt2222=None,
-    dt3333=None,
-    dt4444=None,
-):
+# def _vos_pixel(
+#     x0=None,
+#     x1=None,
+#     ind=None,
+#     npts=None,
+#     dphi=None,
+#     deti=None,
+#     lap=None,
+#     res=None,
+#     config=None,
+#     visibility=None,
+#     # output
+#     key_cam=None,
+#     sli=None,
+#     ii=None,
+#     bool_cross=None,
+#     sang=None,
+#     indr=None,
+#     indz=None,
+#     # timing
+#     timing=None,
+#     dt1111=None,
+#     dt2222=None,
+#     dt3333=None,
+#     dt4444=None,
+# ):
 
 
-    out = _comp_solidangles.calc_solidangle_apertures(
-        # observation points
-        pts_x=xx,
-        pts_y=yy,
-        pts_z=zz,
-        # polygons
-        apertures=lap,
-        detectors=deti,
-        # possible obstacles
-        config=config,
-        # parameters
-        summed=False,
-        visibility=visibility,
-        return_vector=False,
-        return_flat_pts=None,
-        return_flat_det=None,
-        timing=timing,
-    )
+#     out = _comp_solidangles.calc_solidangle_apertures(
+#         # observation points
+#         pts_x=xx,
+#         pts_y=yy,
+#         pts_z=zz,
+#         # polygons
+#         apertures=lap,
+#         detectors=deti,
+#         # possible obstacles
+#         config=config,
+#         # parameters
+#         summed=False,
+#         visibility=visibility,
+#         return_vector=False,
+#         return_flat_pts=None,
+#         return_flat_det=None,
+#         timing=timing,
+#     )
 
-    # ------------
-    # get indices
+#     # ------------
+#     # get indices
 
-    if timing:
-        t0 = dtm.datetime.now()     # DB
-        out, dt1, dt2, dt3 = out
+#     if timing:
+#         t0 = dtm.datetime.now()     # DB
+#         out, dt1, dt2, dt3 = out
 
-    ipt = 0
-    for ii, i0 in enumerate(iru):
-        ind0 = irf == i0
-        for i1 in izru[ii]:
-            ind = ind0 & (izf == i1)
-            bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
-            sang[ipt] = np.sum(out[0, ind])
-            indr[ipt] = i0
-            indz[ipt] = i1
-            ipt += 1
-    assert ipt == npts
+#     ipt = 0
+#     for ii, i0 in enumerate(iru):
+#         ind0 = irf == i0
+#         for i1 in izru[ii]:
+#             ind = ind0 & (izf == i1)
+#             bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
+#             sang[ipt] = np.sum(out[0, ind])
+#             indr[ipt] = i0
+#             indz[ipt] = i1
+#             ipt += 1
+#     assert ipt == npts
 
-    # timing
-    if timing:
-        dt4444 += (dtm.datetime.now() - t0).total_seconds()
-        dt1111 += dt1
-        dt2222 += dt2
-        dt3333 += dt3
+#     # timing
+#     if timing:
+#         dt4444 += (dtm.datetime.now() - t0).total_seconds()
+#         dt1111 += dt1
+#         dt2222 += dt2
+#         dt3333 += dt3
 
-        return dt1111, dt2222, dt3333, dt4444
-    else:
-        return
+#         return dt1111, dt2222, dt3333, dt4444
+#     else:
+#         return
 
 
 # ###########################################################

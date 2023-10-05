@@ -208,8 +208,8 @@ def _vos_from_los(
             cx=v0['cx'][ii],
             cy=v0['cy'][ii],
             cz=v0['cz'][ii],
-            x0=v0['x0'][ii, :],
-            x1=v0['x1'][ii, :],
+            x0=np.r_[v0['x0'][ii, :], v0['cents0'][ii]],
+            x1=np.r_[v0['x1'][ii, :], v0['cents1'][ii]],
             dx=np.r_[0],
             dy=np.r_[0],
             dz=np.r_[0],
@@ -353,10 +353,11 @@ def _vos_from_los_store(
     knh = f'{key}_{key_cam}_vos_ph_n'
 
     # dict
-    dref = {
-        knc: {'size': pcross0.shape[0]},
-        knh: {'size': phor0.shape[0]},
-    }
+    dref = {}
+    if pcross0 is not None:
+        dref[knc] = {'size': pcross0.shape[0]}
+    if phor0 is not None:
+        dref[knh] = {'size': phor0.shape[0]}
 
     # -------------
     # data
@@ -370,48 +371,59 @@ def _vos_from_los_store(
     # reshape for 2d camera
     if coll.dobj['camera'][key_cam]['dgeom']['nd'] == '2d':
         shape0 = coll.dobj['camera'][key_cam]['dgeom']['shape']
-        shape = tuple(np.r_[pcross0.shape[0], shape0])
-        pcross0 = pcross0.reshape(shape)
-        pcross1 = pcross1.reshape(shape)
-        shape = tuple(np.r_[phor0.shape[0], shape0])
-        phor0 = phor0.reshape(shape)
-        phor1 = phor1.reshape(shape)
+
+        if pcross0 is not None:
+            shape = tuple(np.r_[pcross0.shape[0], shape0])
+            pcross0 = pcross0.reshape(shape)
+            pcross1 = pcross1.reshape(shape)
+
+        if phor0 is not None:
+            shape = tuple(np.r_[phor0.shape[0], shape0])
+            phor0 = phor0.reshape(shape)
+            phor1 = phor1.reshape(shape)
 
     # ref
     refc = tuple([knc] + list(coll.dobj['camera'][key_cam]['dgeom']['ref']))
     refh = tuple([knh] + list(coll.dobj['camera'][key_cam]['dgeom']['ref']))
 
     # dict
-    ddata = {
-        kpc0: {
-            'data': pcross0,
-            'ref': refc,
-            'units': 'm',
-            'dim': 'length',
-            'quant': 'R',
-        },
-        kpc1: {
-            'data': pcross1,
-            'ref': refc,
-            'units': 'm',
-            'dim': 'length',
-            'quant': 'Z',
-        },
-        kph0: {
-            'data': phor0,
-            'ref': refh,
-            'units': 'm',
-            'dim': 'length',
-            'quant': 'X',
-        },
-        kph1: {
-            'data': phor1,
-            'ref': refh,
-            'units': 'm',
-            'dim': 'length',
-            'quant': 'Y',
-        },
-    }
+    ddata = {}
+
+    if pcross0 is not None:
+        ddata.update({
+            kpc0: {
+                'data': pcross0,
+                'ref': refc,
+                'units': 'm',
+                'dim': 'length',
+                'quant': 'R',
+            },
+            kpc1: {
+                'data': pcross1,
+                'ref': refc,
+                'units': 'm',
+                'dim': 'length',
+                'quant': 'Z',
+            },
+        })
+
+    if phor0 is not None:
+        ddata.update({
+            kph0: {
+                'data': phor0,
+                'ref': refh,
+                'units': 'm',
+                'dim': 'length',
+                'quant': 'X',
+            },
+            kph1: {
+                'data': phor1,
+                'ref': refh,
+                'units': 'm',
+                'dim': 'length',
+                'quant': 'Y',
+            },
+        })
 
     # ----------
     # store
@@ -422,8 +434,8 @@ def _vos_from_los_store(
     # add pcross
     doptics = coll._dobj['diagnostic'][key]['doptics']
     doptics[key_cam]['dvos'] = {
-        'pcross': (kpc0, kpc1),
-        'phor': (kph0, kph1),
+        'pcross': None if pcross0 is None else (kpc0, kpc1),
+        'phor': None if phor0 is None else (kph0, kph1),
         'dphi': dphi,
     }
 
