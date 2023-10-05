@@ -671,6 +671,11 @@ def _store(
 
         if replace_poly and v0.get('pcross0') is not None:
 
+            if v0.get('phor0') is None:
+                phor0, phor1 = None, None
+            else:
+                phor0, phor1 = v0['phor0']['data'], v0['phor1']['data']
+
             # re-use previous keys
             if doptics[k0].get('dvos') is None:
 
@@ -680,8 +685,8 @@ def _store(
                     key_cam=k0,
                     pcross0=v0['pcross0']['data'],
                     pcross1=v0['pcross1']['data'],
-                    phor0=None,
-                    phor1=None,
+                    phor0=phor0,
+                    phor1=phor1,
                     dphi=None,
                 )
 
@@ -698,6 +703,10 @@ def _store(
                 coll._dref[kr]['size'] = shape_pcross[0]
                 coll._ddata[kpc0]['data'] = v0['pcross0']['data']
                 coll._ddata[kpc1]['data'] = v0['pcross1']['data']
+                if phor0 is not None:
+                    kph0, kph1 = doptics[k0]['dvos']['phor']
+                    coll._ddata[kph0]['data'] = v0['phor0']['data']
+                    coll._ddata[kph1]['data'] = v0['phor1']['data']
 
         # ----------------
         # add ref of sang
