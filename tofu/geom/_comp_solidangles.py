@@ -1156,7 +1156,7 @@ def _visibility_unit_vectors(
 
         # Set non-visible to 0 / nan
         iokn = iok.nonzero()[0]
-        iout = iokn[vis==0]
+        iout = iokn[vis == 0]
         solid_angle[iout, ii] = 0.
         unit_vector_x[iout, ii] = np.nan
         unit_vector_y[iout, ii] = np.nan
