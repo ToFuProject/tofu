@@ -1127,9 +1127,9 @@ def _visibility_unit_vectors(
         )
 
         # MC = point to centers
-        MCx = det_cent_x[iok] - pts_x[ii]
-        MCy = det_cent_y[iok] - pts_y[ii]
-        MCz = det_cent_z[iok] - pts_z[ii]
+        MCx = det_cents_x[iok] - pts_x[ii]
+        MCy = det_cents_y[iok] - pts_y[ii]
+        MCz = det_cents_z[iok] - pts_z[ii]
 
         # MCn = MC.norm
         MCn = (
@@ -1147,19 +1147,20 @@ def _visibility_unit_vectors(
         Pz = pts_z[ii] + kk * unit_vector_z[iok, ii]
 
         # Estimate visibility
-        vis = _GG.LOS_areVis_PtsFromPts_VesStruct(
-            np.array([pts_x[ii], pts_y[ii], pts_z[ii]]),
-            np.array([Px, Py, Pz]),
-            dist=kk[ii, iok],
+        vis = _GG.LOS_isVis_PtFromPts_VesStruct(
+            Px, Py, Pz,
+            np.array([[pts_x[ii]], [pts_y[ii]], [pts_z[ii]]]),
+            dist=kk,
             **kwdargs,
         )
 
         # Set non-visible to 0 / nan
-        iout = vis == 0
-        solid_angle[ii, iout] = 0.
-        unit_vector_x[ii, iout] = np.nan
-        unit_vector_y[ii, iout] = np.nan
-        unit_vector_z[ii, iout] = np.nan
+        iokn = iok.nonzero()[0]
+        iout = iokn[vis==0]
+        solid_angle[iout, ii] = 0.
+        unit_vector_x[iout, ii] = np.nan
+        unit_vector_y[iout, ii] = np.nan
+        unit_vector_z[iout, ii] = np.nan
 
 
 ###############################################################################
