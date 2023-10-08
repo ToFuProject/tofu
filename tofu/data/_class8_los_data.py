@@ -237,7 +237,7 @@ def _compute_solid_angles_regular(
 
         # reshape
         if shape0_pts != ptsx.shape:
-            shape = tuple(np.r_[dout[k0]['solid_angle'].shape, shape0_pts])
+            shape = tuple(np.r_[dout[k0]['solid_angle'].shape[0], shape0_pts])
             for k1, v1 in dout[k0].items():
                 dout[k0][k1] = v1.reshape(shape)
 
@@ -598,14 +598,14 @@ def _integrate_along_los_check(
 
     # radius_max
     if radius_max is None and mode == 'abs':
-        
+
         if key_bs_integrand is None and key_bs_coords is None:
             pass
-       
+
         else:
             wm = coll._which_mesh
             wbs = coll._which_bsplines
-    
+
             rmax0, rmax1 = 0, 0
             if key_bs_integrand is not None:
                 keym = coll.dobj[wbs][key_bs_integrand][wm]
@@ -614,7 +614,7 @@ def _integrate_along_los_check(
                     keym = submesh
                 knotsR = coll.dobj[wm][keym]['knots'][0]
                 rmax0 = np.max(coll.ddata[knotsR]['data'])
-                
+
             if key_bs_coords is not None:
                 keym = coll.dobj[wbs][key_bs_coords][wm]
                 submesh = coll.dobj[wm][keym]['submesh']
@@ -622,7 +622,7 @@ def _integrate_along_los_check(
                     keym = submesh
                 knotsR = coll.dobj[wm][keym]['knots'][0]
                 rmax1 = np.max(coll.ddata[knotsR]['data'])
-                
+
             radius_max = max(rmax0, rmax1)
 
     # -----------------
