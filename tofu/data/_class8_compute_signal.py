@@ -1,6 +1,7 @@
 
 
 import datetime as dtm
+import itertools as itt
 
 
 import numpy as np
@@ -122,15 +123,16 @@ def compute_signal(
     # compute
     # --------------
 
+    # pick routine
     if method == 'los':
         func = _compute_los
     else:
         if spectro is True:
             func = _compute_vos_spectro
         else:
-            msg = "vos for non-spectro not implemented yet"
-            raise NotImplementedError(msg)
+            func = _compute_vos_broadband
 
+    # call routine
     dout, dt = func(
         coll=coll,
         is2d=is2d,
@@ -928,8 +930,16 @@ def _units_integration(
     key_bs=None,
 ):
 
+    # -----------------
+    # integrand
+
+    # units0
     units0 = coll.ddata[key_integrand]['units']
 
+    # --------------
+    # los dimension
+
+    # units_bs
     wbs = coll._which_bsplines
     kap = coll.dobj[wbs][key_bs]['apex']
     lunits = list({coll.ddata[k0]['units'] for k0 in kap})
@@ -939,6 +949,7 @@ def _units_integration(
         msg = "Don't know how to interpret line-integration units from bspline"
         raise Exception(msg)
 
+    # units_bs from subbs if relevant
     wm = coll._which_mesh
     keym = coll.dobj[wbs][key_bs][wm]
     subbs = coll.dobj[wm][keym]['subbs']
@@ -956,7 +967,192 @@ def _units_integration(
 
 # ##################################################################
 # ##################################################################
-#               VOS
+#               VOS - Broadband
+# ##################################################################
+
+
+def _compute_vos_broadband(
+    coll=None,
+    is2d=None,
+    PHA=None,
+    key=None,
+    key_diag=None,
+    key_cam=None,
+    key_bs=None,
+    res=None,
+    mode=None,
+    key_integrand=None,
+    key_ref_spectro=None,
+    key_bs_spectro=None,
+    key_ref_cos=None,
+    groupby=None,
+    val_init=None,
+    ref_com=None,
+    brightness=None,
+    spectral_binning=None,
+    # dvos
+    dvos=None,
+    # verb
+    verb=None,
+    # unused
+    **kwdargs,
+):
+
+    # ------------------------
+    # check uniformity of dvos
+
+    dt = None
+    # check all keym and res_RZ are similar
+    lkm = list(set([v0['keym'] for v0 in dvos.values()]))
+    lres = list(set([tuple(v0['res_RZ']) for v0 in dvos.values()]))
+
+    if len(lkm) != 1:
+        lstr = [f"\t- '{k0}': '{v0['keym']}'" for k0, v0 in dvos.items()]
+        msg = (
+            "All cameras vos were not sampled using the same mesh!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    if len(lres) != 1:
+        lstr = [f"\t- '{k0}': '{v0['res_RZ']}'" for k0, v0 in dvos.items()]
+        msg = (
+            "All cameras vos were not sampled using the same resolution!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # extract
+    keym = lkm[0]
+    res_RZ = list(lres[0])
+
+    # -----------------
+    # get mesh sampling
+
+    # get dsamp
+    dsamp = coll.get_sample_mesh(
+        key=keym,
+        res=res_RZ,
+        mode='abs',
+        grid=False,
+        in_mesh=True,
+        # non-used
+        x0=None,
+        x1=None,
+        Dx0=None,
+        Dx1=None,
+        imshow=False,
+        store=False,
+        kx0=None,
+        kx1=None,
+    )
+
+    x0u = dsamp['x0']['data']
+    x1u = dsamp['x1']['data']
+
+    # --------------
+    # prepare
+
+    wbs = coll._which_bsplines
+
+    # units
+    units0 = coll.ddata[key_integrand]['units']
+
+    # -----------------------------
+    # loop on cameras
+
+    dout = {k0: {} for k0 in dvos.keys()}
+    for k0, v0 in dvos.items():
+
+        # group
+        units_vos = v0['sang']['units']
+
+        # --------------
+        # loop on pixels
+
+        shape = None
+        shape_cam = v0['indr']['data'].shape[:-1]
+        assert shape_cam == coll.dobj['camera'][k0]['dgeom']['shape']
+        ref_cam = coll.dobj['camera'][k0]['dgeom']['ref']
+        for ind in np.ndindex(shape_cam):
+
+            # no valid los in group
+            iok = v0['indr']['data'][ind] >= 0
+            if not np.any(iok):
+                continue
+
+            # vos re-creation
+            ind_RZ = tuple(list(ind) + [iok])
+            R = x0u[v0['indr']['data'][ind_RZ]]
+            Z = x1u[v0['indz']['data'][ind_RZ]]
+
+            # -----------------------------
+            # interpolate on matching wavelength ?
+
+            douti = coll.interpolate(
+                keys=key_integrand,
+                ref_key=key_bs,
+                x0=R,
+                x1=Z,
+                grid=False,
+                submesh=True,
+                ref_com=ref_com,
+                domain=None,
+                # azone=None,
+                details=False,
+                crop=None,
+                nan0=False,
+                val_out=0.,
+                return_params=False,
+                store=False,
+            )[key_integrand]
+
+            # extracti shape and ref from integrand
+            datai, refi = douti['data'], douti['ref']
+            if shape is None:
+                axis = refi.index(None)
+                shape = list(datai.shape)
+                shape = tuple(
+                    np.r_[shape[:axis], shape_cam, shape[axis+1:]].astype(int)
+                )
+                ref = tuple(np.r_[refi[:axis], ref_cam, refi[axis+1:]])
+                data = np.full(shape, val_init)
+                ind_data = [[slice(None)] for ii in range(datai.ndim)]
+                ind_sa = [[None] for ii in range(datai.ndim)]
+
+            # ------------
+            # integrate
+
+            ind_data[axis] = ind
+            ind_sa[axis] = ind_RZ
+            data[tuple(itt.chain.from_iterable(ind_data))] = np.nansum(
+                datai
+                * v0['sang']['data'][tuple(itt.chain.from_iterable(ind_sa))],
+                axis=axis,
+            )
+
+        # --------------
+        # post-treatment
+
+        unitsi = units0 * units_vos
+
+        # fill dout
+        dout[k0] = {
+            'key': f'{key}_{k0}',
+            'data': data,
+            'ref': ref,
+            'units': unitsi,
+        }
+
+    # ----------
+    # clean up
+
+    return dout, dt
+
+
+# ##################################################################
+# ##################################################################
+#               VOS - spectro
 # ##################################################################
 
 
