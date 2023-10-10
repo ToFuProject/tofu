@@ -539,7 +539,7 @@ def get_plasma(
                     ref=(keynt,),
                     dim=dim,
                     quant=quant,
-                    units=v0['units'],
+                    units=v0.get('units'),
                     source=ids,
                 )
 

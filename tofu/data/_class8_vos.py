@@ -13,6 +13,7 @@ import datetime as dtm      # DB
 
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
+from . import _class8_los_angles
 
 
 # ###############################################################
@@ -22,6 +23,7 @@ from . import _class8_vos_spectro as _vos_spectro
 
 
 def compute_vos(
+    # resources
     coll=None,
     key_diag=None,
     key_cam=None,
@@ -37,6 +39,8 @@ def compute_vos(
     convexHull=None,
     # margins
     margin_poly=None,
+    # user-defined limits
+    user_limits=None,
     # options
     add_points=None,
     # spectro-only
@@ -79,14 +83,17 @@ def compute_vos(
         overwrite,
         timing,
     ) = _check(
+        # resources
         coll=coll,
         key_diag=key_diag,
         key_cam=key_cam,
         key_mesh=key_mesh,
+        # parameters
         res_RZ=res_RZ,
         res_phi=res_phi,
         res_lamb=res_lamb,
         convexHull=convexHull,
+        # bool
         visibility=visibility,
         verb=verb,
         debug=debug,
@@ -152,6 +159,19 @@ def compute_vos(
 
     doptics = coll._dobj['diagnostic'][key_diag]['doptics']
 
+    # -------------
+    # user-defined
+
+    user_limits = _get_user_limits(
+        user_limits=user_limits,
+        doptics=doptics,
+        key_cam=list(dcompute.keys()),
+        # lims
+        x0u=x0u,
+        x1u=x1u,
+    )
+
+
     # timing
     if timing:
         t1 = dtm.datetime.now()     # DB
@@ -200,6 +220,8 @@ def compute_vos(
                 n1=n1,
                 convexHull=convexHull,
                 bool_cross=bool_cross,
+                # user-defined limits
+                user_limits=user_limits,
                 # parameters
                 margin_poly=margin_poly,
                 config=config,
@@ -276,6 +298,7 @@ def _check(
     res_phi=None,
     res_lamb=None,
     convexHull=None,
+    # bool
     visibility=None,
     check=None,
     verb=None,
@@ -487,6 +510,112 @@ def _check(
     )
 
 
+def _get_user_limits(
+    user_limits=None,
+    doptics=None,
+    key_cam=None,
+    # lims
+    x0u=None,
+    x1u=None,
+):
+
+    # ---------------
+    # check
+
+    # default
+    c0 = all([v0['los'] is None for v0 in doptics.values()])
+    if user_limits is None and c0:
+        user_limits = True
+
+    # dict
+    if user_limits not in [None, True]:
+
+        c0 = (
+            isinstance(user_limits, dict)
+            and any([
+                user_limits.get(ss) is not None
+                and user_limits[ss]
+                for ss in ['DR', 'DZ', 'Dphi']
+            ])
+        )
+
+        if not c0:
+            msg = (
+                "user_limits must be either:\n"
+                "\t- None: not used\n"
+                "\t- True: remove all limits\n"
+                "\t- dict: specify limits with at least one of the keys:\n"
+                "\t\t- 'DR': list of 2 scalars or None\n"
+                "\t\t- 'DZ': list of 2 scalars or None\n"
+                "\t\t- 'Dphi': list of 2 scalars or None\n"
+            )
+            raise Exception(msg)
+
+    # --------------
+    # trivial
+
+    if user_limits is None:
+        return
+
+    elif user_limits is True:
+        user_limits = {}
+
+    # ---------------
+    # user-defined limits
+
+    # DR
+    if user_limits.get('DR') is None:
+        user_limits['DR'] = [x0u[0]-1e-9, x0u[-1]+1e-9]
+    user_limits['DR'] = ds._generic_check._check_flat1darray(
+        user_limits['DR'], "user_limits.get('DR')",
+        dtype=float,
+        size=2,
+        unique=True,
+        sign='>=0',
+    )
+
+    # DZ
+    if user_limits.get('DZ') is None:
+        user_limits['DZ'] = [x1u[0]-1e-9, x1u[-1]+1e-9]
+    user_limits['DZ'] = ds._generic_check._check_flat1darray(
+        user_limits['DZ'], "user_limits['DZ']",
+        dtype=float,
+        size=2,
+        unique=True,
+    )
+
+    # pcross_user
+    DR = user_limits['DR']
+    DZ = user_limits['DZ']
+    user_limits['pcross_user'] = np.array([
+        np.r_[DR[0], DR[1], DR[1], DR[0]],
+        np.r_[DZ[0], DZ[0], DZ[1], DZ[1]],
+    ])
+
+    # Dphi
+    # phor_user
+    if user_limits.get('Dphi') is None:
+        user_limits['phor_user'] = np.array([
+            DR[1] * np.r_[-1, 1, 1, -1],
+            DR[1] * np.r_[-1, -1, 1, 1],
+        ])
+
+    else:
+        phi = np.linspace(user_limits['Dphi'][0], user_limits['Dphi'][1], 50)
+        user_limits['phor_user'] = np.array([
+            np.r_[
+                DR[0]*np.cos(phi),
+                DR[1]*np.cos(phi[::-1]),
+            ],
+            np.r_[
+                DR[0]*np.sin(phi),
+                DR[1]*np.sin(phi[::-1]),
+            ],
+        ])
+
+    return user_limits
+
+
 # ###########################################################
 # ###########################################################
 #               store
@@ -542,22 +671,45 @@ def _store(
 
         if replace_poly and v0.get('pcross0') is not None:
 
+            if v0.get('phor0') is None:
+                phor0, phor1 = None, None
+            else:
+                phor0, phor1 = v0['phor0']['data'], v0['phor1']['data']
+
             # re-use previous keys
-            kpc0, kpc1 = doptics[k0]['dvos']['pcross']
-            kr = coll.ddata[kpc0]['ref'][0]
+            if doptics[k0].get('dvos') is None:
 
-            # safety check
-            shape_pcross = v0['pcross0']['data'].shape
-            if coll.ddata[kpc0]['data'].shape[1:] != shape_pcross[1:]:
-                msg = "Something is wrong"
-                raise Exception(msg)
+                _class8_los_angles._vos_from_los_store(
+                    coll=coll,
+                    key=key_diag,
+                    key_cam=k0,
+                    pcross0=v0['pcross0']['data'],
+                    pcross1=v0['pcross1']['data'],
+                    phor0=phor0,
+                    phor1=phor1,
+                    dphi=None,
+                )
 
-            coll._dref[kr]['size'] = shape_pcross[0]
-            coll._ddata[kpc0]['data'] = v0['pcross0']['data']
-            coll._ddata[kpc1]['data'] = v0['pcross1']['data']
+            else:
+                kpc0, kpc1 = doptics[k0]['dvos']['pcross']
+                kr = coll.ddata[kpc0]['ref'][0]
+
+                # safety check
+                shape_pcross = v0['pcross0']['data'].shape
+                if coll.ddata[kpc0]['data'].shape[1:] != shape_pcross[1:]:
+                    msg = "Something is wrong"
+                    raise Exception(msg)
+
+                coll._dref[kr]['size'] = shape_pcross[0]
+                coll._ddata[kpc0]['data'] = v0['pcross0']['data']
+                coll._ddata[kpc1]['data'] = v0['pcross1']['data']
+                if phor0 is not None:
+                    kph0, kph1 = doptics[k0]['dvos']['phor']
+                    coll._ddata[kph0]['data'] = v0['phor0']['data']
+                    coll._ddata[kph1]['data'] = v0['phor1']['data']
 
         # ----------------
-        # add ref
+        # add ref of sang
 
         for k1, v1 in dref[k0].items():
             if v1['key'] in coll.dref.keys():
@@ -589,7 +741,7 @@ def _store(
                     coll.remove_data(key=v0[k1]['key'])
                 else:
                     msg = (
-                        "Not overwriting existing data {k1}\n"
+                        f"Not overwriting existing data '{k1}'\n"
                         "To force update use overwrite = True"
                     )
                     raise Exception(msg)

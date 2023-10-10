@@ -36,19 +36,19 @@ def main():
     # add several diagnostics
 
     # add broadband
-    _add_broadband(coll, conf, vos=True)
+    _add_broadband(coll, key_diag='d0', conf=conf, vos=True)
 
     # add collimator
-    _add_collimator(coll, conf, vos=True)
+    # _add_collimator(coll, conf, vos=True)
 
     # add 2d camera
-    _add_2d(coll, conf)
+    _add_2d(coll, key_diag='c2d', conf=conf, vos=True)
 
     # add PHA
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    _add_spectrometer(coll, conf, vos=True)   # , crystals=['c0'])
+    # _add_spectrometer(coll, conf, vos=True)   # , crystals=['c0'])
 
     # add spectro-like without crystal
     # _add_spectrometer_like(coll, config=conf, key_diag='d02')
@@ -58,7 +58,8 @@ def main():
 
     _compute_synth_signal(
         coll,
-        ldiag=['d01'],
+        ldiag=['d0', 'c2d'],
+        method='vos',
         spectral_binning=True,
     )
 
@@ -219,6 +220,7 @@ def _create_plasma():
 
 def _add_broadband(
     coll=None,
+    key_diag=None,
     conf=None,
     vos=None,
 ):
@@ -229,7 +231,7 @@ def _add_broadband(
     # coll.add_camera_pinhole(
         # key='bb0',
         # key_pinhole=None,
-        # key_diag='d0',
+        # key_diag=key_diag,
         # cam_type='1d',
         # R=3.3,
         # z=-0.6,
@@ -242,7 +244,7 @@ def _add_broadband(
         # pix_size=3e-3,
         # pix_spacing=5e-3,
         # pinhole_radius=None,
-        # pinhole_size=[1e-3, 1e-3],
+        # pinhole_size=[2e-3, 1e-3],
         # reflections_nb=0,
         # reflections_type=None,
         # compute=False,
@@ -252,7 +254,7 @@ def _add_broadband(
     coll.add_camera_pinhole(
         key='bb1',
         key_pinhole=None,
-        key_diag='d0',
+        key_diag=key_diag,
         cam_type='1d',
         R=3.3,
         z=0.6,
@@ -265,7 +267,7 @@ def _add_broadband(
         pix_size=3e-3,
         pix_spacing=5e-3,
         pinhole_radius=None,
-        pinhole_size=[1e-3, 1e-3],
+        pinhole_size=[3e-3, 2e-3],
         reflections_nb=0,
         reflections_type=None,
         compute=True,
@@ -274,9 +276,9 @@ def _add_broadband(
 
     if vos is True:
         coll.compute_diagnostic_vos(
-            'd0',
+            key_diag=key_diag,
             key_mesh='m0',
-            res_RZ=0.01,
+            res_RZ=0.005,
             res_phi=0.01,
             visibility=False,
             store=True,
@@ -347,15 +349,17 @@ def _add_collimator(
 
 def _add_2d(
     coll=None,
+    key_diag=None,
     conf=None,
+    vos=None,
 ):
 
     # ---------------------
     # add 2 pinhole cameras
 
     coll.add_camera_pinhole(
-        key='c2d',
-        key_diag='d1',
+        key=key_diag,
+        key_diag=key_diag,
         key_pinhole=None,
         cam_type='2d',
         R=3.3,
@@ -375,6 +379,16 @@ def _add_2d(
         compute=True,
         config=conf,
     )
+
+    if vos is True:
+        coll.compute_diagnostic_vos(
+            key_diag,
+            key_mesh='m0',
+            res_RZ=0.02,
+            res_phi=0.02,
+            visibility=False,
+            store=True,
+        )
 
 
 def _add_PHA(
@@ -769,7 +783,12 @@ def _nine0e1_from_orientations(
 # #####################################################
 
 
-def _compute_synth_signal(coll=None, ldiag=None, spectral_binning=None):
+def _compute_synth_signal(
+    coll=None,
+    ldiag=None,
+    method=None,
+    spectral_binning=None,
+):
 
     # -------------
     # list of diags
@@ -786,7 +805,7 @@ def _compute_synth_signal(coll=None, ldiag=None, spectral_binning=None):
             continue
 
         # params
-        if k0 == 'd0':
+        if k0 in ['d0', 'c2d']:
             key_integrand = 'emiss1d'
             ref_com = 'nt'
         # elif k0 == 'diag00':
@@ -802,7 +821,7 @@ def _compute_synth_signal(coll=None, ldiag=None, spectral_binning=None):
             key_diag=k0,
             key_cam=None,
             key_integrand=key_integrand,
-            method='vos',
+            method=method,
             res=0.001,
             mode='abs',
             groupby=None,

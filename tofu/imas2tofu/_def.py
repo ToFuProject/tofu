@@ -138,15 +138,15 @@ _dshort = {
         },
         'beta_tor_norm': {
             'str': 'global_quantities.beta_tor_norm.value',
-            'units': '-',
+            'units': None,
         },
         'beta_tor': {
             'str': 'global_quantities.beta_tor.value',
-            'units': '-',
+            'units': None,
         },
         'beta_pol': {
             'str': 'global_quantities.beta_pol.value',
-            'units': '-',
+            'units': None,
         },
         'energy_total': {
             'str': 'global_quantities.energy_total.value',
@@ -158,7 +158,7 @@ _dshort = {
         },
         'fusion_gain': {
             'str': 'global_quantities.fusion_gain.value',
-            'units': '-',
+            'units': None,
         },
         'tau_resistive': {
             'str': 'global_quantities.tau_resistive.value',
@@ -174,15 +174,15 @@ _dshort = {
         },
         'ng_fraction': {
             'str': 'global_quantities.greenwald_fraction.value',
-            'units': '-',
+            'units': None,
         },
         'q95': {
             'str': 'global_quantities.q_95.value',
-            'units': '-',
+            'units': None,
         },
         'li': {
             'str': 'global_quantities.li.value',
-            'units': '-',
+            'units': None,
         },
         'r0': {
             'str': 'global_quantities.r0.value',
@@ -210,7 +210,7 @@ _dshort = {
         },
         'runaway_particles': {
             'str': 'runaways.particles.value',
-            'units': '-',
+            'units': None,
         },
     },
 
@@ -219,11 +219,11 @@ _dshort = {
         'ip': {'str': 'time_slice[time].global_quantities.ip',
                'dim': 'current', 'quant': 'Ip', 'units': 'A'},
         'q0': {'str': 'time_slice[time].global_quantities.q_axis',
-               'units': '-'},
+               'units': None},
         'qmin': {'str': 'time_slice[time].global_quantities.q_min.value',
-                 'units': '-'},
+                 'units': None},
         'q95': {'str': 'time_slice[time].global_quantities.q_95',
-                'units': '-'},
+                'units': None},
         'volume': {'str': 'time_slice[time].global_quantities.volume',
                    'dim': 'volume', 'quant': 'pvol', 'units': 'm^3'},
         'psiaxis': {'str': 'time_slice[time].global_quantities.psi_axis',
@@ -255,13 +255,13 @@ _dshort = {
                  'units': 'm'},
 
         '1drhotn': {'str': 'time_slice[time].profiles_1d.rho_tor_norm',
-                    'dim': 'rho', 'quant': 'rhotn', 'units': '-'},
+                    'dim': 'rho', 'quant': 'rhotn', 'units': None},
         '1dphi': {'str': 'time_slice[time].profiles_1d.phi',
                   'dim': 'B flux', 'quant': 'phi', 'units': 'Wb'},
         '1dpsi': {'str': 'time_slice[time].profiles_1d.psi',
                   'dim': 'B flux', 'quant': 'psi', 'units': 'Wb'},
         '1dq': {'str': 'time_slice[time].profiles_1d.q',
-                'dim': 'safety factor', 'quant': 'q', 'units': '-'},
+                'dim': 'safety factor', 'quant': 'q', 'units': None},
         '1dpe': {'str': 'time_slice[time].profiles_1d.pressure',
                  'dim': 'pressure', 'quant': 'pe', 'units': 'Pa'},
         '1djT': {'str': 'time_slice[time].profiles_1d.j_tor',
@@ -304,13 +304,13 @@ _dshort = {
         '1dne': {'str': 'profiles_1d[time].electrons.density',
                  'dim': 'density', 'quant': 'ne', 'units': 'm^-3'},
         '1dzeff': {'str': 'profiles_1d[time].zeff',
-                   'dim': 'charge', 'quant': 'zeff', 'units': '-'},
+                   'dim': 'charge', 'quant': 'zeff', 'units': None},
         '1dpsi': {'str': 'profiles_1d[time].grid.psi',
                   'dim': 'B flux', 'quant': 'psi', 'units': 'Wb'},
         '1drhotn': {'str': 'profiles_1d[time].grid.rho_tor_norm',
-                    'dim': 'rho', 'quant': 'rhotn', 'units': '-'},
+                    'dim': 'rho', 'quant': 'rhotn', 'units': None},
         '1drhopn': {'str': 'profiles_1d[time].grid.rho_pol_norm',
-                    'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
+                    'dim': 'rho', 'quant': 'rhopn', 'units': None},
         '1dnW': {'str': 'profiles_1d[time].ion[identifier.label=W].density',
                  'dim': 'density', 'quant': 'nI', 'units': 'm^-3'},
         '1dTi_av': {
@@ -332,7 +332,7 @@ _dshort = {
                   'dim': 'B flux', 'quant': 'psi', 'units': 'Wb'},
         '1drhotn': {'str': ('source[identifier.name=lineradiation]'
                             + '.profiles_1d[time].grid.rho_tor_norm'),
-                    'dim': 'rho', 'quant': 'rhotn', 'units': '-'},
+                    'dim': 'rho', 'quant': 'rhotn', 'units': None},
         '1dbrem': {'str': ('source[identifier.name=bremsstrahlung]'
                            + '.profiles_1d[time].electrons.energy'),
                    'dim': 'vol.emis.', 'quant': 'brem.', 'units': 'W.m^-3'},
@@ -440,11 +440,11 @@ _dshort = {
         'R': {'str': 'channel[chan].position.r',
               'dim': 'distance', 'quant': 'R', 'units': 'm'},
         'rhotn': {'str': 'channel[chan].position.rho_tor_norm',
-                  'dim': 'rho', 'quant': 'rhotn', 'units': '-'},
+                  'dim': 'rho', 'quant': 'rhotn', 'units': None},
         'theta': {'str': 'channel[chan].position.theta',
                   'dim': 'angle', 'quant': 'theta', 'units': 'rad'},
         'tau1keV': {'str': 'channel[chan].optical_depth.data',
-                    'dim': 'optical_depth', 'quant': 'tau', 'units': '-'},
+                    'dim': 'optical_depth', 'quant': 'tau', 'units': None},
         'validity_timed': {'str': 'channel[chan].t_e.validity_timed'},
         'names': {'str': 'channel[chan].name'},
         'Te0': {'str': 't_e_central.data',
@@ -594,7 +594,7 @@ _dshort = {
             ),
             'dim': 'rho',
             'quant': 'rhotn',
-            'units': '-',
+            'units': None,
         },
         'rhotn_sign_valid': {
             'str': (
@@ -963,12 +963,12 @@ _dcomp = {
                    'dim': 'B', 'quant': 'B', 'units': 'T'},
            '1drhopn': {'lstr': ['1dpsi', 'psiaxis', 'psisep'],
                        'func': _rhopn2d,
-                       'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
+                       'dim': 'rho', 'quant': 'rhopn', 'units': None},
            '2drhopn': {'lstr': ['2dpsi', 'psiaxis', 'psisep'],
                        'func': _rhopn2d,
-                       'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
+                       'dim': 'rho', 'quant': 'rhopn', 'units': None},
            '2drhotn': {'lstr': ['2dphi'], 'func': _rhotn2d,
-                       'dim': 'rho', 'quant': 'rhotn', 'units': '-'},
+                       'dim': 'rho', 'quant': 'rhotn', 'units': None},
            'x0': {'lstr': ['x0R', 'x0Z'], 'func': _RZ2array, 'units': 'm'},
            'x1': {'lstr': ['x1R', 'x1Z'], 'func': _RZ2array, 'units': 'm'},
            'strike0': {'lstr': ['strike0R', 'strike0Z'], 'func': _RZ2array,
@@ -981,11 +981,11 @@ _dcomp = {
 
           'core_profiles':
           {'1drhopn': {'lstr': ['1dpsi'], 'func': _rhopn1d,
-                       'dim': 'rho', 'quant': 'rhopn', 'units': '-'}},
+                       'dim': 'rho', 'quant': 'rhopn', 'units': None}},
 
           'core_sources':
           {'1drhopn': {'lstr': ['1dpsi'], 'func': _rhopn1d,
-                       'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
+                       'dim': 'rho', 'quant': 'rhopn', 'units': None},
            '1dprad': {'lstr': ['1dbrem', '1dline'], 'func': _add,
                       'dim': 'vol. emis.', 'quant': 'prad',
                       'units': 'W.m^-3'}},
@@ -1012,7 +1012,7 @@ _dcomp = {
 
           'ece':
           {'rhotn_sign': {'lstr': ['rhotn', 'theta'], 'func': _rhosign,
-                          'units': '-'}},
+                          'units': None}},
 
           'bremsstrahlung_visible':
           {'lamb': {'lstr': ['lamb_up', 'lamb_lo'], 'func': _lamb,

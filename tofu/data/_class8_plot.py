@@ -554,126 +554,128 @@ def _plot_diagnostic(
     for k0 in key_cam:
 
         if dlos_n[k0] is not None:
-
             nan_los = np.full((dlos_n[k0],), np.nan)
-            if dvos_n is None:
-                nan_vos = None
-            else:
-                nan_vos = np.full((dvos_n[k0],), np.nan)
+        else:
+            nan_los = None
 
-            # cross
-            kax = 'cross'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
+        if dvos_n is None:
+            nan_vos = None
+        else:
+            nan_vos = np.full((dvos_n[k0],), np.nan)
 
-                _add_camera_los_cross(
-                    coll2=coll2,
-                    k0=k0,
-                    ax=ax,
-                    kax=kax,
-                    nlos=nlos,
-                    dref_los=dref_los,
-                    dref_vos=dref_vos,
-                    color_dict=color_dict,
-                    nan_los=nan_los,
-                    nan_vos=nan_vos,
-                    alpha=alpha,
+        # cross
+        kax = 'cross'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            _add_camera_los_cross(
+                coll2=coll2,
+                k0=k0,
+                ax=ax,
+                kax=kax,
+                nlos=nlos,
+                dref_los=dref_los,
+                dref_vos=dref_vos,
+                color_dict=color_dict,
+                nan_los=nan_los,
+                nan_vos=nan_vos,
+                alpha=alpha,
+            )
+
+        # hor
+        kax = 'hor'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            _add_camera_los_hor(
+                coll2=coll2,
+                k0=k0,
+                ax=ax,
+                kax=kax,
+                nlos=nlos,
+                dref_los=dref_los,
+                dref_vos=dref_vos,
+                color_dict=color_dict,
+                nan_los=nan_los,
+                nan_vos=nan_vos,
+                alpha=alpha,
+            )
+
+        # 3d
+        kax = '3d'
+        if dax.get(kax) is not None and nan_los is not None:
+            ax = dax[kax]['handle']
+
+            for ii in range(nlos):
+                l0, = ax.plot(
+                    nan_los,
+                    nan_los,
+                    nan_los,
+                    c=color_dict['x'][ii],
+                    ls='-',
+                    lw=1.,
                 )
 
-            # hor
-            kax = 'hor'
+                # add mobile
+                kl0 = f'{k0}_los-3d-{ii}'
+                # coll2.add_mobile(
+                # key=kl0,
+                # handle=l0,
+                # refs=reflos,
+                # data=['index', 'index', 'index'],
+                # dtype=['xdata', 'ydata', 'zdata'],
+                # axes=kax,
+                # ind=ii,
+                # )
+
+        # camera
+        kax = f'{k0}_sig'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            _add_camera_vlines_marker(
+                coll2=coll2,
+                dax=dax,
+                ax=ax,
+                kax=kax,
+                is2d=is2d,
+                k0=k0,
+                nlos=nlos,
+                ddatax=ddatax,
+                ddatay=ddatay,
+                drefx=drefx,
+                drefy=drefy,
+                dkeyx=dkeyx,
+                dkeyy=dkeyy,
+                color_dict=color_dict,
+            )
+
+        # vline on traces
+        if static is False:
+
+            kax = f'{k0}_trace'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
 
-                _add_camera_los_hor(
-                    coll2=coll2,
-                    k0=k0,
-                    ax=ax,
-                    kax=kax,
-                    nlos=nlos,
-                    dref_los=dref_los,
-                    dref_vos=dref_vos,
-                    color_dict=color_dict,
-                    nan_los=nan_los,
-                    nan_vos=nan_vos,
-                    alpha=alpha,
+                lv = ax.axvline(
+                    dataz[0],
+                    c='k',
+                    lw=1.,
+                    ls='-',
                 )
 
-            # 3d
-            kax = '3d'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-
-                for ii in range(nlos):
-                    l0, = ax.plot(
-                        nan_los,
-                        nan_los,
-                        nan_los,
-                        c=color_dict['x'][ii],
-                        ls='-',
-                        lw=1.,
-                    )
-
-                    # add mobile
-                    kl0 = f'{k0}_los-3d-{ii}'
-                    # coll2.add_mobile(
-                    # key=kl0,
-                    # handle=l0,
-                    # refs=reflos,
-                    # data=['index', 'index', 'index'],
-                    # dtype=['xdata', 'ydata', 'zdata'],
-                    # axes=kax,
-                    # ind=ii,
-                    # )
-
-            # camera
-            kax = f'{k0}_sig'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-
-                _add_camera_vlines_marker(
-                    coll2=coll2,
-                    dax=dax,
-                    ax=ax,
-                    kax=kax,
-                    is2d=is2d,
-                    k0=k0,
-                    nlos=nlos,
-                    ddatax=ddatax,
-                    ddatay=ddatay,
-                    drefx=drefx,
-                    drefy=drefy,
-                    dkeyx=dkeyx,
-                    dkeyy=dkeyy,
-                    color_dict=color_dict,
+                kv = f'{k0}_zline'
+                coll2.add_mobile(
+                    key=kv,
+                    handle=lv,
+                    refs=(refz,),
+                    data=[keyz],
+                    dtype=['xdata'],
+                    axes=kax,
+                    ind=0,
                 )
 
-            # vline on traces
-            if static is False:
-
-                kax = f'{k0}_trace'
-                if dax.get(kax) is not None:
-                    ax = dax[kax]['handle']
-
-                    lv = ax.axvline(
-                        dataz[0],
-                        c='k',
-                        lw=1.,
-                        ls='-',
-                    )
-
-                    kv = f'{k0}_zline'
-                    coll2.add_mobile(
-                        key=kv,
-                        handle=lv,
-                        refs=(refz,),
-                        data=[keyz],
-                        dtype=['xdata'],
-                        axes=kax,
-                        ind=0,
-                    )
-
-                    dax[kax].update(refx=[refz], datax=[keyz])
+                dax[kax].update(refx=[refz], datax=[keyz])
 
     # -------------------
     # data if not static
@@ -939,7 +941,9 @@ def _prepare_vos(
             pc0 = coll.ddata[dvos_n[k0]['pc'][0]]['data']
             pc1 = coll.ddata[dvos_n[k0]['pc'][1]]['data']
             pcref = coll.ddata[dvos_n[k0]['pc'][0]]['ref']
-            if doptics[k0].get('dvos') is not None:
+
+            ph0, ph1, phref = None, None, None
+            if doptics[k0]['dvos'].get('phor') is not None:
                 ph0 = coll.ddata[doptics[k0]['dvos']['phor'][0]]['data']
                 ph1 = coll.ddata[doptics[k0]['dvos']['phor'][1]]['data']
                 phref = coll.ddata[doptics[k0]['dvos']['phor'][0]]['ref']
@@ -952,7 +956,7 @@ def _prepare_vos(
             ref = tuple(list(pcref[::-1]) + [krxy])
             pcxy = np.array([pc0, pc1]).T
             coll2.add_data(key=f'{k0}_vos_cross', data=pcxy, ref=ref)
-            if doptics[k0].get('dvos') is not None:
+            if ph0 is not None:
                 ref = tuple(list(phref[::-1]) + [krxy])
                 phxy = np.array([ph0, ph1]).T
                 coll2.add_data(key=f'{k0}_vos_hor', data=phxy, ref=ref)
@@ -1011,14 +1015,14 @@ def _prepare_datarefxy(
             if is2d:
                 dkeyx[k0], dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents']
 
-                ddatax[k0] = coll.ddata[dkeyx[k0]]['data']
-                ddatay[k0] = coll.ddata[dkeyy[k0]]['data']
+                ddatax[k0] = coll.ddata[dkeyx[k0]]['data'] + dx0
+                ddatay[k0] = coll.ddata[dkeyy[k0]]['data'] + dx1
 
                 coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
                 coll2.add_data(key=dkeyy[k0], data=ddatay[k0], ref=drefy[k0])
             else:
                 dkeyx[k0] = f'{k0}_i0'
-                ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size'])
+                ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size']) + dx0
                 coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
 
             # -------------------------
@@ -1038,10 +1042,10 @@ def _prepare_datarefxy(
                     ddy = ddatay[k0][1] - ddatay[k0][0]
 
                 dextent[k0] = (
-                    ddatax[k0][0] - 0.5*ddx + dx0,
-                    ddatax[k0][-1] + 0.5*ddx + dx0,
-                    ddatay[k0][0] - 0.5*ddy + dx1,
-                    ddatay[k0][-1] + 0.5*ddy + dx1,
+                    ddatax[k0][0] - 0.5*ddx,
+                    ddatax[k0][-1] + 0.5*ddx,
+                    ddatay[k0][0] - 0.5*ddy,
+                    ddatay[k0][-1] + 0.5*ddy,
                 )
 
     return reft, dkeyx, dkeyy, ddatax, ddatay, dextent
@@ -1167,25 +1171,26 @@ def _add_camera_los_cross(
         # ------
         # los
 
-        l0, = ax.plot(
-            nan_los,
-            nan_los,
-            c=color_dict['x'][ii],
-            ls='-',
-            lw=1.,
-        )
+        if nan_los is not None:
+            l0, = ax.plot(
+                nan_los,
+                nan_los,
+                c=color_dict['x'][ii],
+                ls='-',
+                lw=1.,
+            )
 
-        # add mobile
-        kl0 = f'{k0}_los_cross{ii}'
-        coll2.add_mobile(
-            key=kl0,
-            handle=l0,
-            refs=dref_los[k0],
-            data=[f'{k0}_los_r', f'{k0}_los_z'],
-            dtype=['xdata', 'ydata'],
-            axes=kax,
-            ind=ii,
-        )
+            # add mobile
+            kl0 = f'{k0}_los_cross{ii}'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=dref_los[k0],
+                data=[f'{k0}_los_r', f'{k0}_los_z'],
+                dtype=['xdata', 'ydata'],
+                axes=kax,
+                ind=ii,
+            )
 
         # ------
         # vos
@@ -1232,25 +1237,26 @@ def _add_camera_los_hor(
         # ------
         # los
 
-        l0, = ax.plot(
-            nan_los,
-            nan_los,
-            c=color_dict['x'][ii],
-            ls='-',
-            lw=1.,
-        )
+        if nan_los is not None:
+            l0, = ax.plot(
+                nan_los,
+                nan_los,
+                c=color_dict['x'][ii],
+                ls='-',
+                lw=1.,
+            )
 
-        # add mobile
-        kl0 = f'{k0}_los_hor{ii}'
-        coll2.add_mobile(
-            key=kl0,
-            handle=l0,
-            refs=dref_los[k0],
-            data=[f'{k0}_los_x', f'{k0}_los_y'],
-            dtype=['xdata', 'ydata'],
-            axes=kax,
-            ind=ii,
-        )
+            # add mobile
+            kl0 = f'{k0}_los_hor{ii}'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=dref_los[k0],
+                data=[f'{k0}_los_x', f'{k0}_los_y'],
+                dtype=['xdata', 'ydata'],
+                axes=kax,
+                ind=ii,
+            )
 
         # ------
         # vos

@@ -95,6 +95,7 @@ def compute_etendue_los(
             x0, x1, kref, iok,
             px, py, pz,
             cx, cy, cz,
+            cents0, cents1,
             centsx, centsy, centsz,
             ap_area, plane_nin,
             spectro, dist_cryst2ap,
@@ -275,6 +276,8 @@ def compute_etendue_los(
             'cz': cz,
             'x0': x0,
             'x1': x1,
+            'cents0': cents0,
+            'cents1': cents1,
         })
 
     # ----------
