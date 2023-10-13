@@ -40,6 +40,9 @@ def _vos(
     bool_cross=None,
     # user-defined limits
     user_limits=None,
+    # keep
+    keep3d=None,
+    return_vector=None,
     # parameters
     margin_poly=None,
     config=None,
@@ -74,7 +77,7 @@ def _vos(
     # user-defined vos
 
     if user_limits is not None:
-        xx, yy, zz, dind, iz, iphi = _vos_points(
+        xx, yy, zz, dind, ir, iz, iphi, dV = _vos_points(
             # polygons
             pcross0=user_limits['pcross_user'][0, :],
             pcross1=user_limits['pcross_user'][1, :],
@@ -145,9 +148,18 @@ def _vos(
 
     lpcross = []
     lphor = []
-    lsang = []
-    lindr = []
-    lindz = []
+    lsang_cross = []
+    lindr_cross = []
+    lindz_cross = []
+    if keep3d is True:
+        lindr_3d = []
+        lindz_3d = []
+        lphi_3d = []
+        lsang_3d = []
+        lvectx = []
+        lvecty = []
+        lvectz = []
+
     npix = coll.dobj['camera'][key_cam]['dgeom']['pix_nb']
     for ii in range(npix):
 
@@ -163,7 +175,7 @@ def _vos(
             if np.isnan(pcross0[0, ii]):
                 continue
 
-            xx, yy, zz, dind, iz, iphi = _vos_points(
+            xx, yy, zz, dind, ir, iz, iphi, dV = _vos_points(
                 # polygons
                 pcross0=pcross0[:, ii],
                 pcross1=pcross1[:, ii],
@@ -187,9 +199,9 @@ def _vos(
         if xx is None:
             npts_cross = 0
             lpcross.append((None, None))
-            lsang.append(np.zeros((npts_cross,), dtype=float))
-            lindr.append(np.zeros((npts_cross,), dtype=float))
-            lindz.append(np.zeros((npts_cross,), dtype=float))
+            lsang_cross.append(np.zeros((npts_cross,), dtype=float))
+            lindr_cross.append(np.zeros((npts_cross,), dtype=float))
+            lindz_cross.append(np.zeros((npts_cross,), dtype=float))
             continue
 
         # re-initialize
@@ -198,9 +210,9 @@ def _vos(
         npts_cross = np.sum([v0['iz'].size for v0 in dind.values()])
 
         dsang_hor = {}
-        sang = np.zeros((npts_cross,), dtype=float)
-        indr = np.zeros((npts_cross,), dtype=int)
-        indz = np.zeros((npts_cross,), dtype=int)
+        sang_cross = np.zeros((npts_cross,), dtype=float)
+        indr_cross = np.zeros((npts_cross,), dtype=int)
+        indz_cross = np.zeros((npts_cross,), dtype=int)
 
         if verb is True:
             msg = (
@@ -245,11 +257,16 @@ def _vos(
             # parameters
             summed=False,
             visibility=visibility,
-            return_vector=False,
+            return_vector=return_vector,
             return_flat_pts=None,
             return_flat_det=None,
             timing=timing,
         )
+
+        if isinstance(out, tuple):
+            out, vectx, vecty, vectz = out
+        else:
+            lvectx, lvecty, lvectz = None, None, None
 
         # ------------
         # get indices
@@ -263,10 +280,10 @@ def _vos(
         for i0, v0 in dind.items():
             for i1 in v0['iz']:
                 ind1 = dind[i0]['indrz'] & (iz == i1)
-                sang[ipt] = np.sum(out[0, ind1]) * v0['dV']
-                indr[ipt] = i0
-                indz[ipt] = i1
-                bool_cross[i0 + 1, i1 + 1] = sang[ipt] > 0.
+                sang_cross[ipt] = np.sum(out[0, ind1]) * v0['dV']
+                indr_cross[ipt] = i0
+                indz_cross[ipt] = i1
+                bool_cross[i0 + 1, i1 + 1] = sang_cross[ipt] > 0.
                 ipt += 1
 
         # update hor
@@ -275,6 +292,19 @@ def _vos(
             for i1 in range(v0['phi'].size):
                 ind1 = dind[i0]['indrz'] & (iphi == i1)
                 dsang_hor[i0][i1] = np.sum(out[0, ind1]) * v0['dV']
+
+        # update 3d
+        if keep3d is True and np.any(bool_cross):
+            indsa = out[0, :] > 0.
+
+            indr_3d = ir[indsa]
+            indz_3d = iz[indsa]
+            phi_3d = np.arctan2(yy[indsa], xx[indsa])
+            sang_3d = out[0, indsa] * dV[indsa]
+
+            vx = vectx[0, indsa]
+            vy = vecty[0, indsa]
+            vz = vectz[0, indsa]
 
         # ----- DEBUG --------
         if debug:
@@ -290,7 +320,6 @@ def _vos(
             # ax.plot(xx[~ipos], yy[~ipos], c='r', marker='x')
             ax.scatter(np.arctan2(yy, xx), out[0, :], c=np.hypot(xx, yy), s=6, marker='.')
         # ----- END DEBUG ----
-
 
         # timing
         if timing:
@@ -314,17 +343,6 @@ def _vos(
                 res=np.min(np.atleast_1d(res_RZ)),
             )
 
-            # phor
-            # ph0, ph1 = _get_phor(
-            #     dind=dind,
-            #     xx=xx,
-            #     yy=yy,
-            #     out=out[0, :],
-            #     dsang_hor=dsang_hor,
-            #     x0=x0l[:, 0],
-            #     res=np.min(np.atleast_1d(res_RZ)),
-            # )
-
             ph0, ph1 = _get_phor2(
                 xx=xx,
                 yy=yy,
@@ -341,9 +359,20 @@ def _vos(
 
         lpcross.append((pc0, pc1))
         lphor.append((ph0, ph1))
-        lsang.append(sang)
-        lindr.append(indr)
-        lindz.append(indz)
+        lsang_cross.append(sang_cross)
+        lindr_cross.append(indr_cross)
+        lindz_cross.append(indz_cross)
+
+        if keep3d is True:
+            lsang_3d.append(sang_3d)
+            lindr_3d.append(indr_3d)
+            lindz_3d.append(indz_3d)
+            lphi_3d.append(phi_3d)
+
+            if lvectx is not None:
+                lvectx.append(vx)
+                lvecty.append(vy)
+                lvectz.append(vz)
 
         if timing:
             t333 = dtm.datetime.now()     # DB
@@ -372,35 +401,90 @@ def _vos(
     # --------------------------------------
     # harmonize and reshape sang, indr, indz
 
-    sang, indr, indz = _harmonize_reshape_others(
-        lsang=lsang,
-        lindr=lindr,
-        lindz=lindz,
+    # cross
+    dout = _harmonize_reshape_others(
+        # cross
+        lsang_cross=lsang_cross,
+        lindr_cross=lindr_cross,
+        lindz_cross=lindz_cross,
+        # params
         npix=npix,
         is2d=is2d,
         shape=shape[1:],
     )
 
-    # ----------------
+    # extract
+    lk = ['lsang_cross', 'lindr_cross', 'lindz_cross']
+    sang_cross, indr_cross, indz_cross = [dout.get(k0) for k0 in lk]
+
+    # 3d
+    dout = _harmonize_reshape_others(
+        # 3d
+        lsang_3d=lsang_3d,
+        lindr_3d=lindr_3d,
+        lindz_3d=lindz_3d,
+        lphi_3d=lphi_3d,
+        # vect
+        lvectx=lvectx,
+        lvecty=lvecty,
+        lvectz=lvectz,
+        # params
+        npix=npix,
+        is2d=is2d,
+        shape=shape[1:],
+    )
+
+    # extract
+    lk = [
+        'lsang_3d', 'lindr_3d', 'lindz_3d', 'lphi_3d',
+        'lvectx', 'lvecty', 'lvectz',
+    ]
+
+    (
+     sang_3d, indr_3d, indz_3d, phi_3d,
+     vectx, vecty, vectz,
+     ) = [dout.get(k0) for k0 in lk]
+
+    # --------------
     # prepare output
 
-    knpts = f'{key_cam}_vos_npts'
-    kir = f'{key_cam}_vos_ir'
-    kiz = f'{key_cam}_vos_iz'
-    ksa = f'{key_cam}_vos_sa'
+    knpts_cross = f'{key_cam}_vos_npts_cross'
+    kir_cross = f'{key_cam}_vos_ir_cross'
+    kiz_cross = f'{key_cam}_vos_iz_cross'
+    ksa_cross = f'{key_cam}_vos_sa_cross'
+    ref_cross = tuple(list(coll.dobj['camera'][key_cam]['dgeom']['ref']) + [knpts_cross])
 
-    ref = tuple(list(coll.dobj['camera'][key_cam]['dgeom']['ref']) + [knpts])
+    if keep3d:
+        knpts_3d = f'{key_cam}_vos_npts_3d'
+        kir_3d = f'{key_cam}_vos_ir_3d'
+        kiz_3d = f'{key_cam}_vos_iz_3d'
+        kphi_3d = f'{key_cam}_vos_phi_3d'
+        ksa_3d = f'{key_cam}_vos_sa_3d'
+        ref_3d = tuple(list(coll.dobj['camera'][key_cam]['dgeom']['ref']) + [knpts_3d])
+
+        if lvectx is not None:
+            kvectx = f'{key_cam}_vos_vx'
+            kvecty = f'{key_cam}_vos_vy'
+            kvectz = f'{key_cam}_vos_vz'
 
     # ----------------
     # format output
 
+    # dref
     dref = {
-        'npts': {
-            'key': knpts,
-            'size': indr.shape[-1],
+        'npts_cross': {
+            'key': knpts_cross,
+            'size': indr_cross.shape[-1],
         },
     }
 
+    if keep3d is True:
+        dref['npts_3d'] = {
+            'key': knpts_3d,
+            'size': indr_3d.shape[1],
+        }
+
+    # ddata - polygons
     dout = {
         'pcross0': {
             'data': pcross0,
@@ -422,28 +506,86 @@ def _vos(
             'units': 'm',
             'dim': 'distance',
         },
-        'indr': {
-            'key': kir,
-            'data': indr,
-            'ref': ref,
+    }
+
+    # ddata - cross indices
+    dout.update({
+        'indr_cross': {
+            'key': kir_cross,
+            'data': indr_cross,
+            'ref': ref_cross,
             'units': '',
             'dim': 'index',
         },
-        'indz': {
-            'key': kiz,
-            'data': indz,
-            'ref': ref,
+        'indz_cross': {
+            'key': kiz_cross,
+            'data': indz_cross,
+            'ref': ref_cross,
             'units': '',
             'dim': 'index',
         },
-        'sang': {
-            'key': ksa,
-            'data': sang,
-            'ref': ref,
+        'sang_cross': {
+            'key': ksa_cross,
+            'data': sang_cross,
+            'ref': ref_cross,
             'units': 'sr.m3',
             'dim': 'sang',
         },
-    }
+    })
+
+    if keep3d is True:
+        dout.update({
+            'indr_3d': {
+                'key': kir_3d,
+                'data': indr_3d,
+                'ref': ref_3d,
+                'units': '',
+                'dim': 'index',
+            },
+            'indz_3d': {
+                'key': kiz_3d,
+                'data': indz_3d,
+                'ref': ref_3d,
+                'units': '',
+                'dim': 'index',
+            },
+            'phi_3d': {
+                'key': kphi_3d,
+                'data': phi_3d,
+                'ref': ref_3d,
+                'units': '',
+                'dim': 'index',
+            },
+            'sang_3d': {
+                'key': ksa_3d,
+                'data': sang_3d,
+                'ref': ref_3d,
+                'units': 'sr.m3',
+                'dim': 'sang',
+            },
+        })
+
+        if lvectx is not None:
+            dout.update({
+                'vectx_3d': {
+                    'key': kvectx,
+                    'data': vectx,
+                    'ref': ref_3d,
+                    'units': '',
+                },
+                'vecty_3d': {
+                    'key': kvecty,
+                    'data': vecty,
+                    'ref': ref_3d,
+                    'units': '',
+                },
+                'vectz_3d': {
+                    'key': kvectz,
+                    'data': vectz,
+                    'ref': ref_3d,
+                    'units': '',
+                },
+            })
 
     if timing:
         t33 = dtm.datetime.now()
@@ -579,6 +721,11 @@ def _vos_points(
         np.repeat(np.arange(0, nn), ln[ii]) for ii, nn in enumerate(nphi_r)
     ]))
 
+    dV = np.concatenate(tuple([
+        np.repeat(dx0 * dx1 * x0u[i0] * ddphi_r[ii], ln[ii] * nphi_r[ii])
+        for ii, i0 in enumerate(iru)
+    ]))
+
     # -------------
     # derive coords
 
@@ -601,7 +748,7 @@ def _vos_points(
         for ii, i0 in enumerate(iru)
     }
 
-    return xx, yy, zz, dind, iz[indrz], iphi
+    return xx, yy, zz, dind, ir[indrz], iz[indrz], iphi, dV
 
 
 # ###########################################################
@@ -662,6 +809,7 @@ def _get_phor2(xx=None, yy=None, out=None, res=None, debug=False):
     return phx, phy
 
 
+# DEPRECATED ?
 # def _get_phor(dind=None, dsang_hor=None, x0=None, res=None):
 
 #     # ------------
@@ -933,32 +1081,56 @@ def _harmonize_reshape_pcross(
 
 
 def _harmonize_reshape_others(
-    lsang=None,
-    lindr=None,
-    lindz=None,
     npix=None,
     is2d=None,
     shape=None,
+    **kwdargs,
 ):
 
-    lnpts = [sa.size for sa in lsang]
+    # -------------
+    # check
+
+    dnpts = {
+        k0: [v1.size for v1 in v0] for k0, v0 in kwdargs.items()
+        if v0 is not None
+    }
+    lkey = list(dnpts.keys())
+    if not all([np.allclose(v0, dnpts[lkey[0]]) for v0 in dnpts.values()]):
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dnpts.items()]
+        msg = (
+            "All input args must have the same list of sizes!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    lnpts = dnpts[lkey[0]]
     nmax = np.max(lnpts)
 
-    sang = np.full((npix, nmax), np.nan)
-    indr = -np.ones((npix, nmax), dtype=int)
-    indz = -np.ones((npix, nmax), dtype=int)
-    for ii, sa in enumerate(lsang):
-        sang[ii, :lnpts[ii]] = sa
-        indr[ii, :lnpts[ii]] = lindr[ii]
-        indz[ii, :lnpts[ii]] = lindz[ii]
+    # -----------------------
+    # prepare
+
+    dout = {}
+    for k0 in lkey:
+
+        # initialize
+        if 'ind' in k0:
+            dout[k0] = -np.ones((npix, nmax), dtype=int)
+        else:
+            dout[k0] = np.full((npix, nmax), np.nan)
+
+        # fill
+        for ii, vv in enumerate(kwdargs[k0]):
+            dout[k0][ii, :lnpts[ii]] = vv
 
     # -------
     # reshape
 
     if is2d:
         newsh = tuple(np.r_[shape, nmax])
-        sang = sang.reshape(newsh)
-        indr = indr.reshape(newsh)
-        indz = indz.reshape(newsh)
+        for k0 in lkey:
+            dout[k0] = dout[k0].reshape(newsh)
 
-    return sang, indr, indz
+    # ----------
+    # return
+
+    return dout

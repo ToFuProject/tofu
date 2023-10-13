@@ -628,27 +628,27 @@ def _prepare_sang(
     sang_tot = np.full(shape, 0.)
 
     if is2d:
-        for ii in range(dvos['indr']['data'].shape[0]):
-            for jj in range(dvos['indr']['data'].shape[1]):
-                iok = dvos['indr']['data'][ii, jj, :] >= 0
-                indr = dvos['indr']['data'][ii, jj, iok]
-                indz = dvos['indz']['data'][ii, jj, iok]
-                sang_tot[indr, indz] += dvos['sang']['data'][ii, jj, iok]
+        for ii in range(dvos['indr_cross']['data'].shape[0]):
+            for jj in range(dvos['indr_cross']['data'].shape[1]):
+                iok = dvos['indr_cross']['data'][ii, jj, :] >= 0
+                indr = dvos['indr_cross']['data'][ii, jj, iok]
+                indz = dvos['indz_cross']['data'][ii, jj, iok]
+                sang_tot[indr, indz] += dvos['sang_cross']['data'][ii, jj, iok]
 
                 # sang
                 if ii == indch[0] and jj == indch[1]:
-                    sang[indr, indz] = dvos['sang']['data'][ii, jj, iok]
+                    sang[indr, indz] = dvos['sang_cross']['data'][ii, jj, iok]
 
     else:
-        for ii in range(dvos['indr']['data'].shape[0]):
-            iok = dvos['indr']['data'][ii, :] >= 0
-            indr = dvos['indr']['data'][ii, iok]
-            indz = dvos['indz']['data'][ii, iok]
-            sang_tot[indr, indz] += dvos['sang']['data'][ii, iok]
+        for ii in range(dvos['indr_cross']['data'].shape[0]):
+            iok = dvos['indr_cross']['data'][ii, :] >= 0
+            indr = dvos['indr_cross']['data'][ii, iok]
+            indz = dvos['indz_cross']['data'][ii, iok]
+            sang_tot[indr, indz] += dvos['sang_cross']['data'][ii, iok]
 
             # sang
             if ii == indch:
-                sang[indr, indz] = dvos['sang']['data'][ii, iok]
+                sang[indr, indz] = dvos['sang_cross']['data'][ii, iok]
 
     sang_tot[sang_tot == 0.] = np.nan
     sang[sang == 0.] = np.nan
@@ -656,7 +656,7 @@ def _prepare_sang(
     # -------------------
     # get integrated vos
 
-    sang_integ = np.nansum(dvos['sang']['data'], axis=-1)
+    sang_integ = np.nansum(dvos['sang_cross']['data'], axis=-1)
 
     # extent
     x0 = dsamp['x0']['data']
@@ -672,7 +672,7 @@ def _prepare_sang(
     )
 
     # units
-    sang_units = dvos['sang']['units']
+    sang_units = dvos['sang_cross']['units']
 
     return sang_tot, sang_integ, sang, extent, sang_units
 

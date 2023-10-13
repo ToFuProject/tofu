@@ -414,6 +414,9 @@ class Diagnostic(Previous):
         convexHull=None,
         # user-defined limits
         user_limits=None,
+        # keep3d
+        keep3d=None,
+        return_vector=None,
         # margins
         margin_poly=None,
         # raytracing
@@ -457,6 +460,9 @@ class Diagnostic(Previous):
             convexHull=convexHull,
             # user-defined limits
             user_limits=user_limits,
+            # keep3d
+            keep3d=keep3d,
+            return_vector=return_vector,
             # margins
             margin_poly=margin_poly,
             # spectro-only
@@ -483,6 +489,20 @@ class Diagnostic(Previous):
         return _vos._check_get_dvos(
             coll=self,
             key=key,
+            key_cam=key_cam,
+            dvos=dvos,
+        )
+
+    def get_dvos_xyz(
+        self,
+        key=None,
+        key_cam=None,
+        dvos=None,
+    ):
+        """ Return ptsx, ptsy, ptsz from 3d vos """
+        return _vos.get_dvos_xyz(
+            coll=self,
+            key_diag=key,
             key_cam=key_cam,
             dvos=dvos,
         )
