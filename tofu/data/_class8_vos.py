@@ -41,6 +41,9 @@ def compute_vos(
     margin_poly=None,
     # user-defined limits
     user_limits=None,
+    # keep3d
+    keep3d=None,
+    return_vector=None,
     # options
     add_points=None,
     # spectro-only
@@ -75,6 +78,8 @@ def compute_vos(
         res_RZ,
         res_phi,
         res_lamb,
+        keep3d,
+        return_vector,
         convexHull,
         visibility,
         verb,
@@ -94,6 +99,8 @@ def compute_vos(
         res_lamb=res_lamb,
         convexHull=convexHull,
         # bool
+        keep3d=keep3d,
+        return_vector=return_vector,
         visibility=visibility,
         verb=verb,
         debug=debug,
@@ -222,6 +229,9 @@ def compute_vos(
                 bool_cross=bool_cross,
                 # user-defined limits
                 user_limits=user_limits,
+                # keep3d
+                keep3d=keep3d,
+                return_vector=return_vector,
                 # parameters
                 margin_poly=margin_poly,
                 config=config,
@@ -298,6 +308,9 @@ def _check(
     res_phi=None,
     res_lamb=None,
     convexHull=None,
+    # keep3d
+    keep3d=None,
+    return_vector=None,
     # bool
     visibility=None,
     check=None,
@@ -428,6 +441,24 @@ def _check(
         res_lamb = 0.01e-10
 
     # -----------
+    # keep3d
+
+    keep3d = ds._generic_check._check_var(
+        keep3d, 'keep3d',
+        types=bool,
+        default=False,
+    )
+
+    # -----------
+    # return_vector
+
+    return_vector = ds._generic_check._check_var(
+        return_vector, 'return_vector',
+        types=bool,
+        default=False,
+    )
+
+    # -----------
     # convexHull - to get overall pcross and phor, faster if many pixels
 
     convexHull = ds._generic_check._check_var(
@@ -500,6 +531,8 @@ def _check(
         res_RZ,
         res_phi,
         res_lamb,
+        keep3d,
+        return_vector,
         convexHull,
         visibility,
         verb,
@@ -644,7 +677,12 @@ def _store(
     # ----------------------
     # prepare what to store
 
-    lk_com = ['indr', 'indz']
+    lk_com = [
+        'indr_cross', 'indz_cross',
+        'indr_3d', 'indz_3d', 'phi_3d',
+        'vectx_3d', 'vecty_3d', 'vectz_3d',
+    ]
+
     if spectro is True:
         lk = [
             'lamb',
@@ -656,7 +694,7 @@ def _store(
             'dV', 'etendlen',
         ]
     else:
-        lk = ['sang']
+        lk = ['sang_cross', 'sang_3d']
 
 
     # ------------
@@ -754,7 +792,20 @@ def _store(
         doptics[k0]['dvos']['keym'] = v0['keym']
         doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
         doptics[k0]['dvos']['res_phi'] = v0['res_phi']
-        doptics[k0]['dvos']['ind'] = (v0['indr']['key'], v0['indz']['key'])
+        doptics[k0]['dvos']['ind_cross'] = (v0['indr_cross']['key'], v0['indz_cross']['key'])
+
+        # 3d
+        doptics[k0]['dvos']['indr_3d'] = v0.get('indr_3d', {}).get('key')
+        doptics[k0]['dvos']['indz_3d'] = v0.get('indz_3d', {}).get('key')
+        doptics[k0]['dvos']['phi_3d'] = v0.get('phi_3d', {}).get('key')
+        doptics[k0]['dvos']['sang_3d'] = v0.get('sang_3d', {}).get('key')
+
+        # vect
+        doptics[k0]['dvos']['vectx_3d'] = v0.get('vectx_3d', {}).get('key')
+        doptics[k0]['dvos']['vecty_3d'] = v0.get('vecty_3d', {}).get('key')
+        doptics[k0]['dvos']['vectz_3d'] = v0.get('vectz_3d', {}).get('key')
+
+        # spectro
         if spectro:
             doptics[k0]['dvos']['res_lamb'] = v0['res_lamb']
             doptics[k0]['dvos']['res_rock_curve'] = v0['res_rock_curve']
@@ -769,7 +820,7 @@ def _store(
 
 # ###############################################################
 # ###############################################################
-#                       Main
+#                       get / check
 # ###############################################################
 
 
@@ -803,9 +854,15 @@ def _check_get_dvos(
             'dV', 'etendlen',
         ]
     else:
-        lk = ['sang']
+        lk = [
+            'sang_cross', 'sang_3d',
+            'indr_3d', 'indz_3d', 'phi_3d',
+            'vectx_3d', 'vecty_3d', 'vectz_3d',
+        ]
 
-    lk_all = lk_sca + lk + ['keym', 'indr', 'indz']
+    lkcom = ['keym', 'indr_cross', 'indz_cross']
+
+    lk_all = lk_sca + lk + lkcom
 
     # ------
     # dvos
@@ -838,8 +895,8 @@ def _check_get_dvos(
             # fill in dict with mesh and indices
             dvos[k0] = {
                 'keym': dop['keym'],
-                'indr': coll.ddata[dop['ind'][0]],
-                'indz': coll.ddata[dop['ind'][1]],
+                'indr_cross': coll.ddata[dop['ind_cross'][0]],
+                'indz_cross': coll.ddata[dop['ind_cross'][1]],
             }
 
             # fill in with res
@@ -876,13 +933,91 @@ def _check_get_dvos(
     if not c0:
         msg = (
             "Arg dvos must be a dict with, for each camera, the keys:\n"
-            + str(lk_all)
+            f"\t- expected: {sorted(lk_all)}"
         )
+        if isinstance(dvos, dict):
+            k0 = list(dvos.keys())[0]
+            if isinstance(dvos[k0], dict):
+                msg += f"\n\t- dvos['{k0}']: {sorted(dvos[k0].keys())}"
         raise Exception(msg)
 
     # only keep desired cams
     lkout = [k0 for k0 in dvos.keys() if k0 not in key_cam]
     for k0 in lkout:
         del dvos[k0]
+
+    return dvos
+
+
+# ###############################################################
+# ###############################################################
+#                       get vos to 3d
+# ###############################################################
+
+
+def get_dvos_xyz(coll=None, key_diag=None, key_cam=None, dvos=None):
+
+    # ---------
+    # get dvos
+
+    dvos = coll.check_diagnostic_dvos(key=key_diag, key_cam=key_cam, dvos=dvos)
+
+    # check
+    if not all([v0.get('indr_3d') is not None for v0 in dvos.values()]):
+        msg = (
+            "dvos can only provide (x, y, z) if it contains 3d information!\n"
+            f"\t- key_diag: {key_diag}"
+        )
+        raise Exception(msg)
+
+    # ---------
+    # to xyz
+
+    for k0, v0 in dvos.items():
+
+        # mesh
+        keym = v0['keym']
+
+        # sample
+        dsamp = coll.get_sample_mesh(
+            key=v0['keym'],
+            res=v0['res_RZ'],
+            mode='abs',
+            grid=False,
+            in_mesh=True,
+            # non-used
+            x0=None,
+            x1=None,
+            Dx0=None,
+            Dx1=None,
+            imshow=False,
+            store=False,
+            kx0=None,
+            kx1=None,
+        )
+
+        # R, Z
+        x0u = dsamp['x0']['data']
+        x1u = dsamp['x1']['data']
+
+        # store
+        ref = v0['indr_3d']['ref']
+        dvos[k0].update({
+            'ptsx_3d': {
+                'data': x0u[v0['indr_3d']['data']] * np.cos(v0['phi_3d']['data']),
+                'ref': ref,
+                'units': 'm',
+            },
+            'ptsy_3d': {
+                'data': x0u[v0['indr_3d']['data']] * np.sin(v0['phi_3d']['data']),
+                'ref': ref,
+                'units': 'm',
+            },
+            'ptsz_3d': {
+                'data': x1u[v0['indz_3d']['data']],
+                'ref': ref,
+                'units': 'm',
+            },
+        })
 
     return dvos
