@@ -508,7 +508,6 @@ def _vos(
         },
     }
 
-
     # ddata - cross indices
     dout.update({
         'indr_cross': {
