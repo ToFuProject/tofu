@@ -1959,9 +1959,14 @@ class CrystalBragg(utils.ToFuObject):
         # Type of crystal
         crystal=None,
         din=None,
+        split=None,
+        direction=None,
+        nb=None,
+        which=None,
         # -----------------------
         # Wavelength
         lamb=None,
+        subarea=None,
         # -----------------------
         # Options of crystal modifications
         merge_rc_data=None,
@@ -1990,6 +1995,7 @@ class CrystalBragg(utils.ToFuObject):
         dmargin=None,
         wintit=None,
         tit=None,
+        save=None,
     ):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
         Possibility to plot few wavelength' arcs on the same plot.
@@ -2022,6 +2028,102 @@ class CrystalBragg(utils.ToFuObject):
         # -----------------------
         # Check / format inputs
 
+        # -----------------------
+        # crystal specific
+
+        if split is None:
+            split = False
+        if direction is None and not split:
+            direction = None
+        elif direction is None and split:
+            direction = None
+            msg = (
+                "You choose split = True and direction = None\n"
+                + " => direction = e1 by default in split() !"
+            )
+            warnings.warn(msg)
+            direction = 'e1'
+
+        if nb is None and not split:
+            nb = None
+        elif nb is None and split:
+            nb = None
+            msg = (
+                "You choose split = True and nb = None\n"
+                + " => nb = 2 by default in split() !"
+            )
+            warnings.warn(msg)
+            nb = 2
+        elif nb > 2 and split:
+            msg = (
+                "You cant for now choose more than 2 pieces of crystal, sorry."
+            )
+            raise Exception(msg)
+
+        if split:
+            self1, self2 = self.split(
+                direction=direction,
+                nb=nb,
+            )
+
+        if which is None and not split:
+            which = None
+        elif which is None and split:
+            msg = (
+                "You must choose if you work w/ both halves or only one !\n"
+                + "Please choose either :\n"
+                + "\t - both not alowed for now\n"
+                + "\t - left or right if direction = e1 & nb = 2\n"
+                + "\t - up or down if direction = e2 & nb = 2\n"
+            )
+            raise Exception(msg)
+
+        ldir = ['e1', 'e2']
+        lwhich = ['both', 'left', 'right', 'up', 'down']
+        if split:
+            if direction == ldir[0] and which == lwhich[0]:
+                msg = "Choose only 1 halve please !"
+                raise Exception(msg)
+                # lself = [self1, self2]
+
+            elif direction == ldir[0] and which == lwhich[1]:
+                self = self1
+
+            elif direction == ldir[0] and which == lwhich[2]:
+                self = self2
+
+            elif direction == ldir[0] and which == lwhich[3]:
+                msg = "Choose between left or right along e1 direction !"
+                raise Exception(msg)
+
+            elif direction == ldir[0] and which == lwhich[4]:
+                msg = "Choose between left or right along e1 direction !"
+                raise Exception(msg)
+
+            if direction == ldir[1] and which == lwhich[0]:
+                msg = "Choose only 1 halve please !"
+                raise Exception(msg)
+                # lself = [self1, self2]
+
+            elif direction == ldir[1] and which == lwhich[3]:
+                self = self2
+
+            elif direction == ldir[1] and which == lwhich[4]:
+                self = self1
+
+            elif direction == ldir[1] and which == lwhich[1]:
+                msg = "Choose between up or down along e2 direction !"
+                raise Exception(msg)
+
+            elif direction == ldir[1] and which == lwhich[2]:
+                msg = "Choose between up or down along e2 direction !"
+                raise Exception(msg)
+        else:
+            self = self
+
+        # --------------------
+        # other generic checks
+
         lok = [
             k0 for k0 in _rockingcurve_def._DCRYST.keys()
             if 'xxx' not in k0.lower()
@@ -2034,9 +2136,9 @@ class CrystalBragg(utils.ToFuObject):
         din = _rockingcurve_def._DCRYST[crystal]
 
         dlamb = {}
-        if lamb is None:
+        if lamb is None and subarea is None:
             lamb = self._dbragg['lambref']
-        elif lamb == 'ArXVII':
+        elif lamb is None and subarea == 'ArXVII':
             dlamb = {
                 'ArXVII_w_Bruhns': 3.949065e-10,
                 'ArXV_n3_Adhoc200408': 3.956000e-10,
@@ -2054,7 +2156,7 @@ class CrystalBragg(utils.ToFuObject):
             }
             values = list(dlamb.values())
             lamb = np.asarray(values)
-        elif lamb == 'ArXVII-woW':
+        elif lamb is None and subarea == 'ArXVII-woW':
             dlamb = {
                 'ArXVII_w_Bruhns': 3.949065e-10,
                 'ArXV_n3_Adhoc200408': 3.956000e-10,
@@ -2069,7 +2171,7 @@ class CrystalBragg(utils.ToFuObject):
             }
             values = list(dlamb.values())
             lamb = np.asarray(values)
-        elif lamb == 'ArXVII-wxyz':
+        elif lamb is None and subarea == 'ArXVII-wxyz':
             dlamb = {
                 'ArXVII_w_Bruhns': 3.949065e-10,
                 'ArXVII_x_Adhoc200408':3.965857e-10,
@@ -2139,6 +2241,9 @@ class CrystalBragg(utils.ToFuObject):
         if nxj is None:
             nxj = 1467
 
+        if save is None:
+            save = False
+
         # -----------------------
         # Check from args inputs the values of amplitude miscut angle alpha and
         # inter-reticular spacing
@@ -2147,7 +2252,6 @@ class CrystalBragg(utils.ToFuObject):
         if miscut:
             self.update_miscut(alpha=alpha0, beta=0.)
 
-        # T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
         dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
             crystal=crystal,
             din=din,
@@ -2266,7 +2370,6 @@ class CrystalBragg(utils.ToFuObject):
         # value at this glancing angle.
 
         if merge_rc_data:
-
             # First compute_rockingcurve() for output arrays sizing
             dout = _rockingcurve.compute_rockingcurve(
                 crystal=crystal,
@@ -2497,6 +2600,10 @@ class CrystalBragg(utils.ToFuObject):
             'bragg_atprmax': bragg_atprmax,
             'data': data,
         }
+
+        # save
+        if save:
+            None
 
         if plot_line_tracing:
             ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
