@@ -14,6 +14,7 @@ import datastock as ds
 # from tofu import __version__ as __version__
 from ._class00_Config import Config as Previous
 from . import _class01_compute as _compute
+from . import _class01_eqdsk as _eqdsk
 
 
 __all__ = ['Plasma2D']
@@ -56,6 +57,40 @@ class Plasma2D(Previous):
             data=data,
             units=units,
             units_in=units_in,
+        )
+
+    # -------------------
+    # load specific file formats
+    # -------------------
+
+    def load_equilirium_from_eqdsk(
+        self,
+        dpfe=None,
+        returnas=None,
+        strict=None,
+        # keys
+        kmesh=None,
+        # optional time
+        t=None,
+        ktime=None,
+        knt=None,
+        t_units=None,
+    ):
+        """ Load an equilibriu map from an eqdsk file
+
+        Load the R, Z mesh and corresponding psi 2d map
+        """
+        return _eqdsk.load_eqdsk(
+            dpfe=dpfe,
+            returnas=self,
+            strict=strict,
+            # keys
+            kmesh=kmesh,
+            # optional time
+            t=t,
+            ktime=ktime,
+            knt=knt,
+            t_units=t_units,
         )
 
     # -------------------
