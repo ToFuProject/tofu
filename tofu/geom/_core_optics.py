@@ -1967,6 +1967,8 @@ class CrystalBragg(utils.ToFuObject):
         # Wavelength
         lamb=None,
         subarea=None,
+        shift=None,
+        v=None,
         # -----------------------
         # Options of crystal modifications
         merge_rc_data=None,
@@ -2136,13 +2138,16 @@ class CrystalBragg(utils.ToFuObject):
         din = _rockingcurve_def._DCRYST[crystal]
 
         dlamb = {}
+        lsubarea = [
+            'ArXVII-simul', 'ArXVII-woW', 'ArXVII-wxyz'
+        ]
         if lamb is None and subarea is None:
             lamb = self._dbragg['lambref']
-        elif lamb is None and subarea == 'ArXVII':
+        elif lamb is None and subarea == lsubarea[0]:
             dlamb = {
                 'ArXVII_w_Bruhns': 3.949065e-10,
                 'ArXV_n3_Adhoc200408': 3.956000e-10,
-                'ArXVII_x_Adhoc200408':3.965857e-10,
+                'ArXVII_x_Adhoc200408': 3.965857e-10,
                 'ArXVII_y_Adhoc200408': 3.969356e-10,
                 'ArXVI_q_Adhoc200408': 3.981300e-10,
                 'ArXVI_r_Adhoc200408': 3.983400e-10,
@@ -2156,11 +2161,11 @@ class CrystalBragg(utils.ToFuObject):
             }
             values = list(dlamb.values())
             lamb = np.asarray(values)
-        elif lamb is None and subarea == 'ArXVII-woW':
+        elif lamb is None and subarea == lsubarea[1]:
             dlamb = {
                 'ArXVII_w_Bruhns': 3.949065e-10,
                 'ArXV_n3_Adhoc200408': 3.956000e-10,
-                'ArXVII_x_Adhoc200408':3.965857e-10,
+                'ArXVII_x_Adhoc200408': 3.965857e-10,
                 'ArXVII_y_Adhoc200408': 3.969356e-10,
                 'ArXVI_q_Adhoc200408': 3.981300e-10,
                 'ArXVI_r_Adhoc200408': 3.983400e-10,
@@ -2171,17 +2176,56 @@ class CrystalBragg(utils.ToFuObject):
             }
             values = list(dlamb.values())
             lamb = np.asarray(values)
-        elif lamb is None and subarea == 'ArXVII-wxyz':
+        elif lamb is None and subarea == lsubarea[2]:
             dlamb = {
                 'ArXVII_w_Bruhns': 3.949065e-10,
-                'ArXVII_x_Adhoc200408':3.965857e-10,
+                'ArXVII_x_Adhoc200408': 3.965857e-10,
                 'ArXVII_y_Adhoc200408': 3.969356e-10,
                 'ArXVII_z_Amaro': 3.994130e-10,
             }
             values = list(dlamb.values())
             lamb = np.asarray(values)
+        elif lamb is None and subarea not in lsubarea:
+            msg = (
+                "Please choose one of the following subareas :\n"
+                + "\t - {} for all Ar and W lines \n".format(lsubarea[0])
+                + "\t - {} for all Ar lines \n".format(lsubarea[1])
+                + "\t - {} for only Ar 16+ lines \n".format(lsubarea[2])
+            )
+            raise Exception(msg)
+
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
+
+        # ---------------------
+        # Doppler shift option
+
+        def doppler_shift(lamb, v, c):
+            newlamb = np.full((lamb.size), np.nan)
+            for ii in range(lamb.size):
+                dl = lamb[ii] * (v/c)
+                newlamb[ii] = lamb[ii] - dl
+            return newlamb
+
+        if shift is None:
+            shift = False
+        elif shift:
+            msg = (
+                "You have to give a velocity in meters per second !"
+                "You want a velocity of {} m/s !"
+            )
+            warnings.warn(msg)
+            c = 2.99792458e8  # m/s
+            newlamb = doppler_shift(
+                lamb=lamb,
+                v=v,
+                c=c,
+            )
+            assert newlamb.size == lamb.size
+            lamb = newlamb
+
+        # -------------------
+        # other checks
 
         if miscut is None:
             miscut = False
@@ -2235,7 +2279,7 @@ class CrystalBragg(utils.ToFuObject):
         if strict is None:
             strict = True
         if mode is None:
-            mode  = None
+            mode = None
         if nxi is None:
             nxi = 487
         if nxj is None:
@@ -2387,6 +2431,27 @@ class CrystalBragg(utils.ToFuObject):
                 plot_cmaps=False,
                 returnas=dict,
             )
+
+            TD = np.zeros((na,), dtype=float)
+            if therm_exp:
+                TD = dout['Temperature changes (°C)']
+            nT = TD.size
+            angles = np.zeros((na,), dtype=float)
+            if miscut:
+                angles = dout['Miscut angles (deg)']
+            nangles = angles.size
+            power_ratio = np.full((
+                nlamb,
+                dout['Power ratio'].shape[0],
+                dout['Power ratio'].shape[1],
+                dout['Power ratio'].shape[2],
+                dout['Power ratio'].shape[3],
+            ), np.nan)
+            power_ratio[ll, ...] = dout['Power ratio']
+
+            id_alpha0 = find_nearest(angles, alpha0)
+            id_temp0 = find_nearest(TD, temp0)
+
             if miscut and therm_exp:
                 dth = dout['Glancing angles'][0, id_temp0, id_alpha0, :]
                 ndth = dth.size
@@ -2426,7 +2491,8 @@ class CrystalBragg(utils.ToFuObject):
                 det['outline'][1, 2],
                 nxj
             )
-            data = np.full((1, pix_verti.size, pix_horiz.size), 0)
+            # data = np.full((1, pix_verti.size, pix_horiz.size), 0)
+            data = np.empty([1, pix_verti.size, pix_horiz.size])
 
             for ll in range(nlamb):
                 dout = _rockingcurve.compute_rockingcurve(
@@ -2456,6 +2522,7 @@ class CrystalBragg(utils.ToFuObject):
                 power_ratio[ll, ...] = dout['Power ratio']
 
                 id_alpha0 = find_nearest(angles, alpha0)
+                id_temp0 = find_nearest(TD, temp0)
 
                 if miscut and therm_exp:
                     dth = dout['Glancing angles'][0, id_temp0, id_alpha0, :]
@@ -2523,16 +2590,18 @@ class CrystalBragg(utils.ToFuObject):
                                         xj_rc[ll, mm, nn] - pix_verti
                                     )
                                 )
-                                data[0, idxj, idxi] += 1
-
+                                pr1 = power_ratio[ll, 0, 0, 0, mm]
+                                pr2 = power_ratio[ll, 1, 0, 0, mm]
+                                val = pr1 + pr2
+                                data[0, idxj, idxi] += val
 
                 xi_atprmax[ll] = xi_rc[ll, ind_pr_max, int(nphi/2)]
                 xj_atprmax[ll] = xj_rc[ll, ind_pr_max, int(nphi/2)]
-                self.update_miscut(alpha=0., beta=0.)
-                if therm_exp:
-                    self.dmat['d'] = d_atom[nn]*1e-10
-                else:
-                    self.dmat['d'] = d_atom[0]*1e-10
+                # self.update_miscut(alpha=0., beta=0.)
+                # if therm_exp:
+                #     self.dmat['d'] = d_atom[nn]*1e-10
+                # else:
+                #     self.dmat['d'] = d_atom[0]*1e-10
                 (
                     bragg_atprmax[ll], _, lamb_atprmax[ll],
                 ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
@@ -2544,18 +2613,18 @@ class CrystalBragg(utils.ToFuObject):
                     return_lamb=True,
                 )
         else:
-            power_ratio=None
-            dth=None
-            ndth=None
-            nn=None
-            xi_rc=None
-            xj_rc=None
-            xi_atprmax=None
-            bragg_atprmax=None
-            lamb_atprmax=None
-            TD=None
-            angles=None
-            data=None
+            power_ratio = None
+            dth = None
+            ndth = None
+            nn = None
+            xi_rc = None
+            xj_rc = None
+            xi_atprmax = None
+            bragg_atprmax = None
+            lamb_atprmax = None
+            TD = None
+            angles = None
+            data = None
 
 
         # Reset parameters as at beginning
@@ -2603,7 +2672,29 @@ class CrystalBragg(utils.ToFuObject):
 
         # save
         if save:
-            None
+            data2 = {
+                'data': data,
+            }
+            path = '/Home/AD265925/xics/tofu_west/SpectroX2D/'
+            if miscut:
+                aa = str(np.round(alpha0 * (180*60/np.pi), 3))
+            else:
+                aa = 'False'
+            part2 = '_miscut' + aa
+            if split:
+                part1 = '_split' + which
+            else:
+                part1 = '_splitFalse'
+            name = path + subarea + part1 + part2 + '_00001.npz'
+            np.savez(
+                name,
+                **data2,
+            )
+            msg = (
+                "Data saved at path : {}".format(path + name)
+            )
+            print(msg)
+            # None
 
         if plot_line_tracing:
             ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
@@ -3156,7 +3247,7 @@ class CrystalBragg(utils.ToFuObject):
 
         det_approx = self.get_detector_ideal(
             bragg=bragg, lamb=lamb,
-            tangent_to_rowland=True,#False,
+            tangent_to_rowland=True,  #False
             miscut=miscut,
         )
 
