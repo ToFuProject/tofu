@@ -159,6 +159,14 @@ def _vos(
         lvectx = []
         lvecty = []
         lvectz = []
+    else:
+        lindr_3d = None
+        lindz_3d = None
+        lphi_3d = None
+        lsang_3d = None
+        lvectx = None
+        lvecty = None
+        lvectz = None
 
     npix = coll.dobj['camera'][key_cam]['dgeom']['pix_nb']
     for ii in range(npix):
@@ -687,7 +695,7 @@ def _vos_points(
     # safety check
 
     if iru.size == 0:
-        return None, None, None, None, None
+        return None, None, None, None, None, None, None, None
 
     # ------------
     # go on
@@ -1102,6 +1110,10 @@ def _harmonize_reshape_others(
             + "\n".join(lstr)
         )
         raise Exception(msg)
+
+    # safety ceck
+    if len(lkey) == 0:
+        return {}
 
     lnpts = dnpts[lkey[0]]
     nmax = np.max(lnpts)
