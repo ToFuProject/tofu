@@ -562,12 +562,32 @@ class Diagnostic(Previous):
         pix1=None,
         tit=None,
     ):
-        """ Compute the vos of the diagnostic (per pixel)
+        """ Compute the image of a mono-wavelength plasma volume
 
-        - poly_margin (0.3) fraction by which the los-estimated vos is widened
-        -store:
-            - if replace_poly, will replace the vos polygon approximation
-            - will store the toroidally-integrated solid angles
+        Does ray-tracing from the whole plasma volume
+        For a set of discrete user-defined wavelengths
+        Optionally (dobin=True) also provides the binned (per-pixel) image
+
+        - lamb: float or sequence of floats, wavelength to be traced
+
+        Parameters for plasma volume sampling:
+            - res_RZ: float (m)
+            - res_phi: float (m)
+            - res_rock_curve: float (rad)
+
+        Parameters for sampling the solid angle for each point source
+            - n0: int, nb of rays in horizontal direction
+            - n1: int, nb of rays in vertical direction
+
+        Parameters for binning (by default uses the camera pixels)
+            - dobin: bool, do the binning or not
+            - bin0: int, nb of pixels in the horizontal direction
+            - bin1: int, nb of pixels in the vertical direction
+
+        Parameters for plotting
+            - plot: bool
+            - pix0: index 0 of pixels outlines to be plotted
+            - pix1: index 1 of pixels outlines to be plotted
 
         """
 
