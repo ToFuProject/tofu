@@ -452,10 +452,19 @@ def _check(
     # -----------
     # return_vector
 
+    if spectro is True:
+        lok = [True, False]
+    else:
+        if keep3d is False:
+            lok = [False]
+        else:
+            lok = [True, False]
+
     return_vector = ds._generic_check._check_var(
         return_vector, 'return_vector',
         types=bool,
         default=False,
+        allowed=lok,
     )
 
     # -----------
@@ -686,12 +695,12 @@ def _store(
     if spectro is True:
         lk = [
             'lamb',
-            'ph', 'cos', 'ncounts',
-            'phi_min', 'phi_max',
+            'ph_pix_cross_lamb', 'cos_pix_cross', 'ncounts_pix_cross',
+            'phi_pix_cross_min', 'phi_pix_cross_max',
             # optional
             'lamb0', 'dlamb',
-            'phi_mean',
-            'dV', 'etendlen',
+            'phi_pix_cross_mean',
+            'dV_cross', 'etendlen_pix',
         ]
     else:
         lk = ['sang_cross', 'sang_3d']

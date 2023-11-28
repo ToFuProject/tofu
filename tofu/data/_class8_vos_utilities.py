@@ -75,28 +75,28 @@ def _get_overall_polygons(
 
     # -----------------------
     # envelop pcross and phor
-    
+
     if convexHull is True:
         # replace by convex hull
         pts = np.array([p0[iok], p1[iok]]).T
-        return pts[ConvexHull(pts).vertices, :].T 
-    
+        return pts[ConvexHull(pts).vertices, :].T
+
     else:
-        
+
         ipn = (np.all(iok, axis=0)).nonzero()[0]
         pp = plg.Polygon(np.array([p0[:, ipn[0]], p1[:, ipn[0]]]).T)
         for ii in ipn[1:]:
             pp |= plg.Polygon(np.array([p0[:, ii], p1[:, ii]]).T)
-    
+
         if len(pp) > 1:
-            
+
             # replace by convex hull
             pts = np.concatenate(
                 tuple([np.array(pp.contour(ii)) for ii in range(len(pp))]),
                 axis=0,
             )
-            poly = pts[ConvexHull(pts).vertices, :].T 
-        
+            poly = pts[ConvexHull(pts).vertices, :].T
+
             # plot for debugging
             fig = plt.figure()
             fig.suptitle("_get_overall_polygons()", size=12)
@@ -114,7 +114,7 @@ def _get_overall_polygons(
             msg = "multiple contours"
             warnings.warn(msg)
             return poly
-        
+
         else:
             return np.array(pp.contour(0)).T
 
@@ -250,9 +250,27 @@ def _simplify_concave(
     # ------------
     # safety check
 
-    sign = np.sign(cross)
-    sign0 = np.mean(sign)
-    assert np.all(cross * sign0 >= -1e-12)
+    imax = np.argmax(np.abs(cross))
+    sign0 = np.sign(cross[imax])
+    # sign0 = np.mean(sign)
+    iok0 = cross * sign0 >= -1e-12
+    if not np.all(iok0):
+        fig = plt.figure()
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        ax.plot(
+            x0, x1, '.-k',
+        )
+        msg = (
+            "Non-conform cross * sign0 (>= -1e-12):\n"
+            f"\t- x0 = {x0}\n"
+            f"\t- x1 = {x1}\n"
+            f"\t- ind = {ind}\n"
+            f"\t- iok0 = {iok0}\n"
+            # f"\t- sign = {sign}\n"
+            f"\t- sign0 = {sign0}\n"
+            f"\t- cross * sign0 = {cross * sign0}\n"
+        )
+        raise Exception(msg)
 
     # ------------
     # loop
