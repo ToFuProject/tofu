@@ -284,11 +284,16 @@ def _check(
         dcompute,
         res_RZ,
         res_phi,
-        _,
+        _,       # res_lamb,
+        _,       # keep3d,
+        _,       # return_vector,
         convexHull,
         visibility,
         verb,
         debug,
+        _,       # store,
+        _,       # overwrite,
+        _,       # timing,
     ) = _vos._check(
         coll=coll,
         key_diag=key_diag,
@@ -300,7 +305,7 @@ def _check(
         visibility=visibility,
         verb=verb,
         debug=debug,
-    )[:-2]
+    )
 
     if spectro is False:
         msg = "Routine can only be used for spectro diag, not '{key_diag}'"
