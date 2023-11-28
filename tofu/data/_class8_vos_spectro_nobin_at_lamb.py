@@ -829,14 +829,20 @@ def _vos_nobin_at_lamb(
     # dout
     dout = {
         # lamb
-        'lamb': lamb,
+        'lamb': {
+            'data': lamb,
+            'units': 'm',
+        },
         # data
-        'x0': x0,
-        'x1': x1,
-        'ph_count': ph_count,
+        'x0': {'data': x0, 'units': 'm'},
+        'x1': {'data': x1, 'units': 'm'},
+        'ph_count': {
+            'data': ph_count,
+            'units': 'sr.m3',
+        },
         # information
-        'nmax_real': nmax_real,
-        'nmax_rays': nmax_rays,
+        'nmax_real': {'data': nmax_real, 'units': 'nb. rays'},
+        'nmax_rays': {'data': nmax_rays, 'units': 'nb. rays'},
     }
 
     return dout
@@ -905,14 +911,14 @@ def _dobin(
     bin_ph = np.full((n0, n1, lamb.size), 0.)
     for kk, ll in enumerate(lamb):
 
-        iok = np.isfinite(dout[k0]['x0'][:, kk])
+        iok = np.isfinite(dout[k0]['x0']['data'][:, kk])
         if not np.any(iok):
             continue
 
         bin_ph[..., kk] = scpstats.binned_statistic_2d(
-            dout[k0]['x0'][iok, kk],
-            dout[k0]['x1'][iok, kk],
-            dout[k0]['ph_count'][iok, kk],
+            dout[k0]['x0']['data'][iok, kk],
+            dout[k0]['x1']['data'][iok, kk],
+            dout[k0]['ph_count']['data'][iok, kk],
             statistic='sum',
             bins=(bin0, bin1),
         ).statistic
@@ -920,9 +926,9 @@ def _dobin(
     # --------
     # store
 
-    dout[k0]['bin0'] = bin0
-    dout[k0]['bin1'] = bin1
-    dout[k0]['bin_ph'] = bin_ph
+    dout[k0]['bin0'] = {'data': bin0, 'units': dout[k0]['x0']['units']}
+    dout[k0]['bin1'] = {'data': bin1, 'units': dout[k0]['x1']['units']}
+    dout[k0]['bin_ph'] = {'data': bin_ph, 'units': dout[k0]['ph_count']['units']}
 
     if remove_raw is True:
         for k1 in ['x0', 'x1', 'ph_count']:
@@ -960,8 +966,16 @@ def _plot(
     # ---------------------
     # prepare figure / axes
 
+    dmargins = {
+        'left': 0.08, 'right': 0.95,
+        'bottom': 0.06, 'top': 0.90,
+        'wspace': 0.5, 'hspace': 0.2,
+    }
+
+    nax = 20
     fig = plt.figure(figsize=(14, 8))
     fig.suptitle(tit, size=12, fontweight='bold')
+    gs = gridspec.GridSpec(ncols=nax*len(dout), nrows=2, **dmargins)
 
     dax = {}
     for ii, (k0, v0) in enumerate(dout.items()):
@@ -971,23 +985,25 @@ def _plot(
 
         if dobin is True:
             extent = (
-                v0['bin0'][0], v0['bin0'][-1],
-                v0['bin1'][0], v0['bin1'][-1],
+                v0['bin0']['data'][0], v0['bin0']['data'][-1],
+                v0['bin1']['data'][0], v0['bin1']['data'][-1],
             )
 
-            im = np.sum(v0['bin_ph'], axis=-1)
+            im = np.sum(v0['bin_ph']['data'], axis=-1)
             im[im == 0.] = np.nan
 
         # ------------
         # prepare axes
 
-        ax0 = fig.add_subplot(2, len(dout), ii + 1, aspect='equal', adjustable='datalim')
+        ax0 = fig.add_subplot(gs[0, ii*nax:(ii+1)*nax-2], aspect='equal', adjustable='datalim')
         ax0.set_xlabel('x0 (m)', size=12, fontweight='bold')
-        ax0.set_xlabel('x1 (m)', size=12, fontweight='bold')
+        ax0.set_ylabel('x1 (m)', size=12, fontweight='bold')
 
-        ax1 = fig.add_subplot(2, len(dout), ii + 2, aspect='equal', adjustable='datalim')
+        ax1 = fig.add_subplot(gs[1, ii*nax:(ii+1)*nax-2], aspect='equal', adjustable='datalim')
         ax1.set_xlabel('x0 (m)', size=12, fontweight='bold')
-        ax1.set_xlabel('x1 (m)', size=12, fontweight='bold')
+        ax1.set_ylabel('x1 (m)', size=12, fontweight='bold')
+
+        cax = fig.add_subplot(gs[1, (ii+1)*nax-2])
 
         dax[f'ax0_{k0}'] = {'handle': ax0}
         dax[f'ax1_{k0}'] = {'handle': ax1}
@@ -1003,10 +1019,10 @@ def _plot(
         ax1.plot(out0, out1, '-k')
 
         # points without weight
-        for kk, ll in enumerate(v0['lamb']):
+        for kk, ll in enumerate(v0['lamb']['data']):
             ax0.plot(
-                v0['x0'][:, kk],
-                v0['x1'][:, kk],
+                v0['x0']['data'][:, kk],
+                v0['x1']['data'][:, kk],
                 ls='None',
                 marker='.',
                 label=r"$\lambda = $" + f" {ll*1e10:5.3f} A",
@@ -1014,16 +1030,24 @@ def _plot(
 
         # points with weight
         if dobin is True:
-            for kk in range(len(v0['lamb'])):
-                ax1.imshow(
-                    im.T,
-                    extent=extent,
-                    aspect='equal',
-                    origin='lower',
-                    interpolation='nearest',
-                    vmin=0,
-                    cmap=plt.cm.viridis,
-                )
+            im0 = ax1.imshow(
+                im.T,
+                extent=extent,
+                aspect='equal',
+                origin='lower',
+                interpolation='nearest',
+                vmin=0,
+                vmax=np.nanmax(im),
+                cmap=plt.cm.viridis,
+            )
+
+            cb = plt.colorbar(
+                im0,
+                ax=ax1,
+                cax=cax,
+            )
+            cb.set_label(label=v0['bin_ph']['units'], size=12, weight='bold')
+
 
         # pixel
         if pix0 is not None:
@@ -1033,8 +1057,17 @@ def _plot(
 
             # centers
             c0, c1 = coll.dobj['camera'][k0]['dgeom']['cents']
-            c0 = coll.ddata[c0]['data'][pix0]
-            c1 = coll.ddata[c1]['data'][pix1]
+            if dobin is False:
+                c0 = coll.ddata[c0]['data'][pix0]
+                c1 = coll.ddata[c1]['data'][pix1]
+            else:
+                # adjust pixel outline
+                out0 *= coll.ddata[c0]['data'].size / (dout[k0]['bin0']['data'].size - 1)
+                out1 *= coll.ddata[c1]['data'].size / (dout[k0]['bin1']['data'].size - 1)
+
+                # get pixel centers
+                c0 = 0.5*(dout[k0]['bin0']['data'][1:] + dout[k0]['bin0']['data'][:-1])[pix0]
+                c1 = 0.5*(dout[k0]['bin1']['data'][1:] + dout[k0]['bin1']['data'][:-1])[pix1]
 
             # multiple pixels
             out0 = (c0[:, None] + np.r_[out0, np.nan][None, :]).ravel()
