@@ -887,12 +887,14 @@ def _dobin(
             bin0 = np.linspace(c0min, c0max, bin0)
             bin1 = np.linspace(c1min, c1max, bin1)
 
+        else:
+            raise Exception("Impossible")
+
     # --------------------------
     # derive bin centers in 2d
 
-    if isinstance(c0, str):
-        c0 = 0.5 * (bin0[1:] + bin0[:-1])
-        c1 = 0.5 * (bin1[1:] + bin1[:-1])
+    c0 = 0.5 * (bin0[1:] + bin0[:-1])
+    c1 = 0.5 * (bin1[1:] + bin1[:-1])
 
     n0, n1 = c0.size, c1.size
 
