@@ -880,7 +880,7 @@ def _loop0(
     return {
         'ncounts': {'data': ncounts, 'units': ''},
         'sang0': {'data': sang0, 'units': 'sr'},
-        'sang': {'data': sang, 'units': 'sr'},
+        'sang': {'data': sang, 'units': 'sr'},    # not really useful?
         'sang_lamb': {'data': sang_lamb, 'units': 'sr'},
         'lamb': {'data': lamb, 'units': 'm'},
         'dlamb': {'data': dlamb, 'units': 'm'},
@@ -1420,7 +1420,7 @@ def _plot(
         **dout['ncounts'],
     )
 
-    kd = 'sang'
+    kd = 'sang_lamb'
     if vmin is None:
         vmin = 0
     if vmax is None:
@@ -1613,7 +1613,7 @@ def _plot(
 
         extent = (cbin0[0], cbin0[-1], cbin1[0], cbin1[-1])
         im = ax.imshow(
-            np.nansum(dout[kd]['data'], axis=-1).T,
+            dout[kd]['data'].T,
             extent=extent,
             interpolation='nearest',
             origin='lower',
