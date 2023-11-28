@@ -90,6 +90,8 @@ def compute_vos_nobin_at_lamb(
         lamb,
         nmax_rays,
         plot,
+        pix0,
+        pix1,
     ) = _check(**locals())
 
     # ------------
@@ -394,6 +396,20 @@ def _check(
         default=True,
     )
 
+    # pix0, pix1
+    if pix0 is not None or pix1 is not None:
+        pix0 = ds._generic_check._check_flat1darray(
+            pix0, 'pix0',
+            dtype=int,
+            unique=False,
+        )
+        pix1 = ds._generic_check._check_flat1darray(
+            pix1, 'pix1',
+            dtype=int,
+            unique=False,
+            size=pix0.size,
+        )
+
     # ----------
     # verb
 
@@ -423,6 +439,8 @@ def _check(
         lamb,
         nmax_rays,
         plot,
+        pix0,
+        pix1,
     )
 
 
@@ -1011,9 +1029,14 @@ def _plot(
             # get pixel outline
             out0, out1 = coll.get_optics_outline(k0, total=False, closed=True)
 
+            # centers
+            c0, c1 = coll.dobj['camera'][k0]['dgeom']['cents']
+            c0 = coll.ddata[c0]['data'][pix0]
+            c1 = coll.ddata[c1]['data'][pix1]
+
             # multiple pixels
-            out0 = (pix0[:, None] + np.r_[out0, np.nan][None, :]).ravel()
-            out1 = (pix1[:, None] + np.r_[out1, np.nan][None, :]).ravel()
+            out0 = (c0[:, None] + np.r_[out0, np.nan][None, :]).ravel()
+            out1 = (c1[:, None] + np.r_[out1, np.nan][None, :]).ravel()
 
             ax0.plot(out0, out1, '-k')
             ax1.plot(out0, out1, '-k')
