@@ -512,8 +512,8 @@ def _vos(
             ipts += 1
 
     # multiply by dlamb
-    ph_count *= dlamb
-    # ph_approx *= dlamb    # DB
+    # Now done during synthetic signal compute (binning vs interp)
+    # ph_count *= dlamb
 
     if timing:
         t22 = dtm.datetime.now()     # DB
@@ -644,14 +644,14 @@ def _vos(
         },
 
         # coordinates
-        'indr': {
+        'indr_cross': {
             'key': kir,
             'data': indr,
             'ref': (knpts,),
             'units': None,
             'dim': 'index',
         },
-        'indz': {
+        'indz_cross': {
             'key': kiz,
             'data': indz,
             'ref': (knpts,),
@@ -678,8 +678,8 @@ def _vos(
             'key': kph,
             'data': ph_count,
             'ref': refph,
-            'units': None,
-            'dim': 'sr.m3.m',
+            'units': 'sr.m3',
+            'dim': 'transfert',
         },
         'phi_min': {
             'key': kphimin,

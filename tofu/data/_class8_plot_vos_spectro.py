@@ -384,12 +384,12 @@ def _prepare_ph(
     x0u = dsamp['x0']['data']
     x1u = dsamp['x1']['data']
 
-    iru = np.unique(dvos['indr']['data'])
+    iru = np.unique(dvos['indr_cross']['data'])
     phi_env = np.full((iru.size, 2), np.nan)
     phi_mean = np.full((iru.size,), np.nan)
     phi_minmax = np.full((iru.size, 2), np.nan)
     for ii, i0 in enumerate(iru):
-        ind = dvos['indr']['data'] == i0
+        ind = dvos['indr_cross']['data'] == i0
         phi_env[ii, 0] = np.nanmin(dvos['phi_min']['data'][..., ind])
         phi_env[ii, 1] = np.nanmax(dvos['phi_max']['data'][..., ind])
 
@@ -452,8 +452,8 @@ def _prepare_ph(
     lamb_cam = np.full(shape_cam, np.nan)
     dlamb_cam = np.full(shape_cam, np.nan)
 
-    indr = dvos['indr']['data']
-    indz = dvos['indz']['data']
+    indr = dvos['indr_cross']['data']
+    indz = dvos['indz_cross']['data']
     npts, nlamb = dvos['ph']['data'].shape[-2:]
 
     if is2d:
@@ -468,6 +468,9 @@ def _prepare_ph(
         ph = dvos['ph']['data']
         coss = dvos['cos']['data']
         lambc = dvos['lamb']['data'][None, None, :]
+
+    # muliply ph by dlamb for comparison with LOS
+    ph = ph * np.mean(np.diff(dvos['lamb']['data']))
 
     nci = nc[indch, :]
     phi = ph[indch, :, :]
