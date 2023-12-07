@@ -135,6 +135,7 @@ def _plot_rc_1d(
     lamb = coll.dobj['crystal'][key]['dmat']['target']['lamb']
     angle_rel = coll.ddata[drock['angle_rel']]['data']
     power_ratio = coll.ddata[drock['power_ratio']]['data']
+    delta_bragg = drock['delta_bragg']
 
     integ = drock['integ_reflect']
     pmax = np.max(power_ratio)
@@ -153,13 +154,14 @@ def _plot_rc_1d(
     # figure
 
     if dax is None:
-        fig = plt.figure()
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        fig = plt.figure(figsize=(12, 12))
+        fig.suptitle('Rocking curve', size=14, fontweight='bold')
 
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         ax.set_xlabel('incidence angle relative (rad)')
         ax.set_ylabel('power ratio')
         ax.set_ylim(0, 1)
-        ax.set_title('Rocking curve', size=12, fontweight='bold')
+
 
         dax = {'main': {'handle': ax, 'type': 'matrix'}}
 
@@ -183,7 +185,9 @@ def _plot_rc_1d(
         )
 
         # bragg angle
-        ax.axvline(0, c=color, ls='--', lw=1.)
+        ax.axvline(0, c=color, ls='--', lw=2.)
+        ax.axvline(delta_bragg, c=color, ls='--', lw=1)
+
         ax.text(
             0,
             1,
