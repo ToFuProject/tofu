@@ -456,21 +456,20 @@ def _prepare_ph(
     indz = dvos['indz_cross']['data']
     npts, nlamb = dvos['ph']['data'].shape[-2:]
 
+    # multiply by dlamb
+    ph0 = dvos['ph']['data'] * np.mean(np.diff(dvos['lamb']['data']))
     if is2d:
         nc = dvos['ncounts']['data'].reshape((-1, npts))
-        ph = dvos['ph']['data'].reshape((-1, npts, nlamb))
+        ph = ph0.reshape((-1, npts, nlamb))
         coss = dvos['cos']['data'].reshape((-1, npts))
         lambc = dvos['lamb']['data'][None, None, None, :]
         indch = indch[0] * shape_cam[1] + indch[1]
 
     else:
         nc = dvos['ncounts']['data']
-        ph = dvos['ph']['data']
+        ph = ph0
         coss = dvos['cos']['data']
         lambc = dvos['lamb']['data'][None, None, :]
-
-    # muliply ph by dlamb for comparison with LOS
-    ph = ph * np.mean(np.diff(dvos['lamb']['data']))
 
     nci = nc[indch, :]
     phi = ph[indch, :, :]
@@ -481,7 +480,7 @@ def _prepare_ph(
     for ni in shape_cam[::-1]:
         lambf = np.repeat(lambf[None, :], ni, axis=0)
 
-    ind0 = dvos['ph']['data'] == 0
+    ind0 = ph0 == 0
     lambf[ind0] = np.inf
     lambmin = np.min(lambf, axis=-1)
     lambf[ind0] = -np.inf
@@ -548,10 +547,10 @@ def _prepare_ph(
     iok = nc_cam > 0.
     nc_cam[~iok] = np.nan
 
-    ph_cam[iok] = np.nansum(np.nansum(dvos['ph']['data'], axis=-1), axis=-1)[iok]
+    ph_cam[iok] = np.nansum(np.nansum(ph0, axis=-1), axis=-1)[iok]
 
     lamb_cam[iok] = (
-        np.nansum(np.nansum(dvos['ph']['data'] * lambc, axis=-1), axis=-1)[iok]
+        np.nansum(np.nansum(ph0 * lambc, axis=-1), axis=-1)[iok]
         / ph_cam[iok]
     )
 
@@ -569,7 +568,7 @@ def _prepare_ph(
     # ----------------------
     # prepare per wavelength
 
-    ph_cam_lamb = np.nansum(dvos['ph']['data'][..., indlamb], axis=-1)
+    ph_cam_lamb = np.nansum(ph0[..., indlamb], axis=-1)
     ph_tot_lamb[indr, indz] = np.nansum(ph[..., indlamb], axis=0)
     ph_toti_lamb[indr, indz] = np.nansum(phi[..., indlamb], axis=0)
 
