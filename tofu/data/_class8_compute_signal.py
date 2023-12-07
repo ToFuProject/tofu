@@ -224,8 +224,6 @@ def _store(
         msg = "Please provide key_integrand xor key_matrix"
         raise Exception(msg)
 
-    typ = 'retrofit' if key_integrand is None else 'synthetic'
-
     # ---------
     # prepare
 
@@ -366,7 +364,6 @@ def _compute_signal_check(
         raise Exception(msg)
 
     key_mesh = coll.dobj[wbs][key_bs][wm]
-    mtype = coll.dobj[wm][key_mesh]['type']
     submesh = coll.dobj[wm][key_mesh]['submesh']
     if submesh is not None:
         key_mesh0 = submesh
@@ -611,8 +608,7 @@ def _compute_los(
             ktemp_binc = coll.dobj['bins'][ktemp_bin]['cents'][0]
 
     else:
-        dict_E = None
-        dict_dE = None
+        pass
 
     # units
     units0, units_bs = _units_integration(
@@ -1055,8 +1051,6 @@ def _compute_vos_broadband(
 
     # --------------
     # prepare
-
-    wbs = coll._which_bsplines
 
     # units
     units0 = coll.ddata[key_integrand]['units']
