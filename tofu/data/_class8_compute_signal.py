@@ -1323,7 +1323,7 @@ def _compute_vos_spectro(
             coll.ddata[key_integrand_interp_lamb]['ref'] = tuple(refb)
 
             # remove bins
-            # coll.remove_bins(ktemp_bin)
+            coll.remove_bins(ktemp_bin)
 
         else:
 
@@ -1485,15 +1485,6 @@ def _compute_vos_spectro(
             units = units / coll.ddata[ketend]['units']
         else:
             units = units
-        print(units)
-
-        # spectral bins if spectro
-        # if spectral_binning is True:
-        #     pass
-        # else:
-        #     unitsi = unitsi * units_spectro
-        #     sh_dE = [-1 if aa == axis else 1 for aa in range(len(refi))]
-        #     data *= dE_flat.reshape(sh_dE)
 
         # --------------
         # storing
@@ -1510,6 +1501,6 @@ def _compute_vos_spectro(
 
         if spectral_binning is True:
             coll.remove_bins(ktemp_bin)
-        # coll.remove_data(key_integrand_interp_lamb)
+        coll.remove_data(key_integrand_interp_lamb)
 
     return dout, dt
