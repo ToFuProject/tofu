@@ -65,10 +65,6 @@ def _dmat(
     elif isinstance(dmat, dict):
         lk = ['name', 'material', 'miller', 'target']
 
-        c0 = (
-            isinstance(dmat.get('drock'), dict)
-            and isinstance(dmat.get('d_hkl'), float)
-        )
         if isinstance(dmat.get('drock'), dict):
             if not isinstance(dmat.get('d_hkl'), float):
                 msg = (
@@ -229,6 +225,8 @@ def _dmat(
 
         # FW
         dmat['drock']['FW'] = dmat['drock']['integ_reflect'] / pmax
+        # average correction to bragg angle
+        dmat['drock']['delta_bragg'] = np.sum(power_ratio * angle_rel) / np.sum(power_ratio)
 
     # ---------------
     # add dref, ddata

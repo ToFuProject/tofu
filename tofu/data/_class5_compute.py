@@ -85,17 +85,26 @@ def _bragglamb(
     )
 
     # rocking_curve
+    dmat = coll.dobj['crystal'][key]['dmat']
+    lok = [False]
+    if dmat is None or dmat.get('drock', {}).get('delta_bragg') is None:
+        defrock = False
+        lok = (False,)
+    else:
+        defrock = True
+        lok = (False, True)
+
     rocking_curve = ds._generic_check._check_var(
         rocking_curve, 'rocking_curve',
         types=bool,
-        default=False,
+        default=defrock,
+        allowed=lok,
     )
 
     # -------------------
     # no input => default
 
     if bragg is None and lamb is None:
-        dmat = coll.dobj['crystal'][key]['dmat']
         if dmat is None or dmat.get('target') is None:
             msg = (
                 f"Crystal '{key}' has no target lamb!\n"
@@ -110,8 +119,9 @@ def _bragglamb(
     if lamb is not None:
         lamb = np.atleast_1d(lamb).astype(float)
 
-    if rocking_curve is False:
-        dist = coll.dobj['crystal'][key]['dmat']['d_hkl']
+    dist = coll.dobj['crystal'][key]['dmat']['d_hkl']
+    if rocking_curve is True:
+        delta_bragg = dmat['drock']['delta_bragg']
 
     # -------------
     # bragg vs lamb
@@ -119,7 +129,7 @@ def _bragglamb(
     if bragg is not None and lamb is None:
 
         if rocking_curve is True:
-            raise NotImplementedError()
+            lamb = 2. * dist * np.sin(bragg - delta_bragg) / norder
 
         else:
             lamb = 2. * dist * np.sin(bragg) / norder
@@ -127,7 +137,7 @@ def _bragglamb(
     elif lamb is not None and bragg is None:
 
         if rocking_curve is True:
-            raise NotImplementedError
+            bragg = np.arcsin(norder * lamb / (2.*dist)) + delta_bragg
 
         else:
             bragg = np.arcsin(norder * lamb / (2.*dist))
@@ -207,7 +217,7 @@ def _ideal_configuration_check(
         types=(float, int),
         default=0.,
     ))
-    
+
     # strict_aperture
     strict_aperture = ds._generic_check._check_var(
         strict_aperture, 'strict_aperture',
