@@ -695,12 +695,11 @@ def _store(
     if spectro is True:
         lk = [
             'lamb',
-            'ph_pix_cross_lamb', 'cos_pix_cross', 'ncounts_pix_cross',
-            'phi_pix_cross_min', 'phi_pix_cross_max',
+            'ph', 'cos', 'ncounts',
+            'phi_min', 'phi_max',
             # optional
-            'lamb0', 'dlamb',
-            'phi_pix_cross_mean',
-            'dV_cross', 'etendlen_pix',
+            'phi_mean',
+            'dV', 'etendlen',
         ]
     else:
         lk = ['sang_cross', 'sang_3d']
@@ -859,7 +858,6 @@ def _check_get_dvos(
             'lamb',
             'phi_min', 'phi_max', 'phi_mean',
             'ph', 'ncounts', 'cos',
-            'lamb0', 'dlamb',
             'dV', 'etendlen',
         ]
     else:
@@ -919,8 +917,10 @@ def _check_get_dvos(
                         'key': dop[k1],
                         **coll.ddata[dop[k1]],
                     }
+        isstore = True
+
     else:
-        pass
+        isstore = False
 
     # copy to avoid changing the original
     dvos = copy.deepcopy(dvos)
@@ -947,7 +947,8 @@ def _check_get_dvos(
         if isinstance(dvos, dict):
             k0 = list(dvos.keys())[0]
             if isinstance(dvos[k0], dict):
-                msg += f"\n\t- dvos['{k0}']: {sorted(dvos[k0].keys())}"
+                lkout = [k1 for k1 in lk_all if k1 not in dvos[k0].keys()]
+                msg += f"\n\t- dvos['{k0}'] missing: {lkout}"
         raise Exception(msg)
 
     # only keep desired cams
@@ -955,7 +956,7 @@ def _check_get_dvos(
     for k0 in lkout:
         del dvos[k0]
 
-    return dvos
+    return dvos, isstore
 
 
 # ###############################################################
@@ -969,7 +970,11 @@ def get_dvos_xyz(coll=None, key_diag=None, key_cam=None, dvos=None):
     # ---------
     # get dvos
 
-    dvos = coll.check_diagnostic_dvos(key=key_diag, key_cam=key_cam, dvos=dvos)
+    dvos, isstore = coll.check_diagnostic_dvos(
+        key=key_diag,
+        key_cam=key_cam,
+        dvos=dvos,
+    )
 
     # check
     if not all([v0.get('indr_3d') is not None for v0 in dvos.values()]):

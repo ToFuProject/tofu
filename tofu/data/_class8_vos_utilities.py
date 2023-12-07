@@ -131,6 +131,11 @@ def _get_polygons(
     bool_cross=None,
     res=None,
 ):
+    """ Get simplified contour polygon
+
+    First computes contours
+    Then simplifies it using a mix of convexHull and concave picking edges
+    """
 
     # ------------
     # get contour

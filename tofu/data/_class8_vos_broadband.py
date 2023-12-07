@@ -6,7 +6,7 @@ import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
 from matplotlib.path import Path
-import datastock as ds
+# import datastock as ds
 
 
 from ..geom import _comp_solidangles
@@ -156,17 +156,23 @@ def _vos(
         lindz_3d = []
         lphi_3d = []
         lsang_3d = []
-        lvectx = []
-        lvecty = []
-        lvectz = []
     else:
         lindr_3d = None
         lindz_3d = None
         lphi_3d = None
         lsang_3d = None
+
+    if return_vector is True:
+        lvectx = []
+        lvecty = []
+        lvectz = []
+    else:
         lvectx = None
         lvecty = None
         lvectz = None
+
+    # ----------------
+    # loop on pixels
 
     npix = coll.dobj['camera'][key_cam]['dgeom']['pix_nb']
     for ii in range(npix):
@@ -274,7 +280,7 @@ def _vos(
         if isinstance(out, tuple):
             out, vectx, vecty, vectz = out
         else:
-            lvectx, lvecty, lvectz = None, None, None
+            vectx, vecty, vectz = None, None, None
 
         # ------------
         # get indices
@@ -310,17 +316,17 @@ def _vos(
             phi_3d = np.arctan2(yy[indsa], xx[indsa])
             sang_3d = out[0, indsa] * dV[indsa]
 
-            vx = vectx[0, indsa]
-            vy = vecty[0, indsa]
-            vz = vectz[0, indsa]
+            if vectx is not None:
+                vx = vectx[0, indsa]
+                vy = vecty[0, indsa]
+                vz = vectz[0, indsa]
 
         # ----- DEBUG --------
         if debug:
             import matplotlib.pyplot as plt
             fig = plt.figure()
             ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-
-            ipos = out[0, :] > 0
+            # ipos = out[0, :] > 0
             # ax.scatter(
             #     xx[ipos], yy[ipos],
             #     c=out[0, ipos], s=6, marker='o', vmin=0,

@@ -14,7 +14,6 @@ import datastock as ds
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_plot
 from . import _generic_check
-from . import _generic_plot
 from . import _class8_vos_utilities as _utilities
 
 
@@ -432,7 +431,7 @@ def _prepare_optics(
     ispectro = lop.index(kspectro)
     if len(lop[:ispectro]) > 1:
         msg = "Not yet implemented optics between crystal and camera!"
-        raise NotImplementedError()
+        raise NotImplementedError(msg)
 
     # lpoly_post = []
     lpoly_post = [
@@ -880,7 +879,7 @@ def _loop0(
     return {
         'ncounts': {'data': ncounts, 'units': ''},
         'sang0': {'data': sang0, 'units': 'sr'},
-        'sang': {'data': sang, 'units': 'sr'},
+        'sang': {'data': sang, 'units': 'sr'},    # not really useful?
         'sang_lamb': {'data': sang_lamb, 'units': 'sr'},
         'lamb': {'data': lamb, 'units': 'm'},
         'dlamb': {'data': dlamb, 'units': 'm'},
@@ -1420,7 +1419,7 @@ def _plot(
         **dout['ncounts'],
     )
 
-    kd = 'sang'
+    kd = 'sang_lamb'
     if vmin is None:
         vmin = 0
     if vmax is None:
@@ -1613,7 +1612,7 @@ def _plot(
 
         extent = (cbin0[0], cbin0[-1], cbin1[0], cbin1[-1])
         im = ax.imshow(
-            np.nansum(dout[kd]['data'], axis=-1).T,
+            dout[kd]['data'].T,
             extent=extent,
             interpolation='nearest',
             origin='lower',

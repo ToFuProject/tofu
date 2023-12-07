@@ -318,7 +318,7 @@ def _compute_check(
 
     # dvos
     if method == 'vos':
-        dvos = coll.check_diagnostic_dvos(
+        dvos, isstore = coll.check_diagnostic_dvos(
             key=key_diag,
             key_cam=key_cam,
             dvos=dvos,
