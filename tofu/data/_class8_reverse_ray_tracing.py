@@ -14,7 +14,6 @@ import datastock as ds
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_plot
 from . import _generic_check
-from . import _generic_plot
 from . import _class8_vos_utilities as _utilities
 
 
@@ -432,7 +431,7 @@ def _prepare_optics(
     ispectro = lop.index(kspectro)
     if len(lop[:ispectro]) > 1:
         msg = "Not yet implemented optics between crystal and camera!"
-        raise NotImplementedError()
+        raise NotImplementedError(msg)
 
     # lpoly_post = []
     lpoly_post = [
