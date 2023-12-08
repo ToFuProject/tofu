@@ -258,12 +258,15 @@ def _domain2str(domain, key):
     ]
 
 
-def _check_phi_lim(phi=None, phi_lim=None):
+def _check_phi_lim(phi=None, phi_lim=None, islamb=None):
 
     Dphi = (phi.max()-phi.min()) / 2.
     dphi = np.mean(np.diff(np.unique(phi)))
     if phi_lim is None:
-        phi_lim = phi.mean() + Dphi*np.r_[0., -0.25, -0.5]
+        if islamb is True:
+            phi_lim = phi.mean() + Dphi*np.r_[-0.56, -0.04, 0.59]
+        else:
+            phi_lim = phi.mean() + Dphi*np.r_[0., -0.25, -0.5]
 
     # check for phi values
     c0 = (
@@ -319,6 +322,7 @@ def plot_dinput2d(
     indspect=None,
     phi_lim=None,
     phi_name=None,
+    lamb_lim=None,
     # figure
     fs=None,
     dmargin=None,
@@ -333,9 +337,17 @@ def plot_dinput2d(
     # Check inputs
     # ------------
 
+    # phi
     phi_lim = _check_phi_lim(phi=dinput['dprepare']['phi'], phi_lim=phi_lim)
     if phi_name is None:
         phi_name = r'$\phi$'
+
+    # lamb
+    lamb_lim = _check_phi_lim(
+        phi=dinput['dprepare']['lamb'],
+        phi_lim=lamb_lim,
+        islamb=True,
+    )
 
     if fs is None:
         fs = (13, 6)
@@ -411,29 +423,43 @@ def plot_dinput2d(
             titi = tit
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(3, 16, **dmargin)
+        gs = gridspec.GridSpec(3, 19, **dmargin)
+
+        # axes for pixel validity
         ax0 = fig.add_subplot(gs[:2, :5])
         cax0 = fig.add_subplot(gs[:2, 5])
-        ax1 = fig.add_subplot(gs[:2, 10:15], sharex=ax0, sharey=ax0)
-        cax1 = fig.add_subplot(gs[:2, 15])
-        ax2 = fig.add_subplot(gs[:2, 9], sharey=ax0)
-        ax3 = fig.add_subplot(gs[2, 10:15], sharex=ax0)
+        ax0.set_ylabel(x1_lab, size=12, fontweight='bold')
+        ax0.set_xlabel(x0_lab, size=12, fontweight='bold')
+        titax = f"indt ok: {dinput['valid']['indt'][ispect]}"
+        ax0.set_title(titax, size=12, fontweight='bold')
 
-        ax0.set_ylabel(x1_lab)
-        ax0.set_xlabel(x0_lab)
-        ax0.set_title(f"indt ok: {dinput['valid']['indt'][ispect]}")
+        # axes for image
+        ax1 = fig.add_subplot(gs[:2, 9:14], sharex=ax0, sharey=ax0)
+        cax1 = fig.add_subplot(gs[:2, 14])
 
+        # axes for colorbar
+        ax2 = fig.add_subplot(gs[:2, 8], sharey=ax0)
         ax2.set_title('knots', size=12, fontweight='bold')
 
-        ax3.set_ylabel('data (a.u.)')
-        ax3.set_xlabel(x0_lab)
-        ax3.set_title('data')
+        # axes for spectra
+        ax3 = fig.add_subplot(gs[2, 9:14], sharex=ax0)
+        ax3.set_ylabel('data (a.u.)', size=12, fontweight='bold')
+        ax3.set_xlabel(x0_lab, size=12, fontweight='bold')
+        ax3.set_title('data', size=12, fontweight='bold')
 
+        # axes for vertical slices
+        ax4 = fig.add_subplot(gs[:2, 16:], sharey=ax0)
+        ax4.set_ylabel(x1_lab, size=12, fontweight='bold')
+        ax4.set_xlabel('data (a.u.)', size=12, fontweight='bold')
+        ax4.set_title('vertical slices', size=12, fontweight='bold')
+
+        # dict
         dax = {
             'img_indok': {'ax': ax0},
             'img_original_data': {'ax': ax1},
             'bsplines': {'ax': ax2},
             'spect': {'ax': ax3},
+            'vert': {'ax': ax4},
         }
 
         # plot images
@@ -481,10 +507,15 @@ def plot_dinput2d(
                 origin='lower',
                 aspect=aspect,
             )
+
             fig.colorbar(im, ax=ax, cax=cax1, orientation='vertical')
             for jj in range(phi_lim.shape[0]):
                 ax.axhline(phi_lim[jj, 0], c=lcol[jj], lw=1., ls='-')
                 ax.axhline(phi_lim[jj, 1], c=lcol[jj], lw=1., ls='-')
+            for jj in range(lamb_lim.shape[0]):
+                ax.axvline(lamb_lim[jj, 0], c=lcol[jj], lw=1., ls='-')
+                ax.axvline(lamb_lim[jj, 1], c=lcol[jj], lw=1., ls='-')
+
             for jj in range(len(dinput['valid']['ldphi'][ispect])):
                 ax.axhline(
                     dinput['valid']['ldphi'][ispect][jj][0],
@@ -501,6 +532,7 @@ def plot_dinput2d(
             for jj, jk in enumerate(np.unique(dinput['knots_mult'])):
                 ax.axhline(jk, c='k', ls='-', lw=1.)
 
+        # spectra
         kax = 'spect'
         if dax.get(kax) is not None:
             ax = dax[kax]['ax']
@@ -529,6 +561,26 @@ def plot_dinput2d(
                     verticalalignment='bottom',
                     horizontalalignment='center',
                 )
+
+        # vertical slices
+        kax = 'vert'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
+            for jj in range(lamb_lim.shape[0]):
+                indlamb = (lamb >= lamb_lim[jj, 0]) & (lamb < lamb_lim[jj, 1])
+                vert_phi = phi[indlamb]
+                indphi = np.argsort(vert_phi)
+                vert_phi = vert_phi[indphi]
+                vert_data = data[ii, indlamb][indphi]
+                ax.plot(
+                    vert_data,
+                    vert_phi,
+                    marker='.',
+                    ms=3,
+                    color=lcol[jj],
+                    ls='None',
+                )
+            ax.axvline(0, c='k', lw=1., ls='-')
 
         # text
         binstr = dprepare['binning']
