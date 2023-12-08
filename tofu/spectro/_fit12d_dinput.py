@@ -1053,24 +1053,26 @@ def _debug_binning(
 
     lcol = ['k', 'r', 'g', 'b', 'y', 'm', 'c']
 
-    dlamb = binning['lamb']['edges'][1] - binning['lamb']['edges'][0]
-    dphi = binning['phi']['edges'][1] - binning['phi']['edges'][0]
+    if binning is not None:
+        dlamb = binning['lamb']['edges'][1] - binning['lamb']['edges'][0]
+        dphi = binning['phi']['edges'][1] - binning['phi']['edges'][0]
 
-    indlamb = np.array([np.argmin(np.abs(lamb1d - ll)) for ll in lamb0], dtype=int)
-    indphi = np.array([np.argmin(np.abs(phi1d - ll)) for ll in phi0], dtype=int)
+        indlamb = np.array([np.argmin(np.abs(lamb1d - ll)) for ll in lamb0], dtype=int)
+        indphi = np.array([np.argmin(np.abs(phi1d - ll)) for ll in phi0], dtype=int)
 
-    phi0 = phi1d[indphi]
-    lamb0 = lamb1d[indlamb]
+        phi0 = phi1d[indphi]
+        lamb0 = lamb1d[indlamb]
 
-    ilamb = [np.abs(lamb - ll) <= dlamb for ll in lamb0]
-    iphi = [np.abs(phi - ll) <= dphi for ll in phi0]
+        extent = (
+            binning['lamb']['edges'][0], binning['lamb']['edges'][-1],
+            binning['phi']['edges'][0], binning['phi']['edges'][-1],
+        )
 
-    extent = (
-        binning['lamb']['edges'][0], binning['lamb']['edges'][-1],
-        binning['phi']['edges'][0], binning['phi']['edges'][-1],
-    )
+        vmax = np.nanmax(databin[indt, ...])
 
-    vmax = np.nanmax(databin[indt, ...])
+    if phi is not None:
+        ilamb = [np.abs(lamb - ll) <= dlamb for ll in lamb0]
+        iphi = [np.abs(phi - ll) <= dphi for ll in phi0]
 
     # ------------
     # prepare plot
@@ -1126,41 +1128,43 @@ def _debug_binning(
 
     kax = 'raw'
     ax = dax[kax]
-    ax.scatter(
-        lamb,
-        phi,
-        c=data[indt],
-        s=4,
-        marker='.',
-        vmin=vmin,
-        vmax=vmax,
-    )
-    for ii, ip in enumerate(indphi):
-        ax.axhline(phi0[ii] - dphi/2, c=lcol[ii], ls='-', lw=1)
-        ax.axhline(phi0[ii] + dphi/2, c=lcol[ii], ls='-', lw=1)
+    if phi is not None:
+        ax.scatter(
+            lamb,
+            phi,
+            c=data[indt],
+            s=4,
+            marker='.',
+            vmin=vmin,
+            vmax=vmax,
+        )
+        for ii, ip in enumerate(indphi):
+            ax.axhline(phi0[ii] - dphi/2, c=lcol[ii], ls='-', lw=1)
+            ax.axhline(phi0[ii] + dphi/2, c=lcol[ii], ls='-', lw=1)
 
-    for ii, ip in enumerate(indlamb):
-        ax.axvline(lamb0[ii] - dlamb/2, c=lcol[ii], ls='-', lw=1)
-        ax.axvline(lamb0[ii] + dlamb/2, c=lcol[ii], ls='-', lw=1)
+        for ii, ip in enumerate(indlamb):
+            ax.axvline(lamb0[ii] - dlamb/2, c=lcol[ii], ls='-', lw=1)
+            ax.axvline(lamb0[ii] + dlamb/2, c=lcol[ii], ls='-', lw=1)
 
     # -----------
     # binned image
 
     kax = 'binned'
     ax = dax[kax]
-    ax.imshow(
-        databin[indt, ...],
-        extent=extent,
-        origin='lower',
-        interpolation='nearest',
-        aspect='auto',
-        vmin=vmin,
-        vmax=vmax,
-    )
-    for ii, ip in enumerate(indphi):
-        ax.axhline(phi0[ii], c=lcol[ii], ls='-', lw=1)
-    for ii, ip in enumerate(indlamb):
-        ax.axvline(lamb0[ii], c=lcol[ii], ls='-', lw=1)
+    if binning is not None:
+        ax.imshow(
+            databin[indt, ...],
+            extent=extent,
+            origin='lower',
+            interpolation='nearest',
+            aspect='auto',
+            vmin=vmin,
+            vmax=vmax,
+        )
+        for ii, ip in enumerate(indphi):
+            ax.axhline(phi0[ii], c=lcol[ii], ls='-', lw=1)
+        for ii, ip in enumerate(indlamb):
+            ax.axvline(lamb0[ii], c=lcol[ii], ls='-', lw=1)
 
     # -----------
     # horizontal slices
@@ -1168,25 +1172,31 @@ def _debug_binning(
     kax = 'spectra'
     ax = dax[kax]
     for ii, ip in enumerate(indphi):
-        ax.plot(
-            lamb1d,
-            databin[indt, ip, :],
-            c=lcol[ii],
-            marker='None',
-            ls='-',
-            lw=1,
-        )
-        ax.plot(
-            lamb[iphi[ii]],
-            data[indt, iphi[ii]],
-            c=lcol[ii],
-            marker='.',
-            ls='None',
-        )
-    for ii, ip in enumerate(indlamb):
-        ax.axvline(lamb0[ii] - dlamb/2, c=lcol[ii], ls='-', lw=1)
-        ax.axvline(lamb0[ii] + dlamb/2, c=lcol[ii], ls='-', lw=1)
-    ax.set_ylim(vmin, vmax)
+        if binning is not None:
+            ax.plot(
+                lamb1d,
+                databin[indt, ip, :],
+                c=lcol[ii],
+                marker='None',
+                ls='-',
+                lw=1,
+            )
+        if phi is not None:
+            ax.plot(
+                lamb[iphi[ii]],
+                data[indt, iphi[ii]],
+                c=lcol[ii],
+                marker='.',
+                ls='None',
+                alpha=0.5,
+                ms=2,
+            )
+
+    if binning is not None:
+        for ii, ip in enumerate(indlamb):
+            ax.axvline(lamb0[ii] - dlamb/2, c=lcol[ii], ls='-', lw=1)
+            ax.axvline(lamb0[ii] + dlamb/2, c=lcol[ii], ls='-', lw=1)
+        ax.set_ylim(vmin, vmax)
 
     # -----------
     # vertical slices
@@ -1194,25 +1204,30 @@ def _debug_binning(
     kax = 'vert'
     ax = dax[kax]
     for ii, il in enumerate(indlamb):
-        ax.plot(
-            databin[indt, :, il],
-            phi1d,
-            c=lcol[ii],
-            marker='None',
-            ls='-',
-            lw=1,
-        )
-        ax.plot(
-            data[indt, ilamb[ii]],
-            phi[ilamb[ii]],
-            c=lcol[ii],
-            marker='.',
-            ls='None',
-        )
-    for ii, ip in enumerate(indphi):
-        ax.axhline(phi0[ii] - dphi/2, c=lcol[ii], ls='-', lw=1)
-        ax.axhline(phi0[ii] + dphi/2, c=lcol[ii], ls='-', lw=1)
-    ax.set_xlim(vmin, vmax)
+        if binning is not None:
+            ax.plot(
+                databin[indt, :, il],
+                phi1d,
+                c=lcol[ii],
+                marker='None',
+                ls='-',
+                lw=1,
+            )
+        if phi is not None:
+            ax.plot(
+                data[indt, ilamb[ii]],
+                phi[ilamb[ii]],
+                c=lcol[ii],
+                marker='.',
+                ls='None',
+                alpha=0.5,
+                ms=2,
+            )
+    if binning is not None:
+        for ii, ip in enumerate(indphi):
+            ax.axhline(phi0[ii] - dphi/2, c=lcol[ii], ls='-', lw=1)
+            ax.axhline(phi0[ii] + dphi/2, c=lcol[ii], ls='-', lw=1)
+        ax.set_xlim(vmin, vmax)
 
     return
 
