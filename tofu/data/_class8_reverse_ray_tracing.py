@@ -14,7 +14,6 @@ import datastock as ds
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_plot
 from . import _generic_check
-from . import _generic_plot
 from . import _class8_vos_utilities as _utilities
 
 
@@ -131,6 +130,7 @@ def _from_pts(
         key_diag=key,
         key_cam=key_cam,
         kspectro=kspectro,
+        lamb=lamb0,
         res_lamb=res_lamb,
         res_rock_curve=res_rock_curve,
         verb=False,
@@ -431,7 +431,7 @@ def _prepare_optics(
     ispectro = lop.index(kspectro)
     if len(lop[:ispectro]) > 1:
         msg = "Not yet implemented optics between crystal and camera!"
-        raise NotImplementedError()
+        raise NotImplementedError(msg)
 
     # lpoly_post = []
     lpoly_post = [
@@ -527,9 +527,9 @@ def _prepare_lamb(
         dlamb = lamb[1] - lamb[0]
 
         bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
-    
+
     elif lamb is not None:
-        
+
         lamb = ds._generic_check._check_flat1darray(
             lamb, 'lamb',
             dtype=float,
@@ -877,17 +877,17 @@ def _loop0(
                     )
 
     return {
-        'ncounts': ncounts,
-        'sang0': sang0,
-        'sang': sang,
-        'sang_lamb': sang_lamb * dlamb,
-        'lamb': lamb,
-        'dlamb': dlamb,
-        'lp0': lp0,
-        'lp1': lp1,
-        'lpx': lpx,
-        'lpy': lpy,
-        'lpz': lpz,
+        'ncounts': {'data': ncounts, 'units': ''},
+        'sang0': {'data': sang0, 'units': 'sr'},
+        'sang': {'data': sang, 'units': 'sr'},    # not really useful?
+        'sang_lamb': {'data': sang_lamb, 'units': 'sr'},
+        'lamb': {'data': lamb, 'units': 'm'},
+        'dlamb': {'data': dlamb, 'units': 'm'},
+        'lp0': {'data': lp0, 'units': 'm'},
+        'lp1': {'data': lp1, 'units': 'm'},
+        'lpx': {'data': lpx, 'units': 'm'},
+        'lpy': {'data': lpy, 'units': 'm'},
+        'lpz': {'data': lpz, 'units': 'm'},
     }
 
 
@@ -1172,13 +1172,13 @@ def _loop1(
     )
 
     return {
-        'ncounts': ncounts / length,
-        'lp0': lp0,
-        'lp1': lp1,
-        'ptsx': np.array(xx),
-        'ptsy': np.array(yy),
-        'ptsr': x0u[ir],
-        'ptsz': x1u[iz],
+        'ncounts': {'data': ncounts / length, 'units': 'm3/m'},
+        'lp0': {'data': lp0, 'units': 'm'},
+        'lp1': {'data': lp1, 'units': 'm'},
+        'ptsx': {'data': np.array(xx), 'units': 'm'},
+        'ptsy': {'data': np.array(yy), 'units': 'm'},
+        'ptsr': {'data': x0u[ir], 'units': 'm'},
+        'ptsz': {'data': x1u[iz], 'units': 'm'},
     }
 
 
@@ -1415,15 +1415,15 @@ def _plot(
 
     coll.add_data(
         key=ktemp,
-        data=dout['ncounts'],
         ref=coll.dobj['camera'][key_cam]['dgeom']['ref'],
-        units='counts',
+        **dout['ncounts'],
     )
 
+    kd = 'sang_lamb'
     if vmin is None:
         vmin = 0
     if vmax is None:
-        vmax = np.nanmax(dout['ncounts'])
+        vmax = np.nanmax(dout[kd]['data'])
 
     # --------------
     # prepare
@@ -1505,8 +1505,8 @@ def _plot(
             ax = dax[kax]['handle']
 
             ax.plot(
-                dout['ptsr'],
-                dout['ptsz'],
+                dout['ptsr']['data'],
+                dout['ptsz']['data'],
                 ls='None',
                 lw=1.,
                 marker='.',
@@ -1517,8 +1517,8 @@ def _plot(
             ax = dax[kax]['handle']
 
             ax.plot(
-                dout['ptsx'],
-                dout['ptsy'],
+                dout['ptsx']['data'],
+                dout['ptsy']['data'],
                 ls='None',
                 lw=1.,
                 marker='.',
@@ -1528,8 +1528,8 @@ def _plot(
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
 
-            p0 = np.concatenate([pp.ravel() for pp in dout['lp0']])
-            p1 = np.concatenate([pp.ravel() for pp in dout['lp1']])
+            p0 = np.concatenate([pp.ravel() for pp in dout['lp0']['data']])
+            p1 = np.concatenate([pp.ravel() for pp in dout['lp1']['data']])
             ax.plot(
                 p0,
                 p1,
@@ -1542,10 +1542,10 @@ def _plot(
         # --------------
         # ray-tracing
 
-        for ii in range(len(dout['lp0'])):
+        for ii in range(len(dout['lp0']['data'])):
 
-            p0 = dout['lp0'][ii]
-            p1 = dout['lp1'][ii]
+            p0 = dout['lp0']['data'][ii]
+            p1 = dout['lp1']['data'][ii]
 
             # --------------
             # camera image
@@ -1564,10 +1564,10 @@ def _plot(
             # --------------
             # rays
 
-            ind = np.arange(3, dout['lpx'][ii].size, 3)
-            px = np.insert(dout['lpx'][ii].T.ravel(), ind, np.nan)
-            py = np.insert(dout['lpy'][ii].T.ravel(), ind, np.nan)
-            pz = np.insert(dout['lpz'][ii].T.ravel(), ind, np.nan)
+            ind = np.arange(3, dout['lpx']['data'][ii].size, 3)
+            px = np.insert(dout['lpx']['data'][ii].T.ravel(), ind, np.nan)
+            py = np.insert(dout['lpy']['data'][ii].T.ravel(), ind, np.nan)
+            pz = np.insert(dout['lpz']['data'][ii].T.ravel(), ind, np.nan)
 
             kax = 'cross'
             if dax.get(kax) is not None:
@@ -1612,7 +1612,7 @@ def _plot(
 
         extent = (cbin0[0], cbin0[-1], cbin1[0], cbin1[-1])
         im = ax.imshow(
-            dout['ncounts'].T,
+            dout[kd]['data'].T,
             extent=extent,
             interpolation='nearest',
             origin='lower',
@@ -1620,7 +1620,9 @@ def _plot(
             vmax=vmax,
         )
 
-        plt.colorbar(im, ax=ax, cax=cax)
+        cb = plt.colorbar(im, ax=ax, cax=cax)
+        ax.set_title(kd, size=12, fontweight='bold')
+        cb.set_label(dout[kd]['units'], size=12, weight='bold')
 
     # ----------
     # diag geom
@@ -1667,8 +1669,8 @@ def _get_dax(
         types=dict,
         default={
             'bottom': 0.05, 'top': 0.95,
-            'left': 0.05, 'right': 0.95,
-            'wspace': 0.25, 'hspace': 0.2,
+            'left': 0.05, 'right': 0.94,
+            'wspace': 0.20, 'hspace': 0.25,
         },
     )
 

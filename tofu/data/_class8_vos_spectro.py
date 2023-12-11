@@ -3,7 +3,6 @@
 
 import datetime as dtm      # DB
 import numpy as np
-import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
 from matplotlib.path import Path
 import matplotlib.pyplot as plt       # DB
@@ -513,8 +512,8 @@ def _vos(
             ipts += 1
 
     # multiply by dlamb
-    ph_count *= dlamb
-    # ph_approx *= dlamb    # DB
+    # Now done during synthetic signal compute (binning vs interp)
+    # ph_count *= dlamb
 
     if timing:
         t22 = dtm.datetime.now()     # DB
@@ -569,9 +568,9 @@ def _vos(
     lresh = [1, 1, lamb.size]
     if is2d:
         lresh.insert(0, 1)
-    phtot = np.sum(ph_count, axis=(-1, -2))
-    lamb0 = np.sum(ph_count * lamb.reshape(lresh), axis=(-1, -2)) / phtot
-    dlamb0 = dlamb * phtot / np.max(np.sum(ph_count, axis=-2), axis=-1)
+    # phtot = np.sum(ph_count, axis=(-1, -2))
+    # lamb0 = np.sum(ph_count * lamb.reshape(lresh), axis=(-1, -2)) / phtot
+    # dlamb0 = dlamb * phtot / np.max(np.sum(ph_count, axis=-2), axis=-1)
 
     # ------ DEBUG --------
     if debug is True:
@@ -589,25 +588,25 @@ def _vos(
     # prepare output
 
     # ref
-    knpts = f'{key_cam}_vos_npts'
-    knlamb = f'{key_cam}_vos_nlamb'
+    knpts = f'{key_diag}_{key_cam}_vos_npts'
+    knlamb = f'{key_diag}_{key_cam}_vos_nlamb'
 
     # data
-    klamb = f'{key_cam}_vos_lamb'
-    kir = f'{key_cam}_vos_ir'
-    kiz = f'{key_cam}_vos_iz'
-    kph = f'{key_cam}_vos_ph'
-    kcos = f'{key_cam}_vos_cos'
-    knc = f"{key_cam}_vos_nc"
-    kphimin = f'{key_cam}_vos_phimin'
-    kphimax = f'{key_cam}_vos_phimax'
+    klamb = f'{key_diag}_{key_cam}_vos_lamb'
+    kir = f'{key_diag}_{key_cam}_vos_ir'
+    kiz = f'{key_diag}_{key_cam}_vos_iz'
+    kph = f'{key_diag}_{key_cam}_vos_ph'
+    kcos = f'{key_diag}_{key_cam}_vos_cos'
+    knc = f"{key_diag}_{key_cam}_vos_nc"
+    kphimin = f'{key_diag}_{key_cam}_vos_phimin'
+    kphimax = f'{key_diag}_{key_cam}_vos_phimax'
 
     # optional data
-    kdV = f'{key_cam}_vos_dV'
-    ketl = f"{key_cam}_vos_etendl"
-    klamb0 = f'{key_cam}_vos_lamb0'
-    kdlamb = f'{key_cam}_vos_dlamb'
-    kphimean = f'{key_cam}_vos_phimean'
+    kdV = f'{key_diag}_{key_cam}_vos_dV'
+    ketl = f"{key_diag}_{key_cam}_vos_etendl"
+    # klamb0 = f'{key_cam}_vos_lamb0'
+    # kdlamb = f'{key_cam}_vos_dlamb'
+    kphimean = f'{key_diag}_{key_cam}_vos_phimean'
 
     refcam = coll.dobj['camera'][key_cam]['dgeom']['ref']
     ref = tuple(list(refcam) + [knpts])
@@ -633,6 +632,8 @@ def _vos(
     dout = {
         'pcross0': None,
         'pcross1': None,
+        'phor0': None,
+        'phor1': None,
         # lamb
         'lamb': {
             'key': klamb,
@@ -643,14 +644,14 @@ def _vos(
         },
 
         # coordinates
-        'indr': {
+        'indr_cross': {
             'key': kir,
             'data': indr,
             'ref': (knpts,),
             'units': None,
             'dim': 'index',
         },
-        'indz': {
+        'indz_cross': {
             'key': kiz,
             'data': indz,
             'ref': (knpts,),
@@ -677,8 +678,8 @@ def _vos(
             'key': kph,
             'data': ph_count,
             'ref': refph,
-            'units': None,
-            'dim': 'sr.m3.m',
+            'units': 'sr.m3',
+            'dim': 'transfert',
         },
         'phi_min': {
             'key': kphimin,
@@ -710,6 +711,7 @@ def _vos(
             'units': 'm3',
             'dim': 'volume',
         },
+
         # debug
         'etendlen': {
             'key': ketl,
@@ -762,7 +764,6 @@ def _plot_debug(
     ck01 = np.r_[np.min(cbin1), np.max(cbin1), np.nan]
     ck10 = np.r_[np.min(cbin0), np.max(cbin0), np.nan]
 
-    import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(14, 8))
     if dx0 is None:
         ldata = [

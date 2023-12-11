@@ -2,7 +2,7 @@
 
 
 import os
-import datastock as ds
+import bsplines2d as bs2
 
 
 __all__ = ['load']
@@ -33,7 +33,7 @@ def load(
 
     from ._class10_Inversion import Inversion as Collection
 
-    coll = ds.load(
+    coll = bs2.load(
         pfe=pfe,
         cls=Collection,
         allow_pickle=allow_pickle,

@@ -384,12 +384,12 @@ def _prepare_ph(
     x0u = dsamp['x0']['data']
     x1u = dsamp['x1']['data']
 
-    iru = np.unique(dvos['indr']['data'])
+    iru = np.unique(dvos['indr_cross']['data'])
     phi_env = np.full((iru.size, 2), np.nan)
     phi_mean = np.full((iru.size,), np.nan)
     phi_minmax = np.full((iru.size, 2), np.nan)
     for ii, i0 in enumerate(iru):
-        ind = dvos['indr']['data'] == i0
+        ind = dvos['indr_cross']['data'] == i0
         phi_env[ii, 0] = np.nanmin(dvos['phi_min']['data'][..., ind])
         phi_env[ii, 1] = np.nanmax(dvos['phi_max']['data'][..., ind])
 
@@ -452,20 +452,22 @@ def _prepare_ph(
     lamb_cam = np.full(shape_cam, np.nan)
     dlamb_cam = np.full(shape_cam, np.nan)
 
-    indr = dvos['indr']['data']
-    indz = dvos['indz']['data']
+    indr = dvos['indr_cross']['data']
+    indz = dvos['indz_cross']['data']
     npts, nlamb = dvos['ph']['data'].shape[-2:]
 
+    # multiply by dlamb
+    ph0 = dvos['ph']['data'] * np.mean(np.diff(dvos['lamb']['data']))
     if is2d:
         nc = dvos['ncounts']['data'].reshape((-1, npts))
-        ph = dvos['ph']['data'].reshape((-1, npts, nlamb))
+        ph = ph0.reshape((-1, npts, nlamb))
         coss = dvos['cos']['data'].reshape((-1, npts))
         lambc = dvos['lamb']['data'][None, None, None, :]
         indch = indch[0] * shape_cam[1] + indch[1]
 
     else:
         nc = dvos['ncounts']['data']
-        ph = dvos['ph']['data']
+        ph = ph0
         coss = dvos['cos']['data']
         lambc = dvos['lamb']['data'][None, None, :]
 
@@ -478,7 +480,7 @@ def _prepare_ph(
     for ni in shape_cam[::-1]:
         lambf = np.repeat(lambf[None, :], ni, axis=0)
 
-    ind0 = dvos['ph']['data'] == 0
+    ind0 = ph0 == 0
     lambf[ind0] = np.inf
     lambmin = np.min(lambf, axis=-1)
     lambf[ind0] = -np.inf
@@ -545,10 +547,10 @@ def _prepare_ph(
     iok = nc_cam > 0.
     nc_cam[~iok] = np.nan
 
-    ph_cam[iok] = np.nansum(np.nansum(dvos['ph']['data'], axis=-1), axis=-1)[iok]
+    ph_cam[iok] = np.nansum(np.nansum(ph0, axis=-1), axis=-1)[iok]
 
     lamb_cam[iok] = (
-        np.nansum(np.nansum(dvos['ph']['data'] * lambc, axis=-1), axis=-1)[iok]
+        np.nansum(np.nansum(ph0 * lambc, axis=-1), axis=-1)[iok]
         / ph_cam[iok]
     )
 
@@ -566,7 +568,7 @@ def _prepare_ph(
     # ----------------------
     # prepare per wavelength
 
-    ph_cam_lamb = np.nansum(dvos['ph']['data'][..., indlamb], axis=-1)
+    ph_cam_lamb = np.nansum(ph0[..., indlamb], axis=-1)
     ph_tot_lamb[indr, indz] = np.nansum(ph[..., indlamb], axis=0)
     ph_toti_lamb[indr, indz] = np.nansum(phi[..., indlamb], axis=0)
 
