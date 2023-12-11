@@ -10,5 +10,5 @@ svg.path
 Polygon3
 
 ######## Requirements with Version Specifier ########
-bsplines2d>=0.0.9
+bsplines2d>=0.0.11
 Cython>=0.26
