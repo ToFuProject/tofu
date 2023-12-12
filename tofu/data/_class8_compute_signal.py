@@ -867,6 +867,19 @@ def _compute_los(
                 dt['\tintegrate on los'] += (t06-t05).total_seconds()
 
         # --------------
+        # safety check
+
+        if shape is None:
+            msg = (
+                "Looks like no single LOS can see non-zero emissivity!\n"
+                f"\t- key_los = {key_los}\n"
+                f"\t- ni = {ni}\n"
+                f"\t- R = {R}\n"
+            )
+            print(coll.show('rays'))
+            raise Exception(msg)
+
+        # --------------
         # post-treatment
 
         # brightness
