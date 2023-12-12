@@ -268,7 +268,7 @@ class Diagnostic(Previous):
         c0 = (
             any([np.any(np.isfinite(v0['los_x'])) for v0 in dcompute.values()])
             and store
-            )
+        )
         if c0:
             _los_angles.compute_los_angles(
                 coll=self,
