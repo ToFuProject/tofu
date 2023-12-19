@@ -875,8 +875,9 @@ def _compute_los(
                 f"\t- key_los = {key_los}\n"
                 f"\t- ni = {ni}\n"
                 f"\t- R = {R}\n"
+                "\ncoll.show('rays'):\n"
+                + coll.show('rays', returnas=str, verb=False)
             )
-            print(coll.show('rays'))
             raise Exception(msg)
 
         # --------------
