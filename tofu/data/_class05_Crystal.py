@@ -10,6 +10,7 @@ from ._class04_Filter import Filter as Previous
 from . import _class3_check
 from . import _class5_check as _check
 from . import _class5_compute as _compute
+from . import _class05_legacy as _legacy
 from . import _class5_coordinates as _coordinates
 from . import _class5_reflections_pts2pt as _reflections_pts2pt
 from . import _class5_reflections_ptsvect as _reflections_ptsvect
@@ -112,6 +113,13 @@ class Crystal(Previous):
             coll=self,
             key=key,
         )
+
+    # --------------------
+    # Legacy utility
+    # ---------------------
+
+    def add_crystal_from_legacy(self, cryst=None, key=None):
+        return _legacy.add_crystal(self, cryst=cryst, key=key)
 
     # --------------------
     # Utilities
