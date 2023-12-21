@@ -118,8 +118,17 @@ class Crystal(Previous):
     # Legacy utility
     # ---------------------
 
-    def add_crystal_from_legacy(self, cryst=None, key=None):
-        return _legacy.add_crystal(self, cryst=cryst, key=key)
+    def add_crystal_from_legacy(
+        self,
+        cryst=None,
+        key=None,
+    ):
+        """ Add a crystal from a tf.geom.CrystalBragg instance (or pfe) """
+        return _legacy.add_crystal(
+            self,
+            cryst=cryst,
+            key=key,
+        )
 
     # --------------------
     # Utilities
