@@ -39,7 +39,7 @@ def add_camera(
     # extract geometry
     # --------------------
 
-    dgeom = _extract_dgeom(cam)
+    dgeom, typ = _extract_dgeom(cam)
 
     # --------------------
     # extract material
@@ -51,12 +51,24 @@ def add_camera(
     # add
     # --------------------
 
-    coll.add_camera_2d(
-        key=key,
-        dgeom=dgeom,
-        dmat=dmat,
-        color=cam._dmisc['color'],
-    )
+    if typ == '1d':
+        coll.add_camera_1d(
+            key=key,
+            dgeom=dgeom,
+            dmat=dmat,
+            color=None,
+        )
+
+    elif typ == '2d':
+        coll.add_camera_2d(
+            key=key,
+            dgeom=dgeom,
+            dmat=dmat,
+            color=None,
+        )
+
+    else:
+        raise NotImplementedError()
 
     return
 
@@ -95,29 +107,35 @@ def _check(
     # -------------------
 
     # load from file
-    if isinstance(cryst, str):
+    if isinstance(cam, str):
         error = False
-        if not (os.path.isfile(cryst) and cryst.endswith('.npz')):
+        if not (os.path.isfile(cam) and cam.endswith('.npz')):
             error = 'not a valid file name'
         else:
             try:
-                cryst = tf.load(cryst)
+                cam = tf.load(cam)
             except Exception as err:
-                error = f'tf.load() failed to load {cryst}\n{str(err)}'
+                try:
+                    cam = dict(np.load(cam, allow_pickle=True))
+                except Exception as err:
+                    error = f'tf.load() failed to load {cam}\n{str(err)}'
 
         # raise error
         if error is not False:
             msg = (
+                f"Arg cam must be a valid .npz file, loadable!\n{error}"
             )
             raise Exception(msg)
 
     # check class
-    if not cryst.__class__.__name__ == 'CrystalBragg':
+    if isinstance(cam, dict):
+        pass
+    elif 'Camera' not in cam.__class__.__name__:
         msg = (
-            "Arg cryst must be a legacy tf.geom.CrystalBragg instance!\n"
+            "Arg cam must be a legacy tf.geom.CrystalBragg instance!\n"
             "Provided:\n"
-            "\t- class: {type(cryst)}\n"
-            "\t- value: {cryst}\n"
+            f"\t- class: {type(cam)}\n"
+            f"\t- value: {cam}\n"
         )
         raise Exception(msg)
 
@@ -126,17 +144,20 @@ def _check(
     # -------------------
 
     # default value
-    kdef = cryst.Id.Name
+    if isinstance(cam, dict):
+        kdef = "cam"
+    else:
+        kdef = cam.Id.Name
 
     # check
-    lout = list(coll.dobj.get('crystal', {}).keys())
+    lout = list(coll.dobj.get('camera', {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
         default=kdef,
         excluded=lout,
     )
 
-    return coll, cryst, key
+    return coll, cam, key
 
 
 # ###############################################################
@@ -145,42 +166,41 @@ def _check(
 # ###############################################################
 
 
-def _extract_dgeom(cryst):
+def _extract_dgeom(cam):
 
-    # ----------------------------
-    # intialize with unit vectors
 
-    dgeom = {
-        'nin': np.copy(cryst._dgeom['nin']),
-        'e0': np.copy(-cryst._dgeom['e1']),
-        'e1': np.copy(cryst._dgeom['e2']),
-    }
+    if isinstance(cam, dict):
 
-    # ----------
-    # get center
+        typ = cam.get('type', '2d')
 
-    dgeom['cent'] = np.copy(cryst._dgeom['summit'])
+        x0 = cam['xi']
+        x1 = cam['xj']
 
-    # ---------------
-    # get extenthalf
+        dgeom = {
+            'cent': np.copy(cam['cent']),
+            'cents_x0': np.copy(x0),
+            'cents_x1': np.copy(x1),
+            'nin': np.copy(cam['nout']),
+            'e0': np.copy(cam['ei']),
+            'e1': np.copy(cam['ej']),
+        }
 
-    dgeom['extenthalf'] = np.copy(cryst._dgeom['extenthalf'])
+        # outline of individual pixels
+        if cam.get('outline_x0') is None:
+            dx0 = 0.5 * np.mean(np.diff(x0))
+            out0 = dx0 * np.r_[-1, 1, 1, -1]
+            dx1 = 0.5 * np.mean(np.diff(x1))
+            out1 = dx1 * np.r_[-1, -1, 1, 1]
+            dgeom['outline_x0'] = out0
+            dgeom['outline_x1'] = out1
+        else:
+            dgeom['outline_x0'] = np.copy(cam['outline_x0'])
+            dgeom['outline_x1'] = np.copy(cam['outline_x1'])
 
-    # -----------------------
-    # get radius of curvature
-
-    typ = cryst.dgeom['Type']
-    rc = float(cryst._dgeom['rcurve'])
-    if typ == 'sph':
-        dgeom['curve_r'] = np.r_[rc, rc]
     else:
-        msg = (
-            "Suspicious, legacy tofu only handles spherical CrystalBragg!\n"
-            f"Provided:\n\t- 'Type': {typ}"
-        )
-        raise NotImplementedError(msg)
+        raise NotImplementedError()
 
-    return dgeom
+    return dgeom, typ
 
 
 # ###############################################################
@@ -189,36 +209,11 @@ def _extract_dgeom(cryst):
 # ###############################################################
 
 
-def _extract_dmat(cryst):
+def _extract_dmat(cam):
 
     # ------------
     # dmat
 
-    dmat = {
-        'material': str(cryst._dmat['formula']),
-        'name': None,
-        'symbol': None,
-        'mesh': {
-            'type': cryst._dmat['symmetry'],
-        },
-        'target': {
-            'lamb': float(cryst._dbragg['lambref']),
-            'bragg': float(cryst._dbragg['braggref']),
-        },
-        'd_hkl': float(cryst._dmat['d']),
-        'alpha': float(cryst._dmat['alpha']),
-        'beta': float(cryst._dmat['beta']),
-        'density': float(cryst._dmat['density']),
-        'miller': np.r_[cryst._dmat['cut'][:2], cryst._dmat['cut'][-1]],
-    }
-
-    # -------------
-    # rocking curve
-
-    if cryst._dbragg.get('rockingcurve') is not None:
-        dmat['drock'] = {
-            'angle_rel': cryst._dbragg['rockingcurve']['dangle'],
-            'power_ratio': cryst._dbragg['rockingcurve']['value'],
-        }
+    dmat = {}
 
     return dmat
