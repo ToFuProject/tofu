@@ -108,6 +108,7 @@ def _check(
         # raise error
         if error is not False:
             msg = (
+                f"Arg cryst must be a valid .npz file, loadable!\n{error}"
             )
             raise Exception(msg)
 
@@ -116,8 +117,8 @@ def _check(
         msg = (
             "Arg cryst must be a legacy tf.geom.CrystalBragg instance!\n"
             "Provided:\n"
-            "\t- class: {type(cryst)}\n"
-            "\t- value: {cryst}\n"
+            f"\t- class: {type(cryst)}\n"
+            f"\t- value: {cryst}\n"
         )
         raise Exception(msg)
 
