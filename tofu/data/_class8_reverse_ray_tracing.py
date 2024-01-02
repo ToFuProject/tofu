@@ -52,6 +52,8 @@ def _from_pts(
     plot_rays=None,
     vmin=None,
     vmax=None,
+    aspect3d=None,
+    elements=None,
     # options
     dax=None,
     fs=None,
@@ -192,6 +194,8 @@ def _from_pts(
             plot_pixels=plot_pixels,
             vmin=vmin,
             vmax=vmax,
+            aspect3d=aspect3d,
+            elements=elements,
             # options
             dax=dax,
             fs=fs,
@@ -1395,12 +1399,29 @@ def _plot(
     plot_pixels=None,
     vmin=None,
     vmax=None,
+    aspect3d=None,
+    elements=None,
     # options
     dax=None,
     fs=None,
     dmargin=None,
     wintit=None,
 ):
+
+    # --------------
+    # check inputs
+
+    aspect3d = ds._generic_check._check_var(
+        aspect3d, 'aspect3d',
+        default='equal',
+        allowed=['auto', 'equal'],
+    )
+
+    elements = ds._generic_check._check_var(
+        elements, 'elements',
+        default='o',
+        types=str,
+    )
 
     # --------------
     # add ncounts to ddata
@@ -1432,7 +1453,7 @@ def _plot(
         key=key,
         key_cam=key_cam,
         optics=None,
-        elements='o',
+        elements=elements,
     )
 
     # --------------
@@ -1649,7 +1670,17 @@ def _plot(
             ax = dax[kax]['handle']
             plot_config.plot(lax=ax, proj=kax, dLeg=False)
 
+    # --------------
+    # aspect3d
+
+    if aspect3d == 'equal' and dax.get('3d') is not None:
+        ds.set_aspect3d(ax=dax['3d']['handle'])
+
+    # --------------
+    # clean up
+
     coll.remove_data(ktemp)
+
     return
 
 

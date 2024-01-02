@@ -979,10 +979,13 @@ class Diagnostic(Previous):
         # options
         append=None,
         plot=None,
+        dax=None,
         plot_pixels=None,
         plot_config=None,
         vmin=None,
         vmax=None,
+        aspect3d=None,
+        elements=None,
     ):
         """ Get rays from plasma points to camera for a spectrometer diag """
 
@@ -1009,10 +1012,13 @@ class Diagnostic(Previous):
             # options
             append=append,
             plot=plot,
+            dax=dax,
             plot_pixels=plot_pixels,
             plot_config=plot_config,
             vmin=vmin,
             vmax=vmax,
+            aspect3d=aspect3d,
+            elements=elements,
         )
 
     # ---------------------
