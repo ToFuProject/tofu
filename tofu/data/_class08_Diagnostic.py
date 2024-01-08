@@ -969,13 +969,14 @@ class Diagnostic(Previous):
         ptsx=None,
         ptsy=None,
         ptsz=None,
-        # res
-        res_rock_curve=None,
+        # res rays
         n0=None,
         n1=None,
         # optional lamb
         lamb0=None,
         res_lamb=None,
+        rocking_curve=None,
+        res_rock_curve=None,
         # options
         append=None,
         plot=None,
@@ -986,6 +987,7 @@ class Diagnostic(Previous):
         vmax=None,
         aspect3d=None,
         elements=None,
+        colorbar=None,
     ):
         """ Get rays from plasma points to camera for a spectrometer diag """
 
@@ -1002,13 +1004,14 @@ class Diagnostic(Previous):
             ptsx=ptsx,
             ptsy=ptsy,
             ptsz=ptsz,
-            # res
-            res_rock_curve=res_rock_curve,
+            # res rays
             n0=n0,
             n1=n1,
             # optional lamb
             lamb0=lamb0,
             res_lamb=res_lamb,
+            rocking_curve=rocking_curve,
+            res_rock_curve=res_rock_curve,
             # options
             append=append,
             plot=plot,
@@ -1019,6 +1022,7 @@ class Diagnostic(Previous):
             vmax=vmax,
             aspect3d=aspect3d,
             elements=elements,
+            colorbar=colorbar,
         )
 
     # ---------------------
