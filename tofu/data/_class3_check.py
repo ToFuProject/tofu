@@ -81,17 +81,17 @@ def _add_surface3d(
     # create dict
 
     # keys
-    knpts = f'{key}-npts'
+    knpts = f'{key}_npts'
     if gtype != '3d':
-        kp0 = f'{key}-x0'
-        kp1 = f'{key}-x1'
+        kp0 = f'{key}_x0'
+        kp1 = f'{key}_x1'
         outline = (kp0, kp1)
         poly = None
         npts = outline_x0.size
     else:
-        kpx = f'{key}-x'
-        kpy = f'{key}-y'
-        kpz = f'{key}-z'
+        kpx = f'{key}_x'
+        kpy = f'{key}_y'
+        kpz = f'{key}_z'
         poly = (kpx, kpy, kpz)
         outline = None
         npts = poly_x.size
