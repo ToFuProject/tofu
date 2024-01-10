@@ -371,8 +371,8 @@ def _check(
             elif lamb0.shape != ptsx.shape:
                 msg = (
                     "Arg lamb0 must be the same shape as coordinates\n"
-                    "\t- ptsx.shape = {ptsx.shape}\n"
-                    "\t- lamb.shape = {lamb.shape}\n"
+                    f"\t- ptsx.shape = {ptsx.shape}\n"
+                    f"\t- lamb0.shape = {lamb0.shape}\n"
                 )
                 raise Exception(msg)
 
