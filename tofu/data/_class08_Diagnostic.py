@@ -407,6 +407,7 @@ class Diagnostic(Previous):
         # sampling
         res_RZ=None,
         res_phi=None,
+        lamb=None,
         res_lamb=None,
         res_rock_curve=None,
         n0=None,
@@ -453,6 +454,7 @@ class Diagnostic(Previous):
             # etendue
             res_RZ=res_RZ,
             res_phi=res_phi,
+            lamb=lamb,
             res_lamb=res_lamb,
             res_rock_curve=res_rock_curve,
             n0=n0,
