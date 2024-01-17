@@ -996,7 +996,7 @@ def CrystalBragg_plot_line_tracing_on_det(
     if color is None:
         color = 'k'
     if fs is None:
-        fs = (8, 8)
+        fs = 15
     if dmargin is None:
         dmargin = {
             'top': 0.950,
@@ -1032,15 +1032,16 @@ def CrystalBragg_plot_line_tracing_on_det(
     # Plot
 
     if ax is None:
-        fig = plt.figure(figsize=fs)
+        fig = plt.figure()
         gs = gridspec.GridSpec(1, 1, **dmargin)
         ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
         if wintit is not False:
             fig.canvas.manager.set_window_title(wintit)
         if tit is not False:
             fig.suptitle(tit, size=14, weight='bold')
-        ax.set_xlabel(r'Pixel coordinate $x_{i}$ [m]', fontsize=15)
-        ax.set_ylabel(r'Pixel coordinate $x_{j}$ [m]', fontsize=15)
+        ax.set_xlabel(r'Pixel coordinate $x_{i}$ [m]', fontsize=fs)
+        ax.set_ylabel(r'Pixel coordinate $x_{j}$ [m]', fontsize=fs)
+        ax.tick_params(labelsize=fs)
 
         ax.set_xlim(
             det['outline'][0, :].min() - 0.01,
@@ -1191,7 +1192,7 @@ def CrystalBragg_plot_angular_shift_on_det_tracing(
     # Plot
     # ------------
 
-    fig = plt.figure(figsize=fs)
+    fig = plt.figure()
     gs = gridspec.GridSpec(1, 3)  # , **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
     ax0.set_title('Pixel offset [m]', fontsize=20)
@@ -1313,7 +1314,7 @@ def CrystalBragg_plot_johannerror(
 
     # Plot
     # ------------
-    fig = plt.figure(figsize=fs)
+    fig = plt.figure()
     gs = gridspec.GridSpec(1, 3, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal')     # adjustable='datalim')
     ax1 = fig.add_subplot(
