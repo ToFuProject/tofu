@@ -1981,6 +1981,7 @@ class CrystalBragg(utils.ToFuObject):
         temp_limits=None,
         # -----------------------
         # Plot
+        plot_as_wavel=None,
         plot_rcs=None,
         plot_line_tracing=None,
         plot_perfect=None,
@@ -2082,17 +2083,18 @@ class CrystalBragg(utils.ToFuObject):
 
         ldir = ['e1', 'e2']
         lwhich = ['both', 'left', 'right', 'up', 'down']
+        lself = []
         if split:
             if direction == ldir[0] and which == lwhich[0]:
-                msg = "Choose only 1 halve please !"
-                raise Exception(msg)
-                # lself = [self1, self2]
+                # msg = "Choose only 1 halve please !"
+                # raise Exception(msg)
+                lself = [self1, self2]
 
             elif direction == ldir[0] and which == lwhich[1]:
-                self = self1
+                lself.append(self1)
 
             elif direction == ldir[0] and which == lwhich[2]:
-                self = self2
+                lself.append(self2)
 
             elif direction == ldir[0] and which == lwhich[3]:
                 msg = "Choose between left or right along e1 direction !"
@@ -2121,7 +2123,7 @@ class CrystalBragg(utils.ToFuObject):
                 msg = "Choose between up or down along e2 direction !"
                 raise Exception(msg)
         else:
-            self = self
+            lself.append(self)
 
         # --------------------
         # other generic checks
@@ -2266,6 +2268,9 @@ class CrystalBragg(utils.ToFuObject):
         if plot_perfect is None:
             plot_perfect = True
 
+        if plot_as_wavel is None:
+            plot_as_wavel = False
+
         if merge_rc_data is None:
             merge_rc_data = False
 
@@ -2288,90 +2293,120 @@ class CrystalBragg(utils.ToFuObject):
         if save is None:
             save = False
 
+        if fs is None:
+            fs = 15
+
         # -----------------------
         # Check from args inputs the values of amplitude miscut angle alpha and
         # inter-reticular spacing
 
-        self.update_miscut(alpha=0., beta=0.)
-        if miscut:
-            self.update_miscut(alpha=alpha0, beta=0.)
+        for ii in range(len(lself)):
+            lself[ii].update_miscut(alpha=0., beta=0.)
+            if miscut:
+                lself[ii].update_miscut(alpha=alpha0, beta=0.)
 
-        dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
-            crystal=crystal,
-            din=din,
-            lamb=self.dbragg['lambref']*1e10,
-            na=na,
-            nn=nn,
-            therm_exp=therm_exp,
-            temp_limits=temp_limits,
-            plot_therm_exp=False,
-        )
-        T0 = dout['Temperature of reference (°C)']
-        TD = dout['Temperature variations (°C)']
-        Volume = dout['Volume (1/m3)']
-        d_atom = dout['Inter-reticular spacing (A)']
-        sol = dout['sinus over lambda']
-        theta = dout['theta_Bragg (rad)']
-        theta_deg = dout['theta_Bragg (deg)']
+            dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
+                crystal=crystal,
+                din=din,
+                lamb=lself[ii].dbragg['lambref']*1e10,
+                na=na,
+                nn=nn,
+                therm_exp=therm_exp,
+                temp_limits=temp_limits,
+                plot_therm_exp=False,
+            )
+            T0 = dout['Temperature of reference (°C)']
+            TD = dout['Temperature variations (°C)']
+            Volume = dout['Volume (1/m3)']
+            d_atom = dout['Inter-reticular spacing (A)']
+            sol = dout['sinus over lambda']
+            theta = dout['theta_Bragg (rad)']
+            theta_deg = dout['theta_Bragg (deg)']
 
-        def find_nearest(array, value):
-            array = np.asarray(array)
-            idx = (np.abs(array - value)).argmin()
-            return idx
+            def find_nearest(array, value):
+                array = np.asarray(array)
+                idx = (np.abs(array - value)).argmin()
+                return idx
 
-        id_temp0 = find_nearest(TD, temp0)
-        self.dmat['d'] = d_atom[id_temp0]*1e-10
+            id_temp0 = find_nearest(TD, temp0)
+            lself[ii].dmat['d'] = d_atom[id_temp0]*1e-10
 
         # -----------------------
         # Get local basis
 
-        nout, e1, e2, miscut = self.get_unit_vectors(
-            miscut=miscut,
-        )
-        nin = -nout
+        lnout, le1, le2, lnin, lmiscut = [], [], [], [], []
+        for ii in range(len(lself)):
+            (
+                nout, e1, e2, miscut
+            ) = lself[ii].get_unit_vectors(
+                miscut=miscut,
+            )
+            nin = -nout
+            lnout.append(nout)
+            le1.append(e1)
+            le2.append(e2)
+            lmiscut.append(miscut)
+            lnin.append(nin)
 
         # -----------------------
         # Compute lamb / phi
 
-        _, phi = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-            xi=det['outline'][0, :],
-            xj=det['outline'][1, :],
-            det=det,
-            dtheta=0,
-            psi=0,
-            miscut=miscut,
-            n=n,
-            grid=True,
-            return_lamb=False,
-        )
-        phimin, phimax = np.nanmin(phi), np.nanmax(phi)
-        phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
+        lphi = []
+        lphimin, lphimax = [], []
+        for ii in range(len(lself)):
+            _, phi = lself[ii].get_lambbraggphi_from_ptsxixj_dthetapsi(
+                xi=det['outline'][0, :],
+                xj=det['outline'][1, :],
+                det=det,
+                dtheta=0,
+                psi=0,
+                miscut=miscut,
+                n=n,
+                grid=True,
+                return_lamb=False,
+            )
+            phimin, phimax = np.nanmin(phi), np.nanmax(phi)
+            phimin = phimin - (phimax - phimin)/10
+            phimax = phimax + (phimax - phimin)/10
+            lphi.append(phi)
+            lphimin.append(phimin)
+            lphimax.append(phimax)
 
         # -----------------------
         # Get reference ray-tracing
 
-        bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
-        if nphi is None:
-            nphi = 100
-        phi = np.linspace(phimin, phimax, nphi)
-
-        xi = np.full((nlamb, nphi), np.nan)
-        xj = np.full((nlamb, nphi), np.nan)
-        for ll in range(nlamb):
-            xi[ll, :], xj[ll, :] = self.calc_xixj_from_braggphi(
-                bragg=np.full(phi.shape, bragg[ll]),
-                phi=phi,
-                dtheta=0.,
-                psi=0.,
-                n=n,
-                det=det,
-                miscut=miscut,
-                strict=strict,
-                plot=False,
+        lxi, lxj = [], []
+        lphi2 = []
+        for ii in range(len(lself)):
+            bragg = lself[ii]._checkformat_bragglamb(lamb=lamb, n=n)
+            if nphi is None:
+                nphi = 1467  # 100
+            phi = np.linspace(
+                lphimin[ii], lphimax[ii], nphi
             )
+            xi = np.full((nlamb, nphi), np.nan)
+            xj = np.full((nlamb, nphi), np.nan)
+            for ll in range(nlamb):
+                (
+                    xi[ll, :], xj[ll, :]
+                ) = lself[ii].calc_xixj_from_braggphi(
+                    bragg=np.full(phi.shape, bragg[ll]),
+                    phi=phi,
+                    dtheta=0.,
+                    psi=0.,
+                    n=n,
+                    det=det,
+                    miscut=miscut,
+                    strict=strict,
+                    plot=False,
+                )
+            lphi2.append(phi)
+            lxi.append(xi)
+            lxj.append(xj)
 
         # -----------------------
         # Get johann-error raytracing (multiple positions on crystal)
+        # TBD w/ both crystals
 
         xi_er, xj_er = None, None
         if johann and not rocking:
@@ -2414,91 +2449,17 @@ class CrystalBragg(utils.ToFuObject):
         # value at this glancing angle.
 
         if merge_rc_data:
-            # First compute_rockingcurve() for output arrays sizing
-            dout = _rockingcurve.compute_rockingcurve(
-                crystal=crystal,
-                din=din,
-                lamb=lamb[0]*1e10,
-                miscut=miscut,
-                therm_exp=therm_exp,
-                temp_limits=temp_limits,
-                plot_therm_exp=plot_rcs,
-                alpha_limits=alpha_limits,
-                nn=None,
-                plot_asf=False,
-                plot_power_ratio=plot_rcs,
-                plot_asymmetry=False,
-                plot_cmaps=False,
-                returnas=dict,
-            )
+            lxi_rc, lxj_rc = [], []
+            lxi_atprmax = []
+            lbragg_atprmax = []
+            llamb_atprmax = []
 
-            TD = np.zeros((na,), dtype=float)
-            if therm_exp:
-                TD = dout['Temperature changes (°C)']
-            nT = TD.size
-            angles = np.zeros((na,), dtype=float)
-            if miscut:
-                angles = dout['Miscut angles (deg)']
-            nangles = angles.size
-            power_ratio = np.full((
-                nlamb,
-                dout['Power ratio'].shape[0],
-                dout['Power ratio'].shape[1],
-                dout['Power ratio'].shape[2],
-                dout['Power ratio'].shape[3],
-            ), np.nan)
-            power_ratio[ll, ...] = dout['Power ratio']
-
-            id_alpha0 = find_nearest(angles, alpha0)
-            id_temp0 = find_nearest(TD, temp0)
-
-            if miscut and therm_exp:
-                dth = dout['Glancing angles'][0, id_temp0, id_alpha0, :]
-                ndth = dth.size
-            elif not miscut and not therm_exp:
-                dth = dout['Glancing angles'][0, 0, 0, :]
-                ndth = dth.size
-            elif miscut and not therm_exp:
-                dth = dout['Glancing angles'][0, 0, id_alpha0, :]
-                ndth = dth.size
-            elif not miscut and therm_exp:
-                dth = dout['Glancing angles'][0, id_temp0, 0, :]
-                ndth = dth.size
-
-            # For each wavelength, get results dictionnary of the associated
-            # diffraction pattern
-            power_ratio = np.full((
-                nlamb,
-                dout['Power ratio'].shape[0],
-                dout['Power ratio'].shape[1],
-                dout['Power ratio'].shape[2],
-                dout['Power ratio'].shape[3],
-            ), np.nan)
-            xi_rc = np.full((nlamb, ndth, nphi), np.nan)
-            xj_rc = xi_rc.copy()
-            xi_atprmax = np.full((nlamb, 1), np.nan)
-            xj_atprmax = xi_atprmax.copy()
-            bragg_atprmax = xi_atprmax.copy()
-            lamb_atprmax = xi_atprmax.copy()
-
-            pix_horiz = np.linspace(
-                det['outline'][0, 0],
-                det['outline'][0, 1],
-                nxi
-            )
-            pix_verti = np.linspace(
-                det['outline'][1, 1],
-                det['outline'][1, 2],
-                nxj
-            )
-            # data = np.full((1, pix_verti.size, pix_horiz.size), 0)
-            data = np.empty([1, pix_verti.size, pix_horiz.size])
-
-            for ll in range(nlamb):
+            for ii in range(len(lself)):
+                # First compute_rockingcurve() for output arrays sizing
                 dout = _rockingcurve.compute_rockingcurve(
                     crystal=crystal,
                     din=din,
-                    lamb=lamb[ll]*1e10,
+                    lamb=lamb[0]*1e10,
                     miscut=miscut,
                     therm_exp=therm_exp,
                     temp_limits=temp_limits,
@@ -2509,8 +2470,10 @@ class CrystalBragg(utils.ToFuObject):
                     plot_power_ratio=plot_rcs,
                     plot_asymmetry=False,
                     plot_cmaps=False,
+                    plot_as_wavel=plot_as_wavel,
                     returnas=dict,
                 )
+
                 TD = np.zeros((na,), dtype=float)
                 if therm_exp:
                     TD = dout['Temperature changes (°C)']
@@ -2519,6 +2482,13 @@ class CrystalBragg(utils.ToFuObject):
                 if miscut:
                     angles = dout['Miscut angles (deg)']
                 nangles = angles.size
+                power_ratio = np.full((
+                    nlamb,
+                    dout['Power ratio'].shape[0],
+                    dout['Power ratio'].shape[1],
+                    dout['Power ratio'].shape[2],
+                    dout['Power ratio'].shape[3],
+                ), np.nan)
                 power_ratio[ll, ...] = dout['Power ratio']
 
                 id_alpha0 = find_nearest(angles, alpha0)
@@ -2527,91 +2497,166 @@ class CrystalBragg(utils.ToFuObject):
                 if miscut and therm_exp:
                     dth = dout['Glancing angles'][0, id_temp0, id_alpha0, :]
                     ndth = dth.size
-                    ind_pr_max = np.where(
-                        power_ratio[ll, 0, id_temp0, id_alpha0] == np.max(
-                            power_ratio[ll, 0, id_temp0, id_alpha0]
-                        )
-                    )
-                    dth_atprmax = dth[ind_pr_max]
                 elif not miscut and not therm_exp:
                     dth = dout['Glancing angles'][0, 0, 0, :]
                     ndth = dth.size
-                    ind_pr_max = np.where(
-                        power_ratio[ll, 0, 0, 0] == np.max(
-                            power_ratio[ll, 0, 0, 0]
-                        )
-                    )
-                    dth_atprmax = dth[ind_pr_max]
                 elif miscut and not therm_exp:
                     dth = dout['Glancing angles'][0, 0, id_alpha0, :]
                     ndth = dth.size
-                    ind_pr_max = np.where(
-                        power_ratio[ll, 0, 0, id_alpha0] == np.max(
-                            power_ratio[ll, 0, 0, id_alpha0]
-                        )
-                    )
-                    dth_atprmax = dth[ind_pr_max]
                 elif not miscut and therm_exp:
                     dth = dout['Glancing angles'][0, id_temp0, 0, :]
                     ndth = dth.size
-                    ind_pr_max = np.where(
-                        power_ratio[ll, 0, id_temp0, 0] == np.max(
-                            power_ratio[ll, 0, id_temp0, 0]
-                        )
-                    )
-                    dth_atprmax = dth[ind_pr_max]
 
-                # Compute wavelength arcs for each glancing angle to obtain
-                # the shadow of the diffraction pattern on the detector
-                for mm in range(ndth):
-                    (
-                        xi_rc[ll, mm, :], xj_rc[ll, mm, :],
-                    ) = self.calc_xixj_from_braggphi(
-                        bragg=np.full(phi.shape, dth[mm]),
-                        phi=phi,
-                        dtheta=0.,
-                        psi=0.,
-                        n=n,
-                        det=det,
-                        miscut=miscut,
-                        strict=strict,
-                        plot=False,
-                    )
-                    if plot_simu_image:
-                        for nn in range(phi.size):
-                            if np.isfinite(xi_rc[ll, mm, nn]):
-                                idxi = np.nanargmin(
-                                    np.abs(
-                                        xi_rc[ll, mm, nn] - pix_horiz
-                                    )
-                                )
-                                idxj = np.nanargmin(
-                                    np.abs(
-                                        xj_rc[ll, mm, nn] - pix_verti
-                                    )
-                                )
-                                pr1 = power_ratio[ll, 0, 0, 0, mm]
-                                pr2 = power_ratio[ll, 1, 0, 0, mm]
-                                val = pr1 + pr2
-                                data[0, idxj, idxi] += val
+                # For each wavelength, get results dictionnary of the associated
+                # diffraction pattern
+                power_ratio = np.full((
+                    nlamb,
+                    dout['Power ratio'].shape[0],
+                    dout['Power ratio'].shape[1],
+                    dout['Power ratio'].shape[2],
+                    dout['Power ratio'].shape[3],
+                ), np.nan)
+                xi_rc = np.full((nlamb, ndth, nphi), np.nan)
+                xj_rc = xi_rc.copy()
+                xi_atprmax = np.full((nlamb, 1), np.nan)
+                xj_atprmax = xi_atprmax.copy()
+                bragg_atprmax = xi_atprmax.copy()
+                lamb_atprmax = xi_atprmax.copy()
 
-                xi_atprmax[ll] = xi_rc[ll, ind_pr_max, int(nphi/2)]
-                xj_atprmax[ll] = xj_rc[ll, ind_pr_max, int(nphi/2)]
-                # self.update_miscut(alpha=0., beta=0.)
-                # if therm_exp:
-                #     self.dmat['d'] = d_atom[nn]*1e-10
-                # else:
-                #     self.dmat['d'] = d_atom[0]*1e-10
-                (
-                    bragg_atprmax[ll], _, lamb_atprmax[ll],
-                ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                    xi=xi_atprmax[ll], xj=xj_atprmax[ll], det=det,
-                    dtheta=0, psi=0,
-                    miscut=miscut,
-                    n=n,
-                    grid=True,
-                    return_lamb=True,
+                pix_horiz = np.linspace(
+                    det['outline'][0, 0],
+                    det['outline'][0, 1],
+                    nxi
                 )
+                pix_verti = np.linspace(
+                    det['outline'][1, 1],
+                    det['outline'][1, 2],
+                    nxj
+                )
+                if ii == 0:
+                    data = np.empty([1, pix_verti.size, pix_horiz.size])
+                else:
+                    None
+
+                for ll in range(nlamb):
+                    dout = _rockingcurve.compute_rockingcurve(
+                        crystal=crystal,
+                        din=din,
+                        lamb=lamb[ll]*1e10,
+                        miscut=miscut,
+                        therm_exp=therm_exp,
+                        temp_limits=temp_limits,
+                        plot_therm_exp=plot_rcs,
+                        alpha_limits=alpha_limits,
+                        nn=None,
+                        plot_as_wavel=plot_as_wavel,
+                        plot_asf=False,
+                        plot_power_ratio=plot_rcs,
+                        plot_asymmetry=False,
+                        plot_cmaps=False,
+                        returnas=dict,
+                    )
+                    TD = np.zeros((na,), dtype=float)
+                    if therm_exp:
+                        TD = dout['Temperature changes (°C)']
+                    nT = TD.size
+                    angles = np.zeros((na,), dtype=float)
+                    if miscut:
+                        angles = dout['Miscut angles (deg)']
+                    nangles = angles.size
+                    power_ratio[ll, ...] = dout['Power ratio']
+
+                    id_alpha0 = find_nearest(angles, alpha0)
+                    id_temp0 = find_nearest(TD, temp0)
+
+                    if miscut and therm_exp:
+                        dth = dout['Glancing angles'][0, id_temp0, id_alpha0, :]
+                        ndth = dth.size
+                        ind_pr_max = np.where(
+                            power_ratio[ll, 0, id_temp0, id_alpha0] == np.max(
+                                power_ratio[ll, 0, id_temp0, id_alpha0]
+                            )
+                        )
+                        dth_atprmax = dth[ind_pr_max]
+                    elif not miscut and not therm_exp:
+                        dth = dout['Glancing angles'][0, 0, 0, :]
+                        ndth = dth.size
+                        ind_pr_max = np.where(
+                            power_ratio[ll, 0, 0, 0] == np.max(
+                                power_ratio[ll, 0, 0, 0]
+                            )
+                        )
+                        dth_atprmax = dth[ind_pr_max]
+                    elif miscut and not therm_exp:
+                        dth = dout['Glancing angles'][0, 0, id_alpha0, :]
+                        ndth = dth.size
+                        ind_pr_max = np.where(
+                            power_ratio[ll, 0, 0, id_alpha0] == np.max(
+                                power_ratio[ll, 0, 0, id_alpha0]
+                            )
+                        )
+                        dth_atprmax = dth[ind_pr_max]
+                    elif not miscut and therm_exp:
+                        dth = dout['Glancing angles'][0, id_temp0, 0, :]
+                        ndth = dth.size
+                        ind_pr_max = np.where(
+                            power_ratio[ll, 0, id_temp0, 0] == np.max(
+                                power_ratio[ll, 0, id_temp0, 0]
+                            )
+                        )
+                        dth_atprmax = dth[ind_pr_max]
+
+                    # Compute wavelength arcs for each glancing angle to obtain
+                    # the shadow of the diffraction pattern on the detector
+                    for mm in range(ndth):
+                        (
+                            xi_rc[ll, mm, :], xj_rc[ll, mm, :],
+                        ) = lself[ii].calc_xixj_from_braggphi(
+                            bragg=np.full(phi.shape, dth[mm]),
+                            phi=phi,
+                            dtheta=0.,
+                            psi=0.,
+                            n=n,
+                            det=det,
+                            miscut=miscut,
+                            strict=strict,
+                            plot=False,
+                        )
+                        if plot_simu_image:
+                            for nn in range(phi.size):
+                                if np.isfinite(xi_rc[ll, mm, nn]):
+                                    idxi = np.nanargmin(
+                                        np.abs(
+                                            xi_rc[ll, mm, nn] - pix_horiz
+                                        )
+                                    )
+                                    idxj = np.nanargmin(
+                                        np.abs(
+                                            xj_rc[ll, mm, nn] - pix_verti
+                                        )
+                                    )
+                                    pr1 = power_ratio[ll, 0, 0, 0, mm]
+                                    pr2 = power_ratio[ll, 1, 0, 0, mm]
+                                    val = (pr1 + pr2)
+                                    data[0, idxj, idxi] += val
+
+                    xi_atprmax[ll] = xi_rc[ll, ind_pr_max, int(nphi/2)]
+                    xj_atprmax[ll] = xj_rc[ll, ind_pr_max, int(nphi/2)]
+                    (
+                        bragg_atprmax[ll], _, lamb_atprmax[ll],
+                    ) = lself[ii].get_lambbraggphi_from_ptsxixj_dthetapsi(
+                        xi=xi_atprmax[ll], xj=xj_atprmax[ll], det=det,
+                        dtheta=0, psi=0,
+                        miscut=miscut,
+                        n=n,
+                        grid=True,
+                        return_lamb=True,
+                    )
+                lxi_rc.append(xi_rc)
+                lxj_rc.append(xj_rc)
+                lxi_atprmax.append(xi_atprmax)
+                llamb_atprmax.append(lamb_atprmax)
+                lbragg_atprmax.append(bragg_atprmax)
         else:
             power_ratio = None
             dth = None
@@ -2626,47 +2671,58 @@ class CrystalBragg(utils.ToFuObject):
             angles = None
             data = None
 
-
         # Reset parameters as at beginning
-        if miscut:
-            self.update_miscut(alpha=alpha0, beta=0.)
-        else:
-            self.update_miscut(alpha=0., beta=0.)
-        if therm_exp:
-            self.dmat['d'] = d_atom[id_temp0]*1e-10
-        else:
-            self.dmat['d'] = d_atom[0]*1e-10
+        for ii in range(len(lself)):
+            if miscut:
+                lself[ii].update_miscut(alpha=alpha0, beta=0.)
+            else:
+                lself[ii].update_miscut(alpha=0., beta=0.)
+            if therm_exp:
+                lself[ii].dmat['d'] = d_atom[id_temp0]*1e-10
+            else:
+                lself[ii].dmat['d'] = d_atom[0]*1e-10
 
         if mode == 'raw det':
-            xi = xi - det['outline'][0, 0]
-            xj = xj - det['outline'][1, 0]
-            xi_rc = xi_rc - det['outline'][0, 0]
-            xj_rc = xj_rc - det['outline'][1, 0]
-            det['outline'][0] = det['outline'][0] - det['outline'][0, 0]
-            det['outline'][1] = det['outline'][1] - det['outline'][1, 0]
+            for ii in range(len(lself)):
+                lxi[ii] = lxi[ii] - det['outline'][0, 0]
+                lxj[ii] = lxj[ii] - det['outline'][1, 0]
+                lxi_rc[ii] = lxi_rc[ii] - det['outline'][0, 0]
+                lxj_rc[ii] = lxj_rc[ii] - det['outline'][1, 0]
+                det['outline'][0] = det['outline'][0] - det['outline'][0, 0]
+                det['outline'][1] = det['outline'][1] - det['outline'][1, 0]
 
         if plot_simu_image:
             fig0 = plt.figure()
             ax0 = fig0.add_subplot()
-            ax0.set_xlabel(r'Pixel coordinate', fontsize=15)
-            ax0.set_ylabel(r'Pixel coordinate', fontsize=15)
-            ax0.set_title(r'Simulated 2D spectra', fontsize=15)
-            ax0.imshow(
+            ax0.set_xlabel(r'$\#$ pixel', fontsize=fs)
+            ax0.set_ylabel(r'$\#$ pixel', fontsize=fs)
+            #ax0.set_title(r'Simulated 2D spectra', fontsize=fs)
+            ax0.tick_params(labelsize=fs)
+            im = ax0.imshow(
                 data[0, :, :],
                 origin='lower',
+                cmap='viridis',
                 interpolation='nearest',
                 aspect='auto',
+            )
+            cbar = plt.colorbar(
+                im,
+                orientation='vertical',
+                ax=ax0,
+            )
+            cbar.ax.tick_params(
+                labelsize=fs
             )
 
         dout = {
             'lamb': lamb,
-            'xi': xi,
-            'xj': xj,
-            'xi_rc': xi_rc,
-            'xj_rc': xj_rc,
-            'xi_atprmax': xi_atprmax,
-            'lamb_atprmax': lamb_atprmax,
-            'bragg_atprmax': bragg_atprmax,
+            'xi': lxi,
+            'xj': lxj,
+            'xi_rc': lxi_rc,
+            'xj_rc': lxj_rc,
+            'xi_atprmax': lxi_atprmax,
+            'lamb_atprmax': llamb_atprmax,
+            'bragg_atprmax': lbragg_atprmax,
             'data': data,
         }
 
@@ -2697,53 +2753,54 @@ class CrystalBragg(utils.ToFuObject):
             # None
 
         if plot_line_tracing:
-            ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
-                # ------------------------------
-                # basic
-                cryst=self,
-                dcryst=dcryst,
-                lamb=lamb,
-                dlamb=dlamb,
-                xi=xi,
-                xj=xj,
-                xi_er=xi_er,
-                xj_er=xj_er,
-                # -----------------------------
-                # w/ rocking curves data
-                merge_rc_data=merge_rc_data,
-                power_ratio=power_ratio,
-                dth=dth,
-                ndth=ndth,
-                nn=nn,
-                xi_rc=xi_rc,
-                xj_rc=xj_rc,
-                xi_atprmax=xi_atprmax,
-                bragg_atprmax=bragg_atprmax,
-                lamb_atprmax=lamb_atprmax,
-                TD=TD,
-                angles=angles,
-                # -----------------------------
-                # w/ miscut and/or temp changes
-                alpha0=alpha0,
-                temp0=temp0,
-                id_temp0=id_temp0,
-                johann=johann,
-                rocking=rocking,
-                miscut=miscut,
-                therm_exp=therm_exp,
-                det=det,
-                # ----------------------------
-                # plot parameters
-                ax=ax,
-                dleg=dleg,
-                color=color,
-                fs=fs,
-                dmargin=dmargin,
-                wintit=wintit,
-                tit=tit,
-                plot_perfect=plot_perfect,
-            )
-            return ax, dout
+            for ii in range(len(lself)):
+                ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+                    # ------------------------------
+                    # basic
+                    cryst=lself[ii],
+                    dcryst=dcryst,
+                    lamb=lamb,
+                    dlamb=dlamb,
+                    xi=lxi[ii],
+                    xj=lxj[ii],
+                    xi_er=xi_er,
+                    xj_er=xj_er,
+                    # -----------------------------
+                    # w/ rocking curves data
+                    merge_rc_data=merge_rc_data,
+                    power_ratio=power_ratio,
+                    dth=dth,
+                    ndth=ndth,
+                    nn=nn,
+                    xi_rc=lxi_rc[ii],
+                    xj_rc=lxj_rc[ii],
+                    xi_atprmax=lxi_atprmax[ii],
+                    bragg_atprmax=lbragg_atprmax[ii],
+                    lamb_atprmax=llamb_atprmax[ii],
+                    TD=TD,
+                    angles=angles,
+                    # -----------------------------
+                    # w/ miscut and/or temp changes
+                    alpha0=alpha0,
+                    temp0=temp0,
+                    id_temp0=id_temp0,
+                    johann=johann,
+                    rocking=rocking,
+                    miscut=miscut,
+                    therm_exp=therm_exp,
+                    det=det,
+                    # ----------------------------
+                    # plot parameters
+                    ax=ax,
+                    dleg=dleg,
+                    color=color,
+                    fs=fs,
+                    dmargin=dmargin,
+                    wintit=wintit,
+                    tit=tit,
+                    plot_perfect=plot_perfect,
+                )
+                return ax, dout
         else:
             return dout
 
