@@ -1341,6 +1341,13 @@ def _compute_vos_spectro(
                 store_keys=key_integrand_interp_lamb,
             )
 
+            # adjust data and units for integration
+            coll.ddata[key_integrand_interp_lamb]['data'] *= dlamb
+            coll.ddata[key_integrand_interp_lamb]['units'] = (
+                asunits.Unit(coll.ddata[key_integrand_interp_lamb]['units'])
+                * asunits.Unit(coll.ddata[kapex]['units'])
+            )
+
         # -----------------------------
         # interpolate vs local cos
 
