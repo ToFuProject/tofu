@@ -379,7 +379,6 @@ def multigausfit1d_from_dlines(
         if dinput['double'] is True:
             x2[:, dind['dratio']['x']] = sol_x[:, dind['dratio']['x']]
             x2[:, dind['dshift']['x']] = sol_x[:, dind['dshift']['x']]
-        import pdb; pdb.set_trace()     # DB
         sol_x = x2
 
     # ---------------------------
