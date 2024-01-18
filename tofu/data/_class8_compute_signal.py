@@ -1342,10 +1342,11 @@ def _compute_vos_spectro(
             )
 
             # adjust data and units for integration
+            dlamb = np.mean(np.diff(v0['lamb']['data']))
             coll.ddata[key_integrand_interp_lamb]['data'] *= dlamb
             coll.ddata[key_integrand_interp_lamb]['units'] = (
                 asunits.Unit(coll.ddata[key_integrand_interp_lamb]['units'])
-                * asunits.Unit(coll.ddata[kapex]['units'])
+                * asunits.Unit(v0['lamb']['units'])
             )
 
         # -----------------------------
@@ -1467,10 +1468,6 @@ def _compute_vos_spectro(
 
         # --------------
         # post-treatment
-
-        if spectral_binning is False:
-            units = units * asunits.Unit(v0['lamb']['units'])
-            sig = sig * np.mean(np.diff(v0['lamb']['data']))
 
         # brightness
         if brightness is True:
