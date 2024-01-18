@@ -426,7 +426,7 @@ def _check(
     append = ds._generic_check._check_var(
         append, 'append',
         types=bool,
-        default=lc[1] and ptsx.size < 100 and plot is True,
+        default=lc[1] and ptsx.size < 100,  #  and plot is True,
     )
 
     # colorbar
@@ -1648,7 +1648,7 @@ def _plot(
                         p1[dout['lindin'][ii]],
                         ls='None',
                         marker='.',
-                        c=dout['lcolor'][ii],
+                        # c=dout['lcolor'][ii],
                     )
                     ax.plot(
                         p0[~dout['lindin'][ii]],
@@ -1661,7 +1661,7 @@ def _plot(
                     ax.scatter(
                         p0,
                         p1,
-                        c=dout['lcolor'][ii],
+                        # c=dout['lcolor'][ii],
                         s=8,
                         marker='.',
                     )
