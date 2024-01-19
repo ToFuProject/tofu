@@ -90,7 +90,14 @@ def main(
     # check inputs
     # --------------
 
-    key, key_cam, ptsx, ptsy, ptsz, pfe_in, factor, color, iso, pfe, overwrite = _check(
+    (
+        key, key_cam,
+        ptsx, ptsy, ptsz,
+        pfe_in,
+        factor, color,
+        iso,
+        pfe_save, overwrite,
+    ) = _check(
         coll=coll,
         key=key,
         key_cam=key_cam,
@@ -106,11 +113,13 @@ def main(
         overwrite=overwrite,
     )
 
+    fname = os.path.split(pfe_save)[-1][:-4]
+
     # -------------
     # extract and pre-format data
     # -------------
 
-    ptsx, ptsy, ptsz = _extract(
+    dptsx, dptsy, dptsz = _extract(
         coll=coll,
         key=key,
         key_cam=key_cam,
@@ -118,12 +127,20 @@ def main(
         ptsy=ptsy,
         ptsz=ptsz,
         pfe_in=pfe_in,
+        fname=fname,
     )
 
     # scaling factor
-    ptsx = factor * ptsx
-    ptsy = factor * ptsy
-    ptsz = factor * ptsz
+    for k0 in dptsx.keys():
+        dptsx[k0] = factor * dptsx[k0]
+        dptsy[k0] = factor * dptsy[k0]
+        dptsz[k0] = factor * dptsz[k0]
+
+    # ---------------
+    # get color dict
+    # ---------------
+
+    dcolor = _get_dcolor(dptsx=dptsx, color=color)
 
     # ----------------
     # get file content
@@ -131,18 +148,18 @@ def main(
 
     # HEADER
     msg_header = _get_header(
-        fname=os.path.split(pfe)[-1][:-4],
+        fname=fname,
         iso=iso,
     )
 
     # DATA
     msg_data = _get_data(
-        ptsx=ptsx,
-        ptsy=ptsy,
-        ptsz=ptsz,
-        fname=os.path.split(pfe)[-1][:-4],
+        dptsx=dptsx,
+        dptsy=dptsy,
+        dptsz=dptsz,
+        fname=fname,
         # options
-        color=color,
+        dcolor=dcolor,
         # norm
         iso=iso,
     )
@@ -224,6 +241,22 @@ def _check(
             allowed=lok_rays + lok_diag,
         )
 
+        if key in lok_diag:
+            if isinstance(key_cam, str):
+                key_cam = [key_cam]
+
+            lok = coll.dobj['diagnostic'][key]['camera']
+            key_cam = ds._generic_check._check_var_iter(
+                key_cam, 'key_cam',
+                types=(list, tuple),
+                types_iter=str,
+                allowed=lok,
+                default=lok,
+            )
+
+        else:
+            key_cam = None
+
     # ---------------
     # array
     # ---------------
@@ -285,18 +318,6 @@ def _check(
     ))
 
     # ---------------
-    # color
-    # ---------------
-
-    if color is None:
-        color = _COLOR
-    if not mcolors.is_color_like(color):
-        msg = f"Arg color must be a color-like value\nProvided: {color}"
-        raise Exception(msg)
-
-    color = mcolors.to_rgb(color)
-
-    # ---------------
     # iso
     # ---------------
 
@@ -341,7 +362,14 @@ def _check(
         default=False,
     )
 
-    return key, key_cam, ptsx, ptsy, ptsz, pfe_in, factor, color, iso, pfe_save, overwrite
+    return (
+        key, key_cam,
+        ptsx, ptsy, ptsz,
+        pfe_in,
+        factor, color,
+        iso,
+        pfe_save, overwrite,
+    )
 
 
 # #################################################################
@@ -358,7 +386,16 @@ def _extract(
     ptsy=None,
     ptsz=None,
     pfe_in=None,
+    fname=None,
 ):
+
+    # ----------------------
+    # initialize
+    # ----------------------
+
+    dptsx = {}
+    dptsy = {}
+    dptsz = {}
 
     # ----------------------
     # extract points from csv
@@ -394,9 +431,9 @@ def _extract(
             raise Exception(msg)
 
         # extract pts as (2, nrays) arrays
-        ptsx = np.array([out[ii::npts, 0] for ii in range(npts)])
-        ptsy = np.array([out[ii::npts, 1] for ii in range(npts)])
-        ptsz = np.array([out[ii::npts, 2] for ii in range(npts)])
+        dptsx[fname] = np.array([out[ii::npts, 0] for ii in range(npts)])
+        dptsy[fname] = np.array([out[ii::npts, 1] for ii in range(npts)])
+        dptsz[fname] = np.array([out[ii::npts, 2] for ii in range(npts)])
 
     # ----------------------
     # extract points from array
@@ -404,16 +441,75 @@ def _extract(
 
     elif ptsx is not None:
 
-        pass
+        dptsx[fname] = ptsx
+        dptsy[fname] = ptsy
+        dptsz[fname] = ptsz
 
     # ----------------------
     # extract points from coll
     # ----------------------
 
     else:
-        ptsx, ptsy, ptsz = coll.get_rays_pts(key=key, key_cam=key_cam)
 
-    return ptsx, ptsy, ptsz
+        if key_cam is None:
+            dptsx[fname], dptsy[fname], dptsz[fname] = coll.get_rays_pts(key=key)
+
+        else:
+            for kcam in key_cam:
+                dptsx[kcam], dptsy[kcam], dptsz[kcam] = coll.get_rays_pts(key=key, key_cam=kcam)
+
+    return dptsx, dptsy, dptsz
+
+
+# #################################################################
+# #################################################################
+#           Get color dict
+# #################################################################
+
+
+def _get_dcolor(dptsx=None, color=None):
+
+    # ---------------
+    # color
+    # ---------------
+
+    if color is None:
+        color = _COLOR
+
+    if mcolors.is_color_like(color):
+
+        dcolor = {k0: color for k0 in dptsx.keys()}
+
+    elif isinstance(color, dict):
+
+        c0 = (
+            sorted(color.keys()) == sorted(dptsx.keys())
+            and all([mcolors.is_color_like(v0) for v0 in color.values()])
+        )
+        if not c0:
+            lstr = [
+                f"\t- {k0}: is_color_like {mcolors.is_color_like(dcolor[k0])}"
+                for k0 in dptsx.keys()
+            ]
+            msg = (
+                "Arg color must be either a single color, or a dict of colors"
+                " with keys:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+        dcolor = color
+
+    else:
+        msg = f"Arg color must be a color-like value\nProvided: {color}"
+        raise Exception(msg)
+
+    #  ------------
+    # safety check
+
+    dcolor = {k0: mcolors.to_rgb(v0) for k0, v0 in dcolor.items()}
+
+    return dcolor
 
 
 # #################################################################
@@ -514,17 +610,40 @@ FILE_NAME(
 
 # #################################################################
 # #################################################################
+#          Utility
+# #################################################################
+
+
+def _get_k0ind(dshape_vect=None, ncum=None, lkcam=None):
+
+    def k0ind(
+            ii,
+            dshape_vect=dshape_vect,
+            ncum=ncum,
+            lkcam=lkcam,
+        ):
+
+        icam = np.searchsorted(ncum-1, ii)
+        inew = ii - ncum[icam-1] if icam>0 else ii
+
+        return lkcam[icam], np.unravel_index(inew, dshape_vect[lkcam[icam]])
+
+    return k0ind
+
+
+# #################################################################
+# #################################################################
 #          DATA
 # #################################################################
 
 
 def _get_data(
-    ptsx=None,
-    ptsy=None,
-    ptsz=None,
+    dptsx=None,
+    dptsy=None,
+    dptsz=None,
     fname=None,
     # options
-    color=None,
+    dcolor=None,
     # norm
     iso=None,
 ):
@@ -534,22 +653,43 @@ def _get_data(
     # -----------
 
     # vectors
-    vx = np.diff(ptsx, axis=0)
-    vy = np.diff(ptsy, axis=0)
-    vz = np.diff(ptsz, axis=0)
+    dvx = {k0: np.diff(v0, axis=0) for k0, v0 in dptsx.items()}
+    dvy = {k0: np.diff(v0, axis=0) for k0, v0 in dptsy.items()}
+    dvz = {k0: np.diff(v0, axis=0) for k0, v0 in dptsz.items()}
 
     # length
-    length = np.sqrt(vx**2 + vy**2 + vz**2)
+    dlength = {
+        k0: np.sqrt(dvx[k0]**2 + dvy[k0]**2 + dvz[k0]**2)
+        for k0 in dptsx.keys()
+    }
 
     # directions
-    dx = vx / length
-    dy = vy / length
-    dz = vz / length
+    ddx = {k0: dvx[k0] / dlength[k0] for k0 in dptsx.keys()}
+    ddy = {k0: dvy[k0] / dlength[k0] for k0 in dptsx.keys()}
+    ddz = {k0: dvz[k0] / dlength[k0] for k0 in dptsx.keys()}
 
     # shapes
-    shape_vect = vx.shape
+    dshape_vect = {k0: dvx[k0].shape for k0 in dptsx.keys()}
 
-    nrays = vx.size
+    dnrays = {k0: v0.size for k0, v0 in dvx.items()}
+    nrays = np.sum([v0 for v0 in dnrays.values()])
+
+    # --------------
+    # order of kcam
+
+    lkcam = sorted(dptsx.keys())
+    k0ind = _get_k0ind(
+        dshape_vect=dshape_vect,
+        ncum=np.cumsum([dnrays[kcam] for kcam in lkcam]),
+        lkcam=lkcam,
+    )
+
+    # -----------
+    # colors
+    # -----------
+
+    colors = sorted(set([v0 for v0 in dcolor.values()]))
+    ncol = len(colors)
 
     # -----------------
     # get index
@@ -565,13 +705,16 @@ def _get_data(
         },
         'PRESENTATION_STYLE_ASSIGNMENT': {
             'order': 3,
-            # 'nn': nrays,
+            'nn': ncol,
         },
         'CURVE_STYLE': {
             'order': 4,
-            # 'nn': nrays,
+            'nn': ncol,
         },
-        'COLOUR_RGB': {'order': 5},
+        'COLOUR_RGB': {
+            'order': 5,
+            'nn': ncol,
+        },
         'DRAUGHTING_PRE_DEFINED_CURVE_FONT': {
             'order': 6,
             # 'nn': nrays,
@@ -632,8 +775,13 @@ def _get_data(
     # -----------------
 
     k0 = 'COLOUR_RGB'
-    ni = dind[k0]['ind'][0]
-    dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',{color[0]},{color[1]},{color[2]});"
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        lines.append(f"#{ni}={k0}('color {ii}',{colors[ii][0]},{colors[ii][1]},{colors[ii][2]});")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    # ni = dind[k0]['ind'][0]
+    # dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',{color[0]},{color[1]},{color[2]});"
     # dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',0.301960784313725,0.427450980392157,0.701960784313725);"
 
     # -----------------
@@ -643,8 +791,8 @@ def _get_data(
     k0 = 'CARTESIAN_POINT'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape_vect)
-        lines.append(f"#{ni}={k0}('{ind}',({ptsx[ind]},{ptsy[ind]},{ptsz[ind]}));")
+        kcam, ind = k0ind(ii)
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({dptsx[kcam][ind]},{dptsy[kcam][ind]},{dptsz[kcam][ind]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -654,8 +802,8 @@ def _get_data(
     k0 = 'DIRECTION'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape_vect)
-        lines.append(f"#{ni}={k0}('{ind}',({dx[ind]},{dy[ind]},{dz[ind]}));")
+        kcam, ind = k0ind(ii)
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({ddx[kcam][ind]},{ddy[kcam][ind]},{ddz[kcam][ind]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -665,8 +813,8 @@ def _get_data(
     k0 = 'VECTOR'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape_vect)
-        lines.append(f"#{ni}={k0}('{ind}',#{dind['DIRECTION']['ind'][ii]},{length[ind]});")
+        kcam, ind = k0ind(ii)
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['DIRECTION']['ind'][ii]},{dlength[kcam][ind]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -685,8 +833,8 @@ def _get_data(
     k0 = 'LINE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape_vect)
-        lines.append(f"#{ni}={k0}('{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
+        kcam, ind = k0ind(ii)
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -696,8 +844,8 @@ def _get_data(
     k0 = 'TRIMMED_CURVE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape_vect)
-        lines.append(f"#{ni}={k0}('{ind}',#{dind['LINE']['ind'][ii]},(PARAMETER_VALUE(0.)),(PARAMETER_VALUE(1.)),.T.,.PARAMETER.);")
+        kcam, ind = k0ind(ii)
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['LINE']['ind'][ii]},(PARAMETER_VALUE(0.)),(PARAMETER_VALUE(1.)),.T.,.PARAMETER.);")
     dind[k0]['msg'] = "\n".join(lines)
 
     # ----------------
@@ -705,10 +853,8 @@ def _get_data(
     # ----------------
 
     k0 = 'DRAUGHTING_PRE_DEFINED_CURVE_FONT'
-    lines = []
-    for ii, ni in enumerate(dind[k0]['ind']):
-        lines.append(f"#{ni}={k0}('continuous');")
-    dind[k0]['msg'] = "\n".join(lines)
+    ni = dind[k0]['ind'][0]
+    dind[k0]['msg'] = f"#{ni}={k0}('continuous');"
 
     # ------------------
     # CURVE_STYLE
@@ -717,8 +863,7 @@ def _get_data(
     k0 = 'CURVE_STYLE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape_vect)
-        lines.append(f"#{ni}={k0}('{ind}',#{dind['DRAUGHTING_PRE_DEFINED_CURVE_FONT']['ind'][ii]},POSITIVE_LENGTH_MEASURE(0.7),#{dind['COLOUR_RGB']['ind'][0]});")
+        lines.append(f"#{ni}={k0}('style {ii}',#{dind['DRAUGHTING_PRE_DEFINED_CURVE_FONT']['ind'][0]},POSITIVE_LENGTH_MEASURE(0.7),#{dind['COLOUR_RGB']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -740,8 +885,9 @@ def _get_data(
     k0 = 'STYLED_ITEM'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape_vect)
-        lines.append(f"#{ni}={k0}('{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][0]}),#{dind['TRIMMED_CURVE']['ind'][ii]});")
+        kcam, ind = k0ind(ii)
+        jj = colors.index(dcolor[kcam])
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['TRIMMED_CURVE']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
