@@ -35,26 +35,54 @@ pfe = '~/Documents/FromOthers/Inwoo_SONG/XRAY_Beamlines_LOS/XRAY_Beamlines_LOS_d
 def main(
     coll=None,
     key=None,
-    pfe_csv=None,
+    pfe_in=None,
     # options
     color=None,
     # saving
-    pfe=None,
+    pfe_save=None,
     overwrite=None,
 ):
+    """ Export a set of LOS to a stp file (for CAD compatibility)
+
+    The LOS can be provided either as:
+        - (coll, key): if you're using tofu
+        - pfe_in: a path-filename-extension to a valid csv or npz file
+
+    In the second case, the file is assumed to hold a (2*n, 3) array
+
+    Parameters
+    ----------
+    coll : tf.data.Collection, optional
+        DESCRIPTION. The default is None.
+    key : str, optional
+        DESCRIPTION. The default is None.
+    pfe_in : str, optional
+        DESCRIPTION. The default is None.
+    color : str / tuple, optional
+        DESCRIPTION. The default is None.
+    pfe_save : str, optional
+        DESCRIPTION. The default is None.
+    overwrite : bool, optional
+        DESCRIPTION. The default is None.
+
+    Returns
+    -------
+    None.
+
+    """
 
     # ----------------
     # check inputs
     # --------------
 
-    key, pfe_csv, color, iso, pfe, overwrite = _check(
+    key, pfe_in, color, iso, pfe, overwrite = _check(
         coll=coll,
         key=key,
-        pfe_csv=pfe_csv,
+        pfe_in=pfe_in,
         # options
         color=color,
         # saving
-        pfe=pfe,
+        pfe_save=pfe_save,
         overwrite=overwrite,
     )
 
@@ -65,7 +93,7 @@ def main(
     ptsx, ptsy, ptsz = _extract(
         coll=coll,
         key=key,
-        pfe_csv=pfe_csv,
+        pfe_in=pfe_in,
     )
 
     # ----------------
@@ -96,7 +124,7 @@ def main(
 
     _save(
         msg=msg_header + "\n" + msg_data,
-        pfe=pfe,
+        pfe_save=pfe_save,
         overwrite=overwrite,
     )
 
@@ -112,24 +140,24 @@ def main(
 def _check(
     coll=None,
     key=None,
-    pfe_csv=None,
+    pfe_in=None,
     # options
     color=None,
     # saving
-    pfe=None,
+    pfe_save=None,
     overwrite=None,
 ):
 
     # --------------
-    # coll vs pfe_csv
+    # coll vs pfe_in
     # -------------
 
-    lc = [coll is not None, pfe_csv is not None]
+    lc = [coll is not None, pfe_in is not None]
     if np.sum(lc) != 1:
         msg = (
-            "Please provide eiter a (Collection, key) pair xor a pfe_csv!\n"
+            "Please provide eiter a (Collection, key) pair xor a pfe_in!\n"
             f"\t- coll is None: {coll is None}\n"
-            f"\t- pfe_csv is None: {pfe_csv is None}\n"
+            f"\t- pfe_in is None: {pfe_in is None}\n"
         )
         raise Exception(msg)
 
@@ -158,21 +186,21 @@ def _check(
         )
 
     # ---------------
-    # pfe_csv
+    # pfe_in
     # ---------------
 
     else:
 
         c0 = (
-            isinstance(pfe_csv, str)
-            and os.path.isfile(pfe_csv)
-            and pfe_csv.endswith('.csv')
+            isinstance(pfe_in, str)
+            and os.path.isfile(pfe_in)
+            and pfe_in.endswith('.csv')
         )
 
         if not c0:
             msg = (
-                "Arg pfe_csv must be a path to a .csv file!\n"
-                f"Provided: {pfe_csv}"
+                "Arg pfe_in must be a path to a .csv file!\n"
+                f"Provided: {pfe_in}"
             )
             raise Exception(msg)
         key = None
@@ -196,33 +224,33 @@ def _check(
     iso = 'ISO-10303-21'
 
     # ---------------
-    # pfe
+    # pfe_save
     # ---------------
 
     # Default
-    if pfe is None:
+    if pfe_save is None:
         path = os.path.abspath('.')
         name = key if key is not None else 'rays'
-        pfe = os.path.join(path, f"{name}.stp")
+        pfe_save = os.path.join(path, f"{name}.stp")
 
     # check
     c0 = (
-        isinstance(pfe, str)
+        isinstance(pfe_save, str)
         and (
-            os.path.split(pfe)[0] == ''
-            or os.path.isdir(os.path.split(pfe)[0])
+            os.path.split(pfe_save)[0] == ''
+            or os.path.isdir(os.path.split(pfe_save)[0])
         )
     )
     if not c0:
         msg = (
-            "Arg pfe must be a saving file str ending in '.stp'!\n"
+            "Arg pfe_save must be a saving file str ending in '.stp'!\n"
             f"Provided: {pfe}"
         )
         raise Exception(msg)
 
     # makesure extension is included
-    if not pfe.endswith('.stp'):
-        pfe = f"{pfe}.stp"
+    if not pfe_save.endswith('.stp'):
+        pfe_save = f"{pfe_save}.stp"
 
     # ----------------
     # overwrite
@@ -234,7 +262,7 @@ def _check(
         default=False,
     )
 
-    return key, pfe_csv, color, iso, pfe, overwrite
+    return key, pfe_in, color, iso, pfe_save, overwrite
 
 
 # #################################################################
@@ -246,7 +274,7 @@ def _check(
 def _extract(
     coll=None,
     key=None,
-    pfe_csv=None,
+    pfe_in=None,
 ):
 
     # ----------------------
@@ -256,7 +284,7 @@ def _extract(
     if coll is None:
 
         # load csv
-        out = np.loadtxt(pfe_csv)
+        out = np.loadtxt(pfe_in)
 
         # safety check
         c0 = (
@@ -266,7 +294,7 @@ def _extract(
         )
         if not c0:
             msg = (
-                "Arg pfe_csv should be a csv file holding a (2*nray, 3) array"
+                "Arg pfe_in should be a csv file holding a (2*nray, 3) array"
                 " where nray is the number of rays\n"
                 "Every pair of lines must be the (start, end) points!\n"
                 "Provided shape: {out.shape}"
@@ -305,32 +333,32 @@ def _extract(
 
 def _save(
     msg=None,
-    pfe=None,
+    pfe_save=None,
     overwrite=None,
 ):
 
     # -------------
     # check before overwriting
 
-    if os.path.isfile(pfe):
+    if os.path.isfile(pfe_save):
         err = "File already exists!"
         if overwrite is True:
             err = f"{err} => overwriting"
             warnings.warn(err)
         else:
-            err = f"{err}\nFile:\n\t{pfe}"
+            err = f"{err}\nFile:\n\t{pfe_save}"
             raise Exception(err)
 
     # ----------
     # save
 
-    with open(pfe, 'w') as fn:
+    with open(pfe_save, 'w') as fn:
         fn.write(msg)
 
     # --------------
     # verb
 
-    msg = f"Saved to:\n\t{pfe}"
+    msg = f"Saved to:\n\t{pfe_save}"
     print(msg)
 
     return
@@ -452,16 +480,16 @@ def _get_data(
         },
         'PRESENTATION_STYLE_ASSIGNMENT': {
             'order': 3,
-            'nn': nrays,
+            # 'nn': nrays,
         },
         'CURVE_STYLE': {
             'order': 4,
-            'nn': nrays,
+            # 'nn': nrays,
         },
         'COLOUR_RGB': {'order': 5},
         'DRAUGHTING_PRE_DEFINED_CURVE_FONT': {
             'order': 6,
-            'nn': nrays,
+            # 'nn': nrays,
         },
         'TRIMMED_CURVE': {
             'order': 7,
@@ -475,17 +503,14 @@ def _get_data(
             'order': 9,
             'nn': nrays,
         },
-        'AXIS2_PLACEMENT_3D': {
-            'order': 10,
-            'str': '('',#12333,#10794,#10795);', #, '('',#7101,#6216,#6217);',
-        },
+        'AXIS2_PLACEMENT_3D': {'order': 10},
         'DIRECTION0': {
             'order': 11,
-            'str': 'DIRECTION('',(0.,0.,1.));',
+            'str': "DIRECTION('',(0.,0.,1.));",
         },
         'DIRECTION1': {
             'order': 12,
-            'str': 'DIRECTION('',(1.,0.,0.));',
+            'str': "DIRECTION('',(1.,0.,0.));",
         },
         'DIRECTION': {
             'order': 13,
@@ -517,18 +542,14 @@ def _get_data(
         dind[k0]['ind'] = i0 + np.arange(0, nn)
         i0 += nn
 
-    print(dind)
-    print(i0)
-
     # -----------------
     # COLOUR_RGB
     # -----------------
 
     k0 = 'COLOUR_RGB'
     ni = dind[k0]['ind'][0]
-    dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal', {color[0]}, {color[1]}, {color[2]});"
-
-    #2682=COLOUR_RGB('Medium Royal',0.301960784313725,0.427450980392157,0.701960784313725);
+    dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',{color[0]},{color[1]},{color[2]});"
+    # dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',0.301960784313725,0.427450980392157,0.701960784313725);"
 
     # -----------------
     # CARTESIAN_POINT
@@ -538,7 +559,7 @@ def _get_data(
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
         ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}',({ptsx[0, ii]}, {ptsy[0, ii]}, {ptsz[0, ii]}));")
+        lines.append(f"#{ni}={k0}('{ind}',({ptsx[0, ii]},{ptsy[0, ii]},{ptsz[0, ii]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -549,7 +570,7 @@ def _get_data(
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
         ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}',({dx[0, ii]}, {dy[0, ii]}, {dz[0, ii]}));")
+        lines.append(f"#{ni}={k0}('{ind}',({dx[0, ii]},{dy[0, ii]},{dz[0, ii]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -560,8 +581,17 @@ def _get_data(
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
         ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}', #{dind['DIRECTION']['ind'][ii]}, {length[0, ii]});")
+        lines.append(f"#{ni}={k0}('{ind}',#{dind['DIRECTION']['ind'][ii]},{length[0, ii]});")
     dind[k0]['msg'] = "\n".join(lines)
+
+    # -----------------
+    # AXIS2_PLACEMENT_3D
+    # -----------------
+
+    k0 = 'AXIS2_PLACEMENT_3D'
+    ni = dind[k0]['ind'][0]
+    lstr = ', '.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('',#{dind['CARTESIAN_POINT0']['ind'][0]},#{dind['DIRECTION0']['ind'][0]},#{dind['DIRECTION1']['ind'][0]});"
 
     # -----------------
     # LINE
@@ -571,7 +601,7 @@ def _get_data(
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
         ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}', #{dind['CARTESIAN_POINT']['ind'][ii]}, #{dind['VECTOR']['ind'][ii]});")
+        lines.append(f"#{ni}={k0}('{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -582,7 +612,7 @@ def _get_data(
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
         ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}', #{dind['LINE']['ind'][ii]}, (PARAMETER_VALUE(0.)),(PARAMETER_VALUE(1.)), .T., .PARAMETER.);")
+        lines.append(f"#{ni}={k0}('{ind}',#{dind['LINE']['ind'][ii]},(PARAMETER_VALUE(0.)),(PARAMETER_VALUE(1.)),.T.,.PARAMETER.);")
     dind[k0]['msg'] = "\n".join(lines)
 
     # ----------------
@@ -603,7 +633,7 @@ def _get_data(
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
         ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}', #{dind['DRAUGHTING_PRE_DEFINED_CURVE_FONT']['ind'][ii]}, POSITIVE_LENGTH_MEASURE(0.7), #{dind['COLOUR_RGB']['ind'][0]});")
+        lines.append(f"#{ni}={k0}('{ind}',#{dind['DRAUGHTING_PRE_DEFINED_CURVE_FONT']['ind'][ii]},POSITIVE_LENGTH_MEASURE(0.7),#{dind['COLOUR_RGB']['ind'][0]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -626,7 +656,7 @@ def _get_data(
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
         ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}', (#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][ii]}), #{dind['TRIMMED_CURVE']['ind'][ii]});")
+        lines.append(f"#{ni}={k0}('{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][0]}),#{dind['TRIMMED_CURVE']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -635,8 +665,8 @@ def _get_data(
 
     k0 = 'GEOMETRIC_CURVE_SET'
     ni = dind[k0]['ind'][0]
-    lstr = ', '.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
-    dind[k0]['msg'] = f"#{ni}={k0}('None', ({lstr}));"
+    lstr = ','.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('None',({lstr}));"
 
     # ----------------------
     # PRESENTATION_LAYER_ASSIGNMENT
@@ -644,8 +674,8 @@ def _get_data(
 
     k0 = 'PRESENTATION_LAYER_ASSIGNMENT'
     ni = dind[k0]['ind'][0]
-    lstr = ', '.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
-    dind[k0]['msg'] = f"#{ni}={k0}('1', 'Layer 1', ({lstr}));"
+    lstr = ','.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('1','Layer 1',({lstr}));"
 
     # ----------------------------------
     # MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION
@@ -653,8 +683,8 @@ def _get_data(
 
     k0 = 'MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION'
     ni = dind[k0]['ind'][0]
-    lstr = ', '.join([f"#{ii}" for ii in dind['STYLED_ITEM']['ind']])
-    dind[k0]['msg'] = f"#{ni}={k0}('', ({lstr}));"
+    lstr = ','.join([f"#{ii}" for ii in dind['STYLED_ITEM']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('',({lstr}),#{i0});"
 
     # ------------
     # LEFTOVERS
@@ -676,7 +706,7 @@ def _get_data(
 
     msg_pre = (
 f"""
-DATA
+DATA;
 #10=PROPERTY_DEFINITION_REPRESENTATION(#14,#12);
 #11=PROPERTY_DEFINITION_REPRESENTATION(#15,#13);
 #12=REPRESENTATION('',(#16),#{i0});
@@ -713,7 +743,7 @@ f"""
 GEOMETRIC_REPRESENTATION_CONTEXT(3)
 GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#{ind[1]}))
 GLOBAL_UNIT_ASSIGNED_CONTEXT((#{ind[7]},#{ind[3]},#{ind[2]}))
-REPRESENTATION_CONTEXT('xray3','TOP_LEVEL_ASSEMBLY_PART')
+REPRESENTATION_CONTEXT('{fname}','TOP_LEVEL_ASSEMBLY_PART')
 );
 #{ind[1]}=UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(2.E-5),#{ind[7]}, 'DISTANCE_ACCURACY_VALUE','Maximum Tolerance applied to model');
 #{ind[2]}=(
