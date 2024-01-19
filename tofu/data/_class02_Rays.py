@@ -16,6 +16,7 @@ from . import _class2_check as _check
 from . import _class2_compute as _compute
 from . import _class2_plot as _plot
 from . import _class2_sinogram as _sinogram
+from . import _class02_save2stp as _save2stp
 
 
 __all__ = ['Rays']
@@ -430,4 +431,30 @@ class Rays(Previous):
             dmargin=dmargin,
             fs=fs,
             wintit=wintit,
+        )
+
+    # --------------
+    # save to step file (CAD)
+    # --------------
+
+    def save_to_step(self, key=None, pfe=None):
+        """ Save a set of 'rays' to a stp file (CAD-readable)
+
+        Parameters
+        ----------
+        key : str, optional
+            key to the existing set of rays
+        pfe : str, optional
+            valid path-file-extension (file str) where to save the stp file
+
+        Returns
+        -------
+        None.
+
+        """
+
+        return _save2stp.main(
+            coll=self,
+            key=key,
+            pfe=pfe,
         )
