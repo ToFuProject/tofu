@@ -437,7 +437,27 @@ class Rays(Previous):
     # save to step file (CAD)
     # --------------
 
-    def save_to_step(self, key=None, pfe=None):
+    def save_to_step(
+        # ---------------
+        # input from tofu
+        self,
+        key=None,
+        key_cam=None,
+        # input from arrays
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # input from file
+        pfe_in=None,
+        # ---------------
+        # options
+        factor=None,
+        color=None,
+        # ---------------
+        # saving
+        pfe_save=None,
+        overwrite=None,
+    ):
         """ Save a set of 'rays' to a stp file (CAD-readable)
 
         Parameters
@@ -454,7 +474,23 @@ class Rays(Previous):
         """
 
         return _save2stp.main(
+            # ---------------
+            # input from tofu
             coll=self,
             key=key,
-            pfe=pfe,
+            key_cam=key_cam,
+            # input from arrays
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # input from file
+            pfe_in=pfe_in,
+            # ---------------
+            # options
+            factor=factor,
+            color=color,
+            # ---------------
+            # saving
+            pfe_save=pfe_save,
+            overwrite=overwrite,
         )

@@ -38,6 +38,7 @@ def main(
     # input from tofu
     coll=None,
     key=None,
+    key_cam=None,
     # input from arrays
     ptsx=None,
     ptsy=None,
@@ -89,9 +90,10 @@ def main(
     # check inputs
     # --------------
 
-    key, ptsx, ptsy, ptsz, pfe_in, factor, color, iso, pfe, overwrite = _check(
+    key, key_cam, ptsx, ptsy, ptsz, pfe_in, factor, color, iso, pfe, overwrite = _check(
         coll=coll,
         key=key,
+        key_cam=key_cam,
         ptsx=ptsx,
         ptsy=ptsy,
         ptsz=ptsz,
@@ -111,6 +113,7 @@ def main(
     ptsx, ptsy, ptsz = _extract(
         coll=coll,
         key=key,
+        key_cam=key_cam,
         ptsx=ptsx,
         ptsy=ptsy,
         ptsz=ptsz,
@@ -166,6 +169,7 @@ def main(
 def _check(
     coll=None,
     key=None,
+    key_cam=None,
     ptsx=None,
     ptsy=None,
     ptsz=None,
@@ -202,18 +206,22 @@ def _check(
         # ------------
         # coll
 
-        if issubclass(coll.__class__, ds.DataStock):
-            msg = "Arg coll must be a subclass of datastock.Datastock!"
+        if not issubclass(coll.__class__, ds.DataStock):
+            msg = (
+                "Arg coll must be a subclass of datastock.Datastock!\n"
+                f"\t- type(coll) = {type(coll)}"
+            )
             raise Exception(msg)
 
         # --------------
         # key
 
         lok_rays = list(coll.dobj.get('rays', {}).keys())
+        lok_diag = list(coll.dobj.get('diagnostic', {}).keys())
         key = ds._generic_check._check_var(
             key, 'key',
             types=str,
-            allowed=lok_rays,
+            allowed=lok_rays + lok_diag,
         )
 
     # ---------------
@@ -333,7 +341,7 @@ def _check(
         default=False,
     )
 
-    return key, ptsx, ptsy, ptsz, pfe_in, factor, color, iso, pfe_save, overwrite
+    return key, key_cam, ptsx, ptsy, ptsz, pfe_in, factor, color, iso, pfe_save, overwrite
 
 
 # #################################################################
@@ -345,7 +353,10 @@ def _check(
 def _extract(
     coll=None,
     key=None,
-    array=None,
+    key_cam=None,
+    ptsx=None,
+    ptsy=None,
+    ptsz=None,
     pfe_in=None,
 ):
 
@@ -391,25 +402,16 @@ def _extract(
     # extract points from array
     # ----------------------
 
-    elif array is not None:
+    elif ptsx is not None:
 
-        raise NotImplementedError()
+        pass
 
     # ----------------------
     # extract points from coll
     # ----------------------
 
     else:
-        ptsx, ptsy, ptsz = coll.get_rays_pts(key=key)
-
-        # check nb of segments
-        if ptsx.shape[0] > 2:
-            msg = (
-                "Multi-segmented rays not supported yet for stp file export\n"
-                f"\t- key: '{key}'\n"
-                f"\t- ptsx.shape: {ptsx.shape}\n"
-            )
-            raise Exception(msg)
+        ptsx, ptsy, ptsz = coll.get_rays_pts(key=key, key_cam=key_cam)
 
     return ptsx, ptsy, ptsz
 
