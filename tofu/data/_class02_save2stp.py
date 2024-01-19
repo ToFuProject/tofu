@@ -614,11 +614,11 @@ FILE_NAME(
 # #################################################################
 
 
-def _get_k0ind(dshape_vect=None, ncum=None, lkcam=None):
+def _get_k0ind(dind_ok=None, ncum=None, lkcam=None):
 
     def k0ind(
             ii,
-            dshape_vect=dshape_vect,
+            dind_ok=dind_ok,
             ncum=ncum,
             lkcam=lkcam,
         ):
@@ -626,7 +626,7 @@ def _get_k0ind(dshape_vect=None, ncum=None, lkcam=None):
         icam = np.searchsorted(ncum-1, ii)
         inew = ii - ncum[icam-1] if icam>0 else ii
 
-        return lkcam[icam], np.unravel_index(inew, dshape_vect[lkcam[icam]])
+        return lkcam[icam], tuple([tt[inew] for tt in dind_ok[lkcam[icam]]])
 
     return k0ind
 
@@ -657,6 +657,9 @@ def _get_data(
     dvy = {k0: np.diff(v0, axis=0) for k0, v0 in dptsy.items()}
     dvz = {k0: np.diff(v0, axis=0) for k0, v0 in dptsz.items()}
 
+    # dok
+    dok = {k0: np.isfinite(v0) for k0, v0 in dvx.items()}
+
     # length
     dlength = {
         k0: np.sqrt(dvx[k0]**2 + dvy[k0]**2 + dvz[k0]**2)
@@ -671,7 +674,7 @@ def _get_data(
     # shapes
     dshape_vect = {k0: dvx[k0].shape for k0 in dptsx.keys()}
 
-    dnrays = {k0: v0.size for k0, v0 in dvx.items()}
+    dnrays = {k0: v0.sum() for k0, v0 in dok.items()}
     nrays = np.sum([v0 for v0 in dnrays.values()])
 
     # --------------
@@ -679,7 +682,7 @@ def _get_data(
 
     lkcam = sorted(dptsx.keys())
     k0ind = _get_k0ind(
-        dshape_vect=dshape_vect,
+        dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
         ncum=np.cumsum([dnrays[kcam] for kcam in lkcam]),
         lkcam=lkcam,
     )
