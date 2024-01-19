@@ -23,7 +23,8 @@ import datastock as ds
 # #################################################################
 
 
-pfe = '~/Documents/FromOthers/Inwoo_SONG/XRAY_Beamlines_LOS/XRAY_Beamlines_LOS_dslit0.stp'
+_COLOR = 'k'
+_NAME = 'rays'
 
 
 # #################################################################
@@ -37,6 +38,7 @@ def main(
     key=None,
     pfe_in=None,
     # options
+    factor=None,
     color=None,
     # saving
     pfe_save=None,
@@ -46,9 +48,10 @@ def main(
 
     The LOS can be provided either as:
         - (coll, key): if you're using tofu
-        - pfe_in: a path-filename-extension to a valid csv or npz file
+        - pfe_in: a path-filename-extension to a valid csv or dat file
 
-    In the second case, the file is assumed to hold a (2*n, 3) array
+    In the second case, the file is assumed to hold a (nlos*npts, 3) array
+        with a heaer speciying nlos and npts
 
     Parameters
     ----------
@@ -58,6 +61,8 @@ def main(
         DESCRIPTION. The default is None.
     pfe_in : str, optional
         DESCRIPTION. The default is None.
+    factor : float, optional
+        scaling factor on coordinates (default: 1)
     color : str / tuple, optional
         DESCRIPTION. The default is None.
     pfe_save : str, optional
@@ -75,11 +80,13 @@ def main(
     # check inputs
     # --------------
 
-    key, pfe_in, color, iso, pfe, overwrite = _check(
+    key, array, pfe_in, factor, color, iso, pfe, overwrite = _check(
         coll=coll,
         key=key,
+        # array=array,
         pfe_in=pfe_in,
         # options
+        factor=factor,
         color=color,
         # saving
         pfe_save=pfe_save,
@@ -93,8 +100,14 @@ def main(
     ptsx, ptsy, ptsz = _extract(
         coll=coll,
         key=key,
+        array=array,
         pfe_in=pfe_in,
     )
+
+    # scaling factor
+    ptsx = factor * ptsx
+    ptsy = factor * ptsy
+    ptsz = factor * ptsz
 
     # ----------------
     # get file content
@@ -140,8 +153,10 @@ def main(
 def _check(
     coll=None,
     key=None,
+    array=None,
     pfe_in=None,
     # options
+    factor=None,
     color=None,
     # saving
     pfe_save=None,
@@ -152,11 +167,12 @@ def _check(
     # coll vs pfe_in
     # -------------
 
-    lc = [coll is not None, pfe_in is not None]
+    lc = [coll is not None, array is not None, pfe_in is not None]
     if np.sum(lc) != 1:
         msg = (
-            "Please provide eiter a (Collection, key) pair xor a pfe_in!\n"
+            "Please provide eiter a (Collection, key) pair xor array xor pfe_in!\n"
             f"\t- coll is None: {coll is None}\n"
+            # f"\t- array is None: {array is None}\n"
             f"\t- pfe_in is None: {pfe_in is None}\n"
         )
         raise Exception(msg)
@@ -186,6 +202,24 @@ def _check(
         )
 
     # ---------------
+    # array
+    # ---------------
+
+    elif lc[1]:
+
+        c0 = (
+            isinstance(array, np.ndarray)
+            and array.ndim == 2
+            and array.shape[0] >= 2
+        )
+        if not c0:
+            msg = (
+                "Arg array must be a np.ndarray of shape (npts>=2, nlos) "
+                "Provided:\n{array}"
+            )
+            raise Exception(msg)
+
+    # ---------------
     # pfe_in
     # ---------------
 
@@ -194,7 +228,7 @@ def _check(
         c0 = (
             isinstance(pfe_in, str)
             and os.path.isfile(pfe_in)
-            and pfe_in.endswith('.csv')
+            and (pfe_in.endswith('.csv') or pfe_in.endswith('.dat'))
         )
 
         if not c0:
@@ -206,11 +240,21 @@ def _check(
         key = None
 
     # ---------------
+    # factor
+    # ---------------
+
+    factor = float(ds._generic_check._check_var(
+        factor, 'factor',
+        types=(float, int),
+        default=1.,
+    ))
+
+    # ---------------
     # color
     # ---------------
 
     if color is None:
-        color = 'k'
+        color = _COLOR
     if not mcolors.is_color_like(color):
         msg = f"Arg color must be a color-like value\nProvided: {color}"
         raise Exception(msg)
@@ -230,7 +274,7 @@ def _check(
     # Default
     if pfe_save is None:
         path = os.path.abspath('.')
-        name = key if key is not None else 'rays'
+        name = key if key is not None else _NAME
         pfe_save = os.path.join(path, f"{name}.stp")
 
     # check
@@ -244,7 +288,7 @@ def _check(
     if not c0:
         msg = (
             "Arg pfe_save must be a saving file str ending in '.stp'!\n"
-            f"Provided: {pfe}"
+            f"Provided: {pfe_save}"
         )
         raise Exception(msg)
 
@@ -262,7 +306,7 @@ def _check(
         default=False,
     )
 
-    return key, pfe_in, color, iso, pfe_save, overwrite
+    return key, array, pfe_in, factor, color, iso, pfe_save, overwrite
 
 
 # #################################################################
@@ -274,6 +318,7 @@ def _check(
 def _extract(
     coll=None,
     key=None,
+    array=None,
     pfe_in=None,
 ):
 
@@ -281,30 +326,47 @@ def _extract(
     # extract points from csv
     # ----------------------
 
-    if coll is None:
+    if pfe_in is not None:
 
-        # load csv
-        out = np.loadtxt(pfe_in)
+        # load csv/dat
+        out = np.loadtxt(pfe_in, comments='#')
+
+        # read header
+        with open(pfe_in, 'r') as fn:
+            header = fn.readline()
+
+        ln = [ss for ss in header[1:].strip().split(' ')]
+        if len(ln) != 2:
+            msg = (
+                "Header format os non-conform!\n"
+                "\t- file: {pfe_in}\n"
+                "\t- header: {header}\n"
+            )
+            raise Exception(msg)
+
+        nlos, npts = [int(ss) for ss in ln]
 
         # safety check
-        c0 = (
-            out.ndim == 2
-            and out.shape[1] == 3
-            and out.shape[0] %2 == 0
-        )
-        if not c0:
+        if out.shape != (nlos * npts, 3):
             msg = (
-                "Arg pfe_in should be a csv file holding a (2*nray, 3) array"
-                " where nray is the number of rays\n"
-                "Every pair of lines must be the (start, end) points!\n"
-                "Provided shape: {out.shape}"
+                f"Arg pfe_in should be a file holding a "
+                "(nlos={nlos} x npts={npts}, 3) array"
+                f"Provided shape: {out.shape}"
             )
             raise Exception(msg)
 
         # extract pts as (2, nrays) arrays
-        ptsx = np.array([out[::2, 0], out[1::2, 0]])
-        ptsy = np.array([out[::2, 1], out[1::2, 1]])
-        ptsz = np.array([out[::2, 2], out[1::2, 2]])
+        ptsx = np.array([out[ii::npts, 0] for ii in range(npts)])
+        ptsy = np.array([out[ii::npts, 1] for ii in range(npts)])
+        ptsz = np.array([out[ii::npts, 2] for ii in range(npts)])
+
+    # ----------------------
+    # extract points from array
+    # ----------------------
+
+    elif array is not None:
+
+        raise NotImplementedError()
 
     # ----------------------
     # extract points from coll
@@ -442,17 +504,6 @@ def _get_data(
     # nrays
     # -----------
 
-    shape0 = ptsx.shape
-    if ptsx.ndim > 2:
-        shape = (ptsx.shape[0], -1)
-        ptsx = ptsx.reshape(shape)
-        ptsx = ptsx.reshape(shape)
-        ptsx = ptsx.reshape(shape)
-    else:
-        shape = shape0
-
-    nrays = ptsx.shape[1]
-
     # vectors
     vx = np.diff(ptsx, axis=0)
     vy = np.diff(ptsy, axis=0)
@@ -465,6 +516,11 @@ def _get_data(
     dx = vx / length
     dy = vy / length
     dz = vz / length
+
+    # shapes
+    shape_vect = vx.shape
+
+    nrays = vx.size
 
     # -----------------
     # get index
@@ -558,8 +614,8 @@ def _get_data(
     k0 = 'CARTESIAN_POINT'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}',({ptsx[0, ii]},{ptsy[0, ii]},{ptsz[0, ii]}));")
+        ind = np.unravel_index(ii, shape_vect)
+        lines.append(f"#{ni}={k0}('{ind}',({ptsx[ind]},{ptsy[ind]},{ptsz[ind]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -569,8 +625,8 @@ def _get_data(
     k0 = 'DIRECTION'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}',({dx[0, ii]},{dy[0, ii]},{dz[0, ii]}));")
+        ind = np.unravel_index(ii, shape_vect)
+        lines.append(f"#{ni}={k0}('{ind}',({dx[ind]},{dy[ind]},{dz[ind]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -580,8 +636,8 @@ def _get_data(
     k0 = 'VECTOR'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape0)
-        lines.append(f"#{ni}={k0}('{ind}',#{dind['DIRECTION']['ind'][ii]},{length[0, ii]});")
+        ind = np.unravel_index(ii, shape_vect)
+        lines.append(f"#{ni}={k0}('{ind}',#{dind['DIRECTION']['ind'][ii]},{length[ind]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -600,7 +656,7 @@ def _get_data(
     k0 = 'LINE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape0)
+        ind = np.unravel_index(ii, shape_vect)
         lines.append(f"#{ni}={k0}('{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
@@ -611,7 +667,7 @@ def _get_data(
     k0 = 'TRIMMED_CURVE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape0)
+        ind = np.unravel_index(ii, shape_vect)
         lines.append(f"#{ni}={k0}('{ind}',#{dind['LINE']['ind'][ii]},(PARAMETER_VALUE(0.)),(PARAMETER_VALUE(1.)),.T.,.PARAMETER.);")
     dind[k0]['msg'] = "\n".join(lines)
 
@@ -632,7 +688,7 @@ def _get_data(
     k0 = 'CURVE_STYLE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape0)
+        ind = np.unravel_index(ii, shape_vect)
         lines.append(f"#{ni}={k0}('{ind}',#{dind['DRAUGHTING_PRE_DEFINED_CURVE_FONT']['ind'][ii]},POSITIVE_LENGTH_MEASURE(0.7),#{dind['COLOUR_RGB']['ind'][0]});")
     dind[k0]['msg'] = "\n".join(lines)
 
@@ -655,7 +711,7 @@ def _get_data(
     k0 = 'STYLED_ITEM'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        ind = np.unravel_index(ii, shape0)
+        ind = np.unravel_index(ii, shape_vect)
         lines.append(f"#{ni}={k0}('{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][0]}),#{dind['TRIMMED_CURVE']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
