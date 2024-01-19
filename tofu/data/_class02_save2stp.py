@@ -34,12 +34,21 @@ _NAME = 'rays'
 
 
 def main(
+    # ---------------
+    # input from tofu
     coll=None,
     key=None,
+    # input from arrays
+    ptsx=None,
+    ptsy=None,
+    ptsz=None,
+    # input from file
     pfe_in=None,
+    # ---------------
     # options
     factor=None,
     color=None,
+    # ---------------
     # saving
     pfe_save=None,
     overwrite=None,
@@ -80,10 +89,12 @@ def main(
     # check inputs
     # --------------
 
-    key, array, pfe_in, factor, color, iso, pfe, overwrite = _check(
+    key, ptsx, ptsy, ptsz, pfe_in, factor, color, iso, pfe, overwrite = _check(
         coll=coll,
         key=key,
-        # array=array,
+        ptsx=ptsx,
+        ptsy=ptsy,
+        ptsz=ptsz,
         pfe_in=pfe_in,
         # options
         factor=factor,
@@ -100,7 +111,9 @@ def main(
     ptsx, ptsy, ptsz = _extract(
         coll=coll,
         key=key,
-        array=array,
+        ptsx=ptsx,
+        ptsy=ptsy,
+        ptsz=ptsz,
         pfe_in=pfe_in,
     )
 
@@ -153,7 +166,9 @@ def main(
 def _check(
     coll=None,
     key=None,
-    array=None,
+    ptsx=None,
+    ptsy=None,
+    ptsz=None,
     pfe_in=None,
     # options
     factor=None,
@@ -167,12 +182,12 @@ def _check(
     # coll vs pfe_in
     # -------------
 
-    lc = [coll is not None, array is not None, pfe_in is not None]
+    lc = [coll is not None, ptsx is not None, pfe_in is not None]
     if np.sum(lc) != 1:
         msg = (
             "Please provide eiter a (Collection, key) pair xor array xor pfe_in!\n"
             f"\t- coll is None: {coll is None}\n"
-            # f"\t- array is None: {array is None}\n"
+            f"\t- (ptsx, ptsy, ptsz) is None: {ptsx is None}\n"
             f"\t- pfe_in is None: {pfe_in is None}\n"
         )
         raise Exception(msg)
@@ -207,15 +222,27 @@ def _check(
 
     elif lc[1]:
 
-        c0 = (
-            isinstance(array, np.ndarray)
-            and array.ndim == 2
-            and array.shape[0] >= 2
-        )
+        c0 = all([
+            isinstance(pp, np.ndarray)
+            and pp.ndim >= 2
+            and pp.shape[0] >= 2
+            for pp in [ptsx, ptsy, ptsz]
+        ])
         if not c0:
             msg = (
-                "Arg array must be a np.ndarray of shape (npts>=2, nlos) "
-                "Provided:\n{array}"
+                "Args (ptsx, ptsy, ptsz) must be np.ndarrays of shape (npts>=2, nlos)\n"
+                f"\t- ptsx: {ptsx}\n"
+                f"\t- ptsy: {ptsy}\n"
+                f"\t- ptsz: {ptsz}\n"
+            )
+            raise Exception(msg)
+
+        if not (ptsx.shape == ptsy.shape == ptsz.shape):
+            msg = (
+                "Args (ptsx, ptsy, ptsz) must have the same shape!\n"
+                f"\t- ptsx.shape: {ptsx.shape}\n"
+                f"\t- ptsy.shape: {ptsy.shape}\n"
+                f"\t- ptsz.shape: {ptsz.shape}\n"
             )
             raise Exception(msg)
 
@@ -306,7 +333,7 @@ def _check(
         default=False,
     )
 
-    return key, array, pfe_in, factor, color, iso, pfe_save, overwrite
+    return key, ptsx, ptsy, ptsz, pfe_in, factor, color, iso, pfe_save, overwrite
 
 
 # #################################################################
