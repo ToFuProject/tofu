@@ -451,6 +451,7 @@ class Rays(Previous):
         pfe_in=None,
         # ---------------
         # options
+        outline_only=None,
         factor=None,
         color=None,
         # ---------------
@@ -487,6 +488,7 @@ class Rays(Previous):
             pfe_in=pfe_in,
             # ---------------
             # options
+            outline_only=outline_only,
             factor=factor,
             color=color,
             # ---------------

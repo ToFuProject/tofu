@@ -47,6 +47,7 @@ def main(
     pfe_in=None,
     # ---------------
     # options
+    outline_only=None,
     factor=None,
     color=None,
     # ---------------
@@ -71,6 +72,8 @@ def main(
         DESCRIPTION. The default is None.
     pfe_in : str, optional
         DESCRIPTION. The default is None.
+    outline_only: bool, optional
+        Whether to keep only the outline of a 2d pixel map (default: True)
     factor : float, optional
         scaling factor on coordinates (default: 1)
     color : str / tuple, optional
@@ -94,7 +97,7 @@ def main(
         key, key_cam,
         ptsx, ptsy, ptsz,
         pfe_in,
-        factor, color,
+        outline_only, factor, color,
         iso,
         pfe_save, overwrite,
     ) = _check(
@@ -106,6 +109,7 @@ def main(
         ptsz=ptsz,
         pfe_in=pfe_in,
         # options
+        outline_only=outline_only,
         factor=factor,
         color=color,
         # saving
@@ -126,6 +130,7 @@ def main(
         ptsx=ptsx,
         ptsy=ptsy,
         ptsz=ptsz,
+        outline_only=outline_only,
         pfe_in=pfe_in,
         fname=fname,
     )
@@ -192,6 +197,7 @@ def _check(
     ptsz=None,
     pfe_in=None,
     # options
+    outline_only=None,
     factor=None,
     color=None,
     # saving
@@ -308,6 +314,16 @@ def _check(
         key = None
 
     # ---------------
+    # outline_only
+    # ---------------
+
+    outline_only = ds._generic_check._check_var(
+        outline_only, 'outline_only',
+        types=bool,
+        default=True,
+    )
+
+    # ---------------
     # factor
     # ---------------
 
@@ -366,7 +382,7 @@ def _check(
         key, key_cam,
         ptsx, ptsy, ptsz,
         pfe_in,
-        factor, color,
+        outline_only, factor, color,
         iso,
         pfe_save, overwrite,
     )
@@ -385,6 +401,7 @@ def _extract(
     ptsx=None,
     ptsy=None,
     ptsz=None,
+    outline_only=None,
     pfe_in=None,
     fname=None,
 ):
@@ -396,6 +413,7 @@ def _extract(
     dptsx = {}
     dptsy = {}
     dptsz = {}
+    ind = None
 
     # ----------------------
     # extract points from csv
@@ -458,7 +476,81 @@ def _extract(
             for kcam in key_cam:
                 dptsx[kcam], dptsy[kcam], dptsz[kcam] = coll.get_rays_pts(key=key, key_cam=kcam)
 
+        # ----------
+        # outline_only
+
+        if outline_only is True:
+            for kcam, v0 in dptsx.items():
+                if v0.ndim == 3:
+                    iout = ~_get_outline2d(dptsx[kcam][1, ...])
+                    dptsx[kcam][:, iout] = np.nan
+                    dptsy[kcam][:, iout] = np.nan
+                    dptsz[kcam][:, iout] = np.nan
+
     return dptsx, dptsy, dptsz
+
+
+def _get_outline2d(pts):
+
+    # --------------
+    # eliminate nan
+
+    iok = np.isfinite(pts)
+    n0, n1 = pts.shape
+
+    iok2 = np.zeros((n0, n1), dtype=bool)
+    tot = np.zeros((n0, n1), dtype=int)
+
+    # ---------------
+    # 8-pix filters
+    # -----------------
+
+    # -------------------------------------
+    # left-side and right-side neighbours
+
+    # left
+    iok2[:, 1:] = iok[:, :-1]
+    tot += iok2
+
+    # right
+    iok2[...] = False
+    iok2[:, :-1] = iok[:, 1:]
+    tot += iok2
+
+    # top
+    iok2[...] = False
+    iok2[1:, :] = iok[:-1, :]
+    tot += iok2
+
+    # bottom
+    iok2[...] = False
+    iok2[:-1, :] = iok[1:, :]
+    tot += iok2
+
+    # ----------------
+    # 4 corners
+
+    # top left
+    iok2[...] = False
+    iok2[1:, 1:] = iok[:-1, :-1]
+    tot += iok2
+
+    # bottom left
+    iok2[...] = False
+    iok2[:-1, 1:] = iok[1:, :-1]
+    tot += iok2
+
+    # top right
+    iok2[...] = False
+    iok2[1:, :-1] = iok[:-1, 1:]
+    tot += iok2
+
+    # bottom right
+    iok2[...] = False
+    iok2[:-1, :-1] = iok[1:, 1:]
+    tot += iok2
+
+    return ((tot<7) & iok)
 
 
 # #################################################################
