@@ -127,6 +127,7 @@ def compute_los_angles(
                 v0=v0,
                 is2d=is2d,
                 ref=ref,
+                i0=ii,
             )
 
 
@@ -560,6 +561,7 @@ def _angle_spectro(
     v0=None,
     is2d=None,
     ref=None,
+    i0=None,
 ):
 
     # ------------
@@ -579,13 +581,17 @@ def _angle_spectro(
     # ------
     # loop
 
-    print(f"\tComputing angles for spectro diag '{key}':")
+    if i0 == 0:
+        msg = f"\tComputing angles for spectro diag '{key}':\n\t\t- cam '{key_cam}':"
+    else:
+        msg = f"\t\t- cam '{key_cam}':"
+    print(msg)
 
     # langles = []        # DB
     for ii in range(v0['cx'].size):
 
         # verb
-        msg = f"\t\tpixel {ii+1} / {v0['cx'].size}"
+        msg = f"\t\t\tpixel {ii+1} / {v0['cx'].size}"
         end = "\n" if ii == v0['cx'].size - 1 else "\r"
         print(msg, end=end, flush=True)
 

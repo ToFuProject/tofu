@@ -697,27 +697,43 @@ def _checkformat_domain(domain=None, keys=['lamb', 'phi']):
 
 def apply_domain(lamb=None, phi=None, domain=None):
 
+    # ------------
+    # check inputs
+
     lc = [lamb is not None, phi is not None]
     if not lc[0]:
         msg = "At least lamb must be provided!"
         raise Exception(msg)
 
+    # --------------
+    # dict of inputs
+
     din = {'lamb': lamb}
     if lc[1]:
         din['phi'] = phi
 
+    # -----------------
+    # Apply
+
     domain = _checkformat_domain(domain=domain, keys=din.keys())
     ind = np.ones(lamb.shape, dtype=bool)
     for k0, v0 in din.items():
+
+        # initialize
         indin = np.zeros(v0.shape, dtype=bool)
         indout = np.zeros(v0.shape, dtype=bool)
+
+        # loop on domain bits
         for v1 in domain[k0]['spec']:
             indi = (v0 >= v1[0]) & (v0 <= v1[1])
             if isinstance(v1, tuple):
                 indout |= indi
             else:
                 indin |= indi
+
+        # apply
         ind = ind & indin & (~indout)
+
     return ind, domain
 
 

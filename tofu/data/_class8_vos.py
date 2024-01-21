@@ -32,6 +32,7 @@ def compute_vos(
     # parameters
     res_RZ=None,
     res_phi=None,
+    lamb=None,
     res_lamb=None,
     res_rock_curve=None,
     n0=None,
@@ -96,6 +97,7 @@ def compute_vos(
         # parameters
         res_RZ=res_RZ,
         res_phi=res_phi,
+        lamb=lamb,
         res_lamb=res_lamb,
         convexHull=convexHull,
         # bool
@@ -221,6 +223,7 @@ def compute_vos(
                 sh=sh,
                 res_RZ=res_RZ,
                 res_phi=res_phi,
+                lamb=lamb,
                 res_lamb=res_lamb,
                 res_rock_curve=res_rock_curve,
                 n0=n0,
@@ -306,6 +309,7 @@ def _check(
     key_mesh=None,
     res_RZ=None,
     res_phi=None,
+    lamb=None,
     res_lamb=None,
     convexHull=None,
     # keep3d
@@ -437,8 +441,8 @@ def _check(
     # -----------
     # res_lamb
 
-    if res_lamb is None:
-        res_lamb = 0.01e-10
+    if res_lamb is None and lamb is None:
+        res_lamb = 0.01-10
 
     # -----------
     # keep3d

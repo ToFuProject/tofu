@@ -16,6 +16,7 @@ from . import _class2_check as _check
 from . import _class2_compute as _compute
 from . import _class2_plot as _plot
 from . import _class2_sinogram as _sinogram
+from . import _class02_save2stp as _save2stp
 
 
 __all__ = ['Rays']
@@ -430,4 +431,68 @@ class Rays(Previous):
             dmargin=dmargin,
             fs=fs,
             wintit=wintit,
+        )
+
+    # --------------
+    # save to step file (CAD)
+    # --------------
+
+    def save_to_step(
+        # ---------------
+        # input from tofu
+        self,
+        key=None,
+        key_cam=None,
+        # input from arrays
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # input from file
+        pfe_in=None,
+        # ---------------
+        # options
+        outline_only=None,
+        factor=None,
+        color=None,
+        # ---------------
+        # saving
+        pfe_save=None,
+        overwrite=None,
+    ):
+        """ Save a set of 'rays' to a stp file (CAD-readable)
+
+        Parameters
+        ----------
+        key : str, optional
+            key to the existing set of rays
+        pfe : str, optional
+            valid path-file-extension (file str) where to save the stp file
+
+        Returns
+        -------
+        None.
+
+        """
+
+        return _save2stp.main(
+            # ---------------
+            # input from tofu
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            # input from arrays
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # input from file
+            pfe_in=pfe_in,
+            # ---------------
+            # options
+            outline_only=outline_only,
+            factor=factor,
+            color=color,
+            # ---------------
+            # saving
+            pfe_save=pfe_save,
+            overwrite=overwrite,
         )

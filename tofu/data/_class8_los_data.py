@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
+import warnings
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import astropy.units as asunits
-
-
 import datastock as ds
 
 
@@ -489,6 +490,15 @@ def _interpolate_along_los(
     else:
         units_integrand = coll.ddata[key_integrand]['units']
 
+    # ---------------------
+    # add indices
+
+    dind = _get_dind(
+        coll=coll,
+        dx=dx,
+        dy=dy,
+    )
+
     # ------------
     # format
 
@@ -502,6 +512,7 @@ def _interpolate_along_los(
         'ddata': dx,
         'units': units_coords,
     }
+    dout['ind'] = dind
 
     # ------------
     # plot
@@ -519,6 +530,11 @@ def _interpolate_along_los(
         )
     else:
         return dout
+
+
+# ################################################################
+#                     Check
+# ################################################################
 
 
 def _integrate_along_los_check(
@@ -659,6 +675,11 @@ def _integrate_along_los_check(
     )
 
 
+# ################################################################
+#                     reshape
+# ################################################################
+
+
 def _interpolate_along_los_reshape(
     coll=None,
     xdata=None,
@@ -687,6 +708,81 @@ def _interpolate_along_los_reshape(
         xdata = xdata.reshape(ref) * np.ones(ydata.shape)
 
     return xdata, ydata, axis_los
+
+
+# ################################################################
+#                     ind
+# ################################################################
+
+
+def _get_dind(
+    coll=None,
+    dx=None,
+    dy=None,
+):
+
+    # ----------------
+    #  loop on cameras
+
+    dind = {}
+    for kcam in dx.keys():
+
+        # ------------------
+        # preliminary check
+
+        inan = (
+            np.isnan(dx[kcam])
+            & np.isnan(dy[kcam])
+        )
+
+        # ------------------
+        # preliminary check
+
+        shape = coll.dobj['camera'][kcam]['dgeom']['shape']
+        nnan = np.prod(shape)
+        if inan.sum() != nnan:
+            msg = (
+                f"cam '{kcam}' has unconsistent nb of nans:\n"
+                f"\t- shape: {shape}\n"
+                f"\t- inan.sum(): {inan.sum()}\n"
+                f"\t- nnan: {nnan}\n"
+            )
+            warnings.warn(msg)
+            return None
+
+        # ------------------
+        # preliminary check
+
+        i10 = 0
+        ind = np.full(dy[kcam].shape, -1, dtype=int)
+        for i0, i1 in enumerate(inan.nonzero()[0]):
+            ii = np.arange(i10, i1)
+            ind[ii] = i0
+            i10 = i1 + 1
+
+        # -----------
+        # safety check
+
+        lc = [np.any(inan[ind>=0]), (ind == -1).sum() != nnan]
+        if  any(lc):
+            msg = (
+                "Inconsistent nans!\n"
+                f"\t- lc: {lc}\n"
+                f"\t- ind: {ind}\n"
+                f"\t- inan: {inan}\n"
+                f"\t- isnan: {inan[ind>=0].sum()}\n"
+                f"\t- nnan vs -1: {nnan} vs {(ind == -1).sum()}\n"
+            )
+            raise Exception(msg)
+
+        dind[kcam] = ind
+
+    return dind
+
+
+# ################################################################
+#                     PLOT
+# ################################################################
 
 
 def _interpolate_along_los_plot(

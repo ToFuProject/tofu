@@ -15,6 +15,7 @@ from ._class06_Grating import Grating as Previous
 from . import _class3_check
 from . import _class7_check as _check
 from . import _class7_compute as _compute
+from . import _class07_legacy as _legacy
 
 
 __all__ = ['Camera']
@@ -298,6 +299,22 @@ class Camera(Previous):
                 else:
                     msg = f"Multiple cameras:\n{lcam}"
                     raise Exception(msg)
+
+    # --------------------
+    # Legacy utility
+    # ---------------------
+
+    def add_camera_from_legacy(
+        self,
+        cam=None,
+        key=None,
+    ):
+        """ Add a camera from a dict (or pfe) """
+        return _legacy.add_camera(
+            self,
+            cam=cam,
+            key=key,
+        )
 
     # ---------------
     # utilities
