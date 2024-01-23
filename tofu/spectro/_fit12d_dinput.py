@@ -62,6 +62,7 @@ _DX0 = {
     'dshift': 0.,
     'bs': 1.,
 }
+
 _DINDOK = {
     0: 'ok',
     -1: 'mask',
@@ -917,7 +918,7 @@ def binning_2d_data(
     phi1d=None, lamb1d=None,
     dataphi1d=None, datalamb1d=None,
     # debug
-    debug_binning=True,
+    debug_binning=False,  # True,
 ):
 
     # -------------------------
