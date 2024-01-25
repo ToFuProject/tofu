@@ -414,7 +414,7 @@ def _compute_check(
         verb, 'verb',
         default=True,
         types=(bool, int),
-        allowed=[False, 0, True, 1, 2],
+        allowed=[False, 0, True, 1, 2, 3],
     )
     if verb is False:
         verb = 0
@@ -1232,17 +1232,22 @@ def _algo_check(
         b0 = 1
 
         # (a0, b0) are the gamma distribution parameters for lamb
-        kwdargs['a0'] = kwdargs.get('a0', a0) # np.nanmean(dsigma['data']))  # 10 ?
+        if kwdargs.get('a0') is None:
+            kwdargs['a0'] = a0  # np.nanmean(dsigma['data']))  # 10 ?
+
         # to have [x]=1
-        kwdargs['b0'] = kwdargs.get('b0', b0)   # np.math.factorial(a0)**(1 / (a0 + 1))
+        if kwdargs.get('b0') is None:
+            kwdargs['b0'] = b0  # np.math.factorial(a0)**(1 / (a0 + 1))
 
         # (a1, b1) are the gamma distribution parameters for tau
-        kwdargs['a1'] = kwdargs.get('a1', 1)
+        if kwdargs.get('a1') is None:
+            kwdargs['a1'] = 1
+
         # to have [x]=1
-        kwdargs['b1'] = kwdargs.get(
-            'b1',
-            np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1)),
-        )
+        if kwdargs.get('b1') is None:
+            kwdargs['b1'] =(
+                np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1))
+            )
 
         if kwdargs.get('conv_reg') is None:
             kwdargs['conv_reg'] = True
