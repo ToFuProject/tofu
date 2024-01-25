@@ -496,7 +496,7 @@ def _compute_los(
                 return_coords=['R', 'z', 'ltot'],
             )
 
-            if out_sample is None:
+            if out_sample is None or out_sample[0] is None:
                 continue
 
             R, Z, length = out_sample
