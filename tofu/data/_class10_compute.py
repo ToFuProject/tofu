@@ -531,7 +531,7 @@ def _store(
     coll.update(dobj=dobj, dref=dref, ddata=ddata)
 
     # add synthetic data
-    keyt = coll.get_ref_vector(key=keyinv, ref=reft, **dref_vector)[3]
+    keyt = coll.get_ref_vector(key0=keyinv, ref=reft, **dref_vector)[3]
     data_synth = coll.add_retrofit_data(
         key=kretro,
         key_diag=key_diag,
@@ -1265,7 +1265,7 @@ def _compute_retrofit_data_check(
         keyt = f'{key}_t'
 
     ist_mat = coll.get_ref_vector(
-        key=lkmat[0],
+        key0=lkmat[0],
         **{
             k0: v0 for k0,v0 in dref_vector.items()
             if k0 != 'ref'
@@ -1274,7 +1274,7 @@ def _compute_retrofit_data_check(
         # **dref_vector,
     )[0]
     ist_prof = coll.get_ref_vector(
-        key=key_profile2d,
+        key0=key_profile2d,
         **{
             k0: v0 for k0,v0 in dref_vector.items()
             if k0 != 'ref'

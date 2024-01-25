@@ -243,7 +243,7 @@ def _plot_inversion_prepare(
     # add nearest-neighbourg interpolated data
 
     reft, keyt, time = coll.get_ref_vector(
-        key=keyinv,
+        key0=keyinv,
         ref=reft,
         **dref_vector,
     )[2:5]

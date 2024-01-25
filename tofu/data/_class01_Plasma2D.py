@@ -134,7 +134,7 @@ class Plasma2D(Previous):
             dim = 'time'
 
         return self.get_ref_vector(
-            key=key,
+            key0=key,
             values=t,
             indices=indt,
             ind_strict=ind_strict,
