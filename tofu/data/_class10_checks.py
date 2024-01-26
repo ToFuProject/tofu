@@ -815,10 +815,10 @@ def _check_deriv(
                         f"{dconst[deriv]['rad'][~iok]}\n"
                         "  => excluded"
                     )
-                    warnings.warn
+                    warnings.warn(msg)
 
                 dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
-                dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
+                dconst[deriv]['val'] = dconst[deriv]['val'][iok]
 
                 # sort vs radius
                 inds = np.argsort(dconst[deriv]['rad'])
@@ -1005,13 +1005,22 @@ def _constraints_conflict_iout(
             indout = ibs_coefs[ii, it, :].nonzero()[0][0]
             indin = ibs_coefs[ii, it, :].nonzero()[0][1:]
 
+            # safety check
+            if indin.size == 0:
+                msg = (
+                    "Eq from constraint seems to address a single bspline!"
+                )
+                raise NotImplementedError(msg)
+
             iout_coefs[it, indout] = True
             iin_coefs[it, indout] = False
 
             dcon[k0]['iout'][it] = indout
             dcon[k0]['iin'][it][:] = indin
 
+    # -----------------------
     # final consistency check
+
     lterr = np.any(
         (iout_offset & iout_coefs & iin_coefs)[~iconflict, :],
         axis=1,
