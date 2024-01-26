@@ -120,10 +120,19 @@ def compute_inversions(
     # normalize geometry matrix to avoid having 1e-15 * 1e16
     mmm = matrix
     if hasattr(matrix, 'toarray'):
-        mmm =matrix.toarray()
+        mmm = matrix.toarray()
 
     matnorm = np.mean(np.mean(mmm, axis=-1, where=mmm>0), axis=-1)
     matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
+
+    # --------------------------------
+    # update dconstraints from matnorm
+
+    dcon_norm = _normalize_dconstraints(
+        dcon=dcon,
+        matnorm=matnorm,
+        m3d=m3d,
+    )
 
     # prepare computation intermediates
     precond = None
@@ -204,7 +213,7 @@ def compute_inversions(
             kwdargs=kwdargs,
             method=method,
             options=options,
-            dcon=dcon,
+            dcon=dcon_norm,
             regul=regul,
             maxiter_outer=maxiter_outer,
             # output
@@ -241,7 +250,7 @@ def compute_inversions(
             kwdargs=kwdargs,
             method=method,
             options=options,
-            dcon=dcon,
+            dcon=dcon_norm,
             regul=regul,
             # output
             sol=sol,
@@ -311,6 +320,44 @@ def compute_inversions(
 
     else:
         return sol_full, mu, chi2n, regularity, niter, spec, t
+
+
+
+def _normalize_dconstraints(dcon=None, matnorm=None, m3d=None):
+
+    # ------------
+    # trivial
+
+    if dcon is None or dcon.get('offset') is None:
+        return
+
+    # ------------
+    # non-trivial
+
+    dcon_norm = {
+        k0: v0 for k0, v0 in dcon.items()
+        if k0 in ['hastime', 'indbs', 'indbs_free', 'coefs']
+    }
+
+    if m3d is True:
+        matnu = np.unique(matnorm)
+
+        if matnu.size == 1:
+            dcon_norm['offset'] = dcon['offset'] * matnu
+
+        else:
+            dcon_norm['offset'] = dcon['offset'] * matnorm[:, None]
+            if dcon['hastime'] is False:
+                nt = matnorm.size
+                dcon_norm['coefs'] = [dcon['coefs'][0] for ii in matnorm]
+                dcon_norm['indbs'] = [dcon['indbs'][0] for ii in matnorm]
+                dcon_norm['indbs_free'] = np.repeat(dcon['indbs_free'], nt, axis=0)
+                dcon_norm['hastime'] = True
+
+    elif m3d is False:
+        dcon_norm['offset'] = dcon['offset'] * matnorm
+
+    return dcon_norm
 
 
 # ##################################################################
