@@ -221,24 +221,33 @@ def _compute_vos(
     # -------------
     # mesh sampling
 
-    wm = coll._which_mesh
-    wbs = coll._which_bsplines
-    key_mesh = coll.dobj[wbs][key_bs]['mesh']
-    if coll.dobj[wm][key_mesh].get('submesh') is not None:
-        key_mesh = coll.dobj[wm][key_mesh]['submesh']
+    lkm = list(set([v0['keym'] for v0 in dvos.values()]))
+    lres = list(set([tuple(v0['res_RZ']) for v0 in dvos.values()]))
 
-    # res
-    lres = set([tuple(v0['res_RZ']) for v0 in dvos.values()])
-    if len(lres) > 1:
-        msg = "All cameras do not have the same mesh sampling resolution"
+    if len(lkm) != 1:
+        lstr = [f"\t- '{k0}': '{v0['keym']}'" for k0, v0 in dvos.items()]
+        msg = (
+            "All cameras vos were not sampled using the same mesh!\n"
+            + "\n".join(lstr)
+        )
         raise Exception(msg)
 
-    res = list(list(lres)[0])
+    if len(lres) != 1:
+        lstr = [f"\t- '{k0}': '{v0['res_RZ']}'" for k0, v0 in dvos.items()]
+        msg = (
+            "All cameras vos were not sampled using the same resolution!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # extract
+    keym = lkm[0]
+    res_RZ = list(lres[0])
 
     # mesh sampling
     dsamp = coll.get_sample_mesh(
-        key=key_mesh,
-        res=res,
+        key=keym,
+        res=res_RZ,
         mode='abs',
         grid=False,
         in_mesh=True,
