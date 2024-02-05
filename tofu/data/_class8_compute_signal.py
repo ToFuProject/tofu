@@ -227,12 +227,13 @@ def _store(
     # ---------
     # prepare
 
+    lkcam = list(dout.keys())
     dobj = {
         'synth sig':{
             key: {
                 'diag': key_diag,
-                'camera': list(dout.keys()),
-                'data': [v0['key'] for v0 in dout.values()],
+                'camera': lkcam,
+                'data': [dout[k0]['key'] for k0 in lkcam],
                 # synthetic
                 'integrand': key_integrand,
                 'method': method,

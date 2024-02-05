@@ -185,6 +185,7 @@ class Diagnostic(Previous):
         self,
         key=None,
         key_data=None,
+        key_cam=None,
         flat=None,
         ):
         """ Return concatenated data for chosen cameras
@@ -195,6 +196,7 @@ class Diagnostic(Previous):
             coll=self,
             key=key,
             key_data=key_data,
+            key_cam=key_cam,
             flat=flat,
         )
 
