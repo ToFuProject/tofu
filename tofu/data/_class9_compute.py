@@ -99,7 +99,7 @@ def compute(
     )
 
     if verb is True:
-        msg = f"Geom matrix for diag '{key_diag}' and bs '{key_bs}':"
+        msg = f"\nGeom matrix for diag '{key_diag}' and bs '{key_bs}':"
         print(msg)
 
     # -----------
