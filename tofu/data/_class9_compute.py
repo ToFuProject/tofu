@@ -479,6 +479,7 @@ def _store(
 def _concatenate(
     coll=None,
     key=None,
+    key_cam=None,
 ):
 
     # ------------
@@ -491,11 +492,19 @@ def _concatenate(
         allowed=lok,
     )
 
+    key_cam0 = coll.dobj['geom matrix'][key]['camera']
+    key_cam = ds._generic_check._check_var_iter(
+        key_cam, 'key_cam',
+        default=key_cam0,
+        types=(list, tuple),
+        types_iter=str,
+        allowed=key_cam0,
+    )
+
     # -----------
     # concatenate
 
     key_data = coll.dobj['geom matrix'][key]['data']
-    key_cam = coll.dobj['geom matrix'][key]['camera']
     axis = coll.dobj['geom matrix'][key]['axis_chan']
 
     ref = list(coll.ddata[key_data[0]]['ref'])

@@ -73,7 +73,7 @@ def _compute_check(
     )
 
     key_diag = coll.dobj['geom matrix'][key_matrix]['diagnostic']
-    # key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
 
     keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     deg = coll.dobj['bsplines'][keybs]['deg']
@@ -82,7 +82,10 @@ def _compute_check(
     mtype = coll.dobj[coll._which_mesh][keym]['type']
 
     # matrix itself
-    matrix, ref, dind = coll.get_geometry_matrix_concatenated(key_matrix)
+    matrix, ref, dind = coll.get_geometry_matrix_concatenated(
+        key_matrix,
+        key_cam=key_cam,
+    )
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
     units_gmat = coll.ddata[lkmat[0]]['units']
     nchan, nbs = matrix.shape[-2:]
@@ -98,6 +101,7 @@ def _compute_check(
         coll=coll,
         key_diag=key_diag,
         key_data=key_data,
+        key_cam=key_cam,
     )
 
     # sigma
@@ -479,12 +483,14 @@ def _check_data(
     coll=None,
     key_diag=None,
     key_data=None,
+    key_cam=None,
 ):
 
     # load ddata from key_data
     ddata = coll.get_diagnostic_data_concatenated(
         key=key_diag,
         key_data=key_data,
+        key_cam=key_cam,
         flat=True,
     )
 
@@ -501,6 +507,7 @@ def _check_sigma(
     coll=None,
     key_diag=None,
     key_sigma=None,
+    key_cam=None,
     sigma=None,
     ddata=None,
     nchan=None,
@@ -537,6 +544,7 @@ def _check_sigma(
             coll=coll,
             key=key_diag,
             key_data=key_sigma,
+            key_cam=key_cam,
             flat=True,
         )
 
