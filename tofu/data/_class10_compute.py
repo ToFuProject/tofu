@@ -101,6 +101,15 @@ def compute_inversions(
     if verb >= 1:
         # t0 = time.process_time()
         t0 = time.perf_counter()
+        msg = (
+            f"\n----- Starting inversion {keyinv} ------\n"
+            f"\t- key_diag:   {key_diag}\n"
+            f"\t- key_data:   {key_data}\n"
+            f"\t- key_matrix: {key_matrix}\n"
+            f"\t- algo:       {algo}\n"
+            f"\t- operator:   {operator}\n"
+        )
+        print(msg)
         print("Preparing data... ", end='', flush=True)
 
     # indt (later)
