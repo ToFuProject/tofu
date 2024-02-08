@@ -134,7 +134,7 @@ class Plasma2D(Previous):
             dim = 'time'
 
         return self.get_ref_vector(
-            key=key,
+            key0=key,
             values=t,
             indices=indt,
             ind_strict=ind_strict,
@@ -206,8 +206,7 @@ class Plasma2D(Previous):
         val_out=None,
         nan0=None,
         # plot options
-        vmin=None,
-        vmax=None,
+        dvminmax=None,
         cmap=None,
         dax=None,
         dmargin=None,
@@ -239,8 +238,7 @@ class Plasma2D(Previous):
             val_out=val_out,
             nan0=nan0,
             # plot options
-            vmin=vmin,
-            vmax=vmax,
+            dvminmax=dvminmax,
             cmap=cmap,
             dax=dax,
             dmargin=dmargin,

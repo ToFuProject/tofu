@@ -431,9 +431,11 @@ def _extract(
         ln = [ss for ss in header[1:].strip().split(' ')]
         if len(ln) != 2:
             msg = (
-                "Header format os non-conform!\n"
-                "\t- file: {pfe_in}\n"
-                "\t- header: {header}\n"
+                "Header format is non-conform (use spaces in header)!\n"
+                f"\t- file: {pfe_in}\n"
+                f"\t- header: {header}\n"
+                "Expected:\n"
+                "#   nlos   npts\n(hastag then 2 integers separated by spaces)"
             )
             raise Exception(msg)
 

@@ -101,6 +101,15 @@ def compute_inversions(
     if verb >= 1:
         # t0 = time.process_time()
         t0 = time.perf_counter()
+        msg = (
+            f"\n\n------- Inversion '{keyinv}' --------\n"
+            f"\t- key_diag:   '{key_diag}'\n"
+            f"\t- key_data:   '{key_data}'\n"
+            f"\t- key_matrix: '{key_matrix}'\n"
+            f"\t- algo:       '{algo}'\n"
+            f"\t- operator:   '{operator}'\n"
+        )
+        print(msg)
         print("Preparing data... ", end='', flush=True)
 
     # indt (later)
@@ -120,10 +129,19 @@ def compute_inversions(
     # normalize geometry matrix to avoid having 1e-15 * 1e16
     mmm = matrix
     if hasattr(matrix, 'toarray'):
-        mmm =matrix.toarray()
+        mmm = matrix.toarray()
 
     matnorm = np.mean(np.mean(mmm, axis=-1, where=mmm>0), axis=-1)
     matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
+
+    # --------------------------------
+    # update dconstraints from matnorm
+
+    dcon_norm = _normalize_dconstraints(
+        dcon=dcon,
+        matnorm=matnorm,
+        m3d=m3d,
+    )
 
     # prepare computation intermediates
     precond = None
@@ -204,7 +222,7 @@ def compute_inversions(
             kwdargs=kwdargs,
             method=method,
             options=options,
-            dcon=dcon,
+            dcon=dcon_norm,
             regul=regul,
             maxiter_outer=maxiter_outer,
             # output
@@ -241,7 +259,7 @@ def compute_inversions(
             kwdargs=kwdargs,
             method=method,
             options=options,
-            dcon=dcon,
+            dcon=dcon_norm,
             regul=regul,
             # output
             sol=sol,
@@ -311,6 +329,44 @@ def compute_inversions(
 
     else:
         return sol_full, mu, chi2n, regularity, niter, spec, t
+
+
+
+def _normalize_dconstraints(dcon=None, matnorm=None, m3d=None):
+
+    # ------------
+    # trivial
+
+    if dcon is None or dcon.get('offset') is None:
+        return
+
+    # ------------
+    # non-trivial
+
+    dcon_norm = {
+        k0: v0 for k0, v0 in dcon.items()
+        if k0 in ['hastime', 'indbs', 'indbs_free', 'coefs']
+    }
+
+    if m3d is True:
+        matnu = np.unique(matnorm)
+
+        if matnu.size == 1:
+            dcon_norm['offset'] = dcon['offset'] * matnu
+
+        else:
+            dcon_norm['offset'] = dcon['offset'] * matnorm[:, None]
+            if dcon['hastime'] is False:
+                nt = matnorm.size
+                dcon_norm['coefs'] = [dcon['coefs'][0] for ii in matnorm]
+                dcon_norm['indbs'] = [dcon['indbs'][0] for ii in matnorm]
+                dcon_norm['indbs_free'] = np.repeat(dcon['indbs_free'], nt, axis=0)
+                dcon_norm['hastime'] = True
+
+    elif m3d is False:
+        dcon_norm['offset'] = dcon['offset'] * matnorm
+
+    return dcon_norm
 
 
 # ##################################################################
@@ -531,7 +587,7 @@ def _store(
     coll.update(dobj=dobj, dref=dref, ddata=ddata)
 
     # add synthetic data
-    keyt = coll.get_ref_vector(key=keyinv, ref=reft, **dref_vector)[3]
+    keyt = coll.get_ref_vector(key0=keyinv, ref=reft, **dref_vector)[3]
     data_synth = coll.add_retrofit_data(
         key=kretro,
         key_diag=key_diag,
@@ -1265,7 +1321,7 @@ def _compute_retrofit_data_check(
         keyt = f'{key}_t'
 
     ist_mat = coll.get_ref_vector(
-        key=lkmat[0],
+        key0=lkmat[0],
         **{
             k0: v0 for k0,v0 in dref_vector.items()
             if k0 != 'ref'
@@ -1274,7 +1330,7 @@ def _compute_retrofit_data_check(
         # **dref_vector,
     )[0]
     ist_prof = coll.get_ref_vector(
-        key=key_profile2d,
+        key0=key_profile2d,
         **{
             k0: v0 for k0,v0 in dref_vector.items()
             if k0 != 'ref'
