@@ -198,7 +198,7 @@ def _compute_check(
     # --------------
     # inversion refs
 
-    # refbs = coll.dobj['bsplines'][keybs]['ref-bs']
+    # refbs = coll.dobj['bsplines'][keybs]['ref_bs']
     if hastime:
         refinv = (reft, keybs)
     else:
