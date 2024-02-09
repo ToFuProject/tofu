@@ -50,7 +50,7 @@ def _get_ref_vector_common(
     wbs = coll._which_bsplines
     key_bs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
-    refbs = coll.dobj[wbs][key_bs]['ref-bs']
+    refbs = coll.dobj[wbs][key_bs]['ref_bs']
     lgeom = coll.dobj['geom matrix'][key_matrix]['data']
     for ii, k0 in enumerate(lgeom):
         camdgeom = coll.dobj['camera'][key_cam[ii]]['dgeom']
@@ -124,7 +124,7 @@ def _get_ref_vector_common(
         ]))
 
         key_bs = coll.get_profiles2d()[key_profile2d]
-        refbs = coll.dobj[wbs][key_bs]['ref-bs']
+        refbs = coll.dobj[wbs][key_bs]['ref_bs']
         refi = [
             rr for rr in coll.ddata[key_profile2d]['ref']
             if rr not in refbs
