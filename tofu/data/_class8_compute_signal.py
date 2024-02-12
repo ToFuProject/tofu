@@ -227,12 +227,13 @@ def _store(
     # ---------
     # prepare
 
+    lkcam = list(dout.keys())
     dobj = {
         'synth sig':{
             key: {
                 'diag': key_diag,
-                'camera': list(dout.keys()),
-                'data': [v0['key'] for v0 in dout.values()],
+                'camera': lkcam,
+                'data': [dout[k0]['key'] for k0 in lkcam],
                 # synthetic
                 'integrand': key_integrand,
                 'method': method,
@@ -1062,26 +1063,26 @@ def _compute_vos_broadband(
     for k0, v0 in dvos.items():
 
         # group
-        units_vos = v0['sang']['units']
+        units_vos = v0['sang_cross']['units']
 
         # --------------
         # loop on pixels
 
         shape = None
-        shape_cam = v0['indr']['data'].shape[:-1]
+        shape_cam = v0['indr_cross']['data'].shape[:-1]
         assert shape_cam == coll.dobj['camera'][k0]['dgeom']['shape']
         ref_cam = coll.dobj['camera'][k0]['dgeom']['ref']
         for ind in np.ndindex(shape_cam):
 
             # no valid los in group
-            iok = v0['indr']['data'][ind] >= 0
+            iok = v0['indr_cross']['data'][ind] >= 0
             if not np.any(iok):
                 continue
 
             # vos re-creation
             ind_RZ = tuple(list(ind) + [iok])
-            R = x0u[v0['indr']['data'][ind_RZ]]
-            Z = x1u[v0['indz']['data'][ind_RZ]]
+            R = x0u[v0['indr_cross']['data'][ind_RZ]]
+            Z = x1u[v0['indz_cross']['data'][ind_RZ]]
 
             # -----------------------------
             # interpolate on matching wavelength ?
@@ -1124,7 +1125,7 @@ def _compute_vos_broadband(
             ind_sa[axis] = ind_RZ
             data[tuple(itt.chain.from_iterable(ind_data))] = np.nansum(
                 datai
-                * v0['sang']['data'][tuple(itt.chain.from_iterable(ind_sa))],
+                * v0['sang_cross']['data'][tuple(itt.chain.from_iterable(ind_sa))],
                 axis=axis,
             )
 

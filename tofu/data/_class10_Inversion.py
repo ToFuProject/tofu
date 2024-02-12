@@ -155,8 +155,8 @@ class Inversion(Previous):
     def plot_inversion(
         self,
         key=None,
-        vmin=None,
-        vmax=None,
+        # options
+        dvminmax=None,
         res=None,
         plot_details=None,
         # ref vector specifier
@@ -176,8 +176,7 @@ class Inversion(Previous):
         return _plot.plot_inversion(
             coll=self,
             key=key,
-            vmin=vmin,
-            vmax=vmax,
+            dvminmax=dvminmax,
             res=res,
             plot_details=plot_details,
             # ref vector specifier

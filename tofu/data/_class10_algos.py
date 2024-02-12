@@ -753,16 +753,18 @@ def _augTikho_update(
     mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
     # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d  # rescale mu with noise estimate
 
-    # ---- DEBUG --------
-    # print()
-    # print('\t', conv_reg, d)
-    # print('\t a0bis, b0:', a0bis, b0)
-    # print('\t a1bis, b1', a1bis, b1)
-    # print('\t res2, reg:', res2, reg)
-    # print('\t lamb, tau:', lamb, tau)
-    # print('\t mu comp.:', lamb/tau, (2*a1bis/res2)**d, mu1)
-    # print()
-    # ---- DEBUG END -----
+    if verb >= 3:
+        msg = (
+            f"\n\t\tconv_reg, d = {conv_reg}, {d}\n"
+            f"\t\ta0bis, b0 = {a0bis}, {b0}\n"
+            f"\t\ta1bis, b1 = {a1bis}, {b1}\n"
+            f"\t\tres2, reg = {res2}, {reg}\n"
+            f"\t\tlamb = a0bis/(0.5*reg + b0) = {lamb}\n"
+            f"\t\ttau = a1bis/(0.5*res2 + b1) = {tau}\n"
+            "\t\tmu = (lamb/tau) * (2*a1bis/res2)**d"
+            f" = \t{lamb/tau} * {(2*a1bis/res2)**d} = {mu1}\n"
+        )
+        print(msg)
 
     # Compute convergence variable
     if conv_reg:
