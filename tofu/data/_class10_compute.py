@@ -131,7 +131,8 @@ def compute_inversions(
     if hasattr(matrix, 'toarray'):
         mmm = matrix.toarray()
 
-    matnorm = np.mean(np.mean(mmm, axis=-1, where=mmm>0), axis=-1)
+    mmm = np.mean(mmm, axis=-1, where=mmm>0)
+    matnorm = np.mean(mmm, axis=-1, where=mmm>0)
     matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
 
     # --------------------------------
@@ -180,6 +181,17 @@ def compute_inversions(
                 data[0, indok[0, :]] / np.sum(mat0[indok[0, :], :], axis=1),
             ),
         )
+
+    # Safety check
+    if np.any(~np.isfinite(sol0)):
+        msg = (
+            "sol0 has non-finite values!\n"
+            f"\t- indok: {indok}\n"
+            f"\t- isnan(data[0, ...]): {np.any(~np.isfinite(data[0, ...]))}\n"
+            f"\t- isnan(mat0[0, ...]): {np.any(~np.isfinite(mat0[0, ...]))}\n"
+            f"\t- isnan(sol0): {np.any(~np.isfinite(sol0))}\n"
+        )
+        raise Exception(msg)
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -797,6 +809,24 @@ def _compute_inv_loop(
                 )
             else:
                 sol[ii, :] = sol[ii, :] + dcon['offset'][ic, :]
+
+        # safety check
+        if np.isnan(chi2n[ii]) or np.isnan(regularity[ii]):
+            lk1 = [
+                (sol0[indbsi], 'sol0[indbsi]'),
+                (Tni, 'Tni'),
+                (TTni, 'TTni'),
+                (Tyni, 'Tyni'),
+                (Ri, 'Ri'),
+                (yni, 'yni'),
+            ]
+            lstr = [f"\t- {v1}: {np.any(~np.isfinite(k1))}\n" for (k1, v1) in lk1]
+            msg = (
+                "non-finite inversion step (post):\n"
+                + "".join(lstr)
+                + f"\t- mu0: {mu0}\n"
+            )
+            raise Exception(msg)
 
         # post
         if chain:
