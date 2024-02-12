@@ -1783,6 +1783,7 @@ def _dvalid_checkfocus(
 
 
 def fit12d_dvalid(
+    mode=None,
     data=None, lamb=None, phi=None,
     indok_bool=None, binning=None,
     valid_nsigma=None, valid_fraction=None,
@@ -1862,12 +1863,26 @@ def fit12d_dvalid(
         for ii in range(knots.size - 1):
             iphi = (phi >= knots[ii]) & (phi < knots[ii + 1])
             fract[:, ii, :] = (
-                np.sum(np.sum(indall & iphi[None, ..., None],
-                              axis=1), axis=1)
-                / np.sum(np.sum(iphi[..., None] & lambok,
-                                axis=0), axis=0)
+                np.sum(
+                    np.sum(
+                        indall & iphi[None, ..., None],
+                        axis=1
+                    ),
+                    axis=1
+                )
+                / np.sum(
+                    np.sum(
+                        iphi[..., None] & lambok,
+                        axis=0
+                    ),
+                    axis=0
+                )
             )
-        indknots = np.all(fract > valid_fraction, axis=2)
+
+        if mode == 'raw':
+            indknots = np.all(fract > valid_fraction, axis=2)
+        elif mode == 'simul':
+            indknots = np.any(fract > valid_fraction, axis=2)
 
         # Deduce ldphi
         ldphi = [[] for ii in range(nspect)]
@@ -2221,6 +2236,7 @@ def fit1d_dinput(
 
 
 def fit2d_dinput(
+    mode=None,
     dlines=None, dconstraints=None, dconstants=None, dprepare=None,
     deg=None, nbsplines=None, knots=None,
     data=None, lamb=None, phi=None, mask=None,
@@ -2340,6 +2356,7 @@ def fit2d_dinput(
     # S/N threshold indices
     # ------------------------
     dinput['valid'] = fit12d_dvalid(
+        mode=mode,
         data=dprepare['data'],
         lamb=dprepare['lamb'],
         phi=dprepare['phi'],

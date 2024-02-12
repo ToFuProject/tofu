@@ -946,42 +946,66 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
 
 
 def CrystalBragg_plot_line_tracing_on_det(
-    cryst=None, dcryst=None,
+    cryst=None,
+    dcryst=None,
     lamb=None,
-    xi=None, xj=None, xi_er=None, xj_er=None,
-    power_ratio=None, dth=None, ndth=None, nn=None,
-    xi_rc=None, xj_rc=None,
+    dlamb=None,
+    xi=None,
+    xj=None,
+    xi_er=None,
+    xj_er=None,
+    power_ratio=None,
+    dth=None,
+    ndth=None,
+    nn=None,
+    xi_rc=None,
+    xj_rc=None,
     xi_atprmax=None,
     bragg_atprmax=None,
     lamb_atprmax=None,
     det=None,
-    johann=None, rocking=None,
+    johann=None,
+    rocking=None,
     miscut=None,
     therm_exp=None,
     merge_rc_data=None,
-    alpha0=None, temp0=None, TD=None, angles=None,
+    alpha0=None,
+    temp0=None,
+    TD=None,
+    angles=None,
     id_temp0=None,
-    ax=None, dleg=None, color=None,
-    fs=None, dmargin=None, wintit=None, tit=None,
+    ax=None,
+    dleg=None,
+    color=None,
+    fs=None,
+    dmargin=None,
+    wintit=None,
+    tit=None,
+    plot_perfect=None,
 ):
 
-    # Check inputs
     # ------------
+    # Check inputs
 
     if dleg is None:
         dleg = {
             'loc': 'upper left',
-            'fontsize': 13,
+            'fontsize': 10,
+            'bbox_to_anchor': (1., 1.),
         }
     if color is None:
         color = 'k'
-
     if fs is None:
-        fs = (8, 8)
+        fs = 15
     if dmargin is None:
-        dmargin = {'left': 0.15, 'right': 0.95,
-                   'bottom': 0.08, 'top': 0.92,
-                   'wspace': None, 'hspace': 0.4}
+        dmargin = {
+            'top': 0.950,
+            'bottom': 0.070,
+            'left': 0.070,
+            'right': 0.750,
+            'hspace': 0.200,
+            'wspace': 0.200,
+        }
 
     if wintit is None:
         wintit = _WINTIT
@@ -993,22 +1017,32 @@ def CrystalBragg_plot_line_tracing_on_det(
             tit += " - rocking curve"
 
     plot_err = johann is True or rocking is True
-    markers = ['o', '^', 'D', 's', 'X']
-    colors = ['r', 'g', 'c', 'b', 'k']
+    markers = [
+        'o', 'v', '8', 's', 'P',
+        '*', 'H', '+', 'X', 'D',
+        '^', 'p', 'h', 'x', 'd',
+    ]
+    colors = [
+        'b', 'g', 'r', 'c', 'm',
+        'y', 'k', 'orange', 'purple', 'brown',
+        'pink', 'gray', 'olive', 'coral', 'royalblue',
+    ]
 
-    # Plot
     # ------------
+    # Plot
 
     if ax is None:
-        fig = plt.figure(figsize=fs)
+        fig = plt.figure()
         gs = gridspec.GridSpec(1, 1, **dmargin)
         ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
         if wintit is not False:
             fig.canvas.manager.set_window_title(wintit)
         if tit is not False:
             fig.suptitle(tit, size=14, weight='bold')
-        ax.set_xlabel(r'Pixel coordinate $x_{i}$ [m]', fontsize=15)
-        ax.set_ylabel(r'Pixel coordinate $x_{j}$ [m]', fontsize=15)
+        ax.set_xlabel(r'Pixel coordinate $x_{i}$ [m]', fontsize=fs)
+        ax.set_ylabel(r'Pixel coordinate $x_{j}$ [m]', fontsize=fs)
+        ax.tick_params(labelsize=fs)
+
         ax.set_xlim(
             det['outline'][0, :].min() - 0.01,
             det['outline'][0, :].max() + 0.01,
@@ -1017,11 +1051,14 @@ def CrystalBragg_plot_line_tracing_on_det(
             det['outline'][1, :].min() - 0.01,
             det['outline'][1, :].max() + 0.01,
         )
+
     if det.get('outline') is not None:
         ax.plot(
-            det['outline'][0, :], det['outline'][1, :],
+            det['outline'][0, :],
+            det['outline'][1, :],
             ls='-', lw=1., c='k',
         )
+
     aa = np.r_[cryst.dmat['alpha']]
     if therm_exp and merge_rc_data:
         bb = TD[id_temp0]
@@ -1029,43 +1066,84 @@ def CrystalBragg_plot_line_tracing_on_det(
         bb = temp0
     else:
         bb = 0.
-    for ll in range(lamb.size):
-        lab = (
-            r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6)) + '\n'
-            + r'$\Delta$T = {} °C, $\alpha$ = {} deg'.format(
-                bb, aa[0]*(180./np.pi)
+
+    if plot_perfect:
+        for kk in range(lamb.size):
+            lkey = list(dlamb.keys())
+            lval = list(dlamb.values())
+            try:
+                pos = lval.index(lamb[kk])
+                key = lkey[pos][:8]
+                lab = (
+                    r'$\lambda$ = {} A ({}), $\Delta$T = {}°C, $\alpha$ = {}deg'.format(
+                        np.round(lamb[kk]*1e10, 4),
+                        key,
+                        bb,
+                        aa[0]*(180./np.pi),
+                    )
+                )
+            except Exception as err:
+                lab = (
+                    r'$\lambda$ = {} A, $\Delta$T = {}°C, $\alpha$ = {}deg'.format(
+                        np.round(lamb[kk]*1e10, 4),
+                        bb,
+                        aa[0]*(180./np.pi),
+                    )
+                )
+            l0, = ax.plot(
+                xi[kk, :],
+                xj[kk, :],
+                ls='--',
+                lw=1.,
+                marker=markers[kk],
+                ms=8.,
+                c=colors[kk],
+                label=lab,
             )
-        )
-        l0, = ax.plot(
-            xi[ll, :], xj[ll, :],
-            ls='--', lw=1.,
-            marker=markers[ll], ms=4.,
-            c=color,
-            label=lab,
-        )
-        if plot_err:
-            ax.plot(
-                xi_er[ll, ...], xj_er[ll, ...],
-                ls='None', lw=1., c=l0.get_color(),
-                ms=4, marker='.',
-            )
+            if plot_err:
+                ax.plot(
+                    xi_er[kk, ...],
+                    xj_er[kk, ...],
+                    ls='None',
+                    lw=1.,
+                    c=colors[kk],
+                    ms=8,
+                    marker='.',
+                )
+
     if merge_rc_data:
-        for ll in range(lamb.size):
+        for kk in range(lamb.size):
             for mm in range(ndth):
                 if mm == int(ndth/2.):
-                    label = r'At $x_j$=0.: $x_i$={}, $\lambda$={}A'.format(
-                        np.round(xi_atprmax[ll], 6),
-                        np.round(lamb_atprmax[ll], 16),
-                        # np.round(bragg_atprmax[ll]*(180./np.pi), 4),
-                    )
+                    lkey = list(dlamb.keys())
+                    lval = list(dlamb.values())
+                    try:
+                        pos = lval.index(lamb[kk])
+                        key = lkey[pos][:8]
+                        label = (
+                            r'At $x_j$=0.: $x_i$={}, $\lambda$={} A ({})'.format(
+                                np.round(xi_atprmax[kk][0], 4),
+                                np.round(lamb_atprmax[kk][0], 14),
+                                key,
+                            )
+                        )
+                    except Exception as err:
+                        label = (
+                            r'At $x_j$=0.: $x_i$={}, $\lambda$={} A'.format(
+                                np.round(xi_atprmax[kk][0], 4),
+                                np.round(lamb_atprmax[kk][0], 14),
+                            )
+                        )
                 else:
                     label = None
-                pr1 = power_ratio[ll, 0, 0, 0, mm]
-                pr2 = power_ratio[ll, 1, 0, 0, mm]
+                pr1 = power_ratio[kk, 0, 0, 0, mm]
+                pr2 = power_ratio[kk, 1, 0, 0, mm]
                 ax.plot(
-                    xi_rc[ll, mm, :], xj_rc[ll, mm, :],
-                    ls='-', lw=1.,
-                    c=l0.get_color(),
+                    xi_rc[kk, mm, :],
+                    xj_rc[kk, mm, :],
+                    ls='-',
+                    lw=1.,
+                    c=colors[kk],
                     alpha=pr1 + pr2,
                     label=label,
                 )
@@ -1114,7 +1192,7 @@ def CrystalBragg_plot_angular_shift_on_det_tracing(
     # Plot
     # ------------
 
-    fig = plt.figure(figsize=fs)
+    fig = plt.figure()
     gs = gridspec.GridSpec(1, 3)  # , **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
     ax0.set_title('Pixel offset [m]', fontsize=20)
@@ -1236,7 +1314,7 @@ def CrystalBragg_plot_johannerror(
 
     # Plot
     # ------------
-    fig = plt.figure(figsize=fs)
+    fig = plt.figure()
     gs = gridspec.GridSpec(1, 3, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal')     # adjustable='datalim')
     ax1 = fig.add_subplot(
