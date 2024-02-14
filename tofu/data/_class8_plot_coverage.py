@@ -336,14 +336,13 @@ def _plot(
 
         if dmargin is None:
             dmargin = {
-                'left': 0.05, 'right': 0.98,
-                'bottom': 0.05, 'top': 0.95,
-                'hspace': 0.20, 'wspace': 0.25,
+                'left': 0.05, 'right': 0.95,
+                'bottom': 0.06, 'top': 0.90,
+                'hspace': 0.20, 'wspace': 0.40,
             }
 
         fig = plt.figure(figsize=fs)
-        fig.suptitle(tit, size=14, fontweight='bold')
-        gs = gridspec.GridSpec(ncols=17, nrows=1, **dmargin)
+        gs = gridspec.GridSpec(ncols=16, nrows=1, **dmargin)
 
         # ax0 = spans
         ax0 = fig.add_subplot(gs[0, :6], aspect='equal', adjustable='box')
@@ -352,13 +351,12 @@ def _plot(
         ax0.set_title("spans", size=14, fontweight='bold')
 
         # ax1 = nb of detectors
-        ax1 = fig.add_subplot(gs[0, 10:], sharex=ax0, sharey=ax0)
+        ax1 = fig.add_subplot(gs[0, 9:], sharex=ax0, sharey=ax0)
         ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
         ax1.set_xlabel('R (m)', size=12, fontweight='bold')
         ax1.set_title("nb. of detectors", size=14, fontweight='bold')
 
-        cax = fig.add_subplot(gs[0, 16])
-
+        cax = fig.add_subplot(gs[0, 15])
         dax = {'span': ax0, 'ndet': ax1}
 
     # ---------------
@@ -407,5 +405,7 @@ def _plot(
         for kax in ['span', 'ndet']:
             if dax.get(kax) is not None:
                 config.plot(lax=dax[kax], proj='cross', dLeg=False)
+
+    fig.suptitle(tit, size=14, fontweight='bold')
 
     return dax
