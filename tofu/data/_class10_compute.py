@@ -820,14 +820,26 @@ def _compute_inv_loop(
                 (Ri, 'Ri'),
                 (yni, 'yni'),
             ]
-            lstr = [
-                f"\t- {v1}: {np.any(~np.isfinite(k1)) if isinstance(k1, np.ndarray) else type(k1)}\n"
-                for (k1, v1) in lk1
-            ]
+            lstr = []
+            for (k1, v1) in lk1:
+                if scpsp.issparse(k1):
+                    k1 = np.any(~np.isfinite(k1.toarray()))
+                elif isinstance(k1, np.ndarray):
+                    k1 = np.any(~np.isfinite(k1))
+                else:
+                    k1 = type(k1)
+                lstr.append(f"\t- {v1}: {k1}")
             msg = (
                 "Non-finite inversion step (post-check):\n"
                 + "".join(lstr)
+                + f"\t- ii: {ii} / {nt-1}\n"
                 + f"\t- mu0: {mu0}\n"
+                + f"\t- nbs: {nbs}\n"
+                + f"\t- nchan: {nchan}\n"
+                + f"\t- algo: {dalgo['name']}\n"
+                + f"\t- pos: {positive}\n"
+                + f"\t- chain: {chain}\n"
+                + f"\t- method: {method}\n"
             )
             raise Exception(msg)
 
