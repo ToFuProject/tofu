@@ -811,7 +811,7 @@ def _compute_inv_loop(
                 sol[ii, :] = sol[ii, :] + dcon['offset'][ic, :]
 
         # safety check
-        if np.isnan(chi2n[ii]) or np.isnan(regularity[ii]):
+        if np.isnan(chi2n[ii]):
             lk1 = [
                 (sol0[indbsi], 'sol0[indbsi]'),
                 (Tni, 'Tni'),
@@ -839,9 +839,12 @@ def _compute_inv_loop(
                 "Non-finite inversion step (post-check):\n"
                 + "\n".join(lstr)
                 + f"\n\t- ii: {ii} / {nt-1}\n"
+                + f"\t- chi2n[ii]: {chi2n[ii]}\n"
+                + f"\t- regularity[ii]: {regularity[ii]}\n"
                 + f"\t- mu0: {mu0}\n"
                 + f"\t- nbs: {nbs}\n"
                 + f"\t- nchan: {nchan}\n"
+                + f"\t- regul: {regul}\n"
                 + f"\t- algo: {dalgo['name']}\n"
                 + f"\t- pos: {positive}\n"
                 + f"\t- chain: {chain}\n"
