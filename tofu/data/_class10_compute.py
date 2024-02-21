@@ -131,7 +131,8 @@ def compute_inversions(
     if hasattr(matrix, 'toarray'):
         mmm = matrix.toarray()
 
-    matnorm = np.mean(np.mean(mmm, axis=-1, where=mmm>0), axis=-1)
+    mmm = np.mean(mmm, axis=-1, where=mmm>0)
+    matnorm = np.mean(mmm, axis=-1, where=mmm>0)
     matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
 
     # --------------------------------
@@ -180,6 +181,17 @@ def compute_inversions(
                 data[0, indok[0, :]] / np.sum(mat0[indok[0, :], :], axis=1),
             ),
         )
+
+    # Safety check
+    if np.any(~np.isfinite(sol0)):
+        msg = (
+            "sol0 has non-finite values!\n"
+            f"\t- indok: {indok}\n"
+            f"\t- isnan(data[0, ...]): {np.any(~np.isfinite(data[0, ...]))}\n"
+            f"\t- isnan(mat0[0, ...]): {np.any(~np.isfinite(mat0[0, ...]))}\n"
+            f"\t- isnan(sol0): {np.any(~np.isfinite(sol0))}\n"
+        )
+        raise Exception(msg)
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -797,6 +809,49 @@ def _compute_inv_loop(
                 )
             else:
                 sol[ii, :] = sol[ii, :] + dcon['offset'][ic, :]
+
+        # safety check
+        if np.isnan(chi2n[ii]) or (regul and np.isnan(regularity[ii])):
+            lk1 = [
+                (sol0[indbsi], 'sol0[indbsi]'),
+                (Tni, 'Tni'),
+                (TTni, 'TTni'),
+                (Tyni, 'Tyni'),
+                (Ri, 'Ri'),
+                (yni, 'yni'),
+            ]
+            lstr = []
+            for (k1, v1) in lk1:
+                if scpsp.issparse(k1):
+                    k1 = (
+                        f"isnan {np.any(np.isnan(k1.toarray()))}   "
+                        f"isinf {np.any(np.isinf(k1.toarray()))}"
+                    )
+                elif isinstance(k1, np.ndarray):
+                    k1 = (
+                        f"isnan {np.any(np.isnan(k1))}   "
+                        f"isinf {np.any(np.isinf(k1))}"
+                    )
+                else:
+                    k1 = type(k1)
+                lstr.append(f"\t- {v1}: {k1}")
+            msg = (
+                "Non-finite inversion step (post-check):\n"
+                + "\n".join(lstr)
+                + f"\n\t- ii: {ii} / {nt-1}\n"
+                + f"\t- chi2n[ii]: {chi2n[ii]}\n"
+                + f"\t- regularity[ii]: {regularity[ii]}\n"
+                + f"\t- mu0: {mu0}\n"
+                + f"\t- nbs: {nbs}\n"
+                + f"\t- nchan: {nchan}\n"
+                + f"\t- regul: {regul}\n"
+                + f"\t- algo: {dalgo['name']}\n"
+                + f"\t- pos: {positive}\n"
+                + f"\t- chain: {chain}\n"
+                + f"\t- method: {method}\n"
+                + f"\t- dcon is not None: {dcon is not None}\n"
+            )
+            raise Exception(msg)
 
         # post
         if chain:

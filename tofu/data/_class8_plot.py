@@ -380,9 +380,10 @@ def _plot_diagnostic(
         keyz = coll.get_ref_vector(ref=refz)[3]
         nz = ddata[k0].shape[daxis[k0]]
 
-        keyz, zstr, dataz, dz2, labz = ds._plot_as_array._get_str_datadlab(
+        keyz, zstr, dz2, labz = ds._generic_utils_plot._get_str_datadlab(
             keyX=keyz, nx=nz, islogX=False, coll=coll,
         )
+        dataz = coll.ddata[keyz]['data']
 
         npts = 0
         for k0 in key_cam:
