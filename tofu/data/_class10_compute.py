@@ -823,16 +823,22 @@ def _compute_inv_loop(
             lstr = []
             for (k1, v1) in lk1:
                 if scpsp.issparse(k1):
-                    k1 = np.any(~np.isfinite(k1.toarray()))
+                    k1 = (
+                        f"isnan {np.any(np.isnan(k1.toarray()))}   "
+                        f"isinf {np.any(np.isinf(k1.toarray()))}"
+                    )
                 elif isinstance(k1, np.ndarray):
-                    k1 = np.any(~np.isfinite(k1))
+                    k1 = (
+                        f"isnan {np.any(np.isnan(k1))}   "
+                        f"isinf {np.any(np.isinf(k1))}"
+                    )
                 else:
                     k1 = type(k1)
                 lstr.append(f"\t- {v1}: {k1}")
             msg = (
                 "Non-finite inversion step (post-check):\n"
-                + "".join(lstr)
-                + f"\t- ii: {ii} / {nt-1}\n"
+                + "\n".join(lstr)
+                + f"\n\t- ii: {ii} / {nt-1}\n"
                 + f"\t- mu0: {mu0}\n"
                 + f"\t- nbs: {nbs}\n"
                 + f"\t- nchan: {nchan}\n"
@@ -840,6 +846,7 @@ def _compute_inv_loop(
                 + f"\t- pos: {positive}\n"
                 + f"\t- chain: {chain}\n"
                 + f"\t- method: {method}\n"
+                + f "\t- dcon is not None: {dcon is not None}\n"
             )
             raise Exception(msg)
 
