@@ -820,7 +820,10 @@ def _compute_inv_loop(
                 (Ri, 'Ri'),
                 (yni, 'yni'),
             ]
-            lstr = [f"\t- {v1}: {np.any(~np.isfinite(k1))}\n" for (k1, v1) in lk1]
+            lstr = [
+                f"\t- {v1}: {k1 if k1 is None else np.any(~np.isfinite(k1))}\n"
+                for (k1, v1) in lk1
+            ]
             msg = (
                 "non-finite inversion step (post):\n"
                 + "".join(lstr)
