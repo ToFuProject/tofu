@@ -811,7 +811,7 @@ def _compute_inv_loop(
                 sol[ii, :] = sol[ii, :] + dcon['offset'][ic, :]
 
         # safety check
-        if np.isnan(chi2n[ii]):
+        if np.isnan(chi2n[ii]) or (regul and np.isnan(regularity[ii])):
             lk1 = [
                 (sol0[indbsi], 'sol0[indbsi]'),
                 (Tni, 'Tni'),
