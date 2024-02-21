@@ -1810,7 +1810,7 @@ def _concatenate_data_check(
     if len(dout) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
         msg = (
-            f"The following data refers to no known camera in diag '{key}:\n"
+            f"The following data refers to no known camera in diag '{key}':\n"
             + "\n".join(lstr)
         )
         raise Exception(msg)
