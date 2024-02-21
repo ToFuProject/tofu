@@ -846,7 +846,7 @@ def _compute_inv_loop(
                 + f"\t- pos: {positive}\n"
                 + f"\t- chain: {chain}\n"
                 + f"\t- method: {method}\n"
-                + f "\t- dcon is not None: {dcon is not None}\n"
+                + f"\t- dcon is not None: {dcon is not None}\n"
             )
             raise Exception(msg)
 
