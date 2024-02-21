@@ -452,6 +452,7 @@ class Rays(Previous):
         # ---------------
         # options
         outline_only=None,
+        include_centroid=None,
         factor=None,
         color=None,
         # ---------------
@@ -489,6 +490,7 @@ class Rays(Previous):
             # ---------------
             # options
             outline_only=outline_only,
+            include_centroid=include_centroid,
             factor=factor,
             color=color,
             # ---------------
