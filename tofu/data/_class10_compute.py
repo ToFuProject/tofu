@@ -821,11 +821,11 @@ def _compute_inv_loop(
                 (yni, 'yni'),
             ]
             lstr = [
-                f"\t- {v1}: {k1 if k1 is None else np.any(~np.isfinite(k1))}\n"
+                f"\t- {v1}: {np.any(~np.isfinite(k1)) if isinstance(k1, np.ndarray) else type(k1)}\n"
                 for (k1, v1) in lk1
             ]
             msg = (
-                "non-finite inversion step (post):\n"
+                "Non-finite inversion step (post-check):\n"
                 + "".join(lstr)
                 + f"\t- mu0: {mu0}\n"
             )
