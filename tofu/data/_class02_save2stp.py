@@ -874,7 +874,7 @@ def _get_data(
         },
         'CARTESIAN_POINT0': {
             'order': 14,
-            'str': 'CARTESIAN_POINT('',(0.,0.,0.));',
+            'str': "CARTESIAN_POINT('',(0.,0.,0.));",
         },
         'CARTESIAN_POINT': {
             'order': 15,
