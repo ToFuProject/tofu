@@ -1524,8 +1524,8 @@ def CrystalBragg_plot_atomic_scattering_factor(
     )
     ax.set_title(
         r'$\lambda$={}$\AA$, $\theta_{B,ref}$={}rad'.format(
-            np.round( lamb[0], 4),
-            np.round( theta[0], 4),
+            np.round(lamb[0], 4),
+            np.round(theta[0], 4),
         ),
         fontsize=fs
     )
@@ -1651,28 +1651,28 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         ax01.grid()
         ax01.tick_params(labelsize=fs)
         ax01.set_ylim(0., 1.)
-        ax00 = fig1.add_subplot(gs[0, 0], sharey = ax01)
+        ax00 = fig1.add_subplot(gs[0, 0], sharey=ax01)
         ax00.grid()
         ax00.tick_params(labelsize=fs)
-        ax02 = fig1.add_subplot(gs[0, 2], sharey = ax01)
+        ax02 = fig1.add_subplot(gs[0, 2], sharey=ax01)
         ax02.grid()
         ax02.tick_params(labelsize=fs)
-        ax11 = fig1.add_subplot(gs[1, 1], sharey = ax01)
+        ax11 = fig1.add_subplot(gs[1, 1], sharey=ax01)
         ax11.grid()
         ax11.tick_params(labelsize=fs)
-        ax10 = fig1.add_subplot(gs[1, 0], sharey = ax01)
+        ax10 = fig1.add_subplot(gs[1, 0], sharey=ax01)
         ax10.grid()
         ax10.tick_params(labelsize=fs)
-        ax12 = fig1.add_subplot(gs[1, 2], sharey = ax01)
+        ax12 = fig1.add_subplot(gs[1, 2], sharey=ax01)
         ax12.grid()
         ax12.tick_params(labelsize=fs)
-        ax21 = fig1.add_subplot(gs[2, 1], sharey = ax01)
+        ax21 = fig1.add_subplot(gs[2, 1], sharey=ax01)
         ax21.grid()
         ax21.tick_params(labelsize=fs)
-        ax20 = fig1.add_subplot(gs[2, 0], sharey = ax01)
+        ax20 = fig1.add_subplot(gs[2, 0], sharey=ax01)
         ax20.grid()
         ax20.tick_params(labelsize=fs)
-        ax22 = fig1.add_subplot(gs[2, 2], sharey = ax01)
+        ax22 = fig1.add_subplot(gs[2, 2], sharey=ax01)
         ax22.grid()
         ax22.tick_params(labelsize=fs)
         fig1.suptitle(
@@ -1757,10 +1757,13 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                         label=r'parallel pola.',
                     )
                 else:
+                    total_power_ratio = (
+                        power_ratio[0, 0, j, :] + power_ratio[1, 0, j, :]
+                    )
                     ax.text(
                         dth[0, 0, j, ind],
                         np.max(
-                            power_ratio[0, 0, j, :] + power_ratio[1, 0, j, :] + 0.005
+                            total_power_ratio + 0.005
                         ),
                         '({})'.format(let_keydd),
                         c=c_keydd,
@@ -1835,10 +1838,13 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                         label=r'parallel pola.',
                     )
                 else:
+                    total_power_ratio = (
+                        power_ratio[0, i, 0, :] + power_ratio[1, i, 0, :]
+                    )
                     ax.text(
                         dth[0, i, 0, ind],
                         np.max(
-                            power_ratio[0, i, 0, :] + power_ratio[1, i, 0, :] + 0.005
+                            total_power_ratio + 0.005
                         ),
                         '({})'.format(let_keydd),
                         c=c_keydd,
