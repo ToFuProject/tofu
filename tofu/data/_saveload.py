@@ -31,11 +31,13 @@ def load(
     # --------------------
     # use datastock.load()
 
-    from ._class10_Inversion import Inversion as Collection
+    if cls is None:
+        from ._class10_Inversion import Inversion as Collection
+        cls = Collection
 
     coll = bs2.load(
         pfe=pfe,
-        cls=Collection,
+        cls=cls,
         allow_pickle=allow_pickle,
         sep=sep,
         verb=verb,

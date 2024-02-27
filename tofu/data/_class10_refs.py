@@ -50,7 +50,7 @@ def _get_ref_vector_common(
     wbs = coll._which_bsplines
     key_bs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
-    refbs = coll.dobj[wbs][key_bs]['ref-bs']
+    refbs = coll.dobj[wbs][key_bs]['ref_bs']
     lgeom = coll.dobj['geom matrix'][key_matrix]['data']
     for ii, k0 in enumerate(lgeom):
         camdgeom = coll.dobj['camera'][key_cam[ii]]['dgeom']
@@ -94,7 +94,23 @@ def _get_ref_vector_common(
                 rr for rr in coll.ddata[k0]['ref']
                 if rr not in coll.dobj['camera'][key_cam[ii]]['dgeom']['ref']
             ]
-            assert len(refi) <= 1
+
+            if len(refi) > 1:
+                msg = (
+                    "Multiple possible non-camera refs for ddata[k0]:\n"
+                    f"\t- k0: {k0}\n"
+                    f"\t- ii: {ii}\n"
+                    f"\t- key_cam[ii]: {key_cam[ii]}\n"
+                    f"\t- coll.dobj['camera']['{key_cam[ii]}']['dgeom']['ref']: {coll.dobj['camera'][key_cam[ii]]['dgeom']['ref']}\n"
+                    f"\t- coll.ddata['{k0}']['ref']: {coll.ddata[k0]['ref']}\n"
+                    f"\t- refi: {refi}\n"
+                    f"\t- key_cam: {key_cam}\n"
+                    f"\t- key_matrix: {key_matrix}\n"
+                    f"\t- key_profile2d: {key_profile2d}\n"
+                    f"\t- strategy: {strategy}\n"
+                )
+                raise Exception(msg)
+
             if len(refi) == 0:
                 assert refc1 is None
             elif len(refi) == 1:
@@ -124,7 +140,7 @@ def _get_ref_vector_common(
         ]))
 
         key_bs = coll.get_profiles2d()[key_profile2d]
-        refbs = coll.dobj[wbs][key_bs]['ref-bs']
+        refbs = coll.dobj[wbs][key_bs]['ref_bs']
         refi = [
             rr for rr in coll.ddata[key_profile2d]['ref']
             if rr not in refbs

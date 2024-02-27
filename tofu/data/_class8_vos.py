@@ -864,11 +864,17 @@ def _check_get_dvos(
             'ph', 'ncounts', 'cos',
             'dV', 'etendlen',
         ]
+        lk_opt = []
+
     else:
         lk = [
-            'sang_cross', 'sang_3d',
+            'sang_cross',
+        ]
+
+        lk_opt = [
+            'sang_3d',
             'indr_3d', 'indz_3d', 'phi_3d',
-            'vectx_3d', 'vecty_3d', 'vectz_3d',
+            'vectx_3d', 'vecty_3d', 'vectz_3d'
         ]
 
     lkcom = ['keym', 'indr_cross', 'indz_cross']

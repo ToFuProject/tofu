@@ -245,37 +245,22 @@ class Test01_Inversions():
                     continue
 
                 kdat = 's0' if kd == 'd0' else 's1'
-                try:
-
-                    self.coll.add_inversion(
-                        algo=comb[0],
-                        key_matrix=kmat,
-                        key_data=kdat,
-                        sigma=0.10,
-                        operator=comb[1],
-                        store=jj%2 == 0,
-                        conv_crit=1.e-3,
-                        kwdargs={'tol': 1.e-2, 'maxiter': 100},
-                        maxiter_outer=10,
-                        dref_vector={'units': 's'},
-                        verb=1,
-                    )
-                    ksig = f'{kdat}-sigma'
-                    if ksig in self.coll.ddata.keys():
-                        self.coll.remove_data(ksig)
-
-                except Exception as err:
-                    c0 = (
-                        dalgo[comb[0]]['source'] == 'tomotok'
-                        and comb[1] == 'D1N2'
-                        and kmat == 'matrix0'
-                    )
-                    if c0:
-                        # Discrete gradient seem to be not positive-definite
-                        # To be investigated...
-                        pass
-                    else:
-                        raise err
+                self.coll.add_inversion(
+                    algo=comb[0],
+                    key_matrix=kmat,
+                    key_data=kdat,
+                    sigma=0.10,
+                    operator=comb[1],
+                    store=jj%2 == 0,
+                    conv_crit=1.e-3,
+                    kwdargs={'tol': 1.e-2, 'maxiter': 100},
+                    maxiter_outer=10,
+                    dref_vector={'units': 's'},
+                    verb=1,
+                )
+                ksig = f'{kdat}-sigma'
+                if ksig in self.coll.ddata.keys():
+                    self.coll.remove_data(ksig)
 
         # plotting
         linv = list(self.coll.dobj['inversions'].keys())[::7]

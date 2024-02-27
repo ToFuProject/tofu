@@ -1742,21 +1742,26 @@ def _concatenate_data_check(
     coll=None,
     key=None,
     key_data=None,
+    key_cam=None,
     flat=None,
 ):
 
-    # ------------
-    # key
+    # ---------------
+    # key and key_cam
+    # ---------------
 
-    key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=None)
+    key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
     spectro = coll.dobj['diagnostic'][key]['spectro']
     is2d = coll.dobj['diagnostic'][key]['is2d']
     stack = coll.dobj['diagnostic'][key]['stack']
 
     # ------------
     # key_data
+    # ------------
 
+    # ----------
     # key_data
+
     if isinstance(key_data, str):
 
         if key_data in coll.ddata.keys():
@@ -1774,7 +1779,10 @@ def _concatenate_data_check(
 
             key_data = coll.dobj['synth sig'][key_data]['data']
 
-    # basic check
+    # ------------------------
+    # basic consistency check
+    # ------------------------
+
     c0 = (
         isinstance(key_data, list)
         and all([
@@ -1789,7 +1797,11 @@ def _concatenate_data_check(
         )
         raise Exception(msg)
 
+    # ---------------
     # check cameras
+    # ---------------
+
+    # get excluded cameras, if any
     dout = {
         k0: coll.ddata[k0].get('camera')
         for k0 in key_data
@@ -1798,7 +1810,7 @@ def _concatenate_data_check(
     if len(dout) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
         msg = (
-            f"The following data refers to no known camera in diag '{key}:\n"
+            f"The following data refers to no known camera in diag '{key}':\n"
             + "\n".join(lstr)
         )
         raise Exception(msg)
@@ -1813,14 +1825,13 @@ def _concatenate_data_check(
         )
         raise Exception(msg)
 
-    # re-order
-    lk = []
-    for k0 in coll.dobj['diagnostic'][key]['camera']:
-        if k0 in lcam:
-            lk.append(key_data[lcam.index(k0)])
+    key_cam = [k0 for k0 in key_cam if k0 in lcam]
 
-    key_data = lk
-    lcam = [coll.ddata[k0]['camera'] for k0 in key_data]
+    # ------------
+    # re-order
+    # -------------
+
+    key_data = [key_data[lcam.index(k0)] for k0 in key_cam]
 
     # ref uniformity
     lref = [coll.ddata[k0]['ref'] for k0 in key_data]
@@ -1832,11 +1843,14 @@ def _concatenate_data_check(
         )
         raise Exception(msg)
 
-    # ref axis
+    # -------------
+    # ref and axis
+    # -------------
+
     laxcam = [
         [
             ref.index(rr)
-            for rr in coll.dobj['camera'][lcam[ii]]['dgeom']['ref']
+            for rr in coll.dobj['camera'][key_cam[ii]]['dgeom']['ref']
         ]
         for ii, ref in enumerate(lref)
     ]
@@ -1870,8 +1884,9 @@ def _concatenate_data_check(
     for ii in axcam:
         ref[ii] = None
 
-    # ------
+    # --------
     # flat
+    # --------
 
     flat = ds._generic_check._check_var(
         flat, 'flat',
@@ -1886,6 +1901,7 @@ def _concatenate_data(
     coll=None,
     key=None,
     key_data=None,
+    key_cam=None,
     flat=None,
 ):
 
@@ -1896,6 +1912,7 @@ def _concatenate_data(
         coll=coll,
         key=key,
         key_data=key_data,
+        key_cam=key_cam,
         flat=flat,
     )
 

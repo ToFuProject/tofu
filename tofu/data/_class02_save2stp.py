@@ -48,6 +48,7 @@ def main(
     # ---------------
     # options
     outline_only=None,
+    include_centroid=None,
     factor=None,
     color=None,
     # ---------------
@@ -97,7 +98,9 @@ def main(
         key, key_cam,
         ptsx, ptsy, ptsz,
         pfe_in,
-        outline_only, factor, color,
+        outline_only,
+        include_centroid,
+        factor, color,
         iso,
         pfe_save, overwrite,
     ) = _check(
@@ -110,6 +113,7 @@ def main(
         pfe_in=pfe_in,
         # options
         outline_only=outline_only,
+        include_centroid=include_centroid,
         factor=factor,
         color=color,
         # saving
@@ -131,6 +135,7 @@ def main(
         ptsy=ptsy,
         ptsz=ptsz,
         outline_only=outline_only,
+        include_centroid=include_centroid,
         pfe_in=pfe_in,
         fname=fname,
     )
@@ -198,6 +203,7 @@ def _check(
     pfe_in=None,
     # options
     outline_only=None,
+    include_centroid=None,
     factor=None,
     color=None,
     # saving
@@ -323,6 +329,12 @@ def _check(
         default=True,
     )
 
+    include_centroid = ds._generic_check._check_var(
+        include_centroid, 'include_centroid',
+        types=bool,
+        default=True,
+    )
+
     # ---------------
     # factor
     # ---------------
@@ -382,7 +394,9 @@ def _check(
         key, key_cam,
         ptsx, ptsy, ptsz,
         pfe_in,
-        outline_only, factor, color,
+        outline_only,
+        include_centroid,
+        factor, color,
         iso,
         pfe_save, overwrite,
     )
@@ -402,6 +416,7 @@ def _extract(
     ptsy=None,
     ptsz=None,
     outline_only=None,
+    include_centroid=None,
     pfe_in=None,
     fname=None,
 ):
@@ -413,7 +428,6 @@ def _extract(
     dptsx = {}
     dptsy = {}
     dptsz = {}
-    ind = None
 
     # ----------------------
     # extract points from csv
@@ -431,9 +445,11 @@ def _extract(
         ln = [ss for ss in header[1:].strip().split(' ')]
         if len(ln) != 2:
             msg = (
-                "Header format os non-conform!\n"
-                "\t- file: {pfe_in}\n"
-                "\t- header: {header}\n"
+                "Header format is non-conform (use spaces in header)!\n"
+                f"\t- file: {pfe_in}\n"
+                f"\t- header: {header}\n"
+                "Expected:\n"
+                "#   nlos   npts\n(hastag then 2 integers separated by spaces)"
             )
             raise Exception(msg)
 
@@ -482,7 +498,10 @@ def _extract(
         if outline_only is True:
             for kcam, v0 in dptsx.items():
                 if v0.ndim == 3:
-                    iout = ~_get_outline2d(dptsx[kcam][1, ...])
+                    iout = ~_get_outline2d(
+                        dptsx[kcam][1, ...],
+                        include_centroid=include_centroid,
+                    )
                     dptsx[kcam][:, iout] = np.nan
                     dptsy[kcam][:, iout] = np.nan
                     dptsz[kcam][:, iout] = np.nan
@@ -490,7 +509,7 @@ def _extract(
     return dptsx, dptsy, dptsz
 
 
-def _get_outline2d(pts):
+def _get_outline2d(pts, include_centroid=None):
 
     # --------------
     # eliminate nan
@@ -550,7 +569,21 @@ def _get_outline2d(pts):
     iok2[:-1, :-1] = iok[1:, 1:]
     tot += iok2
 
-    return ((tot<7) & iok)
+    ind = ((tot<7) & iok)
+
+    # ------------------
+    # include_centroid
+
+    if include_centroid is True:
+
+        x0 = np.repeat(np.arange(0, n0)[:, None], n1, axis=1)[iok]
+        x1 = np.repeat(np.arange(0, n1)[None, :], n0, axis=0)[iok]
+        i0 = int(np.round(np.sum(x0) / np.sum(iok)))
+        i1 = int(np.round(np.sum(x1) / np.sum(iok)))
+
+        ind[i0, i1] = True
+
+    return ind
 
 
 # #################################################################
@@ -764,7 +797,7 @@ def _get_data(
     ddz = {k0: dvz[k0] / dlength[k0] for k0 in dptsx.keys()}
 
     # shapes
-    dshape_vect = {k0: dvx[k0].shape for k0 in dptsx.keys()}
+    # dshape_vect = {k0: dvx[k0].shape for k0 in dptsx.keys()}
 
     dnrays = {k0: v0.sum() for k0, v0 in dok.items()}
     nrays = np.sum([v0 for v0 in dnrays.values()])
@@ -841,7 +874,7 @@ def _get_data(
         },
         'CARTESIAN_POINT0': {
             'order': 14,
-            'str': 'CARTESIAN_POINT('',(0.,0.,0.));',
+            'str': "CARTESIAN_POINT('',(0.,0.,0.));",
         },
         'CARTESIAN_POINT': {
             'order': 15,
