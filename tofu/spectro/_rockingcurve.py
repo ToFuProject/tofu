@@ -314,32 +314,71 @@ def compute_rockingcurve(
 
     if miscut is False and therm_exp is False:
         (
-            alpha, bb, polar, g, y, power_ratio, max_pr, th, dth,
-            rhg, P_per, P_mos, P_dyn, det_perp, det_para,
+            alpha, bb,
+            polar, g, y,
+            power_ratio, max_pr,
+            th, dth,
+            rhg,
+            P_per, P_mos, P_dyn,
+            det_perp, det_para,
+            pat_cent_perp, pat_cent_para,
         ) = CrystBragg_comp_integrated_reflect(
-            lamb=lamb, re=re, Volume=Volume, Zo=din['atoms_Z'][-1],
-            theta=theta, mu=mu,
-            F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
-            Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
+            lamb=lamb,
+            re=re,
+            Volume=Volume,
+            Zo=din['atoms_Z'][-1],
+            theta=theta,
+            mu=mu,
+            F_re=F_re,
+            psi_re=psi_re,
+            psi0_dre=psi0_dre,
+            psi0_im=psi0_im,
+            Fmod=Fmod,
+            Fbmod=Fbmod,
+            kk=kk,
+            rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
-            miscut=miscut, alpha=alpha, bb=bb,
-            na=na, nn=nn,
+            miscut=miscut,
+            alpha=alpha,
+            bb=bb,
+            na=na,
+            nn=nn,
             therm_exp=therm_exp,
         )
     else:
         (
-            alpha, bb, polar, g, y, power_ratio, max_pr, th, dth,
-            rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
+            alpha, bb,
+            polar, g, y,
+            power_ratio, max_pr,
+            th, dth,
+            rhg, rhg_perp, rhg_para,
+            rhg_perp_norm, rhg_para_norm,
             P_per, P_mos, P_dyn,
-            det_perp, det_para, det_perp_norm, det_para_norm,
+            det_perp, det_para,
+            det_perp_norm, det_para_norm,
             shift_perp, shift_para,
+            pat_cent_perp, pat_cent_para,
         ) = CrystBragg_comp_integrated_reflect(
-            lamb=lamb, re=re, Volume=Volume, Zo=din['atoms_Z'][-1], theta=theta, mu=mu,
-            F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
-            Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
+            lamb=lamb,
+            re=re,
+            Volume=Volume,
+            Zo=din['atoms_Z'][-1],
+            theta=theta,
+            mu=mu,
+            F_re=F_re,
+            psi_re=psi_re,
+            psi0_dre=psi0_dre,
+            psi0_im=psi0_im,
+            Fmod=Fmod,
+            Fbmod=Fbmod,
+            kk=kk,
+            rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
-            miscut=miscut, alpha=alpha, bb=bb,
-            na=na, nn=nn,
+            miscut=miscut,
+            alpha=alpha,
+            bb=bb,
+            na=na,
+            nn=nn,
             therm_exp=therm_exp,
         )
 
@@ -375,6 +414,8 @@ def compute_rockingcurve(
             dth=dth,
             power_ratio=power_ratio,
             bb=bb,
+            pat_cent_perp=pat_cent_perp,
+            pat_cent_para=pat_cent_para,
             polar=polar,
             alpha=alpha,
             miscut=miscut,
@@ -1356,19 +1397,29 @@ def CrystBragg_comp_integrated_reflect(
 
     if miscut is False and therm_exp is False:
         return (
-            alpha, bb, polar, g, y,
-            power_ratio, max_pr, th, dth,
-            rhg, P_per, P_mos, P_dyn,
+            alpha, bb,
+            polar, g, y,
+            power_ratio, max_pr,
+            th, dth,
+            rhg,
+            P_per, P_mos, P_dyn,
             det_perp, det_para,
+            pat_cent_perp, pat_cent_para,
         )
     else:
         return (
-            alpha, bb, polar, g, y,
-            power_ratio, max_pr, th, dth,
-            rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
+            alpha, bb,
+            polar, g, y,
+            power_ratio, max_pr,
+            th, dth,
+            rhg,
+            rhg_perp, rhg_para,
+            rhg_perp_norm, rhg_para_norm,
             P_per, P_mos, P_dyn,
-            det_perp, det_para, det_perp_norm, det_para_norm,
+            det_perp, det_para,
+            det_perp_norm, det_para_norm,
             shift_perp, shift_para,
+            pat_cent_perp, pat_cent_para,
         )
 
 
@@ -1421,6 +1472,9 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
             r'°C$^{-1}$',
         ),
     )
+    d_atom_min = np.ceil(np.nanmin(d_atom*1e3)) - 1
+    d_atom_max = np.ceil(np.nanmax(d_atom*1e3))
+    ax.set_ylim(d_atom_min, d_atom_max)
     ax.legend(loc="best", fontsize=fs)
 
 
@@ -1457,6 +1511,7 @@ def CrystalBragg_plot_atomic_scattering_factor(
     # Plot
     # ----
 
+    import pdb; pdb.set_trace()  # DB
     fig = plt.figure(figsize=(8, 6))
     gs = gridspec.GridSpec(1, 1)
     ax = fig.add_subplot(gs[0, 0])
@@ -1507,6 +1562,8 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     dth=None,
     power_ratio=None,
     bb=None,
+    pat_cent_perp=None,
+    pat_cent_para=None,
     polar=None,
     alpha=None,
     # Plot option
@@ -1715,15 +1772,29 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                         '-',
                         c='black',
                     )
+        cc = np.round(theta[0], 6)
         ax.axvline(
-            theta, color='black', linestyle='-.',
-            label=r'$\theta_B$= {} rad'.format(
-                np.round(theta, 6)
-            ),
+            theta,
+            color='black',
+            linestyle='-.',
+            label=r'Ref $\theta_{B}$' + f' = {cc} rad'
+        )
+        ind0 = np.where(
+            power_ratio[0, 0, 0] + power_ratio[1, 0, 0] == np.nanmax(
+                power_ratio[0, 0, 0] + power_ratio[1, 0, 0]
+            )
+        )[0][0]
+        ind1 = dth[0, 0, 0, :][ind0]
+        cc = np.round(ind1, 6)
+        ax.axvline(
+            pat_cent_para[0][0],
+            color='black',
+            linestyle=':',
+            label=r'Central $\theta_{B}$' + f' = {cc} rad'
         )
         ax.legend(
             loc='upper right',
-            fontsize=12,
+            fontsize=fs,
         )
 
     if not miscut and therm_exp:
@@ -1783,9 +1854,19 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                         ),
                     )
         ax.axvline(
-            theta[nn], color='black', linestyle='--',
-            label=r'Bragg angle of ref. : {} rad'.format(
+            theta[nn],
+            color='black',
+            linestyle='--',
+            label=r'$\theta_{B}^{ref}$= {} rad'.format(
                 np.round(theta[nn], 6)
+            ),
+        )
+        ax.axvline(
+            pat_cent_perp,
+            color='black',
+            linestyle=':',
+            label=r'$\theta_{B}^{max}$= {} rad'.format(
+                np.round(pat_cent_perp, 6)
             ),
         )
         ax.legend(
