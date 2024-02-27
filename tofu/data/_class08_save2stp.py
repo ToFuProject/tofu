@@ -23,8 +23,7 @@ from . import _class02_save2stp
 # #################################################################
 
 
-_COLOR = 'k'
-_NAME = 'rays'
+_NAME = 'test'
 
 
 # #################################################################
@@ -44,6 +43,7 @@ def main(
     # options
     factor=None,
     color=None,
+    empty_name=None,
     # ---------------
     # saving
     pfe_save=None,
@@ -57,7 +57,7 @@ def main(
 
     (
         key_optics,
-        outline_only, factor, color,
+        factor, color,
         iso,
         pfe_save, overwrite,
     ) = _check(
@@ -79,7 +79,7 @@ def main(
     # extract and pre-format data
     # -------------
 
-    dptsx, dptsy, dptsz, de0e1 = _extract(
+    dptsx, dptsy, dptsz, duvect, dcor_ptsvect = _extract(
         coll=coll,
         key_optics=key_optics,
     )
@@ -111,11 +111,15 @@ def main(
         dptsx=dptsx,
         dptsy=dptsy,
         dptsz=dptsz,
+        duvect=duvect,
+        dcor_ptsvect=dcor_ptsvect,
         fname=fname,
         # options
         dcolor=dcolor,
         # norm
         iso=iso,
+        # empty_name
+        empty_name=empty_name,
     )
 
     # -------------
@@ -186,8 +190,8 @@ def _check(
 
         doptics = coll.dobj['diagnostic'][key]['doptics']
         key_optics = list(itt.chain.from_iterable([
-            [kcam] + [k0 for k0 in doptics[kcam]]
-            for kcam in key_cam()
+            [kcam] + [k0 for k0 in doptics[kcam]['optics']]
+            for kcam in key_cam
         ]))
 
     # ---------------
@@ -204,7 +208,7 @@ def _check(
         if isinstance(key_optics, str):
             key_optics = [key_optics]
 
-        key_optics = ds._generic_check._check_var(
+        key_optics = ds._generic_check._check_var_iter(
             key_optics, 'key_optics',
             types=(list, tuple, set),
             types_iter=str,
@@ -292,16 +296,16 @@ def _extract(
     dptsx = {}
     dptsy = {}
     dptsz = {}
-    de0e1 = {}
+    duvect = {}
 
     # ----------------------
     # extract points
     # ----------------------
 
-    for k0 in key_optics:
+    for i0, k0 in enumerate(key_optics):
 
         # points of polygons
-        dptsx[k0], dptsy[k0], dptsz[k0] = coll.get_optics_poly(
+        ptsx, ptsy, ptsz = coll.get_optics_poly(
             key=k0,
             add_points=False,
             # min_threshold=4e-3,
@@ -313,16 +317,75 @@ def _extract(
             return_outline=False,
         )
 
-        assert dptsx[k0].ndim == 1, (k0, dptsx[k0].shape)
+        # store
+        if ptsx.ndim == 1:
+            dptsx[k0], dptsy[k0], dptsz[k0] = ptsx, ptsy, ptsz
+
+        elif ptsx.ndim == 2:
+            for ii in range(ptsx.shape[1]):
+                key = f"{k0}_{ii}"
+                dptsx[key] = ptsx[:, ii]
+                dptsy[key] = ptsy[:, ii]
+                dptsz[key] = ptsz[:, ii]
+
+        else:
+            raise NotImplementedError(str(ptsx.shape))
 
         # unit vectors
-        e0, e1 = coll.get_optics_units_vectors(k0)[1:]
-        de0e1[k0] = {
-            'e0': e0,
-            'e1': e1,
-        }
+        k0, cls = coll.get_optics_cls(optics=k0)
+        k0, cls = k0[0], cls[0]
+        if cls == 'camera':
 
-    return dptsx, dptsy, dptsz, de0e1
+            if coll.dobj[cls][k0]['dgeom']['parallel'] is True:
+                duvect[k0] = {
+                    'nin': coll.dobj[cls][k0]['dgeom']['nin'],
+                    'e0': coll.dobj[cls][k0]['dgeom']['e0'],
+                    'e1': coll.dobj[cls][k0]['dgeom']['e1'],
+                }
+
+            else:
+                dv = coll.get_camera_unit_vectors(k0)
+                lv = [
+                    'nin_x', 'nin_y', 'nin_z',
+                    'e0_x', 'e0_y', 'e0_z',
+                    'e1_x', 'e1_y', 'e1_z',
+                ]
+                nin_x, nin_y, nin_z, e0x, e0y, e0z, e1x, e1y, e1z = [
+                    dv[k1] for k1 in lv
+                ]
+
+                if e0x.ndim == 1:
+                    for ii in range(ptsx.shape[1]):
+                        key = f"{k0}_{ii}"
+                        duvect[key] = {
+                            'nin': np.r_[nin_x[ii], nin_y[ii], nin_z[ii]],
+                            'e0': np.r_[e0x[ii], e0y[ii], e0z[ii]],
+                            'e1': np.r_[e1x[ii], e1y[ii], e1z[ii]],
+                        }
+
+                else:
+                    raise NotImplementedError(str(e0x.shape))
+
+        else:
+            duvect[k0] = {
+                'nin': coll.dobj[cls][k0]['dgeom']['nin'],
+                'e0': coll.dobj[cls][k0]['dgeom']['e0'],
+                'e1': coll.dobj[cls][k0]['dgeom']['e1'],
+            }
+
+    # ------------------------
+    # correspondence pts vect
+
+    dcor_ptsvect = {}
+    for k0 in dptsx.keys():
+        if k0 in duvect.keys():
+            dcor_ptsvect[k0] = k0
+        else:
+            key = '_'.join(k0.split('_')[:-1])
+            assert key in duvect.keys(), (key, duvect.keys())
+            dcor_ptsvect[k0] = key
+
+    return dptsx, dptsy, dptsz, duvect, dcor_ptsvect
 
 
 # #################################################################
@@ -335,16 +398,25 @@ def _get_data(
     dptsx=None,
     dptsy=None,
     dptsz=None,
-    de0e1=None,
+    duvect=None,
+    dcor_ptsvect=None,
     fname=None,
     # options
     dcolor=None,
     # norm
     iso=None,
+    # empty names
+    empty_name=None,
 ):
 
+    empty_name = ds._generic_check._check_var(
+        empty_name, 'empty_name',
+        types=bool,
+        default=False,
+    )
+
     # -----------
-    # nrays
+    # npts
     # -----------
 
     # vectors
@@ -369,25 +441,34 @@ def _get_data(
     # shapes
     # dshape_vect = {k0: dvx[k0].shape for k0 in dptsx.keys()}
 
-    dnrays = {k0: v0.sum() for k0, v0 in dok.items()}
-    nrays = np.sum([v0 for v0 in dnrays.values()])
-    nsurf = len(dnrays)
+    dnpts = {k0: v0.sum() for k0, v0 in dok.items()}
+    npts = np.sum([v0 for v0 in dnpts.values()])
+    nsurf = len(dnpts)
 
     # ---------------
     # order of optics
 
     lksort = sorted(dptsx.keys())
+    iss = np.argsort([dnpts[k0] for k0 in lksort])[::-1]
+    lksort = [lksort[ii] for ii in iss]
     k0ind = _class02_save2stp._get_k0ind(
         dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
-        ncum=np.cumsum([dnrays[kcam] for kcam in lksort]),
+        ncum=np.cumsum([dnpts[ksurf] for ksurf in lksort]),
         lkcam=lksort,
     )
 
     # index of first point cumulated
     dind_surf, i0 = {}, 0
-    for ii, kcam in enumerate(lksort):
-        dind_surf[kcam] = np.arange(0, dnrays[kcam]) + i0
-        i0 += dnrays[kcam]
+    for ii, ksurf in enumerate(lksort):
+        dind_surf[ksurf] = np.arange(0, dnpts[ksurf]) + i0
+        i0 += dnpts[ksurf]
+
+    # -----------
+    # planes (can be less than optics)
+    # -----------
+
+    nplanes = len(duvect)
+    lkplanes = sorted(duvect.keys())
 
     # -----------
     # colors
@@ -409,108 +490,112 @@ def _get_data(
         },
         'PRESENTATION_STYLE_ASSIGNMENT': {
             'order': 3,
-            'nn': ncol,
+            'nn': ncol, # nsurf, #ncol,
         },
         'SURFACE_STYLE_USAGE': {
-            'order': 7,
-            'nn': ncol,
+            'order': 4,
+            'nn': ncol, # nsurf, #ncol,
         },
         'SURFACE_SIDE_STYLE': {
-            'order': 7,
-            'nn': ncol,
+            'order': 5,
+            'nn': ncol, #nsurf, #ncol,
         },
         'SURFACE_STYLE_FILL_AREA': {
-            'order': 5,
-            'nn': ncol,
+            'order': 6,
+            'nn': ncol, # nsurf, #ncol,
         },
         'FILL_AREA_STYLE': {
-            'order': 5,
-            'nn': ncol,
+            'order': 7,
+            'nn': ncol, # nsurf, #ncol,
         },
         'FILL_AREA_STYLE_COLOUR': {
-            'order': 5,
-            'nn': ncol,
+            'order': 8,
+            'nn': ncol, # nsurf, #ncol,
         },
         'COLOUR_RGB': {
-            'order': 5,
+            'order': 9,
             'nn': ncol,
         },
         'SHELL_BASED_SURFACE_MODEL': {
-            'order': 7,
+            'order': 10,
             'nn': nsurf,
         },
         'OPEN_SHELL': {
-            'order': 7,
+            'order': 11,
             'nn': nsurf,
         },
         'ADVANCED_FACE': {
-            'order': 7,
+            'order': 12,
             'nn': nsurf,
         },
         'PLANE': {
-            'order': 7,
+            'order': 13,
             'nn': nsurf,
         },
         'FACE_OUTER_BOUND': {
-            'order': 7,
+            'order': 14,
             'nn': nsurf,
         },
         'EDGE_LOOP': {
-            'order': 7,
+            'order': 15,
             'nn': nsurf,
         },
         'ORIENTED_EDGE': {
-            'order': 7,
-            'nn': nrays,
+            'order': 16,
+            'nn': npts,
         },
         'VERTEX_POINT': {
-            'order': 7,
-            'nn': nrays,
+            'order': 17,
+            'nn': npts,
         },
         'EDGE_CURVE': {
-            'order': 7,
-            'nn': nrays,
+            'order': 18,
+            'nn': npts,
         },
         'LINE': {
-            'order': 8,
-            'nn': nrays,
+            'order': 19,
+            'nn': npts,
         },
         'VECTOR': {
-            'order': 9,
-            'nn': nrays,
+            'order': 20,
+            'nn': npts,
         },
         'AXIS2_PLACEMENT_3D0': {
-            'order': 10,
+            'order': 21,
         },
         'AXIS2_PLACEMENT_3D': {
-            'order': 10,
+            'order': 22,
             'nn': nsurf,
         },
         'DIRECTION0': {
-            'order': 11,
+            'order': 23,
             'str': "DIRECTION('',(0.,0.,1.));",
         },
         'DIRECTION1': {
-            'order': 12,
+            'order': 24,
             'str': "DIRECTION('',(1.,0.,0.));",
         },
         'DIRECTION': {
-            'order': 13,
-            'nn': nrays,
+            'order': 25,
+            'nn': npts,
         },
-        'DIRECTION_PLANES': {
-            'order': 13,
-            'nn': nsurf,
+        'DIRECTION_PLANES0': {
+            'order': 26,
+            'nn': nplanes,
+        },
+        'DIRECTION_PLANES1': {
+            'order': 27,
+            'nn': nplanes,
         },
         'CARTESIAN_POINT0': {
-            'order': 14,
-            'str': 'CARTESIAN_POINT('',(0.,0.,0.));',
+            'order': 28,
+            'str': "CARTESIAN_POINT('',(0.,0.,0.));",
         },
         'CARTESIAN_POINT': {
-            'order': 15,
-            'nn': nrays,
+            'order': 29,
+            'nn': npts, # 2*(npts+1),
         },
-        'MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION': {'order': 16},
+        'MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION': {'order': 30},
     }
 
     # complement
@@ -528,10 +613,6 @@ def _get_data(
         dind[k0]['ind'] = i0 + np.arange(0, nn)
         i0 += nn
 
-    # ni = dind[k0]['ind'][0]
-    # dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',{color[0]},{color[1]},{color[2]});"
-    # dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',0.301960784313725,0.427450980392157,0.701960784313725);"
-
     # -----------------
     # CARTESIAN_POINT
     # -----------------
@@ -539,8 +620,9 @@ def _get_data(
     k0 = 'CARTESIAN_POINT'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({dptsx[kcam][ind]},{dptsy[kcam][ind]},{dptsz[kcam][ind]}));")
+        ksurf, ind = k0ind(ii)
+        name = '' if empty_name else f'{ksurf}_{ind}'
+        lines.append(f"#{ni}={k0}('{name}',({dptsx[ksurf][ind]},{dptsy[ksurf][ind]},{dptsz[ksurf][ind]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -550,19 +632,33 @@ def _get_data(
     k0 = 'DIRECTION'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({ddx[kcam][ind]},{ddy[kcam][ind]},{ddz[kcam][ind]}));")
+        ksurf, ind = k0ind(ii)
+        name = '' if empty_name else f'{ksurf}_{ind}'
+        lines.append(f"#{ni}={k0}('{name}',({ddx[ksurf][ind]},{ddy[ksurf][ind]},{ddz[ksurf][ind]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
-    # DIRECTION_PLANES
+    # DIRECTION_PLANES0
     # -----------------
 
-    k0 = 'DIRECTION_PLANES'
+    k0 = 'DIRECTION_PLANES0'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort[ii]
-        lines.append(f"#{ni}=DIRECTION('{kcam}',({de0e1[kcam]['e0'][0]},{de0e1[kcam]['e0'][1]},{de0e1[kcam]['e0'][2]}));")
+        kplane = lkplanes[ii]
+        name = '' if empty_name else f'{kplane}'
+        lines.append(f"#{ni}=DIRECTION('{name}',({duvect[kplane]['nin'][0]},{duvect[kplane]['nin'][1]},{duvect[kplane]['nin'][2]}));")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    # -----------------
+    # DIRECTION_PLANES1
+    # -----------------
+
+    k0 = 'DIRECTION_PLANES1'
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        kplane = lkplanes[ii]
+        name = '' if empty_name else f'{kplane}'
+        lines.append(f"#{ni}=DIRECTION('{name}',({duvect[kplane]['e0'][0]},{duvect[kplane]['e0'][1]},{duvect[kplane]['e0'][2]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -572,8 +668,9 @@ def _get_data(
     k0 = 'VECTOR'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['DIRECTION']['ind'][ii]},{dlength[kcam][ind]});")
+        ksurf, ind = k0ind(ii)
+        name = '' if empty_name else f'{ksurf}_{ind}'
+        lines.append(f"#{ni}={k0}('{name}',#{dind['DIRECTION']['ind'][ii]},1.);")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -591,8 +688,13 @@ def _get_data(
     k0 = 'AXIS2_PLACEMENT_3D'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort[ii]
-        dind[k0]['msg'] = f"#{ni}={k0}('',#{dind['CARTESIAN_POINT']['ind'][dind_surf[kcam][0]]},#{dind['DIRECTION_PLANES']['ind'][ii]},#{dind['DIRECTION_PLANES']['ind'][ii]});"
+        ksurf = lksort[ii]
+        kplane = dcor_ptsvect[ksurf]
+        iplane = lkplanes.index(kplane)
+        ipt = dind['CARTESIAN_POINT']['ind'][dind_surf[ksurf][0]]
+        # ipt = naxis[ii]
+        lines.append(f"#{ni}={k0}('',#{ipt},#{dind['DIRECTION_PLANES0']['ind'][iplane]},#{dind['DIRECTION_PLANES1']['ind'][iplane]});")
+    dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
     # LINE
@@ -601,8 +703,9 @@ def _get_data(
     k0 = 'LINE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
+        ksurf, ind = k0ind(ii)
+        name = '' if empty_name else f'{ksurf}_{ind}'
+        lines.append(f"#{ni}={k0}('{name}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -612,8 +715,9 @@ def _get_data(
     k0 = 'VERTEX_POINT'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]});")
+        ksurf, ind = k0ind(ii)
+        name = '' if empty_name else f'{ksurf}_{ind}'
+        lines.append(f"#{ni}={k0}('{name}',#{dind['CARTESIAN_POINT']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -622,9 +726,15 @@ def _get_data(
 
     k0 = 'EDGE_CURVE'
     lines = []
+    nn = np.array([dnpts[ksurf] for ksurf in lksort])
+    icum = np.cumsum(nn) - 1
+    nind = np.arange(0, dind[k0]['ind'].size) + 1
+    nind[icum] -= nn
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['VERTEX_POINT']['ind'][ii]},#{dind['LINE']['ind'][ii]},.T.);")
+        ksurf, ind = k0ind(ii)
+        i1 = nind[ii]
+        name = '' if empty_name else f'{ksurf}_{ind}'
+        lines.append(f"#{ni}={k0}('{name}',#{dind['VERTEX_POINT']['ind'][ii]},#{dind['VERTEX_POINT']['ind'][i1]},#{dind['LINE']['ind'][ii]},.T.);")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -634,8 +744,9 @@ def _get_data(
     k0 = 'ORIENTED_EDGE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['EDGE_CURVE']['ind'][ii]});")
+        ksurf, ind = k0ind(ii)
+        name = '' if empty_name else f'{ksurf}_{ind}'
+        lines.append(f"#{ni}={k0}('{name}',*,*,#{dind['EDGE_CURVE']['ind'][ii]},.T.);")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -645,9 +756,10 @@ def _get_data(
     k0 = 'EDGE_LOOP'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort[ii]
-        lstr = ",".join([f"#{dind['ORIENTED_EDGE']['ind'][jj]}" for jj in dind_surf[kcam]])
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({lstr}));")
+        ksurf = lksort[ii]
+        lstr = ",".join([f"#{dind['ORIENTED_EDGE']['ind'][jj]}" for jj in dind_surf[ksurf]])
+        name = '' if empty_name else f'{ksurf}'
+        lines.append(f"#{ni}={k0}('{name}',({lstr}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -657,8 +769,9 @@ def _get_data(
     k0 = 'FACE_OUTER_BOUND'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort[ii]
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['EDGE_LOOP']['ind'][ii]},.T.);")
+        ksurf = lksort[ii]
+        name = '' if empty_name else f'{ksurf}'
+        lines.append(f"#{ni}={k0}('{name}',#{dind['EDGE_LOOP']['ind'][ii]},.T.);")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -668,8 +781,9 @@ def _get_data(
     k0 = 'PLANE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort[ii]
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['AXIS2_PLACEMENT_3D']['ind'][ii]});")
+        ksurf = lksort[ii]
+        name = '' if empty_name else f'{ksurf}'
+        lines.append(f"#{ni}={k0}('{name}',#{dind['AXIS2_PLACEMENT_3D']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -679,8 +793,9 @@ def _get_data(
     k0 = 'ADVANCED_FACE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort[ii]
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['FACE_OUTER_BOUND']['ind'][ii]}),#{dind['PLANE']['ind'][ii]},.T.);")
+        ksurf = lksort[ii]
+        name = '' if empty_name else f'{ksurf}'
+        lines.append(f"#{ni}={k0}('{name}',(#{dind['FACE_OUTER_BOUND']['ind'][ii]}),#{dind['PLANE']['ind'][ii]},.T.);")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -690,8 +805,9 @@ def _get_data(
     k0 = 'OPEN_SHELL'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort[ii]
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['ADVANCED_FACE']['ind'][ii]}));")
+        ksurf = lksort[ii]
+        name = '' if empty_name else f'{ksurf}'
+        lines.append(f"#{ni}={k0}('{name}',(#{dind['ADVANCED_FACE']['ind'][ii]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -701,8 +817,9 @@ def _get_data(
     k0 = 'SHELL_BASED_SURFACE_MODEL'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort[ii]
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['OPEN_SHELL']['ind'][ii]}));")
+        ksurf = lksort[ii]
+        name = '' if empty_name else f'{ksurf}'
+        lines.append(f"#{ni}={k0}('{name}',(#{dind['OPEN_SHELL']['ind'][ii]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -712,7 +829,8 @@ def _get_data(
     k0 = 'COLOUR_RGB'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        lines.append(f"#{ni}={k0}('color {ii}',{colors[ii][0]},{colors[ii][1]},{colors[ii][2]});")
+        name = '' if empty_name else f'color {ii}'
+        lines.append(f"#{ni}={k0}('{name}',{colors[ii][0]},{colors[ii][1]},{colors[ii][2]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -722,7 +840,8 @@ def _get_data(
     k0 = 'FILL_AREA_STYLE_COLOUR'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        lines.append(f"#{ni}={k0}('color {ii}',#{dind['COLOUR_RGB']['ind'][ii]});")
+        name = '' if empty_name else f'color {ii}'
+        lines.append(f"#{ni}={k0}('{name}',#{dind['COLOUR_RGB']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -732,7 +851,8 @@ def _get_data(
     k0 = 'FILL_AREA_STYLE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        lines.append(f"#{ni}={k0}('color {ii}',(#{dind['FILL_AREA_STYLE_COLOUR']['ind'][ii]}));")
+        name = '' if empty_name else f'color {ii}'
+        lines.append(f"#{ni}={k0}('{name}',(#{dind['FILL_AREA_STYLE_COLOUR']['ind'][ii]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -752,7 +872,8 @@ def _get_data(
     k0 = 'SURFACE_SIDE_STYLE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        lines.append(f"#{ni}={k0}('color {ii}',(#{dind['SURFACE_STYLE_FILL_AREA']['ind'][ii]}));")
+        name = '' if empty_name else f'color {ii}'
+        lines.append(f"#{ni}={k0}('{name}',(#{dind['SURFACE_STYLE_FILL_AREA']['ind'][ii]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -782,9 +903,10 @@ def _get_data(
     k0 = 'STYLED_ITEM'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam = lksort(ii)
-        jj = colors.index(dcolor[kcam])
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['SHELL_BASED_SURFACE_MODEL']['ind'][ii]});")
+        ksurf = lksort[ii]
+        jj = colors.index(dcolor[ksurf])
+        name = '' if empty_name else f'{ksurf}'
+        lines.append(f"#{ni}={k0}('{name}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['SHELL_BASED_SURFACE_MODEL']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # ----------------------
@@ -795,6 +917,15 @@ def _get_data(
     ni = dind[k0]['ind'][0]
     lstr = ','.join([f"#{ii}" for ii in dind['SHELL_BASED_SURFACE_MODEL']['ind']])
     dind[k0]['msg'] = f"#{ni}={k0}('1','Layer 1',({lstr}));"
+
+    # ----------------------
+    # MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION
+    # ----------------------
+
+    k0 = 'MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION'
+    ni = dind[k0]['ind'][0]
+    lstr = ','.join([f"#{ii}" for ii in dind['STYLED_ITEM']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('',({lstr}),#{i0});"
 
     # ------------
     # LEFTOVERS
@@ -808,7 +939,6 @@ def _get_data(
             else:
                 ni = dind[k0]['ind'][0]
                 dind[k0]['msg'] = f"#{ni}={v0['str']}"
-
 
     # ---------------
     # update index
@@ -846,7 +976,7 @@ DATA;
 #27=PRODUCT_CONTEXT(' ',#29,'mechanical');
 #28=APPLICATION_PROTOCOL_DEFINITION('international standard','automotive_design',2010,#29);
 #29=APPLICATION_CONTEXT('core data for automotive mechanical design processes');
-#30=SHAPE_REPRESENTATION('A_objects-None',(#{dind['AXIS2_PLACEMENT_3D0'][0]}),#{ind[0]});
+#30=SHAPE_REPRESENTATION('A_objects-None',(#{dind['AXIS2_PLACEMENT_3D0']['ind'][0]}),#{ind[0]});
 """
     )
 
@@ -862,7 +992,7 @@ GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#{ind[1]}))
 GLOBAL_UNIT_ASSIGNED_CONTEXT((#{ind[7]},#{ind[3]},#{ind[2]}))
 REPRESENTATION_CONTEXT('{fname}','TOP_LEVEL_ASSEMBLY_PART')
 );
-#{ind[1]}=UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(2.E-5),#{ind[7]}, 'DISTANCE_ACCURACY_VALUE','Maximum Tolerance applied to model');
+#{ind[1]}=UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(2.E-5),#{ind[7]},'DISTANCE_ACCURACY_VALUE','Maximum Tolerance applied to model');
 #{ind[2]}=(
 NAMED_UNIT(*)
 SI_UNIT($,.STERADIAN.)
@@ -874,7 +1004,7 @@ NAMED_UNIT(#{ind[4]})
 PLANE_ANGLE_UNIT()
 );
 #{ind[4]}=DIMENSIONAL_EXPONENTS(0.,0.,0.,0.,0.,0.,0.);
-#{ind[5]}=PLANE_ANGLE_MEASURE_WITH_UNIT(PLANE_ANGLE_MEASURE(0.0174532925), #{ind[6]});
+#{ind[5]}=PLANE_ANGLE_MEASURE_WITH_UNIT(PLANE_ANGLE_MEASURE(0.0174532925),#{ind[6]});
 #{ind[6]}=(
 NAMED_UNIT(*)
 PLANE_ANGLE_UNIT()
