@@ -437,7 +437,7 @@ class Rays(Previous):
     # save to step file (CAD)
     # --------------
 
-    def save_to_step(
+    def save_rays_to_stp(
         # ---------------
         # input from tofu
         self,
