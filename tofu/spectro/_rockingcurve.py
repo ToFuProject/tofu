@@ -1511,7 +1511,6 @@ def CrystalBragg_plot_atomic_scattering_factor(
     # Plot
     # ----
 
-    import pdb; pdb.set_trace()  # DB
     fig = plt.figure(figsize=(8, 6))
     gs = gridspec.GridSpec(1, 1)
     ax = fig.add_subplot(gs[0, 0])
