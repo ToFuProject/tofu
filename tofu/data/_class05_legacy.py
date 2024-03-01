@@ -111,6 +111,23 @@ def _check(
                 f"Arg cryst must be a valid .npz file, loadable!\n{error}"
             )
             raise Exception(msg)
+    elif isinstance(cryst, dict):
+        if cryst.dmat is None:
+            msg = (
+                f"Arg cryst must have a valid dmat dict, loadable!\n{error}"
+            )
+            raise Exception(msg)
+        elif cryst.dgeom is None:
+            msg = (
+                f"Arg cryst must have a valid dgeom dict, loadable!\n{error}"
+            )
+            raise Exception(msg)
+        elif cryst.dbragg is None:
+            msg = (
+                f"Arg cryst must have a valid dbragg dict, loadable!\n{error}"
+            )
+            raise Exception(msg)
+
 
     # check class
     if not cryst.__class__.__name__ == 'CrystalBragg':
