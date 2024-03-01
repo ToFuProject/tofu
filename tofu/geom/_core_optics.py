@@ -1151,6 +1151,13 @@ class CrystalBragg(utils.ToFuObject):
     # -----------------
 
     def split(self, direction=None, nb=None):
+        """
+        Use to split the crystal in the direction wanted for nb pieces wanted.
+        If direction = 'e1', the crystal is splitted in the vertical way,
+        i.e. nb wide vertical crystals.
+        If direction = 'e2', the crystal is splitted in the horizontal way,
+        i.e. nb wide horizontal crystals.
+        """
 
         # ------------
         # check inputs
