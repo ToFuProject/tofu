@@ -515,6 +515,7 @@ def _interpolate_along_los(
 
     dind = _get_dind(
         coll=coll,
+        doptics=doptics,
         dx=dx,
         dy=dy,
     )
@@ -752,6 +753,7 @@ def _interpolate_along_los_reshape(
 
 def _get_dind(
     coll=None,
+    doptics=None,
     dx=None,
     dy=None,
 ):
@@ -760,7 +762,9 @@ def _get_dind(
     #  loop on cameras
 
     dind = {}
-    for kcam in dx.keys():
+    for kcam in doptics.keys():
+
+        klos = doptics[kcam]['los']
 
         # ------------------
         # preliminary check
@@ -773,7 +777,7 @@ def _get_dind(
         # ------------------
         # preliminary check
 
-        shape = coll.dobj['camera'][kcam]['dgeom']['shape']
+        shape = coll.dobj['rays'][klos]['shape'][1:]
         nnan = np.prod(shape)
         if inan.sum() != nnan:
             msg = (
