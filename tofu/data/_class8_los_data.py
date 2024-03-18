@@ -277,7 +277,7 @@ def _interpolate_along_los(
     # check inputs
 
     (
-        key_diag, key_cam,
+        key_diag, key_cam, key_los,
         key_integrand, key_coords,
         key_bs_integrand, key_bs_coords,
         lok_coords, segment, mode, radius_max,
@@ -304,11 +304,16 @@ def _interpolate_along_los(
     dy = {}
     dout = {}
 
+    # key_los
+    if key_los is not None:
+        doptics = {key_los: {'los': key_los}}
+    else:
+        doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+
     # ---------------
     # loop on cameras
 
     axis_los = 0
-    doptics = coll.dobj['diagnostic'][key_diag]['doptics']
     if key_integrand in lok_coords and key_coords in lok_coords:
 
         for ii, kk in enumerate(key_cam):
@@ -462,6 +467,21 @@ def _interpolate_along_los(
             dx[kk][isok] = q2dx[isok]
             dy[kk][isok] = q2dy[isok]
 
+    # ---------------------
+    # safety check
+
+    lout = [k0 for k0, v0 in dx.items() if v0 is None]
+    if len(lout) > 0:
+        lstr = [f"\t- {k0}" for k0 in lout]
+        msg = (
+            "The following rays seem to have no existence in desired range:\n"
+            + "\n".join(lstr)
+            + "\nDetails:\n"
+            f"\t- segment: {segment}\n"
+            f"\t- radius_max: {radius_max}\n"
+        )
+        raise Exception(msg)
+
     # ------------
     # units
 
@@ -555,8 +575,23 @@ def _integrate_along_los_check(
     # -----------------
     # keys of diag, cam
 
-    # key_cam
-    key_diag, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
+    lrays = list(coll.dobj.get('rays', {}).keys())
+    ldiag = list(coll.dobj.get('diagnostic', {}).keys())
+    c0 = (
+        isinstance(key_diag, str)
+        and key_diag in lrays
+        and key_diag not in ldiag
+    )
+    if c0:
+        key_los = key_diag
+        key_cam = [key_los]
+    else:
+        # key_cam
+        key_diag, key_cam = coll.get_diagnostic_cam(
+            key=key_diag,
+            key_cam=key_cam,
+        )
+        key_los = None
 
     # -------------------------
     # keys of coords, integrand
@@ -667,7 +702,7 @@ def _integrate_along_los_check(
             dcolor = {key_cam[0]: None}
 
     return (
-        key_diag, key_cam,
+        key_diag, key_cam, key_los,
         key_integrand, key_coords,
         key_bs_integrand, key_bs_coords,
         lok_coords, segment, mode, radius_max,
