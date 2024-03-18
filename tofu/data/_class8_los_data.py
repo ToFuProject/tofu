@@ -306,7 +306,7 @@ def _interpolate_along_los(
 
     # key_los
     if key_los is not None:
-        doptics = {key_los: {'los': key_los}}
+        doptics = {k0: {'los': k0} for k0 in key_los}
     else:
         doptics = coll.dobj['diagnostic'][key_diag]['doptics']
 
@@ -578,14 +578,25 @@ def _integrate_along_los_check(
 
     lrays = list(coll.dobj.get('rays', {}).keys())
     ldiag = list(coll.dobj.get('diagnostic', {}).keys())
-    c0 = (
-        isinstance(key_diag, str)
-        and key_diag in lrays
-        and key_diag not in ldiag
-    )
-    if c0:
-        key_los = key_diag
-        key_cam = [key_los]
+    lc = [
+            isinstance(key_diag, str)
+            and key_diag in lrays
+            and key_diag not in ldiag,
+            isinstance(key_diag, list)
+            and all([
+                isinstance(kd, str)
+                and kd in lrays
+                and kd not in ldiag
+                for kd in key_diag
+            ]),
+    ]
+
+    if any(lc):
+        if lc[0]:
+            key_los = [key_diag]
+        else:
+            key_los = key_diag
+        key_cam = key_diag
     else:
         # key_cam
         key_diag, key_cam = coll.get_diagnostic_cam(
@@ -848,7 +859,7 @@ def _interpolate_along_los_plot(
 
         fig = plt.figure()
 
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        ax = fig.add_axes([0.15, 0.1, 0.80, 0.8])
 
         tit = "LOS-interpolated"
         ax.set_title(tit, size=12, fontweight='bold')
