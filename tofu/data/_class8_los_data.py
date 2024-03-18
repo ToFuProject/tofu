@@ -857,6 +857,9 @@ def _interpolate_along_los_plot(
 
         dax = {'main': ax}
 
+    elif isinstance(dax, plt.Axes) or issubclass(dax.__class__, plt.Axes):
+        dax = {'main': dax}
+
     # main
     kax = 'main'
     if dax.get(kax) is not None:
