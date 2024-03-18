@@ -700,7 +700,7 @@ def _integrate_along_los_check(
                 for ii, kk in enumerate(key_cam)
             }
         else:
-            dcolor = {key_cam[0]: None}
+            dcolor = {key_cam[0]: lc[0]}
 
     return (
         key_diag, key_cam, key_los,
