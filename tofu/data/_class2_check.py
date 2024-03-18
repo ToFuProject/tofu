@@ -201,7 +201,9 @@ def _check_inputs(
             shref = vect_x.shape
         elif vect_x.shape not in [(1,), shref]:
             msg = (
-                f"Arg vect_x has inconsistent shape {pts_x.shape} vs {shref}"
+                "Arg vect_x has inconsistent shape:\n"
+                f"\t- vect_x.shape = {vect_x.shape}\n"
+                f"\t- vs shape ref: {shref}\n"
             )
             raise Exception(msg)
 
