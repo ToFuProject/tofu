@@ -724,10 +724,12 @@ def _loop0(
     if append is True:
         lp0, lp1 = [], []
         lpx, lpy, lpz = [], [], []
+        dpow = {ll: [] for ll in lamb}
         lsang = []
     else:
         lp0, lp1 = None, None
         lpx, lpy, lpz = None, None, None
+        lpow = None
         lsang = None
 
     # power ratio
@@ -841,6 +843,14 @@ def _loop0(
             lp0.append(x0c[iok])
             lp1.append(x1c[iok])
 
+            # pow
+            for kk, ll in enumerate(lamb):
+                inds = np.searchsorted(
+                    angbragg[:, kk],
+                    angles[iok],
+                )
+                dpow[ll].append(pow_ratio[inds])
+
         # safety check
         iok2 = (
             (x0c[iok] >= cbin0[0])
@@ -948,6 +958,7 @@ def _loop0(
         'lpx': {'data': lpx, 'units': 'm'},
         'lpy': {'data': lpy, 'units': 'm'},
         'lpz': {'data': lpz, 'units': 'm'},
+        'dpow': {'data': dpow, 'units': ''},
         'lsang': {'data': lsang, 'units': 'sr'},
     }
 
