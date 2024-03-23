@@ -127,10 +127,10 @@ def _from_pts(
         nlamb,
         lamb,
         dlamb,
-        pow_ratio,
+        pow_interp,
         ang_rel,
         dang,
-        angbragg,
+        bragg,
     ) = _prepare_lamb(
         coll=coll,
         key_diag=key,
@@ -147,8 +147,6 @@ def _from_pts(
     # wavelength specific
 
     if lamb is not None:
-        angbragg0 = angbragg[:1, :]
-        angbragg1 = angbragg[-1:, :]
 
         # -------
         # prepare lamb per pixel
@@ -542,12 +540,14 @@ def _prepare_lamb(
     lamb=None,
     res_lamb=None,
     rocking_curve=None,
+    rocking_curve_step_width=None,
     res_rock_curve=None,
     verb=None,
 ):
 
     # ------------------
     # get lamb
+    # ------------------
 
     if res_lamb is not None:
         lamb = coll.get_diagnostic_data(
@@ -585,51 +585,65 @@ def _prepare_lamb(
             rocking_curve=False,
         )[0]
 
-    # ---------------
-    # get bragg angle
-
-    # power ratio
-    cls_spectro = 'crystal'
-    kpow = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
-    pow_ratio = coll.ddata[kpow]['data']
+    # ----------------
+    # get power ratio
+    # ----------------
 
     # angle relative
+    cls_spectro = 'crystal'
     kang_rel = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['angle_rel']
     ang_rel = coll.ddata[kang_rel]['data']
 
+    # power ratio
     if rocking_curve is False:
-        dang = np.mean(np.diff(ang_rel))
-        irel = np.abs(ang_rel) < 1.4*dang
-        pow_ratio = np.zeros(pow_ratio.shape, dtype=float)
-        pow_ratio[irel] = 1
+        if rocking_curve_step_width is None:
+            rocking_curve_step_width = np.mean(np.diff(ang_rel))
 
-    elif res_rock_curve is not None:
-        if isinstance(res_rock_curve, int):
-            nang = res_rock_curve
-        else:
-            nang = int(
-                (np.max(ang_rel) - np.min(ang_rel)) / res_rock_curve
-            )
+        ang_rel = 0.5 * rocking_curve_step_width * np.r_[-1, 1]
+        pow_ratio = np.r_[1, 1]
 
-        ang_rel2 = np.linspace(np.min(ang_rel), np.max(ang_rel), nang)
-        pow_ratio = scpinterp.interp1d(
-            ang_rel,
-            pow_ratio,
-            kind='linear',
-        )(ang_rel2)
-        ang_rel = ang_rel2
+    else:
+        kpow = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
+        pow_ratio = coll.ddata[kpow]['data']
 
-    # resolution
+    # --------------
+    # interpolation
+    # ---------------
+
+    pow_interp = scpinterp.interp1d(
+        ang_rel,
+        pow_ratio,
+        kind='linear',
+        bounds_error=False,
+        fill_value=0.,
+    )
+
     dang = np.mean(np.diff(ang_rel))
+
+    # elif res_rock_curve is not None:
+    #     if isinstance(res_rock_curve, int):
+    #         nang = res_rock_curve
+    #     else:
+    #         nang = int(
+    #             (np.max(ang_rel) - np.min(ang_rel)) / res_rock_curve
+    #         )
+
+    #     ang_rel2 = np.linspace(np.min(ang_rel), np.max(ang_rel), nang)
+    #     pow_ratio = scpinterp.interp1d(
+    #         ang_rel,
+    #         pow_ratio,
+    #         kind='linear',
+    #     )(ang_rel2)
+    #     ang_rel = ang_rel2
 
     # --------------------------------------
     # overall bragg angle with rocking curve
+    # --------------------------------------
 
     if res_lamb is None and lamb is None:
-        nlamb, lamb, dlamb, angbragg = None, None, None, None
+        nlamb, lamb, dlamb = None, None, None
 
     else:
-        angbragg = bragg[None, :] + ang_rel[:, None]
 
         # ------------
         # safety check
@@ -657,10 +671,10 @@ def _prepare_lamb(
         nlamb,
         lamb,
         dlamb,
-        pow_ratio,
+        pow_interp,
         ang_rel,
         dang,
-        angbragg,
+        bragg,
     )
 
 
@@ -698,10 +712,8 @@ def _loop0(
     rocking_curve=None,
     bragg_per_pix=None,
     ang_rel=None,
-    pow_ratio=None,
-    angbragg=None,
-    angbragg0=None,
-    angbragg1=None,
+    pow_interp=None,
+    bragg=None,
     # optional
     n0=None,
     n1=None,
@@ -737,17 +749,8 @@ def _loop0(
     else:
         lp0, lp1 = None, None
         lpx, lpy, lpz = None, None, None
-        lpow = None
+        dpow = None
         lsang = None
-
-    # power ratio
-    pwr_interp = scpinterp.interp1d(
-        ang_rel,
-        pow_ratio,
-        kind='linear',
-        bounds_error=False,
-        fill_value=0.,
-    )
 
     # ----------
     # loop
@@ -853,11 +856,7 @@ def _loop0(
 
             # pow
             for kk, ll in enumerate(lamb):
-                inds = np.searchsorted(
-                    angbragg[:, kk],
-                    angles[iok],
-                )
-                dpow[ll].append(pow_ratio[inds])
+                dpow[ll].append(pow_interp(angles[iok] - bragg[kk]))
 
         # safety check
         iok2 = (
@@ -919,7 +918,7 @@ def _loop0(
 
                     # solid angle
                     sang[ii, jj, i0] += np.sum(
-                        pwr_interp(arelj)
+                        pow_interp(arelj)
                         * dsang[indj]
                     )
 
@@ -928,8 +927,8 @@ def _loop0(
 
                     angj = angles[indj]
                     ilamb = (
-                        (angj[:, None] >= angbragg0)
-                        & (angj[:, None] < angbragg1)
+                        (angj[:, None] - bragg >= ang_rel[0])
+                        & (angj[:, None] - bragg < ang_rel[-1])
                     )
 
                     if not np.any(ilamb):
@@ -939,14 +938,8 @@ def _loop0(
 
                     # binning of angles
                     for kk in ilamb_n:
-                        inds = np.searchsorted(
-                            angbragg[:, kk],
-                            angj[ilamb[:, kk]],
-                        )
-
-                        # update power_ratio * solid angle
                         sang_lamb[ii, jj] += np.sum(
-                            pow_ratio[inds]
+                            pow_interp(angj[ilamb[:, kk]] - bragg[kk])
                             * dsang[indj][ilamb[:, kk]]
                         )
 
