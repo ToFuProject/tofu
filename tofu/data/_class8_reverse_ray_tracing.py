@@ -563,7 +563,11 @@ def _prepare_lamb(
         lamb = np.linspace(lambmin - 0.2*Dlamb, lambmax + 0.2*Dlamb, nlamb)
         dlamb = lamb[1] - lamb[0]
 
-        bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
+        bragg = coll.get_crystal_bragglamb(
+            key=kspectro,
+            lamb=lamb,
+            rocking_curve=False,
+        )[0]
 
     elif lamb is not None:
 
@@ -575,7 +579,11 @@ def _prepare_lamb(
         )
         nlamb = lamb.size
         dlamb = None
-        bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
+        bragg = coll.get_crystal_bragglamb(
+            key=kspectro,
+            lamb=lamb,
+            rocking_curve=False,
+        )[0]
 
     # ---------------
     # get bragg angle
