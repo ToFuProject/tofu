@@ -180,10 +180,10 @@ def _vos(
         nlamb,
         lamb,
         dlamb,
-        pow_ratio,
+        pow_interp,
         ang_rel,
         dang,
-        angbragg,
+        bragg,
     ) = _reverse_rt._prepare_lamb(
         coll=coll,
         key_diag=key_diag,
@@ -194,14 +194,6 @@ def _vos(
         res_rock_curve=res_rock_curve,
         verb=verb,
     )
-
-    angbragg0 = angbragg[:1, :]
-    angbragg1 = angbragg[-1:, :]
-
-    # linterpbragg = [
-        # scpinterp.interp1d(angbragg[:, kk], pow_ratio, kind='linear')
-        # for kk in range(angbragg.shape[1])
-    # ]
 
     # --------------
     # prepare output
@@ -298,8 +290,8 @@ def _vos(
                     t000 = dtm.datetime.now()     # DB
 
                 # set point
-                pti[0] = x0u[i0]*cosphi[i2]
-                pti[1] = x0u[i0]*sinphi[i2]
+                pti[0] = x0u[i0] * cosphi[i2]
+                pti[1] = x0u[i0] * sinphi[i2]
                 # phi[ipts] = phii
 
                 # ------------------------------------------
@@ -463,8 +455,8 @@ def _vos(
                         # ilamb
                         angj = angles[indj]
                         ilamb = (
-                            (angj[:, None] >= angbragg0)
-                            & (angj[:, None] < angbragg1)
+                            (angj[:, None] - bragg >= ang_rel[0])
+                            & (angj[:, None] - bragg < ang_rel[-1])
                         )
 
                         if not np.any(ilamb):
@@ -478,16 +470,21 @@ def _vos(
                         # if False:
                         # binning of angles
                         for kk in ilamb_n:
-                            inds = np.searchsorted(
-                                angbragg[:, kk],
-                                angj[ilamb[:, kk]],
-                            )
-
-                            # update power_ratio * solid angle
                             ph_count[ii, jj, ipts, kk] += np.sum(
-                                pow_ratio[inds]
+                                pow_interp(angj[ilamb[:, kk]] - bragg[kk])
                                 * dsang[indj][ilamb[:, kk]]
                             ) * dv
+
+                            # inds = np.searchsorted(
+                            #     angbragg[:, kk],
+                            #     angj[ilamb[:, kk]],
+                            # )
+
+                            # # update power_ratio * solid angle
+                            # ph_count[ii, jj, ipts, kk] += np.sum(
+                            #     pow_ratio[inds]
+                            #     * dsang[indj][ilamb[:, kk]]
+                            # ) * dv
 
                             # ------  DEBUG -------
                             # ph_approx[ii, jj, ipts, kk] += (
