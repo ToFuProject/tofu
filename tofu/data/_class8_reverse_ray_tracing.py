@@ -620,22 +620,6 @@ def _prepare_lamb(
 
     dang = np.mean(np.diff(ang_rel))
 
-    # elif res_rock_curve is not None:
-    #     if isinstance(res_rock_curve, int):
-    #         nang = res_rock_curve
-    #     else:
-    #         nang = int(
-    #             (np.max(ang_rel) - np.min(ang_rel)) / res_rock_curve
-    #         )
-
-    #     ang_rel2 = np.linspace(np.min(ang_rel), np.max(ang_rel), nang)
-    #     pow_ratio = scpinterp.interp1d(
-    #         ang_rel,
-    #         pow_ratio,
-    #         kind='linear',
-    #     )(ang_rel2)
-    #     ang_rel = ang_rel2
-
     # --------------------------------------
     # overall bragg angle with rocking curve
     # --------------------------------------
