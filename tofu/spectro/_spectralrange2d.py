@@ -42,13 +42,13 @@ def spectral_range_2d(
     pfe_fig=None,
     pfe_npz=None,
 ):
-    
+
     """
-    
+
     lamb0: target wavelength
     bragg0: target bragg angle
     rcurve: radii of curvature
-    
+
     ap: point source position
     xx: distance between point source and crystals
     dist: lenght of rays after reflexion
@@ -78,7 +78,7 @@ def spectral_range_2d(
 
     ilamb_min = np.nanargmin(lamb, axis=0)
     ilamb_max = np.nanargmax(lamb, axis=0)
-    
+
     lamb_min = np.array([lamb[imin, ii] for ii, imin in enumerate(ilamb_min)])
     lamb_max = np.array([lamb[imax, ii] for ii, imax in enumerate(ilamb_max)])
 
@@ -96,7 +96,7 @@ def spectral_range_2d(
         'lamb_max': lamb_max,
         'Dlamb': lamb_max - lamb_min,
     })
-    
+
     if dcam is not None:
         dout['dcam'] = dcam
 
@@ -117,8 +117,8 @@ def spectral_range_2d(
         np.savez(pfe_npz, **dout)
 
     # ---------
-    # return 
-    
+    # return
+
     if plot is True:
         return dout, dax
     else:
@@ -230,7 +230,7 @@ def _check(
 
     # ------------
     # add basis
-    
+
     din.update(din_basis)
 
     # ---------
@@ -319,7 +319,7 @@ def _compute(
     ecy = np.sin(bragg0[indc]) * ex[1] - np.cos(bragg0[indc]) * ey[1]
     ecx_p = -ecy
     ecy_p = ecx
-    
+
     cx = sx[indc] - rcurve[indc] * ecx
     cy = sy[indc] - rcurve[indc] * ecy
 
@@ -330,18 +330,18 @@ def _compute(
     # crystal plotting - curved
     ethetax = np.cos(theta) * ecx[None, :] + np.sin(theta) * ecx_p[None, :]
     ethetay = np.cos(theta) * ecy[None, :] + np.sin(theta) * ecy_p[None, :]
-    
+
     crystx[:, indc] = cx[None, :] + rcurve[indc][None, :] * ethetax
     crysty[:, indc] = cy[None, :] + rcurve[indc][None, :] * ethetay
 
     # crystal plotting - straight
     estraightx = np.cos(bragg0)[~indc] * ex[0] + np.sin(bragg0)[~indc] * ey[0]
     estraighty = np.cos(bragg0)[~indc] * ex[1] + np.sin(bragg0)[~indc] * ey[1]
-    
+
     ll = 0.5 * length[None, ~indc] * np.linspace(-1, 1, npts)[:, None]
     crystx[:, ~indc] = sx[None, ~indc] + ll*estraightx[None, :]
     crysty[:, ~indc] = sy[None, ~indc] + ll*estraighty[None, :]
-    
+
     # ----------------
     # compute rays
 
@@ -370,7 +370,7 @@ def _compute(
     # ----------------------
     # compute spectral range
 
-    # get local bragg angle - top and bottom    
+    # get local bragg angle - top and bottom
     bragg = np.arccos(sca) - np.pi/2.
 
     # lamb
@@ -392,13 +392,13 @@ def _compute(
         ninx, niny = dcam['nin'][:2]
         ninn = np.sqrt(ninx**2 + niny**2)
         ninx, niny = ninx/ninn, niny/ninn
-        
+
         ninx_r = ninx * ex[0] + niny * ey[0]
         niny_r = ninx * ex[1] + niny * ey[1]
-        
+
         camx = ap[0] + dcam['cent'][0] * ex[0] + dcam['cent'][1] * ey[0]
         camy = ap[1] + dcam['cent'][0] * ex[1] + dcam['cent'][1] * ey[1]
-        
+
         sca_up = (camx - crystx) * ninx_r + (camy - crysty) * niny_r
         sca_bot = vrx*ninx_r + vry*niny_r
 
@@ -409,10 +409,10 @@ def _compute(
         e0x = -niny_r
         e0y = ninx_r
         x0 = (ptsx - camx) * e0x + (ptsy - camy) * e0y
-        
+
         if beta_max is not None:
             x0[ind] = np.nan
-            
+
         dcam['x0'] = x0
         dcam['cent_r'] = np.r_[camx, camy]
         dcam['nin_r'] = np.r_[ninx_r, niny_r]
@@ -594,12 +594,12 @@ def _plot(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
         ax.legend(fontsize=12)
-        
+
     if beta_max is None:
         beta_str = 'None'
     else:
         beta_str = f'{beta_max*180/np.pi:5.3} deg'
-    
+
     msg = (
         f"beta_max = {beta_str}\n"
     )
@@ -647,7 +647,7 @@ def _plot(
     if pfe_fig is not None:
         dax['hor']['handle'].figure.savefig(pfe_fig, format='png', dpi=200)
 
-    return ax
+    return dax
 
 
 def _get_axes():
@@ -656,12 +656,12 @@ def _get_axes():
     # prepare figure
 
     dmargin = {
-        'left': 0.1, 'right': 0.98,
-        'bottom': 0.1, 'top': 0.90,
-        'hspace': 0.2, 'wspace': 0.2,
+        'left': 0.08, 'right': 0.98,
+        'bottom': 0.08, 'top': 0.90,
+        'hspace': 0.20, 'wspace': 0.25,
     }
 
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(13, 8))
     fig.suptitle('2d ray-tracing model')
     gs = gridspec.GridSpec(ncols=3, nrows=2, **dmargin)
 
