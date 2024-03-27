@@ -604,6 +604,7 @@ def _integrate_along_los_check(
         key_diag, key_cam = coll.get_diagnostic_cam(
             key=key_diag,
             key_cam=key_cam,
+            default='all',
         )
         key_los = None
 
@@ -781,6 +782,8 @@ def _get_dind(
 
         # ------------------
         # preliminary check
+
+        print(dx)   # DB
 
         inan = (
             np.isnan(dx[kcam])
