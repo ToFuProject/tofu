@@ -313,6 +313,8 @@ def _interpolate_along_los(
     # ---------------
     # loop on cameras
 
+    print(key_coords in lok_coords, key_integrand in lok_coords)  # DB
+
     axis_los = 0
     if key_integrand in lok_coords and key_coords in lok_coords:
 
@@ -790,7 +792,7 @@ def _get_dind(
 
         shape = coll.dobj['rays'][klos]['shape'][1:]
         nnan = np.prod(shape)
-        if inan.sum() != nnan:
+        if inan.sum() < nnan:
             msg = (
                 f"cam '{kcam}' has unconsistent nb of nans:\n"
                 f"\t- shape: {shape}\n"
@@ -813,7 +815,7 @@ def _get_dind(
         # -----------
         # safety check
 
-        lc = [np.any(inan[ind>=0]), (ind == -1).sum() != nnan]
+        lc = [np.any(inan[ind>=0]), (ind == -1).sum() < nnan]
         if  any(lc):
             msg = (
                 "Inconsistent nans!\n"
