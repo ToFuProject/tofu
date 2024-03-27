@@ -596,7 +596,7 @@ def _integrate_along_los_check(
             key_los = [key_diag]
         else:
             key_los = key_diag
-        key_cam = key_diag
+        key_cam = key_los
     else:
         # key_cam
         key_diag, key_cam = coll.get_diagnostic_cam(
