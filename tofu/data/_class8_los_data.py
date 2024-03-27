@@ -313,8 +313,6 @@ def _interpolate_along_los(
     # ---------------
     # loop on cameras
 
-    print(key_coords in lok_coords, key_integrand in lok_coords)  # DB
-
     axis_los = 0
     if key_integrand in lok_coords and key_coords in lok_coords:
 
@@ -782,8 +780,6 @@ def _get_dind(
 
         # ------------------
         # preliminary check
-
-        print(dx)   # DB
 
         inan = (
             np.isnan(dx[kcam])
