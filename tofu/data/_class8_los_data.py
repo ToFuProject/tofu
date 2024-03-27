@@ -596,12 +596,13 @@ def _integrate_along_los_check(
             key_los = [key_diag]
         else:
             key_los = key_diag
-        key_cam = key_diag
+        key_cam = key_los
     else:
         # key_cam
         key_diag, key_cam = coll.get_diagnostic_cam(
             key=key_diag,
             key_cam=key_cam,
+            default='all',
         )
         key_los = None
 
@@ -790,7 +791,7 @@ def _get_dind(
 
         shape = coll.dobj['rays'][klos]['shape'][1:]
         nnan = np.prod(shape)
-        if inan.sum() != nnan:
+        if inan.sum() < nnan:
             msg = (
                 f"cam '{kcam}' has unconsistent nb of nans:\n"
                 f"\t- shape: {shape}\n"
@@ -813,7 +814,7 @@ def _get_dind(
         # -----------
         # safety check
 
-        lc = [np.any(inan[ind>=0]), (ind == -1).sum() != nnan]
+        lc = [np.any(inan[ind>=0]), (ind == -1).sum() < nnan]
         if  any(lc):
             msg = (
                 "Inconsistent nans!\n"
