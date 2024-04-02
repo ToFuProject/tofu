@@ -331,11 +331,11 @@ def _compute(
     # ------------------------
     # indices of crystal types
 
-    # indices of curved crystals
-    indc = np.isfinite(rcurve)
-
     # variable-radii sinusoidal spiral
     indb = np.isfinite(varrad_b)
+
+    # indices of curved crystals
+    indc = np.isfinite(rcurve) & (~indb)
 
     # flat
     indf = (~indc) & (~indb)
@@ -397,6 +397,9 @@ def _compute(
 
     # main parameters
     gam0 = bragg0[indb]
+    # r0 = rcurve[indb]
+    # ix = ~np.isfinite(r0)
+    # r0[ix] = xx[indb][ix]
     r0 = xx[indb]
     b = varrad_b[indb]
 
