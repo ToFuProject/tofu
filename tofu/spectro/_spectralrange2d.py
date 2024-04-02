@@ -29,6 +29,7 @@ def spectral_range_2d(
     xx=None,
     length=None,
     rcurve=None,
+    varrad_b=None,
     dist=None,
     # camera
     dcam=None,
@@ -76,11 +77,21 @@ def spectral_range_2d(
     # -------------
     # format output
 
-    ilamb_min = np.nanargmin(lamb, axis=0)
-    ilamb_max = np.nanargmax(lamb, axis=0)
 
-    lamb_min = np.array([lamb[imin, ii] for ii, imin in enumerate(ilamb_min)])
-    lamb_max = np.array([lamb[imax, ii] for ii, imax in enumerate(ilamb_max)])
+    ilamb_min = np.full((lamb.shape[1],), -1)
+    ilamb_max = np.full((lamb.shape[1],), -1)
+    iok = np.any(np.isfinite(lamb), axis=0)
+    ilamb_min[iok] = np.nanargmin(lamb[:, iok], axis=0)
+    ilamb_max[iok] = np.nanargmax(lamb[:, iok], axis=0)
+
+    lamb_min = np.array([
+        lamb[imin, ii] if imin >= 0 else np.nan
+        for ii, imin in enumerate(ilamb_min)
+    ])
+    lamb_max = np.array([
+        lamb[imax, ii] if imax >= 0 else np.nan
+        for ii, imax in enumerate(ilamb_max)
+    ])
 
     dout = dict(din)
     dout.update({
@@ -143,6 +154,7 @@ def _check(
     xx=None,
     length=None,
     rcurve=None,
+    varrad_b=None,
     dist=None,
     # options
     npts=None,
@@ -187,6 +199,7 @@ def _check(
         'xx': xx,
         'length': length,
         'rcurve': rcurve,
+        'varrad_b': varrad_b,
         'dist': dist,
     }
 
@@ -195,7 +208,9 @@ def _check(
 
     # make all arrays
     for k0, v0 in din.items():
-        din[k0] = np.atleast_1d(v0).ravel().astype(float)
+        if v0 is None:
+            din[k0] = np.nan
+        din[k0] = np.atleast_1d(din[k0]).ravel().astype(float)
 
     # sizes
     lsizes = list(set([v0.size for v0 in din.values()]))
@@ -218,7 +233,7 @@ def _check(
     # values
 
     for k0, v0 in din.items():
-        if k0 != 'rcurve':
+        if k0 not in ['rcurve', 'varrad_b']:
             c0 = np.all(np.isfinite(v0)) and np.all(v0 >= 0.)
 
             if not c0:
@@ -284,6 +299,7 @@ def _compute(
     xx=None,
     length=None,
     rcurve=None,
+    varrad_b=None,
     dist=None,
     # options
     npts=None,
@@ -303,6 +319,7 @@ def _compute(
 
     # ----------------
     # compute geometry
+    # ----------------
 
     # 2d
     d2 = lamb0 / np.sin(bragg0)
@@ -311,8 +328,30 @@ def _compute(
     sx = ap[0] + xx * ex[0]
     sy = ap[1] + xx * ex[1]
 
+    # ------------------------
+    # indices of crystal types
+
     # indices of curved crystals
     indc = np.isfinite(rcurve)
+
+    # variable-radii sinusoidal spiral
+    indb = np.isfinite(varrad_b)
+
+    # flat
+    indf = (~indc) & (~indb)
+
+    # safety check
+    if not np.all(np.sum([indc, indb, indf], axis=0) == 1):
+        msg = (
+            "Some undetermined 2d crystal shapes:\n"
+            f"\t- indc = {indc}\n"
+            f"\t- indb = {indb}\n"
+            f"\t- indf = {indf}\n"
+        )
+        raise Exception(msg)
+
+    # ---------------------
+    # curved crystals
 
     # center of curvature
     ecx = np.sin(bragg0[indc]) * ex[0] - np.cos(bragg0[indc]) * ey[0]
@@ -334,16 +373,74 @@ def _compute(
     crystx[:, indc] = cx[None, :] + rcurve[indc][None, :] * ethetax
     crysty[:, indc] = cy[None, :] + rcurve[indc][None, :] * ethetay
 
-    # crystal plotting - straight
-    estraightx = np.cos(bragg0)[~indc] * ex[0] + np.sin(bragg0)[~indc] * ey[0]
-    estraighty = np.cos(bragg0)[~indc] * ex[1] + np.sin(bragg0)[~indc] * ey[1]
+    # local normal vectors
+    vnx[:, indc] = -ethetax
+    vny[:, indc] = -ethetay
 
-    ll = 0.5 * length[None, ~indc] * np.linspace(-1, 1, npts)[:, None]
-    crystx[:, ~indc] = sx[None, ~indc] + ll*estraightx[None, :]
-    crysty[:, ~indc] = sy[None, ~indc] + ll*estraighty[None, :]
+    # -----------------------
+    # flat crystals
+
+    # crystal plotting - straight
+    estraightx = np.cos(bragg0)[indf] * ex[0] + np.sin(bragg0)[indf] * ey[0]
+    estraighty = np.cos(bragg0)[indf] * ex[1] + np.sin(bragg0)[indf] * ey[1]
+
+    ll = 0.5 * length[None, indf] * np.linspace(-1, 1, npts)[:, None]
+    crystx[:, indf] = sx[None, indf] + ll*estraightx[None, :]
+    crysty[:, indf] = sy[None, indf] + ll*estraighty[None, :]
+
+    # local normal vectors
+    vnx[:, indf] = -estraighty
+    vny[:, indf] = estraightx
+
+    # -----------------------
+    # variable radii crystals
+
+    # main parameters
+    gam0 = bragg0[indb]
+    r0 = xx[indb]
+    b = varrad_b[indb]
+
+    # local radius of curvature at center
+    rc0 = r0 / (b * np.sin(gam0))
+
+    # dOMx = r / (b-1) * (cos(phi) / tan(gam) - sin(phi))
+    # dOMy = r / (b-1) * (sin(phi) / tan(gam) + cos(phi))
+    # dL = r/(b-1) * 1 / sin(gam)
+    # dL ~ r0/(b-1) * 1/sin(gam0) * Dgam
+
+    # half angular opening of crystal (approximative)
+    # dgam = 0.5*length / rc0
+    dgam = 1.2 * length[indb] * np.sin(gam0) * (b-1) / r0 / 2
+
+    # gam
+    gam = gam0[None, :] + dgam[None, :] * np.linspace(-1, 1, npts)[:, None]
+
+    # r
+    r = r0[None, :] * (np.sin(gam) / np.sin(gam0)[None, :])**(1/(b[None, :]-1))
+
+    # phi
+    phi = (gam - gam0[None, :]) / (b[None, :]-1)
+
+    # cryst
+
+    crystx[:, indb] = ap[0] + r * (np.cos(phi) * ex[0]  + np.sin(phi) * ey[0])
+    crysty[:, indb] = ap[1] + r * (np.cos(phi) * ex[1]  + np.sin(phi) * ey[1])
+
+    # derivative
+    c0 = r / (b[None, :] - 1)
+    c1 = np.cos(gam) / np.sin(gam)
+    dOMxx = c0 * (c1 * np.cos(phi) - np.sin(phi))
+    dOMyy = c0 * (c1 * np.sin(phi) + np.cos(phi))
+    dOMx = dOMxx * ex[0] + dOMyy * ey[0]
+    dOMy = dOMxx * ex[1] + dOMyy * ey[1]
+
+    # local normal vectors
+    vnx[:, indb] = dOMy / np.sqrt(dOMx**2 + dOMy**2)
+    vny[:, indb] = -dOMx / np.sqrt(dOMx**2 + dOMy**2)
 
     # ----------------
     # compute rays
+    # ----------------
 
     # vectors of incident rays
     vix = crystx - ap[0]
@@ -352,11 +449,6 @@ def _compute(
     vix = vix / vin
     viy = viy / vin
 
-    # local normal vectors
-    vnx[:, indc] = -ethetax
-    vny[:, indc] = -ethetay
-    vnx[:, ~indc] = -estraighty
-    vny[:, ~indc] = estraightx
 
     # reflected vectors
     sca = vix*vnx + viy*vny
@@ -387,6 +479,7 @@ def _compute(
 
     # -----------------
     # impacts on camera
+    # -----------------
 
     if dcam is not None:
         ninx, niny = dcam['nin'][:2]
