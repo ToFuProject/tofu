@@ -397,14 +397,13 @@ def _compute(
 
     # main parameters
     gam0 = bragg0[indb]
-    # r0 = rcurve[indb]
-    # ix = ~np.isfinite(r0)
-    # r0[ix] = xx[indb][ix]
-    r0 = xx[indb]
+    r0 = rcurve[indb]
+    ix = ~np.isfinite(r0)
+    r0[ix] = xx[indb][ix]
     b = varrad_b[indb]
 
     # local radius of curvature at center
-    rc0 = r0 / (b * np.sin(gam0))
+    # rc0 = r0 / (b * np.sin(gam0))
 
     # dOMx = r / (b-1) * (cos(phi) / tan(gam) - sin(phi))
     # dOMy = r / (b-1) * (sin(phi) / tan(gam) + cos(phi))
@@ -413,7 +412,7 @@ def _compute(
 
     # half angular opening of crystal (approximative)
     # dgam = 0.5*length / rc0
-    dgam = 1.2 * length[indb] * np.sin(gam0) * (b-1) / r0 / 2
+    dgam = 1.1 * length[indb] * np.sin(gam0) * (b-1) / r0 / 2
 
     # gam
     gam = gam0[None, :] + dgam[None, :] * np.linspace(-1, 1, npts)[:, None]
@@ -426,8 +425,16 @@ def _compute(
 
     # cryst
 
-    crystx[:, indb] = ap[0] + r * (np.cos(phi) * ex[0]  + np.sin(phi) * ey[0])
-    crysty[:, indb] = ap[1] + r * (np.cos(phi) * ex[1]  + np.sin(phi) * ey[1])
+    crystx[:, indb] = (
+        ap[0]
+        + (xx[indb] - r0) * ex[0]
+        + r * (np.cos(phi) * ex[0]  + np.sin(phi) * ey[0])
+    )
+    crysty[:, indb] = (
+        ap[1]
+        + (xx[indb] - r0) * ex[1]
+        + r * (np.cos(phi) * ex[1]  + np.sin(phi) * ey[1])
+    )
 
     # derivative
     c0 = r / (b[None, :] - 1)
