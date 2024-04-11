@@ -31,6 +31,7 @@ def main(
     # mesh sampling
     key_mesh=None,
     res_RZ=None,
+    nan0=None,
     # plotting options
     config=None,
     dcolor=None,
@@ -38,17 +39,21 @@ def main(
     fs=None,
     dmargin=None,
     tit=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
 ):
 
     # -------------
     # check inputs
     # -------------
 
-    is_vos, keym, res_RZ, dcolor = _check(
+    key, is_vos, keym, res_RZ, nan0, dcolor = _check(
         coll=coll,
         key=key,
         key_mesh=key_mesh,
         res_RZ=res_RZ,
+        nan0=nan0,
         dcolor=dcolor,
     )
 
@@ -64,6 +69,12 @@ def main(
         res_RZ=res_RZ,
         dcolor=dcolor,
     )
+
+    # ------------
+    # nan0
+
+    if nan0 is True:
+        ndet[ndet == 0] = np.nan
 
     # -----------
     # plot
@@ -83,9 +94,12 @@ def main(
         fs=fs,
         dmargin=dmargin,
         tit=tit,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
     )
 
-    return dax
+    return dpoly, ndet, dax
 
 
 # ################################################################
@@ -99,6 +113,7 @@ def _check(
     key=None,
     key_mesh=None,
     res_RZ=None,
+    nan0=None,
     dcolor=None,
 ):
 
@@ -147,7 +162,18 @@ def _check(
         res_RZ = list(list(lres_RZ)[0])
 
     else:
+        # if
         pass
+
+    # -----------
+    # nan0 => set 0 to nan
+    # -----------
+
+    nan0 = ds._generic_check._check_var(
+        nan0, 'nan0',
+        types=bool,
+        default=True,
+    )
 
     # -----------
     # dcolor
@@ -187,7 +213,7 @@ def _check(
             alpha = 0.5
         dcolor[k0] = mcolors.to_rgba(v0, alpha=alpha)
 
-    return is_vos, keym, res_RZ, dcolor
+    return key, is_vos, keym, res_RZ, nan0, dcolor
 
 
 # ################################################################
@@ -262,8 +288,6 @@ def _compute(
                 )
                 ndet[ind] += 1
 
-        ndet[ndet == 0] = np.nan
-
     # -----------------
     # ndet for non-vos
     # -----------------
@@ -317,6 +341,9 @@ def _plot(
     fs=None,
     dmargin=None,
     tit=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
 ):
 
     # ----------------
@@ -325,6 +352,15 @@ def _plot(
 
     if tit is None:
         tit = f"geometrical coverage of diag '{key}'"
+
+    if cmap is None:
+        cmap = plt.cm.viridis   # Greys
+
+    if vmin is None:
+        vmin = 0
+
+    if vmax is None:
+        vmax = np.nanmax(ndet)
 
     # ----------------
     # prepare figure
@@ -372,9 +408,9 @@ def _plot(
             extent=extent,
             origin='lower',
             interpolation='bilinear',
-            cmap=plt.cm.viridis, # Greys
-            vmin=0,
-            vmax=np.nanmax(ndet),
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
         )
 
         plt.colorbar(im, cax=cax)
