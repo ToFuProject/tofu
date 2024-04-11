@@ -162,7 +162,6 @@ def _check(
         res_RZ = list(list(lres_RZ)[0])
 
     else:
-        # if
         pass
 
     # -----------
