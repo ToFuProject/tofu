@@ -1322,9 +1322,17 @@ class Diagnostic(Previous):
         # mesh sampling
         key_mesh=None,
         res_RZ=None,
+        nan0=None,
         # plotting options
         plot_config=None,
         dcolor=None,
+        dax=None,
+        fs=None,
+        dmargin=None,
+        tit=None,
+        cmap=None,
+        vmin=None,
+        vmax=None,
     ):
         """ Plot the geometrical coverage of a diagnostic, in a cross-section
 
@@ -1355,9 +1363,17 @@ class Diagnostic(Previous):
             # mesh sampling
             key_mesh=key_mesh,
             res_RZ=res_RZ,
+            nan0=nan0,
             # plotting options
             config=plot_config,
             dcolor=dcolor,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            dax=dax,
+            fs=fs,
+            dmargin=dmargin,
+            tit=tit,
         )
 
     # --------------------------
