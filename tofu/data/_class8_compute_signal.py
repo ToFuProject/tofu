@@ -393,7 +393,7 @@ def _compute_signal_check(
     # dvos
     if method == 'vos':
         # single camera + get dvos
-        dvos, isstore = coll.check_diagnostic_dvos(
+        key_diag, dvos, isstore = coll.check_diagnostic_dvos(
             key_diag,
             key_cam=key_cam,
             dvos=dvos,
