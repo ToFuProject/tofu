@@ -625,7 +625,7 @@ def _prepare_lamb(
     # --------------------------------------
 
     if res_lamb is None and lamb is None:
-        nlamb, lamb, dlamb = None, None, None
+        nlamb, lamb, dlamb, bragg = None, None, None, None
 
     else:
 
@@ -728,8 +728,11 @@ def _loop0(
     if append is True:
         lp0, lp1 = [], []
         lpx, lpy, lpz = [], [], []
-        dpow = {ll: [] for ll in lamb}
         lsang = []
+        if lamb is None:
+            dpow = None
+        else:
+            dpow = {ll: [] for ll in lamb}
     else:
         lp0, lp1 = None, None
         lpx, lpy, lpz = None, None, None
@@ -839,8 +842,9 @@ def _loop0(
             lp1.append(x1c[iok])
 
             # pow
-            for kk, ll in enumerate(lamb):
-                dpow[ll].append(pow_interp(angles[iok] - bragg[kk]))
+            if lamb is not None:
+                for kk, ll in enumerate(lamb):
+                    dpow[ll].append(pow_interp(angles[iok] - bragg[kk]))
 
         # safety check
         iok2 = (
