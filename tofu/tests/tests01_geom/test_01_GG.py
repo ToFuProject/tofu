@@ -1209,6 +1209,8 @@ def test16_dist_los_vpoly():
         )
         raise Exception(msg)
 
+    raise Exception()
+
 
 # ==============================================================================
 #
