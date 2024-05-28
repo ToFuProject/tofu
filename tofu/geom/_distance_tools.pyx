@@ -790,17 +790,22 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     # eps_uz is the tolerated DZ across 20m (max Tokamak size)
     norm_dir2 = c_sqrt(_bgt.compute_dot_prod(ray_vdir, ray_vdir))
 
-    # ----- DEBUG / DB ------------
-    printf("\n\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])   # DB
-    printf("\t- norm_dir2 = %e\n", norm_dir2)
-    printf("\t- res_final[0] = %e\n", res_final[0])
-    printf("\t- C_NAN = %e\n", C_NAN)
-    # -------- END BD -------------
-
     norm_dir2_ori = norm_dir2
     for jj in range(3):
         ray_vdir[jj] = ray_vdir[jj] / norm_dir2
     norm_dir2 = 1.
+
+    # ----- DEBUG / DB ------------
+    if ray_vdir[0] == 0. and ray_vdir[1] == 0. and ray_vdir[2] == 1.:
+        if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+        printf("\n\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])   # DB
+        printf("\t- norm_dir2 = %e\n", norm_dir2)
+        printf("\t- norm_dir2_ori = %e\n", norm_dir2_ori)
+        printf("\t- res_final[0] = %e\n", res_final[0])
+        printf("\t- res_final[1] = %e\n", res_final[1])
+        printf("\t- C_NAN = %e\n", C_NAN)
+    # -------- END BD -------------
+
     if ray_vdir[2] * ray_vdir[2] < crit2:
         # -- Case with horizontal semi-line ------------------------------------
         for jj in range(nvert-1):
@@ -993,6 +998,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                         printf("\n Before\n")
                         printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
+                        printf("\t- res_a[1], res_final[1] = %e, %e\n", res_a[1], res_final[1])  # DB
                         printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
                         printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
                         printf("\t- res_final[1] - res_a[1] > _VSMALL = %d\n", res_final[1] - res_a[1] > _VSMALL)
@@ -1008,8 +1014,6 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                             printf("After\n")
                             printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
-                            printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
-                            printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
 
             elif (val_b * val_b >= val_a * coeff):
                 sqd = c_sqrt(val_b * val_b - val_a * coeff)
