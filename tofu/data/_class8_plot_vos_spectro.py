@@ -2,6 +2,7 @@
 
 
 # Built-in
+import itertools as itt
 
 
 # Common
@@ -354,12 +355,16 @@ def _prepare_ph(
 
     # -----------------
     # check up
+    # -----------------
+
+    kph = 'ph2'
 
     if indlamb is None:
         indlamb = int(dvos['lamb']['data'].size / 2)
 
     # -----------------
     # get mesh sampling
+    # -----------------
 
     dsamp = coll.get_sample_mesh(
         key=dvos['keym'],
@@ -380,6 +385,7 @@ def _prepare_ph(
 
     # ------------------------------
     # dhor
+    # ------------------------------
 
     x0u = dsamp['x0']['data']
     x1u = dsamp['x1']['data']
@@ -424,6 +430,10 @@ def _prepare_ph(
 
     # ------------------------------
     # prepare image in cross-section
+    # ------------------------------
+
+    # -----------------
+    # get shapes and initialize
 
     n0, n1 = x0u.size, x1u.size
     shape = (n0, n1)
@@ -440,12 +450,14 @@ def _prepare_ph(
 
     lamb = np.full(shape, np.nan)
     lambi = np.full(shape, np.nan)
+    lamb0 = np.full(shape, np.nan)
+    lambi0 = np.full(shape, np.nan)
     dlamb = np.full(shape, np.nan)
     dlambi = np.full(shape, np.nan)
     cos = np.full(shape, np.nan)
     cosi = np.full(shape, np.nan)
 
-    shape_cam = dvos['ph']['data'].shape[:-2]
+    shape_cam = dvos[kph]['data'].shape[:-2]
     nc_cam = np.full(shape_cam, np.nan)
     ph_cam = np.full(shape_cam, np.nan)
     cos_cam = np.full(shape_cam, np.nan)
@@ -454,13 +466,19 @@ def _prepare_ph(
 
     indr = dvos['indr_cross']['data']
     indz = dvos['indz_cross']['data']
-    npts, nlamb = dvos['ph']['data'].shape[-2:]
+    ilambr = dvos['ilambr']['data']
+    npts = dvos[kph]['data'].shape[-2]
 
+    # -----------------
     # multiply by dlamb
-    ph0 = dvos['ph']['data'] * np.mean(np.diff(dvos['lamb']['data']))
+
+    indch0 = indch
+    ph0 = dvos[kph]['data'] * np.mean(np.diff(dvos['lamb']['data']))
     if is2d:
         nc = dvos['ncounts']['data'].reshape((-1, npts))
-        ph = ph0.reshape((-1, npts, nlamb))
+        ph = ph0.reshape(tuple([-1] + list(ph0.shape[-2:])))
+        if kph == 'ph2':
+            ilambr = dvos['ilambr']['data'].reshape(tuple([-1] + list(ph0.shape[-2:])))
         coss = dvos['cos']['data'].reshape((-1, npts))
         lambc = dvos['lamb']['data'][None, None, None, :]
         indch = indch[0] * shape_cam[1] + indch[1]
@@ -468,6 +486,8 @@ def _prepare_ph(
     else:
         nc = dvos['ncounts']['data']
         ph = ph0
+        if kph == 'ph2':
+            ilambr = dvos['ilambr']['data']
         coss = dvos['cos']['data']
         lambc = dvos['lamb']['data'][None, None, :]
 
@@ -475,42 +495,58 @@ def _prepare_ph(
     phi = ph[indch, :, :]
     cossi = coss[indch, :]
 
+    # -----------------
     # lambmax, lambmin
-    lambf = np.repeat(dvos['lamb']['data'][None, :], npts, axis=0)
-    for ni in shape_cam[::-1]:
-        lambf = np.repeat(lambf[None, :], ni, axis=0)
 
-    ind0 = ph0 == 0
-    lambf[ind0] = np.inf
-    lambmin = np.min(lambf, axis=-1)
-    lambf[ind0] = -np.inf
-    lambmax = np.max(lambf, axis=-1)
-    del lambf
+    shapel = ph0.shape[:-1]
+    lambmin = np.full(shapel, np.nan)
+    lambmax = np.full(shapel, np.nan)
+    if kph == 'ph2':
+        for ind in itt.product(*[range(ss) for ss in shapel]):
+            sli = tuple(list(ind) + [slice(None)])
+            iok = ph0[sli] > 0.
+            if np.any(iok):
+                if kph == 'ph2':
+                    iok = dvos['ilambr']['data'][sli][iok]
+                lambmin[ind] = np.min(dvos['lamb']['data'][iok])
+                lambmax[ind] = np.max(dvos['lamb']['data'][iok])
 
     lambmini = lambmin.reshape((-1, npts))[indch]
     lambmaxi = lambmax.reshape((-1, npts))[indch]
 
+    # -----------------
     # photon counts
+
     nc_tot[indr, indz] = np.sum(nc, axis=0)
     nc_toti[indr, indz] = np.sum(nci, axis=0)
 
+    # -----------------
     # update indr, indz
+
     iok = nc_tot[indr, indz] > 0.
+    iokn = np.nonzero(iok)[0]
     ir, iz = indr[iok], indz[iok]
+
     ioki = nc_toti[indr, indz] > 0.
     iri, izi = indr[ioki], indz[ioki]
 
     nc_tot[nc_tot == 0] = np.nan
     nc_toti[nc_toti == 0] = np.nan
 
+    # -----------------
     # dV
+
     dV[ir, iz] =  dvos['dV']['data'][iok]
 
+    # -----------------
     # cos
+
     cos[ir, iz] = np.nansum(nc[:, iok] * coss[:, iok], axis=0) / nc_tot[ir, iz]
     cosi[iri, izi] = cossi[ioki]
 
+    # -----------------
     # ph_tot
+
     if np.any(np.isnan(ph)):
         msg = "ph_count should not contain nans! (nansum copies)"
         raise Exception(msg)
@@ -518,30 +554,61 @@ def _prepare_ph(
     ph_tot[ir, iz] = np.sum(np.sum(ph[:, iok, :], axis=0), axis=-1)
     ph_toti[iri, izi] = np.sum(phi[ioki, :], axis=-1)
 
+    # ------------------
     # average wavelength
-    lamb[ir, iz] = np.sum(
-        np.sum(ph[:, iok, :] * dvos['lamb']['data'][None, None, :], axis=0),
-        axis=-1,
-    ) / ph_tot[ir, iz]
+
+    for ii, (irii, izii) in enumerate(zip(ir, iz)):
+        if kph == 'ph2':
+            sli = (None, ilambr[:, iokn[ii], :])
+        else:
+            sli = (None, slice(None))
+        lamb[irii, izii] = (
+            np.sum(dvos['lamb']['data'][sli] * ph[:, iokn[ii], :])
+            / ph_tot[irii, izii]
+        )
+
+    if kph == 'ph2':
+        ll = dvos['lamb']['data'][ilambr[indch, ioki, :]]
+    else:
+        ll = dvos['lamb']['data'][None, :]
 
     lambi[iri, izi] = (
-        np.sum(phi[ioki, :] * dvos['lamb']['data'][None, :], axis=-1)
+        np.sum(phi[ioki, :] * ll, axis=-1)
         / ph_toti[iri, izi]
     )
 
+    if kph == 'ph':
+        lamb0[ir, iz] = np.sum(
+            np.sum(ph[:, iok, :] * dvos['lamb']['data'][None, None, :], axis=0),
+            axis=-1,
+        ) / ph_tot[ir, iz]
+
+        lambi0[iri, izi] = (
+            np.sum(phi[ioki, :] * dvos['lamb']['data'][None, :], axis=-1)
+            / ph_toti[iri, izi]
+        )
+
+        assert np.allclose(lamb0, lamb, equal_nan=True), ('lamb\n', lamb, '\n', lamb0)
+        assert np.allclose(lambi0, lambi, equal_nan=True), ('lambi\n', lambi, '\n', lambi0)
+
+    # -----------------
     # delta wavelength
+
     dlamb[ir, iz] = (
         np.nanmax(lambmax.reshape((-1, npts))[:, iok], axis=0)
         - np.nanmin(lambmin.reshape((-1, npts))[:, iok], axis=0)
     )
     dlambi[iri, izi] = lambmaxi[ioki] - lambmini[ioki]
 
+    # -----------------
     # adjust
+
     ph_tot[ph_tot == 0.] = np.nan
     ph_toti[ph_toti == 0.] = np.nan
 
     # -----------------------
     # prepare image on camera
+    # -----------------------
 
     nc_cam[...] = np.nansum(dvos['ncounts']['data'], axis=-1)
     iok = nc_cam > 0.
@@ -549,8 +616,13 @@ def _prepare_ph(
 
     ph_cam[iok] = np.nansum(np.nansum(ph0, axis=-1), axis=-1)[iok]
 
+    if kph == 'ph2':
+        lamb_aa = dvos['lamb']['data'][dvos['ilambr']['data']]
+    else:
+        lamb_aa = lambc
+
     lamb_cam[iok] = (
-        np.nansum(np.nansum(ph0 * lambc, axis=-1), axis=-1)[iok]
+        np.nansum(np.nansum(ph0 * lamb_aa, axis=-1), axis=-1)[iok]
         / ph_cam[iok]
     )
 
@@ -567,20 +639,47 @@ def _prepare_ph(
 
     # ----------------------
     # prepare per wavelength
+    # ----------------------
 
-    ph_cam_lamb = np.nansum(ph0[..., indlamb], axis=-1)
-    ph_tot_lamb[indr, indz] = np.nansum(ph[..., indlamb], axis=0)
-    ph_toti_lamb[indr, indz] = np.nansum(phi[..., indlamb], axis=0)
+    if kph == 'ph2':
+        indlamb2 = dvos['ilambr']['data'] == indlamb
+        ii2 = np.any(indlamb2, axis=-2)
+        print(ii2.shape, ii2.sum(), ph.shape)
+        print()
+        print(np.sum(np.any(ii2, axis=-1)), np.sum(~np.any(ii2, axis=-1)))
+        ii2[~np.any(ii2, axis=-1), 0] = True
+        print(ii2.sum())
+        assert np.all(np.sum(indlamb2, axis=-2) <= 1)
+        assert ii2.sum() == ph.shape[0], (ii2.shape, ii2.size, ii2.sum())
+        print(indlamb2.shape, indlamb2.sum(), ii2.shape)
+        print(ph0.shape, ph.shape, phi.shape)
+        ph_cam_lamb = np.nansum(ph0, axis=-1, where=indlamb2)
+        ph_cam_lamb2 = np.nansum(ph0, axis=-2, where=indlamb2)[ii2]
+        print(ph_cam_lamb.shape)
+        print(ph_cam_lamb2.shape)
+        indlamb2 = ilambr == indlamb
+        assert np.all(np.sum(indlamb2, axis=-1) <= 1)
+        print(indlamb2.shape)
+        ph_tot_lamb[indr, indz] = np.nansum(ph, axis=0, where=indlamb2)
+        ph_toti_lamb[indr, indz] = np.nansum(phi, axis=0, where=indlamb2)
+        print(ph_cam_lamb.shape, ph_tot_lamb.shape, ph_toti_lamb.shape)
+
+    else:
+        ph_cam_lamb = np.nansum(ph0[..., indlamb], axis=-1)
+        ph_tot_lamb[indr, indz] = np.nansum(ph[..., indlamb], axis=0)
+        ph_toti_lamb[indr, indz] = np.nansum(phi[..., indlamb], axis=0)
 
     ph_cam_lamb[ph_cam_lamb == 0] = np.nan
 
     # ----------------------
     # delta_lamb for etendue
+    # ----------------------
 
     delta_lamb = coll.get_diagnostic_data(key, data='dlamb')[0][key_cam[0]]
 
     # -------------------
     # extent
+    # -------------------
 
     x0 = dsamp['x0']['data']
     dx0 = x0[1] - x0[0]
