@@ -1050,11 +1050,14 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 printf("\t- ray_vdir[2] * ray_vdir[2] < crit2 = %d\n", ray_vdir[2] * ray_vdir[2] < crit2)
                 printf("\t- jj / nvert-1 = %i / %i\n", jj, nvert-1)
                 printf("\t- norm_dir2_ori = %e\n", norm_dir2_ori)
+                printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
                 printf("\t- q = %e\n", q)
-                printf("\t- val_a * val_a = %e\n", val_a * val_a)
-                printf("\t- val_b * val_b = %e\n", val_b * val_b)
-                printf("\t- eps_a * eps_a = %e\n", eps_a * eps_a)
-                printf("\t- eps_b * eps_b = %e\n", eps_b * eps_b)
+                printf("\t- val_a * val_a < eps_a * eps_a = %e\n", val_a * val_a < eps_a * eps_a)
+                printf("\t- val_b * val_b < eps_b * eps_b = %e\n", val_b * val_b < eps_b * eps_b)
+                printf("\t- coeff * coeff < eps_a * eps_a = %e\n", coeff * coeff < eps_a * eps_a)
+                printf("\t- v0 * v0 < eps_a and upar2 * upar2 < eps_a = %e\n", v0 * v0 < eps_a and upar2 * upar2 < eps_a)
+                printf("\t- val_b * val_b >= val_a * coeff = %e\n", val_b * val_b >= val_a * coeff)
+                printf("\t- coeff = %e\n", coeff)
                 printf("\n\n\n")
             # ---- END DEBUG ---------
 
