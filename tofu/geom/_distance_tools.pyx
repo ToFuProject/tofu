@@ -789,6 +789,8 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     # Set tolerance value for ray_vdir[2,ii]
     # eps_uz is the tolerated DZ across 20m (max Tokamak size)
     norm_dir2 = c_sqrt(_bgt.compute_dot_prod(ray_vdir, ray_vdir))
+    printf("\n\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])   # DB
+    printf("\t- norm_dir2 = %e\n", norm_dir2)
     norm_dir2_ori = norm_dir2
     for jj in range(3):
         ray_vdir[jj] = ray_vdir[jj] / norm_dir2
@@ -1052,11 +1054,11 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 printf("\t- norm_dir2_ori = %e\n", norm_dir2_ori)
                 printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
                 printf("\t- q = %e\n", q)
-                printf("\t- val_a * val_a < eps_a * eps_a = %e\n", val_a * val_a < eps_a * eps_a)
-                printf("\t- val_b * val_b < eps_b * eps_b = %e\n", val_b * val_b < eps_b * eps_b)
-                printf("\t- coeff * coeff < eps_a * eps_a = %e\n", coeff * coeff < eps_a * eps_a)
-                printf("\t- v0 * v0 < eps_a and upar2 * upar2 < eps_a = %e\n", v0 * v0 < eps_a and upar2 * upar2 < eps_a)
-                printf("\t- val_b * val_b >= val_a * coeff = %e\n", val_b * val_b >= val_a * coeff)
+                printf("\t- val_a * val_a < eps_a * eps_a = %d\n", val_a * val_a < eps_a * eps_a)
+                printf("\t- val_b * val_b < eps_b * eps_b = %d\n", val_b * val_b < eps_b * eps_b)
+                printf("\t- coeff * coeff < eps_a * eps_a = %d\n", coeff * coeff < eps_a * eps_a)
+                printf("\t- v0 * v0 < eps_a and upar2 * upar2 < eps_a = %d\n", v0 * v0 < eps_a and upar2 * upar2 < eps_a)
+                printf("\t- val_b * val_b >= val_a * coeff = %d\n", val_b * val_b >= val_a * coeff)
                 printf("\t- coeff = %e\n", coeff)
                 printf("\n\n\n")
             # ---- END DEBUG ---------
