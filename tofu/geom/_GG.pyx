@@ -4154,7 +4154,8 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                 printf("\t- eps_a = %e\n", eps_a)
                 printf("\t- eps_b = %e\n", eps_b)
 
-                printf("\n\t- list_vpoly_x = %e", list_vpoly_x[0])
+                printf("\n\t- list_vpoly_x[18,19] = %e, %e", list_vpoly_x[18], list_vpoly_x[19])
+                printf("\n\t- list_vpoly_y[18,19] = %e, %e", list_vpoly_y[18], list_vpoly_y[19])
                 printf("\n\n\n")
 
             # --- END DEBUG ---

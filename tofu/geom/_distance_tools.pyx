@@ -776,7 +776,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     cdef int jj
     cdef double norm_dir2, norm_dir2_ori
     cdef double radius_z
-    cdef double q, coeff, sqd, k
+    cdef double q, coeff, sqd, k = C_NAN
     cdef double v0, v1, val_a, val_b
     cdef double[2] res_a
     cdef double[2] res_b
@@ -789,8 +789,14 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     # Set tolerance value for ray_vdir[2,ii]
     # eps_uz is the tolerated DZ across 20m (max Tokamak size)
     norm_dir2 = c_sqrt(_bgt.compute_dot_prod(ray_vdir, ray_vdir))
+
+    # ----- DEBUG / DB ------------
     printf("\n\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])   # DB
     printf("\t- norm_dir2 = %e\n", norm_dir2)
+    printf("\t- res_final[0] = %e\n", res_final[0])
+    printf("\t- C_NAN = %e\n", C_NAN)
+    # -------- END BD -------------
+
     norm_dir2_ori = norm_dir2
     for jj in range(3):
         ray_vdir[jj] = ray_vdir[jj] / norm_dir2
@@ -1053,6 +1059,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 printf("\t- jj / nvert-1 = %i / %i\n", jj, nvert-1)
                 printf("\t- res_a[0] = %e\n", res_a[0])
                 printf("\t- res_b[0] = %e\n", res_b[0])
+                printf("\t- C_NAN = %e\n", C_NAN)
                 printf("\t- res_final[0] = %e\n", res_final[0])
                 printf("\t- norm_dir2_ori = %e\n", norm_dir2_ori)
                 printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
@@ -1065,7 +1072,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 printf("\t- v0 * v0 < eps_a and upar2 * upar2 < eps_a = %d\n", v0 * v0 < eps_a and upar2 * upar2 < eps_a)
                 printf("\t- lpolyy[jj] >= ray_orig[2] and ray_orig[2] <= lpolyy[jj+1] = %d\n", lpolyy[jj] >= ray_orig[2] and ray_orig[2] <= lpolyy[jj+1])
                 printf("\t- val_b * val_b >= val_a * coeff = %d\n", val_b * val_b >= val_a * coeff)
-                printf("\t- ray_vdir[2] < 0 = %d", ray_vdir[2] < 0)
+                printf("\t- ray_vdir[2] < 0 = %d\n", ray_vdir[2] < 0)
                 printf("\t- coeff = %e\n", coeff)
                 printf("\t- _VSMALL = %e", _VSMALL)
                 printf("\n")
