@@ -993,6 +993,10 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
+                    printf("\n\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
+                    printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
+                    printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
+
             elif (val_b * val_b >= val_a * coeff):
                 sqd = c_sqrt(val_b * val_b - val_a * coeff)
                 # First solution
