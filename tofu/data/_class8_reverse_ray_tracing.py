@@ -558,9 +558,9 @@ def _prepare_lamb(
 
         lambmin = np.nanmin(lamb)
         lambmax = np.nanmax(lamb)
-        Dlamb = (lambmax - lambmin) * 1.1
-        nlamb = int(np.ceil(Dlamb / res_lamb)) + 2
-        lamb = np.linspace(lambmin - 0.2*Dlamb, lambmax + 0.2*Dlamb, nlamb)
+        Dlamb = (lambmax - lambmin)
+        nlamb = int(np.ceil(1.1 * Dlamb / res_lamb)) + 1
+        lamb = np.linspace(lambmin - 0.05*Dlamb, lambmax + 0.05*Dlamb, nlamb)
         dlamb = lamb[1] - lamb[0]
 
         bragg = coll.get_crystal_bragglamb(
@@ -643,7 +643,7 @@ def _prepare_lamb(
 
         if verb is True and res_lamb is not None:
             msg = (
-                "Recommended res_lamb to ensure rocking curve overlap:\n"
+                "\n\tRecommended 'res_lamb' for overlapping rocking curves:\n"
                 f"\t- edge-edge: \t{dlamb_max[0]:.2e}\n"
                 f"\t- MH-to-MH: \t{dlamb_mh[0]:.2e}\n"
                 f"\t- resolution: \t{dlamb_res[0]:.2e}\n"
@@ -784,6 +784,7 @@ def _loop0(
             dangmin_str, x0if, x1if,
             ptsx1, ptsy1, ptsz1,
             ptsx2, ptsy2, ptsz2,
+            n0i, n1i,
         ) = _get_points_on_camera_from_pts(
             p0=p0,
             p1=p1,
@@ -1429,6 +1430,7 @@ def _get_points_on_camera_from_pts(
         dangmin_str, x0if, x1if,
         ptsx1, ptsy1, ptsz1,
         ptsx2, ptsy2, ptsz2,
+        n0, n1,
     )
 
 
