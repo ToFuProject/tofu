@@ -19,6 +19,7 @@ from libc.math cimport fabs as c_abs
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport NAN as C_NAN
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 from ._basic_geom_tools cimport _VSMALL
 from . cimport _basic_geom_tools as _bgt
 from . cimport _sampling_tools as _st
@@ -1042,6 +1043,19 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         and res_final[0] - res_b[0] > _VSMALL)):
                     res_final[0] = res_b[0]
                     res_final[1] = res_b[1]
+
+            # ----- DEBUG / DB -------
+            if c_abs(res_final[0] - 14) < 1e-9:
+                printf("\n\n\n")
+                printf("\t- jj = %i", jj)
+                printf("\t- q = %e", q)
+                printf("\t- val_a * val_a = %e", val_a * val_a)
+                printf("\t- val_b * val_b = %e", val_b * val_b)
+                printf("\t- eps_a * eps_a = %e", eps_a * eps_a)
+                printf("\t- eps_b * eps_b = %e", eps_b * eps_b)
+                printf("\n\n\n")
+            # ---- END DEBUG ---------
+
     res_final[0] = res_final[0] / norm_dir2_ori
     return
 

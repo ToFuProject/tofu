@@ -4094,12 +4094,14 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                                     &new_npts_poly,
                                     0, # mode = absolute
                                     _VSMALL)
+
     # == Defining parallel part ================================================
     with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so...
         loc_org   = <double *> malloc(sizeof(double) * 3)
         loc_dir   = <double *> malloc(sizeof(double) * 3)
         res_loc = <double *> malloc(2*sizeof(double))
+
         # == The parallelization over the LOS ==================================
         for ind_los in prange(nlos, schedule='dynamic'):
             loc_org[0] = ray_orig[0, ind_los]
@@ -4108,12 +4110,16 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
             loc_dir[0] = ray_vdir[0, ind_los]
             loc_dir[1] = ray_vdir[1, ind_los]
             loc_dir[2] = ray_vdir[2, ind_los]
+
             # -- Computing values that depend on the LOS/ray -------------------
             upscaDp = loc_dir[0]*loc_org[0] + loc_dir[1]*loc_org[1]
             upar2   = loc_dir[0]*loc_dir[0] + loc_dir[1]*loc_dir[1]
             dpar2   = loc_org[0]*loc_org[0] + loc_org[1]*loc_org[1]
             invuz = 1./loc_dir[2]
+            # horizontality criterion
             crit2 = upar2*crit2_base
+
+            # compute
             _dt.simple_dist_los_vpoly_core(loc_org, loc_dir,
                                            list_vpoly_x,
                                            list_vpoly_y,
@@ -4132,13 +4138,21 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                 printf("\n\t- ind_los = %i\n", ind_los)
                 printf("\t- kmin[ind_los] = %e\n", kmin[ind_los])
                 printf("\t- dist[ind_los] = %e\n", dist[ind_los])
+
                 printf("\n\t- loc_org = %e, %e, %e\n", loc_org[0], loc_org[1], loc_org[2])
-                printf("\n\t- loc_org = %e, %e, %e\n", loc_dir[0], loc_dir[1], loc_dir[2])
+                printf("\t- loc_dir = %e, %e, %e\n", loc_dir[0], loc_dir[1], loc_dir[2])
+                printf("\t- new_npts_poly = %e\n", new_npts_poly)
                 printf("\t- upscaDp = %e\n", upscaDp)
                 printf("\t- upar2 = %e\n", upar2)
                 printf("\t- dpar2 = %e\n", dpar2)
                 printf("\t- invuz = %e\n", invuz)
                 printf("\t- crit2 = %e\n", crit2)
+                printf("\t- eps_uz = %e\n", eps_uz)
+                printf("\t- eps_vz = %e\n", eps_vz)
+                printf("\t- eps_a = %e\n", eps_a)
+                printf("\t- eps_b = %e\n", eps_b)
+
+                printf("\n\t- list_vpoly_x = %e", list_vpoly_x[0])
                 printf("\n\n\n")
 
             # --- END DEBUG ---
