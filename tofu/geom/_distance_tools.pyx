@@ -1067,7 +1067,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[1] = res_b[1]
 
             # ----- DEBUG / DB -------
-            if c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9:
+            if jj == 18 and (c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9):
                 printf("\n\n\n")
                 printf("\t- ray_vdir[2] * ray_vdir[2] < crit2 = %d\n", ray_vdir[2] * ray_vdir[2] < crit2)
                 printf("\t- jj / nvert-1 = %i / %i\n", jj, nvert-1)
