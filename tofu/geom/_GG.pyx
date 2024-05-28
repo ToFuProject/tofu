@@ -4129,16 +4129,16 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
             # ----- DEBUG / DB -----
             if c_abs(kmin[ind_los] - 14) < 1e-9:
                 printf("\n\n\n")
-                printf(f"\n\t- ind_los = {ind_los}\n")
-                printf(f"\t- kmin[ind_los] = {kmin[ind_los]}\n")
-                printf(f"\t- dist[ind_los] = {dist[ind_los]}\n")
-                printf(f"\n\t- loc_org = {loc_org[0], loc_org[1], loc_org[2]}\n")
-                printf(f"\t- loc_dir = {loc_dir[0], loc_dir[1], loc_dir[2]}\n")
-                printf(f"\t- upscaDp = {upscaDp}\n")
-                printf(f"\t- upar2 = {upar2}\n")
-                printf(f"\t- dpar2 = {dpar2}\n")
-                printf(f"\t- invuz = {invuz}\n")
-                printf(f"\t- crit2 = {crit2}\n")
+                printf("\n\t- ind_los = %i\n", ind_los)
+                printf("\t- kmin[ind_los] = %e\n", kmin[ind_los])
+                printf("\t- dist[ind_los] = %e\n", dist[ind_los])
+                printf("\n\t- loc_org = %e, %e, %e\n", loc_org[0], loc_org[1], loc_org[2])
+                printf("\n\t- loc_org = %e, %e, %e\n", loc_dir[0], loc_dir[1], loc_dir[2])
+                printf("\t- upscaDp = %e\n", upscaDp)
+                printf("\t- upar2 = %e\n", upar2)
+                printf("\t- dpar2 = %e\n", dpar2)
+                printf("\t- invuz = %e\n", invuz)
+                printf("\t- crit2 = %e\n", crit2)
                 printf("\n\n\n")
 
             # --- END DEBUG ---
