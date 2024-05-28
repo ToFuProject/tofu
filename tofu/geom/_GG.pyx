@@ -29,6 +29,7 @@ from libc.math cimport atan2 as c_atan2, pi as c_pi
 from libc.math cimport NAN as C_NAN
 from libc.math cimport INFINITY as C_INF
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 
 # -- extra libraries imports --------------------------------------------------
 import Polygon as plg
@@ -4140,7 +4141,7 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                 #     f"\t- invuz = {invuz}\n"
                 #     f"\t- crit2 = {crit2}\n"
                 # )
-                print(msg)
+                printf(msg)
 
             # --- END DEBUG ---
 
