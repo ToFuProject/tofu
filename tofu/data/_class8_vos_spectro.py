@@ -2,6 +2,9 @@
 
 
 import datetime as dtm      # DB
+import itertools as itt
+
+
 import numpy as np
 import scipy.stats as scpstats
 from matplotlib.path import Path
@@ -232,10 +235,14 @@ def _vos(
 
     if verb is True:
         msg = (
-            f"\tlamb.shape: {lamb.shape}\n"
-            f"\tang_rel.shape: {ang_rel.shape}\n"
-            f"\tiru.size: {iru.size}\n"
-            f"\tnRZ: {nRZ}\n"
+            "\tParameters:\n"
+            f"\t- n0: {n0}\n"
+            f"\t- n1: {n1}\n"
+            f"\t- res_phi: {res_phi}\n"
+            f"\t- lamb.shape: {lamb.shape}\n"
+            f"\t- ang_rel.shape: {ang_rel.shape}\n"
+            f"\t- iru.size: {iru.size}\n"
+            f"\t- nRZ: {nRZ}\n"
         )
         print(msg)
 
@@ -332,6 +339,9 @@ def _vos(
                 (
                     x0c, x1c, angles, dsang, cosi, iok,
                     dangmin_str, x0if, x1if,
+                    _, _, _,
+                    _, _, _,
+                    n0i, n1i,
                 ) = _reverse_rt._get_points_on_camera_from_pts(
                     p0=p0,
                     p1=p1,
@@ -353,15 +363,16 @@ def _vos(
                     coords_x01toxyz_plane=coords_x01toxyz_plane,
                     ptsvect_spectro=ptsvect_spectro,
                     ptsvect_cam=ptsvect_cam,
-                )[:9]
+                )
 
                 if verb is True:
                     msg = (
                         f"\t\t{i00} / {nru}, {i11} / {nz}, {i2} / {nphi}"
                         f":  {iok.sum()} pts   "
                         f"\t dangmin: {dangmin_str}"
+                        f"\t(n0={n0i}, n1={n1i})"
                     )
-                    print(msg, end='\r')
+                    print(msg.ljust(len(msg)+10), end='\r')
 
                 if timing:
                     # dt1111, dt2222, dt3333, dt4444 = out
@@ -529,11 +540,6 @@ def _vos(
         indr = indr[iin]
         indz = indz[iin]
         dV = dV[iin]
-        # DEBUG
-        # sang = sang[:, :, iin]
-        # ph_approx = ph_approx[:, :, iin, :]
-        # dang_rel = dang_rel[:, :, iin, :]
-        # nphi_all = nphi_all[:, :, iin, :]
 
     # remove useless lamb
     iin = ph_count > 0.
@@ -541,13 +547,35 @@ def _vos(
     if not np.all(ilamb):
         ph_count = ph_count[..., ilamb]
         lamb = lamb[ilamb]
-        # DEBUG
-        # sang = sang[..., ilamb]
-        # ph_approx = ph_approx[..., ilamb]
-        # dang_rel = dang_rel[..., ilamb]
-        # nphi_all = nphi_all[..., ilamb]
 
+    # ----------------------------------
+    # reshaping ph_count and get indlamb
+
+    iok = ph_count > 0.
+    nlambmax = np.sum(iok, axis=-1).max()
+    shn = list(ph_count.shape)
+    shn[-1] = nlambmax
+    ph_count2 = np.zeros(tuple(shn), dtype=float)
+    ilambr = -np.ones(tuple(shn), dtype=np.int16)
+    lind = [range(ss) for ss in ph_count.shape[:-1]]
+
+    for ind in itt.product(*lind):
+
+        sli = tuple(list(ind) + [slice(None)])
+        ioki = iok[sli]
+        ni = ioki.sum()
+        if ni == 0:
+            continue
+
+        sli_n = tuple(list(ind) + [range(ni)])
+        sli_b = tuple(list(ind) + [ioki])
+
+        ilambr[sli_n] = ioki.nonzero()[0]
+        ph_count2[sli_n] = ph_count[sli_b]
+
+    # ------------------------
     # average cos and phi_mean
+
     iout = ncounts == 0
     cos[~iout] = cos[~iout] / ncounts[~iout]
     phi_mean[~iout] = phi_mean[~iout] / ncounts[~iout]
@@ -557,19 +585,10 @@ def _vos(
     phi_mean[iout] = np.nan
     phi_min[iout] = np.nan
     phi_max[iout] = np.nan
-    # ph_count[iout, :] = np.nan
-    # DEBUG
-    # sang[iout, :] = np.nan
-    # ph_approx[iout, :] = np.nan
-    # dang_rel[iout, :] = np.nan
-    # nphi_all[iout, :] = np.nan
 
     lresh = [1, 1, lamb.size]
     if is2d:
         lresh.insert(0, 1)
-    # phtot = np.sum(ph_count, axis=(-1, -2))
-    # lamb0 = np.sum(ph_count * lamb.reshape(lresh), axis=(-1, -2)) / phtot
-    # dlamb0 = dlamb * phtot / np.max(np.sum(ph_count, axis=-2), axis=-1)
 
     # ------ DEBUG --------
     if debug is True:
@@ -585,16 +604,20 @@ def _vos(
 
     # ----------------
     # prepare output
+    # ----------------
 
     # ref
     knpts = f'{key_diag}_{key_cam}_vos_npts'
     knlamb = f'{key_diag}_{key_cam}_vos_nlamb'
+    knlambr = f'{key_diag}_{key_cam}_vos_nlambr'
 
     # data
     klamb = f'{key_diag}_{key_cam}_vos_lamb'
     kir = f'{key_diag}_{key_cam}_vos_ir'
     kiz = f'{key_diag}_{key_cam}_vos_iz'
+    kilambr = f'{key_diag}_{key_cam}_vos_ilambr'
     kph = f'{key_diag}_{key_cam}_vos_ph'
+    kph2 = f'{key_diag}_{key_cam}_vos_ph2'
     kcos = f'{key_diag}_{key_cam}_vos_cos'
     knc = f"{key_diag}_{key_cam}_vos_nc"
     kphimin = f'{key_diag}_{key_cam}_vos_phimin'
@@ -610,11 +633,15 @@ def _vos(
     refcam = coll.dobj['camera'][key_cam]['dgeom']['ref']
     ref = tuple(list(refcam) + [knpts])
     refph = tuple(list(ref) + [knlamb])
+    refph2 = tuple(list(ref) + [knlambr])
 
     # -------------------
     # format output
+    # ----------------
 
+    # ---------
     # dref
+
     dref = {
         'npts': {
             'key': knpts,
@@ -624,15 +651,21 @@ def _vos(
             'key': knlamb,
             'size': lamb.size,
         },
+        'nlambr': {
+            'key': knlambr,
+            'size': nlambmax,
+        },
     }
 
-
+    # --------
     # dout
+
     dout = {
         'pcross0': None,
         'pcross1': None,
         'phor0': None,
         'phor1': None,
+
         # lamb
         'lamb': {
             'key': klamb,
@@ -657,6 +690,13 @@ def _vos(
             'units': None,
             'dim': 'index',
         },
+        'ilambr': {
+            'key': kilambr,
+            'data': ilambr,
+            'ref': refph2,
+            'units': None,
+            'dim': 'index',
+        },
 
         # data
         'cos': {
@@ -677,6 +717,13 @@ def _vos(
             'key': kph,
             'data': ph_count,
             'ref': refph,
+            'units': 'sr.m3',
+            'dim': 'transfert',
+        },
+        'ph2': {
+            'key': kph2,
+            'data': ph_count2,
+            'ref': refph2,
             'units': 'sr.m3',
             'dim': 'transfert',
         },
@@ -720,6 +767,10 @@ def _vos(
             'dim': 'etend*len',
         },
     }
+
+    # ----------------
+    # timing
+    # ----------------
 
     if timing:
         t33 = dtm.datetime.now()
