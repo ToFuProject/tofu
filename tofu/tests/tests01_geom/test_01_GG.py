@@ -1174,13 +1174,18 @@ def test16_dist_los_vpoly():
     # ----------------------
     # tests shapes
 
+    msg0 = (
+        "\n\t- ves_poly[0, :] = {ves_poly[0, :]}\n"
+        "\t- ves_poly[1, :] = {ves_poly[1, :]}\n"
+    )
+
     if out[0].shape != exact_ks.shape:
         msg = (
             "Wrong shapes:\n"
             f"\t- out[0].shape = {out[0].shape}\n"
             f"\t- exact_ks.shape = {exact_ks.shape}\n"
         )
-        raise Exception(msg)
+        raise Exception(msg + msg0)
 
     if out[1].shape != exact_dists.shape:
         msg = (
@@ -1188,7 +1193,7 @@ def test16_dist_los_vpoly():
             f"\t- out[1].shape = {out[1].shape}\n"
             f"\t- exact_dists.shape = {exact_dists.shape}\n"
         )
-        raise Exception(msg)
+        raise Exception(msg + msg0)
 
     # ----------------------
     # tests values
@@ -1199,7 +1204,7 @@ def test16_dist_los_vpoly():
             f"\t- out[0]:\n{out[0]}\n"
             f"\t- exact_ks:\n{exact_ks}\n"
         )
-        raise Exception(msg)
+        raise Exception(msg + msg0)
 
     if not np.allclose(out[1], exact_dists, rtol=1e-8, atol=1e-9, equal_nan=True):
         msg = (
@@ -1207,7 +1212,7 @@ def test16_dist_los_vpoly():
             f"\t- out[1]:\n{out[1]}\n"
             f"\t- exact_dists:\n{exact_dists}\n"
         )
-        raise Exception(msg)
+        raise Exception(msg + msg0)
 
     raise Exception()
 

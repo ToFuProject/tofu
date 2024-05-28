@@ -4118,6 +4118,7 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
             upar2   = loc_dir[0]*loc_dir[0] + loc_dir[1]*loc_dir[1]
             dpar2   = loc_org[0]*loc_org[0] + loc_org[1]*loc_org[1]
             invuz = 1./loc_dir[2]
+
             # horizontality criterion
             crit2 = upar2*crit2_base
 
@@ -4163,8 +4164,10 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
         free(loc_org)
         free(loc_dir)
         free(res_loc)
+
     free(list_vpoly_x)
     free(list_vpoly_y)
+
     return kmin, dist
 
 def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
