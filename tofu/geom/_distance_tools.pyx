@@ -988,14 +988,24 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             # The closest point on the line is the LOS origin
                             res_a[0] = 0
                             res_a[1] = -k * c_sqrt(norm_dir2)
+
+                if jj == 18:
+                    printf("\n Before\n")
+                    printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
+                    printf("\t- res_final[1] - res_a[1] > _VSMALL = %d", res_final[1] - res_a[1] > _VSMALL)
+                    printf("\t- res_final[1] == res_a[1] and res_final[0] - res_a[0] > _VSMALL = %d and %d", res_final[1] == res_a[1], res_final[0] - res_a[0] > _VSMALL)
+
                 if (res_final[1] - res_a[1] > _VSMALL
                     or (res_final[1] == res_a[1]
                         and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
-                    printf("\n\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
-                    printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
-                    printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
+
+                    if jj == 18:
+                        printf("\n After\n")
+                        printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
+                        printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
+                        printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
 
             elif (val_b * val_b >= val_a * coeff):
                 sqd = c_sqrt(val_b * val_b - val_a * coeff)
