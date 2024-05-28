@@ -1047,7 +1047,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[1] = res_b[1]
 
             # ----- DEBUG / DB -------
-            if c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9:
+            if c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9:
                 printf("\n\n\n")
                 printf("\t- ray_vdir[2] * ray_vdir[2] < crit2 = %d\n", ray_vdir[2] * ray_vdir[2] < crit2)
                 printf("\t- jj / nvert-1 = %i / %i\n", jj, nvert-1)
@@ -1058,8 +1058,15 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 printf("\t- val_b * val_b < eps_b * eps_b = %d\n", val_b * val_b < eps_b * eps_b)
                 printf("\t- coeff * coeff < eps_a * eps_a = %d\n", coeff * coeff < eps_a * eps_a)
                 printf("\t- v0 * v0 < eps_a and upar2 * upar2 < eps_a = %d\n", v0 * v0 < eps_a and upar2 * upar2 < eps_a)
+                printf("\t- lpolyy[jj] >= ray_orig[2] and ray_orig[2] <= lpolyy[jj+1] = %d", lpolyy[jj] >= ray_orig[2] and ray_orig[2] <= lpolyy[jj+1])
                 printf("\t- val_b * val_b >= val_a * coeff = %d\n", val_b * val_b >= val_a * coeff)
                 printf("\t- coeff = %e\n", coeff)
+                printf("\n")
+                printf("\t- invuz = %e\n", invuz)
+                printf("\t- lpolyy[jj] = %e\n", lpolyy[jj])
+                printf("\t- lpolyy[jj+1] = %e\n", lpolyy[jj+1])
+                printf("\t- (min(lpolyy[jj], lpolyy[jj+1])- ray_orig[2]) * invuz = %e\n", (min(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz)
+                printf("\t- (max(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz= %e\n", (max(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz)
                 printf("\n\n\n")
             # ---- END DEBUG ---------
 
