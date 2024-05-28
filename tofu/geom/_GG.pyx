@@ -4127,7 +4127,7 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
 
             # ----- DEBUG / DB -----
             if c_abs(kmin[ind_los] - 14) < 1e-9:
-                msg = "aaa"
+                msg = "\n\n aaa\n\n"
                 # str(
                 #     f"\n\t- ind_los = {ind_los}\n"
                 #     f"\t- kmin[ind_los] = {kmin[ind_los]}\n"
@@ -4140,7 +4140,7 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                 #     f"\t- invuz = {invuz}\n"
                 #     f"\t- crit2 = {crit2}\n"
                 # )
-                raise Exception(msg)
+                print(msg)
 
             # --- END DEBUG ---
 
