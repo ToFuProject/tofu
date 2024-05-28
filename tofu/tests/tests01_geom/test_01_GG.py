@@ -1170,8 +1170,8 @@ def test16_dist_los_vpoly():
                    1.0,
                    0.5,
                    0.5]
-    assert np.allclose(out[0], exact_ks)
-    assert np.allclose(out[1], exact_dists)
+    assert np.allclose(out[0], exact_ks, rtol=0, atol=1e-14, equal_nan=True)
+    assert np.allclose(out[1], exact_dists, rtol=0, atol=1e-14, equal_nan=True)
 
 
 # ==============================================================================
