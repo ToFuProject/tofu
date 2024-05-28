@@ -798,12 +798,12 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     # ----- DEBUG / DB ------------
     if ray_vdir[0] == 0. and ray_vdir[1] == 0. and ray_vdir[2] == 1.:
         if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
-        printf("\n\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])   # DB
-        printf("\t- norm_dir2 = %e\n", norm_dir2)
-        printf("\t- norm_dir2_ori = %e\n", norm_dir2_ori)
-        printf("\t- res_final[0] = %e\n", res_final[0])
-        printf("\t- res_final[1] = %e\n", res_final[1])
-        printf("\t- C_NAN = %e\n", C_NAN)
+            printf("\n\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])   # DB
+            printf("\t- norm_dir2 = %e\n", norm_dir2)
+            printf("\t- norm_dir2_ori = %e\n", norm_dir2_ori)
+            printf("\t- res_final[0] = %e\n", res_final[0])
+            printf("\t- res_final[1] = %e\n", res_final[1])
+            printf("\t- C_NAN = %e\n", C_NAN)
     # -------- END BD -------------
 
     if ray_vdir[2] * ray_vdir[2] < crit2:
