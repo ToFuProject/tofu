@@ -781,7 +781,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     cdef double[2] res_a
     cdef double[2] res_b
     cdef double[3] circle_tangent
-    const double[3] ray_vdir_norm
+    cdef double[3] ray_vdir_norm
     cdef double rdotvec
     res_final[0] = 1000000000
     res_final[1] = 1000000000
