@@ -1148,7 +1148,7 @@ def test16_dist_los_vpoly():
         np.ascontiguousarray(ray_vdir, dtype=np.float64),
         ves_poly, disc_step=0.5)
 
-    exact_ks = [3.0,
+    exact_ks = np.r_[3.0,
                 0.,
                 0.,
                 0.9999999999999992,
@@ -1159,7 +1159,7 @@ def test16_dist_los_vpoly():
                 -0.0,
                 0.0,
                 0.0]
-    exact_dists = [1.0,
+    exact_dists = np.r_[1.0,
                    1.0,
                    1.0,
                    1.4142135623730951,
