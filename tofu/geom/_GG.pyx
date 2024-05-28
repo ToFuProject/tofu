@@ -4097,13 +4097,16 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
 
     # == Defining parallel part ================================================
     with nogil, parallel(num_threads=num_threads):
-        # We use local arrays for each thread so...
-        loc_org   = <double *> malloc(sizeof(double) * 3)
-        loc_dir   = <double *> malloc(sizeof(double) * 3)
-        res_loc = <double *> malloc(2*sizeof(double))
+
 
         # == The parallelization over the LOS ==================================
         for ind_los in prange(nlos, schedule='dynamic'):
+
+            # We use local arrays for each thread so...
+            loc_org   = <double *> malloc(sizeof(double) * 3)
+            loc_dir   = <double *> malloc(sizeof(double) * 3)
+            res_loc = <double *> malloc(2*sizeof(double))
+
             loc_org[0] = ray_orig[0, ind_los]
             loc_org[1] = ray_orig[1, ind_los]
             loc_org[2] = ray_orig[2, ind_los]
