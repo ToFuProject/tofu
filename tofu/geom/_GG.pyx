@@ -4130,18 +4130,16 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
             if c_abs(kmin[ind_los] - 14) < 1e-9:
                 printf(
                     "\n\n\n"
-                    "aaa"
-                    # f"\n\t- ind_los = {ind_los}\n"
-                    # f"\t- kmin[ind_los] = {kmin[ind_los]}\n"
-                    # f"\t- dist[ind_los] = {dist[ind_los]}\n"
-                    # f"\n\t- loc_org = {loc_org[0], loc_org[1], loc_org[2]}\n"
-                    # f"\t- loc_dir = {loc_dir[0], loc_dir[1], loc_dir[2]}\n"
-                    # f"\t- upscaDp = {upscaDp}\n"
-                    # f"\t- upar2 = {upar2}\n"
-                    # f"\t- dpar2 = {dpar2}\n"
-                    # f"\t- invuz = {invuz}\n"
-                    # f"\t- crit2 = {crit2}\n"
-
+                    f"\n\t- ind_los = {ind_los}\n"
+                    f"\t- kmin[ind_los] = {kmin[ind_los]}\n"
+                    f"\t- dist[ind_los] = {dist[ind_los]}\n"
+                    f"\n\t- loc_org = {loc_org[0], loc_org[1], loc_org[2]}\n"
+                    f"\t- loc_dir = {loc_dir[0], loc_dir[1], loc_dir[2]}\n"
+                    f"\t- upscaDp = {upscaDp}\n"
+                    f"\t- upar2 = {upar2}\n"
+                    f"\t- dpar2 = {dpar2}\n"
+                    f"\t- invuz = {invuz}\n"
+                    f"\t- crit2 = {crit2}\n"
                     "\n\n\n"
                 )
 
