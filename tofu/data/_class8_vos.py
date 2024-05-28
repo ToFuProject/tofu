@@ -115,7 +115,10 @@ def compute_vos(
     # verb
 
     if verb is True:
-        msg = f"\nComputing vos for diag '{key_diag}':"
+        msg = (
+            "\n\n---------------------------------------\n"
+            f"\nComputing vos for diag '{key_diag}':\n"
+        )
         print(msg)
 
     # -----------
@@ -699,8 +702,8 @@ def _store(
     if spectro is True:
         lk = [
             'lamb',
-            'ph', 'cos', 'ncounts',
-            'phi_min', 'phi_max',
+            'ph', 'ph2', 'cos', 'ncounts',
+            'phi_min', 'phi_max', 'ilambr',
             # optional
             'phi_mean',
             'dV', 'etendlen',
@@ -861,7 +864,7 @@ def _check_get_dvos(
         lk = [
             'lamb',
             'phi_min', 'phi_max', 'phi_mean',
-            'ph', 'ncounts', 'cos',
+            'ph', 'ph2', 'ilambr', 'ncounts', 'cos',
             'dV', 'etendlen',
         ]
         lk_opt = []
