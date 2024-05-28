@@ -1171,10 +1171,43 @@ def test16_dist_los_vpoly():
                    0.5,
                    0.5]
 
-    assert out[0].shape == exact_ks.shape, (out[0].shape, exact_ks.shape)
-    assert out[1].shape == exact_dists.shape, (out[1].shape, exact_dists.shape)
-    assert np.allclose(out[0], exact_ks, rtol=1e-8, atol=1e-9, equal_nan=True)
-    assert np.allclose(out[1], exact_dists, rtol=1e-8, atol=1e-9, equal_nan=True)
+    # ----------------------
+    # tests shapes
+
+    if out[0].shape != exact_ks.shape:
+        msg = (
+            "Wrong shapes:\n"
+            f"\t- out[0].shape = {out[0].shape}\n"
+            f"\t- exact_ks.shape = {exact_ks.shape}\n"
+        )
+        raise Exception(msg)
+
+    if out[1].shape != exact_dists.shape:
+        msg = (
+            "Wrong shapes:\n"
+            f"\t- out[1].shape = {out[1].shape}\n"
+            f"\t- exact_dists.shape = {exact_dists.shape}\n"
+        )
+        raise Exception(msg)
+
+    # ----------------------
+    # tests values
+
+    if not np.allclose(out[0], exact_ks, rtol=1e-8, atol=1e-9, equal_nan=True):
+        msg = (
+            "Wrong values:\n"
+            f"\t- out[0]:\n{out[0]}\n"
+            f"\t- exact_ks:\n{exact_ks}\n"
+        )
+        raise Exception(msg)
+
+    if not np.allclose(out[1], exact_dists, rtol=1e-8, atol=1e-9, equal_nan=True):
+        msg = (
+            "Wrong values:\n"
+            f"\t- out[1]:\n{out[1]}\n"
+            f"\t- exact_dists:\n{exact_dists}\n"
+        )
+        raise Exception(msg)
 
 
 # ==============================================================================
