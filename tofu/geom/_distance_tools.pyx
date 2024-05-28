@@ -989,11 +989,14 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             res_a[0] = 0
                             res_a[1] = -k * c_sqrt(norm_dir2)
 
-                if jj == 18:
-                    printf("\n Before\n")
-                    printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
-                    printf("\t- res_final[1] - res_a[1] > _VSMALL = %d", res_final[1] - res_a[1] > _VSMALL)
-                    printf("\t- res_final[1] == res_a[1] and res_final[0] - res_a[0] > _VSMALL = %d and %d", res_final[1] == res_a[1], res_final[0] - res_a[0] > _VSMALL)
+                if jj == 18 and ray_vdir[0] == 0. and ray_vdir[1] == 0. and ray_vdir[2] == 1.:
+                    if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                        printf("\n Before\n")
+                        printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
+                        printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
+                        printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
+                        printf("\t- res_final[1] - res_a[1] > _VSMALL = %d\n", res_final[1] - res_a[1] > _VSMALL)
+                        printf("\t- res_final[1] == res_a[1] and res_final[0] - res_a[0] > _VSMALL = %d and %d\n", res_final[1] == res_a[1], res_final[0] - res_a[0] > _VSMALL)
 
                 if (res_final[1] - res_a[1] > _VSMALL
                     or (res_final[1] == res_a[1]
@@ -1001,11 +1004,12 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
 
-                    if jj == 18:
-                        printf("\n After\n")
-                        printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
-                        printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
-                        printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
+                    if jj == 18 and ray_vdir[0] == 0. and ray_vdir[1] == 0. and ray_vdir[2] == 1.:
+                        if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                            printf("After\n")
+                            printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
+                            printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
+                            printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
 
             elif (val_b * val_b >= val_a * coeff):
                 sqd = c_sqrt(val_b * val_b - val_a * coeff)
@@ -1067,41 +1071,43 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[1] = res_b[1]
 
             # ----- DEBUG / DB -------
-            if jj == 18 and (c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9):
-                printf("\n\n\n")
-                printf("\t- ray_vdir[2] * ray_vdir[2] < crit2 = %d\n", ray_vdir[2] * ray_vdir[2] < crit2)
-                printf("\t- jj / nvert-1 = %i / %i\n", jj, nvert-1)
-                printf("\t- res_a[0] = %e\n", res_a[0])
-                printf("\t- res_b[0] = %e\n", res_b[0])
-                printf("\t- C_NAN = %e\n", C_NAN)
-                printf("\t- res_final[0] = %e\n", res_final[0])
-                printf("\t- norm_dir2_ori = %e\n", norm_dir2_ori)
-                printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
-                printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
-                printf("\t- q = %e\n", q)
-                printf("\t- k = %e\n", k)
-                printf("\t- v0 = %e\n", v0)
-                printf("\t- v1 = %e\n", v1)
-                printf("\t- val_a = %e\n", val_a)
-                printf("\t- val_b = %e\n", val_b)
-                printf("\t- val_a * val_a < eps_a * eps_a = %d\n", val_a * val_a < eps_a * eps_a)
-                printf("\t- val_b * val_b < eps_b * eps_b = %d\n", val_b * val_b < eps_b * eps_b)
-                printf("\t- coeff * coeff < eps_a * eps_a = %d\n", coeff * coeff < eps_a * eps_a)
-                printf("\t- v0 * v0 < eps_a and upar2 * upar2 < eps_a = %d\n", v0 * v0 < eps_a and upar2 * upar2 < eps_a)
-                printf("\t- lpolyy[jj] >= ray_orig[2] and ray_orig[2] <= lpolyy[jj+1] = %d\n", lpolyy[jj] >= ray_orig[2] and ray_orig[2] <= lpolyy[jj+1])
-                printf("\t- val_b * val_b >= val_a * coeff = %d\n", val_b * val_b >= val_a * coeff)
-                printf("\t- ray_vdir[2] < 0 = %d\n", ray_vdir[2] < 0)
-                printf("\t- coeff = %e\n", coeff)
-                printf("\t- _VSMALL = %e", _VSMALL)
-                printf("\n")
-                printf("\t- invuz = %e\n", invuz)
-                printf("\t- lpolyy[jj] = %e\n", lpolyy[jj])
-                printf("\t- lpolyy[jj+1] = %e\n", lpolyy[jj+1])
-                printf("\t- min(lpolyy[jj], lpolyy[jj+1]) = %e\n", min(lpolyy[jj], lpolyy[jj+1]))
-                printf("\t- max(lpolyy[jj], lpolyy[jj+1]) = %e\n", max(lpolyy[jj], lpolyy[jj+1]))
-                printf("\t- (min(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz = %e\n", (min(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz)
-                printf("\t- (max(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz = %e\n", (max(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz)
-                printf("\n\n\n")
+            if jj == 18 and ray_vdir[0] == 0. and ray_vdir[1] == 0. and ray_vdir[2] == 1.:
+                if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                    if (c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9):
+                        printf("\n\n\n")
+                        printf("\t- ray_vdir[2] * ray_vdir[2] < crit2 = %d\n", ray_vdir[2] * ray_vdir[2] < crit2)
+                        printf("\t- jj / nvert-1 = %i / %i\n", jj, nvert-1)
+                        printf("\t- res_a[0] = %e\n", res_a[0])
+                        printf("\t- res_b[0] = %e\n", res_b[0])
+                        printf("\t- C_NAN = %e\n", C_NAN)
+                        printf("\t- res_final[0] = %e\n", res_final[0])
+                        printf("\t- norm_dir2_ori = %e\n", norm_dir2_ori)
+                        printf("\t- ray_vdir = %e, %e, %e\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
+                        printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
+                        printf("\t- q = %e\n", q)
+                        printf("\t- k = %e\n", k)
+                        printf("\t- v0 = %e\n", v0)
+                        printf("\t- v1 = %e\n", v1)
+                        printf("\t- val_a = %e\n", val_a)
+                        printf("\t- val_b = %e\n", val_b)
+                        printf("\t- val_a * val_a < eps_a * eps_a = %d\n", val_a * val_a < eps_a * eps_a)
+                        printf("\t- val_b * val_b < eps_b * eps_b = %d\n", val_b * val_b < eps_b * eps_b)
+                        printf("\t- coeff * coeff < eps_a * eps_a = %d\n", coeff * coeff < eps_a * eps_a)
+                        printf("\t- v0 * v0 < eps_a and upar2 * upar2 < eps_a = %d\n", v0 * v0 < eps_a and upar2 * upar2 < eps_a)
+                        printf("\t- lpolyy[jj] >= ray_orig[2] and ray_orig[2] <= lpolyy[jj+1] = %d\n", lpolyy[jj] >= ray_orig[2] and ray_orig[2] <= lpolyy[jj+1])
+                        printf("\t- val_b * val_b >= val_a * coeff = %d\n", val_b * val_b >= val_a * coeff)
+                        printf("\t- ray_vdir[2] < 0 = %d\n", ray_vdir[2] < 0)
+                        printf("\t- coeff = %e\n", coeff)
+                        printf("\t- _VSMALL = %e", _VSMALL)
+                        printf("\n")
+                        printf("\t- invuz = %e\n", invuz)
+                        printf("\t- lpolyy[jj] = %e\n", lpolyy[jj])
+                        printf("\t- lpolyy[jj+1] = %e\n", lpolyy[jj+1])
+                        printf("\t- min(lpolyy[jj], lpolyy[jj+1]) = %e\n", min(lpolyy[jj], lpolyy[jj+1]))
+                        printf("\t- max(lpolyy[jj], lpolyy[jj+1]) = %e\n", max(lpolyy[jj], lpolyy[jj+1]))
+                        printf("\t- (min(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz = %e\n", (min(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz)
+                        printf("\t- (max(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz = %e\n", (max(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2]) * invuz)
+                        printf("\n\n\n")
             # ---- END DEBUG ---------
 
     res_final[0] = res_final[0] / norm_dir2_ori
