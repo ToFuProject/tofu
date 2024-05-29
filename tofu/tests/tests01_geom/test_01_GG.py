@@ -1079,16 +1079,20 @@ def test15_LOS_sino_vec():
         assert not np.isnan(np.sum(phi0))
 
 
-def test16_dist_los_vpoly():
-    num_rays = 11
+def test16_dist_los_vpoly(debug=False):
+
+    # vessel
     ves_poly = np.zeros((2, 9))
     ves_poly0 = [2, 3, 4, 5, 5, 4, 3, 2, 2]
     ves_poly1 = [2, 1, 1, 2, 3, 4, 4, 3, 2]
     ves_poly[0] = np.asarray(ves_poly0)
     ves_poly[1] = np.asarray(ves_poly1)
+
     # rays :
+    num_rays = 11
     ray_orig = np.zeros((3, num_rays))
     ray_vdir = np.zeros((3, num_rays))
+
     # ray 0 :
     ray_orig[0][0] = 0
     ray_orig[2][0] = 5
@@ -1143,12 +1147,14 @@ def test16_dist_los_vpoly():
     ray_orig[1][10] = 0.
     ray_orig[2][10] = 2.5
     ray_vdir[0][10] = 1.
+
     out = GG.comp_dist_los_vpoly(
         np.ascontiguousarray(ray_orig, dtype=np.float64),
         np.ascontiguousarray(ray_vdir, dtype=np.float64),
         ves_poly, disc_step=0.5)
 
-    exact_ks = [3.0,
+    # solutions
+    exact_ks = np.r_[3.0,
                 0.,
                 0.,
                 0.9999999999999992,
@@ -1159,7 +1165,7 @@ def test16_dist_los_vpoly():
                 -0.0,
                 0.0,
                 0.0]
-    exact_dists = [1.0,
+    exact_dists = np.r_[1.0,
                    1.0,
                    1.0,
                    1.4142135623730951,
@@ -1170,8 +1176,70 @@ def test16_dist_los_vpoly():
                    1.0,
                    0.5,
                    0.5]
-    assert np.allclose(out[0], exact_ks)
-    assert np.allclose(out[1], exact_dists)
+
+    # -----------------
+    # plot to debug
+    # ------------------
+
+    if debug is True:
+
+        ray_plot = np.concatenate(
+            (
+                ray_orig[..., None],
+                (ray_orig + 4 * ray_vdir)[..., None],
+                np.full((3, num_rays, 1), np.nan)
+            ),
+            axis=-1,
+        ).reshape((3, num_rays * 3))
+
+        import tofu as tf
+        ves = tf.geom.Config(Poly=ves_poly, Name='test', Exp='')
+        dax = ves.plot(proj='3d')
+        dax.plot(ray_plot[0, ...], ray_plot[1, ...], ray_plot[2, ...], '-')
+        dax.plot(ray_orig[0, :], ray_orig[1, :], ray_orig[2, :], marker='o', linestyle='None')
+
+    # ----------------------
+    # tests shapes
+
+    msg0 = (
+        f"\n\t- ves_poly[0, :] = {ves_poly[0, :]}\n"
+        f"\t- ves_poly[1, :] = {ves_poly[1, :]}\n"
+    )
+
+    if out[0].shape != exact_ks.shape:
+        msg = (
+            "Wrong shapes:\n"
+            f"\t- out[0].shape = {out[0].shape}\n"
+            f"\t- exact_ks.shape = {exact_ks.shape}\n"
+        )
+        raise Exception(msg + msg0)
+
+    if out[1].shape != exact_dists.shape:
+        msg = (
+            "Wrong shapes:\n"
+            f"\t- out[1].shape = {out[1].shape}\n"
+            f"\t- exact_dists.shape = {exact_dists.shape}\n"
+        )
+        raise Exception(msg + msg0)
+
+    # ----------------------
+    # tests values
+
+    if not np.allclose(out[0], exact_ks, rtol=1e-12, atol=1e-12, equal_nan=True):
+        msg = (
+            "Wrong values:\n"
+            f"\t- out[0]:\n{out[0]}\n"
+            f"\t- exact_ks:\n{exact_ks}\n"
+        )
+        raise Exception(msg + msg0)
+
+    if not np.allclose(out[1], exact_dists, rtol=1e-12, atol=1e-12, equal_nan=True):
+        msg = (
+            "Wrong values:\n"
+            f"\t- out[1]:\n{out[1]}\n"
+            f"\t- exact_dists:\n{exact_dists}\n"
+        )
+        raise Exception(msg + msg0)
 
 
 # ==============================================================================
