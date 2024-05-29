@@ -32,6 +32,7 @@ def compute_vos(
     # parameters
     res_RZ=None,
     res_phi=None,
+    lamb=None,
     res_lamb=None,
     res_rock_curve=None,
     n0=None,
@@ -96,6 +97,7 @@ def compute_vos(
         # parameters
         res_RZ=res_RZ,
         res_phi=res_phi,
+        lamb=lamb,
         res_lamb=res_lamb,
         convexHull=convexHull,
         # bool
@@ -221,6 +223,7 @@ def compute_vos(
                 sh=sh,
                 res_RZ=res_RZ,
                 res_phi=res_phi,
+                lamb=lamb,
                 res_lamb=res_lamb,
                 res_rock_curve=res_rock_curve,
                 n0=n0,
@@ -306,6 +309,7 @@ def _check(
     key_mesh=None,
     res_RZ=None,
     res_phi=None,
+    lamb=None,
     res_lamb=None,
     convexHull=None,
     # keep3d
@@ -437,8 +441,8 @@ def _check(
     # -----------
     # res_lamb
 
-    if res_lamb is None:
-        res_lamb = 0.01e-10
+    if res_lamb is None and lamb is None:
+        res_lamb = 0.01-10
 
     # -----------
     # keep3d
@@ -860,11 +864,17 @@ def _check_get_dvos(
             'ph', 'ncounts', 'cos',
             'dV', 'etendlen',
         ]
+        lk_opt = []
+
     else:
         lk = [
-            'sang_cross', 'sang_3d',
+            'sang_cross',
+        ]
+
+        lk_opt = [
+            'sang_3d',
             'indr_3d', 'indz_3d', 'phi_3d',
-            'vectx_3d', 'vecty_3d', 'vectz_3d',
+            'vectx_3d', 'vecty_3d', 'vectz_3d'
         ]
 
     lkcom = ['keym', 'indr_cross', 'indz_cross']
@@ -956,7 +966,7 @@ def _check_get_dvos(
     for k0 in lkout:
         del dvos[k0]
 
-    return dvos, isstore
+    return key_diag, dvos, isstore
 
 
 # ###############################################################
@@ -970,17 +980,23 @@ def get_dvos_xyz(coll=None, key_diag=None, key_cam=None, dvos=None):
     # ---------
     # get dvos
 
-    dvos, isstore = coll.check_diagnostic_dvos(
+    key_diag, dvos, isstore = coll.check_diagnostic_dvos(
         key=key_diag,
         key_cam=key_cam,
         dvos=dvos,
     )
 
     # check
-    if not all([v0.get('indr_3d') is not None for v0 in dvos.values()]):
+    k3d = 'indr_3d'
+    if not all([v0.get(k3d) is not None for v0 in dvos.values()]):
+        lstr = [
+            f"\t\t- dvos['{k0}']: '{k3d}' {'not' if v0.get(k3d) is None else ''} available"
+            for k0, v0 in dvos.items()
+        ]
         msg = (
             "dvos can only provide (x, y, z) if it contains 3d information!\n"
-            f"\t- key_diag: {key_diag}"
+            f"\t- key_diag: {key_diag}\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 

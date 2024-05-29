@@ -37,13 +37,14 @@ def _from_pts(
     ptsy=None,
     ptsz=None,
     # res
-    res_rock_curve=None,
     n0=None,
     n1=None,
     min_threshold=None,
     # optional lamb
     lamb0=None,
     res_lamb=None,
+    rocking_curve=None,
+    res_rock_curve=None,
     # options
     append=None,
     plot=None,
@@ -52,6 +53,9 @@ def _from_pts(
     plot_rays=None,
     vmin=None,
     vmax=None,
+    aspect3d=None,
+    elements=None,
+    colorbar=None,
     # options
     dax=None,
     fs=None,
@@ -67,8 +71,8 @@ def _from_pts(
         dsamp, res_phi,
         shape, iok,
         ptsx, ptsy, ptsz, phi,
-        lamb0,
-        append, plot, plot_pixels,
+        lamb0, rocking_curve,
+        append, plot, plot_pixels, colorbar,
     ) = _check(
         coll=coll,
         # diag
@@ -84,10 +88,12 @@ def _from_pts(
         ptsz=ptsz,
         # optional lamb
         lamb0=lamb0,
+        rocking_curve=rocking_curve,
         # options
         append=append,
         plot=plot,
         plot_pixels=plot_pixels,
+        colorbar=colorbar,
     )
 
     # ----------------------
@@ -121,10 +127,10 @@ def _from_pts(
         nlamb,
         lamb,
         dlamb,
-        pow_ratio,
+        pow_interp,
         ang_rel,
         dang,
-        angbragg,
+        bragg,
     ) = _prepare_lamb(
         coll=coll,
         key_diag=key,
@@ -132,26 +138,29 @@ def _from_pts(
         kspectro=kspectro,
         lamb=lamb0,
         res_lamb=res_lamb,
+        rocking_curve=rocking_curve,
         res_rock_curve=res_rock_curve,
         verb=False,
     )
 
-    angbragg0 = angbragg[:1, :]
-    angbragg1 = angbragg[-1:, :]
+    # -------------------
+    # wavelength specific
 
-    # -------
-    # prepare lamb per pixel
+    if lamb is not None:
 
-    lamb_per_pix = coll.get_diagnostic_data(
-        key,
-        key_cam=key_cam,
-        data='lamb',
-    )[0][key_cam]
+        # -------
+        # prepare lamb per pixel
 
-    bragg_per_pix = coll.get_crystal_bragglamb(
-        key=kspectro,
-        lamb=lamb_per_pix,
-    )[0]
+        lamb_per_pix = coll.get_diagnostic_data(
+            key,
+            key_cam=key_cam,
+            data='lamb',
+        )[0][key_cam]
+
+        bragg_per_pix = coll.get_crystal_bragglamb(
+            key=kspectro,
+            lamb=lamb_per_pix,
+        )[0]
 
     # --------------
     # prepare output
@@ -165,6 +174,7 @@ def _from_pts(
     # compute
 
     dout = func(**locals())
+    dout['rocking_curve'] = rocking_curve
 
     # -------
     # reshape
@@ -192,6 +202,9 @@ def _from_pts(
             plot_pixels=plot_pixels,
             vmin=vmin,
             vmax=vmax,
+            aspect3d=aspect3d,
+            elements=elements,
+            colorbar=colorbar,
             # options
             dax=dax,
             fs=fs,
@@ -223,10 +236,12 @@ def _check(
     ptsz=None,
     # optional lamb
     lamb0=None,
+    rocking_curve=None,
     # bool
     append=None,
     plot=None,
     plot_pixels=None,
+    colorbar=None,
 ):
 
     # --------
@@ -354,10 +369,22 @@ def _check(
             elif lamb0.shape != ptsx.shape:
                 msg = (
                     "Arg lamb0 must be the same shape as coordinates\n"
-                    "\t- ptsx.shape = {ptsx.shape}\n"
-                    "\t- lamb.shape = {lamb.shape}\n"
+                    f"\t- ptsx.shape = {ptsx.shape}\n"
+                    f"\t- lamb0.shape = {lamb0.shape}\n"
                 )
                 raise Exception(msg)
+
+    # --------------
+    # rocking_curve
+
+    rocking_curve = ds._generic_check._check_var(
+        rocking_curve, 'rocking_curve',
+        default=True,
+        types=bool,
+    )
+
+    if lamb0 is None:
+        rocking_curve = False
 
     # -----------------------
     # store shape and flatten
@@ -397,7 +424,14 @@ def _check(
     append = ds._generic_check._check_var(
         append, 'append',
         types=bool,
-        default=lc[1] and ptsx.size < 100 and plot is True,
+        default=lc[1] and ptsx.size < 100,  #  and plot is True,
+    )
+
+    # colorbar
+    colorbar = ds._generic_check._check_var(
+        colorbar, 'colorbar',
+        types=bool,
+        default=False,
     )
 
     return  (
@@ -405,8 +439,8 @@ def _check(
         dsamp, res_phi,
         shape, iok,
         ptsx, ptsy, ptsz, phi,
-        lamb0,
-        append, plot, plot_pixels,
+        lamb0, rocking_curve,
+        append, plot, plot_pixels, colorbar,
     )
 
 
@@ -505,12 +539,15 @@ def _prepare_lamb(
     kspectro=None,
     lamb=None,
     res_lamb=None,
+    rocking_curve=None,
+    rocking_curve_step_width=None,
     res_rock_curve=None,
     verb=None,
 ):
 
     # ------------------
     # get lamb
+    # ------------------
 
     if res_lamb is not None:
         lamb = coll.get_diagnostic_data(
@@ -526,7 +563,11 @@ def _prepare_lamb(
         lamb = np.linspace(lambmin - 0.2*Dlamb, lambmax + 0.2*Dlamb, nlamb)
         dlamb = lamb[1] - lamb[0]
 
-        bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
+        bragg = coll.get_crystal_bragglamb(
+            key=kspectro,
+            lamb=lamb,
+            rocking_curve=False,
+        )[0]
 
     elif lamb is not None:
 
@@ -538,45 +579,55 @@ def _prepare_lamb(
         )
         nlamb = lamb.size
         dlamb = None
-        bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
+        bragg = coll.get_crystal_bragglamb(
+            key=kspectro,
+            lamb=lamb,
+            rocking_curve=False,
+        )[0]
 
-    # ---------------
-    # get bragg angle
-
-    # power ratio
-    cls_spectro = 'crystal'
-    kpow = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
-    pow_ratio = coll.ddata[kpow]['data']
+    # ----------------
+    # get power ratio
+    # ----------------
 
     # angle relative
+    cls_spectro = 'crystal'
     kang_rel = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['angle_rel']
     ang_rel = coll.ddata[kang_rel]['data']
-    if res_rock_curve is not None:
-        if isinstance(res_rock_curve, int):
-            nang = res_rock_curve
-        else:
-            nang = int(
-                (np.max(ang_rel) - np.min(ang_rel)) / res_rock_curve
-            )
 
-        ang_rel2 = np.linspace(np.min(ang_rel), np.max(ang_rel), nang)
-        pow_ratio = scpinterp.interp1d(
-            ang_rel,
-            pow_ratio,
-            kind='linear',
-        )(ang_rel2)
-        ang_rel = ang_rel2
+    # power ratio
+    if rocking_curve is False:
+        if rocking_curve_step_width is None:
+            rocking_curve_step_width = np.mean(np.diff(ang_rel))
+
+        ang_rel = 0.5 * rocking_curve_step_width * np.r_[-1, 1]
+        pow_ratio = np.r_[1, 1]
+
+    else:
+        kpow = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
+        pow_ratio = coll.ddata[kpow]['data']
+
+    # --------------
+    # interpolation
+    # ---------------
+
+    pow_interp = scpinterp.interp1d(
+        ang_rel,
+        pow_ratio,
+        kind='linear',
+        bounds_error=False,
+        fill_value=0.,
+    )
 
     dang = np.mean(np.diff(ang_rel))
 
     # --------------------------------------
     # overall bragg angle with rocking curve
+    # --------------------------------------
 
     if res_lamb is None and lamb is None:
-        nlamb, lamb, dlamb, angbragg = None, None, None, None
+        nlamb, lamb, dlamb = None, None, None
 
     else:
-        angbragg = bragg[None, :] + ang_rel[:, None]
 
         # ------------
         # safety check
@@ -604,10 +655,10 @@ def _prepare_lamb(
         nlamb,
         lamb,
         dlamb,
-        pow_ratio,
+        pow_interp,
         ang_rel,
         dang,
-        angbragg,
+        bragg,
     )
 
 
@@ -642,12 +693,11 @@ def _loop0(
     # lamb
     lamb=None,
     dlamb=None,
+    rocking_curve=None,
     bragg_per_pix=None,
     ang_rel=None,
-    pow_ratio=None,
-    angbragg=None,
-    angbragg0=None,
-    angbragg1=None,
+    pow_interp=None,
+    bragg=None,
     # optional
     n0=None,
     n1=None,
@@ -674,20 +724,17 @@ def _loop0(
     sang0 = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
     sang_lamb = np.full(shape_cam, 0.)
 
+    lsang = None
     if append is True:
         lp0, lp1 = [], []
         lpx, lpy, lpz = [], [], []
+        dpow = {ll: [] for ll in lamb}
+        lsang = []
     else:
         lp0, lp1 = None, None
         lpx, lpy, lpz = None, None, None
-
-    pwr_interp = scpinterp.interp1d(
-        ang_rel,
-        pow_ratio,
-        kind='linear',
-        bounds_error=False,
-        fill_value=0.,
-    )
+        dpow = None
+        lsang = None
 
     # ----------
     # loop
@@ -791,6 +838,10 @@ def _loop0(
             lp0.append(x0c[iok])
             lp1.append(x1c[iok])
 
+            # pow
+            for kk, ll in enumerate(lamb):
+                dpow[ll].append(pow_interp(angles[iok] - bragg[kk]))
+
         # safety check
         iok2 = (
             (x0c[iok] >= cbin0[0])
@@ -841,40 +892,44 @@ def _loop0(
                 # indices
                 indj[:] = indi & (out.binnumber[1, :] == jj + 1)
 
-                # lambref
-                arelj = angles[indj] - bragg_per_pix[ii, jj]
+                if lamb is None:
+                    # solid angle
+                    sang[ii, jj, i0] += np.sum(dsang[indj])
 
-                sang[ii, jj, i0] += np.sum(
-                    pwr_interp(arelj)
-                    * dsang[indj]
-                )
+                else:
+                    # lambref
+                    arelj = angles[indj] - bragg_per_pix[ii, jj]
 
-                # ----------
-                # sang_lamb
-
-                angj = angles[indj]
-                ilamb = (
-                    (angj[:, None] >= angbragg0)
-                    & (angj[:, None] < angbragg1)
-                )
-
-                if not np.any(ilamb):
-                    continue
-
-                ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
-
-                # binning of angles
-                for kk in ilamb_n:
-                    inds = np.searchsorted(
-                        angbragg[:, kk],
-                        angj[ilamb[:, kk]],
+                    # solid angle
+                    sang[ii, jj, i0] += np.sum(
+                        pow_interp(arelj)
+                        * dsang[indj]
                     )
 
-                    # update power_ratio * solid angle
-                    sang_lamb[ii, jj] += np.sum(
-                        pow_ratio[inds]
-                        * dsang[indj][ilamb[:, kk]]
+                    # ----------
+                    # sang_lamb
+
+                    angj = angles[indj]
+                    ilamb = (
+                        (angj[:, None] - bragg >= ang_rel[0])
+                        & (angj[:, None] - bragg < ang_rel[-1])
                     )
+
+                    if not np.any(ilamb):
+                        continue
+
+                    ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
+
+                    # binning of angles
+                    for kk in ilamb_n:
+                        sang_lamb[ii, jj] += np.sum(
+                            pow_interp(angj[ilamb[:, kk]] - bragg[kk])
+                            * dsang[indj][ilamb[:, kk]]
+                        )
+
+    # adjust sang_lamb
+    if lamb is None:
+        sang_lamb = np.nansum(sang0, axis=-1)
 
     return {
         'ncounts': {'data': ncounts, 'units': ''},
@@ -888,6 +943,8 @@ def _loop0(
         'lpx': {'data': lpx, 'units': 'm'},
         'lpy': {'data': lpy, 'units': 'm'},
         'lpz': {'data': lpz, 'units': 'm'},
+        'dpow': {'data': dpow, 'units': ''},
+        'lsang': {'data': lsang, 'units': 'sr'},
     }
 
 
@@ -1395,12 +1452,30 @@ def _plot(
     plot_pixels=None,
     vmin=None,
     vmax=None,
+    aspect3d=None,
+    elements=None,
+    colorbar=None,
     # options
     dax=None,
     fs=None,
     dmargin=None,
     wintit=None,
 ):
+
+    # --------------
+    # check inputs
+
+    aspect3d = ds._generic_check._check_var(
+        aspect3d, 'aspect3d',
+        default='equal',
+        allowed=['auto', 'equal'],
+    )
+
+    elements = ds._generic_check._check_var(
+        elements, 'elements',
+        default='o',
+        types=str,
+    )
 
     # --------------
     # add ncounts to ddata
@@ -1432,7 +1507,7 @@ def _plot(
         key=key,
         key_cam=key_cam,
         optics=None,
-        elements='o',
+        elements=elements,
     )
 
     # --------------
@@ -1478,6 +1553,7 @@ def _plot(
             ls='-',
             lw=0.5,
         )
+
         if plot_pixels is True:
             ax.plot(
                 ck0f.T.ravel(),
@@ -1554,12 +1630,37 @@ def _plot(
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
 
-                ax.plot(
-                    p0,
-                    p1,
-                    ls='None',
-                    marker='.',
-                )
+                if dout['lamb']['data'] is None:
+                    ax.plot(
+                        p0,
+                        p1,
+                        ls='None',
+                        marker='.',
+                        # c=dout['lcolor'][ii],
+                    )
+                elif dout['rocking_curve'] is False:
+                    ax.plot(
+                        p0[dout['lindin'][ii]],
+                        p1[dout['lindin'][ii]],
+                        ls='None',
+                        marker='.',
+                        # c=dout['lcolor'][ii],
+                    )
+                    ax.plot(
+                        p0[~dout['lindin'][ii]],
+                        p1[~dout['lindin'][ii]],
+                        ls='None',
+                        marker='.',
+                        c=(0.8, 0.8, 0.8),
+                    )
+                else:
+                    ax.scatter(
+                        p0,
+                        p1,
+                        # c=dout['lcolor'][ii],
+                        s=8,
+                        marker='.',
+                    )
 
             # --------------
             # rays
@@ -1620,9 +1721,10 @@ def _plot(
             vmax=vmax,
         )
 
-        cb = plt.colorbar(im, ax=ax, cax=cax)
         ax.set_title(kd, size=12, fontweight='bold')
-        cb.set_label(dout[kd]['units'], size=12, weight='bold')
+        if colorbar is True:
+            cb = plt.colorbar(im, ax=ax, cax=cax)
+            cb.set_label(dout[kd]['units'], size=12, weight='bold')
 
     # ----------
     # diag geom
@@ -1649,7 +1751,17 @@ def _plot(
             ax = dax[kax]['handle']
             plot_config.plot(lax=ax, proj=kax, dLeg=False)
 
+    # --------------
+    # aspect3d
+
+    if aspect3d == 'equal' and dax.get('3d') is not None:
+        ds.set_aspect3d(ax=dax['3d']['handle'])
+
+    # --------------
+    # clean up
+
     coll.remove_data(ktemp)
+
     return
 
 

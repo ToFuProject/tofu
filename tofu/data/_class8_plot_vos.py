@@ -105,7 +105,7 @@ def _plot_diagnostic_vos(
 
     # single camera + get dvos
     key_cam = key_cam[:1]
-    dvos, isstore = coll.check_diagnostic_dvos(
+    key, dvos, isstore = coll.check_diagnostic_dvos(
         key,
         key_cam=key_cam,
         dvos=dvos,

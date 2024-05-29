@@ -26,6 +26,8 @@ from . import _class8_compute_signal_moments as _signal_moments
 from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
+from . import _class8_plot_coverage as _plot_coverage
+from . import _class08_save2stp as _save2stp
 
 
 __all__ = ['Diagnostic']
@@ -185,6 +187,7 @@ class Diagnostic(Previous):
         self,
         key=None,
         key_data=None,
+        key_cam=None,
         flat=None,
         ):
         """ Return concatenated data for chosen cameras
@@ -195,6 +198,7 @@ class Diagnostic(Previous):
             coll=self,
             key=key,
             key_data=key_data,
+            key_cam=key_cam,
             flat=flat,
         )
 
@@ -407,6 +411,7 @@ class Diagnostic(Previous):
         # sampling
         res_RZ=None,
         res_phi=None,
+        lamb=None,
         res_lamb=None,
         res_rock_curve=None,
         n0=None,
@@ -453,6 +458,7 @@ class Diagnostic(Previous):
             # etendue
             res_RZ=res_RZ,
             res_phi=res_phi,
+            lamb=lamb,
             res_lamb=res_lamb,
             res_rock_curve=res_rock_curve,
             n0=n0,
@@ -969,20 +975,25 @@ class Diagnostic(Previous):
         ptsx=None,
         ptsy=None,
         ptsz=None,
-        # res
-        res_rock_curve=None,
+        # res rays
         n0=None,
         n1=None,
         # optional lamb
         lamb0=None,
         res_lamb=None,
+        rocking_curve=None,
+        res_rock_curve=None,
         # options
         append=None,
         plot=None,
+        dax=None,
         plot_pixels=None,
         plot_config=None,
         vmin=None,
         vmax=None,
+        aspect3d=None,
+        elements=None,
+        colorbar=None,
     ):
         """ Get rays from plasma points to camera for a spectrometer diag """
 
@@ -999,20 +1010,25 @@ class Diagnostic(Previous):
             ptsx=ptsx,
             ptsy=ptsy,
             ptsz=ptsz,
-            # res
-            res_rock_curve=res_rock_curve,
+            # res rays
             n0=n0,
             n1=n1,
             # optional lamb
             lamb0=lamb0,
             res_lamb=res_lamb,
+            rocking_curve=rocking_curve,
+            res_rock_curve=res_rock_curve,
             # options
             append=append,
             plot=plot,
+            dax=dax,
             plot_pixels=plot_pixels,
             plot_config=plot_config,
             vmin=vmin,
             vmax=vmax,
+            aspect3d=aspect3d,
+            elements=elements,
+            colorbar=colorbar,
         )
 
     # ---------------------
@@ -1294,4 +1310,120 @@ class Diagnostic(Previous):
             wintit=wintit,
             # interactivity
             color_dict=color_dict,
+        )
+
+    # --------------------------
+    # plot geometrical converage
+    # --------------------------
+
+    def plot_diagnostic_geometrical_coverage(
+        self,
+        key=None,
+        # mesh sampling
+        key_mesh=None,
+        res_RZ=None,
+        nan0=None,
+        # plotting options
+        plot_config=None,
+        dcolor=None,
+        dax=None,
+        fs=None,
+        dmargin=None,
+        tit=None,
+        cmap=None,
+        vmin=None,
+        vmax=None,
+    ):
+        """ Plot the geometrical coverage of a diagnostic, in a cross-section
+
+
+        Parameters
+        ----------
+        key : str, optional
+            key to the diagnostic
+        key_mesh : str, optional
+            key to the mesh used for sampling the cross-section
+        res_RZ : float / list, optional
+            resolution for sampling the cross-section. The default is None.
+        plot_config : Config, optional
+            DESCRIPTION. The default is None.
+        dcolor : dict, optional
+            dict of color, per camera
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+
+        return _plot_coverage.main(
+            coll=self,
+            key=key,
+            # mesh sampling
+            key_mesh=key_mesh,
+            res_RZ=res_RZ,
+            nan0=nan0,
+            # plotting options
+            config=plot_config,
+            dcolor=dcolor,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            dax=dax,
+            fs=fs,
+            dmargin=dmargin,
+            tit=tit,
+        )
+
+    # --------------------------
+    # save to stp
+    # --------------------------
+
+    def save_diagnostic_to_stp(
+        # ---------------
+        # input from tofu
+        self,
+        key=None,
+        key_cam=None,
+        key_optics=None,
+        # ---------------
+        # options
+        factor=None,
+        color=None,
+        # ---------------
+        # saving
+        pfe_save=None,
+        overwrite=None,
+    ):
+        """ Save a set of 'rays' to a stp file (CAD-readable)
+
+        Parameters
+        ----------
+        key : str, optional
+            key to the existing set of rays
+        pfe : str, optional
+            valid path-file-extension (file str) where to save the stp file
+
+        Returns
+        -------
+        None.
+
+        """
+
+        return _save2stp.main(
+            # ---------------
+            # input from tofu
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            key_optics=key_optics,
+            # ---------------
+            # options
+            factor=factor,
+            color=color,
+            # ---------------
+            # saving
+            pfe_save=pfe_save,
+            overwrite=overwrite,
         )

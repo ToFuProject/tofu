@@ -227,12 +227,13 @@ def _store(
     # ---------
     # prepare
 
+    lkcam = list(dout.keys())
     dobj = {
         'synth sig':{
             key: {
                 'diag': key_diag,
-                'camera': list(dout.keys()),
-                'data': [v0['key'] for v0 in dout.values()],
+                'camera': lkcam,
+                'data': [dout[k0]['key'] for k0 in lkcam],
                 # synthetic
                 'integrand': key_integrand,
                 'method': method,
@@ -392,7 +393,7 @@ def _compute_signal_check(
     # dvos
     if method == 'vos':
         # single camera + get dvos
-        dvos, isstore = coll.check_diagnostic_dvos(
+        key_diag, dvos, isstore = coll.check_diagnostic_dvos(
             key_diag,
             key_cam=key_cam,
             dvos=dvos,
@@ -1076,26 +1077,26 @@ def _compute_vos_broadband(
     for k0, v0 in dvos.items():
 
         # group
-        units_vos = v0['sang']['units']
+        units_vos = v0['sang_cross']['units']
 
         # --------------
         # loop on pixels
 
         shape = None
-        shape_cam = v0['indr']['data'].shape[:-1]
+        shape_cam = v0['indr_cross']['data'].shape[:-1]
         assert shape_cam == coll.dobj['camera'][k0]['dgeom']['shape']
         ref_cam = coll.dobj['camera'][k0]['dgeom']['ref']
         for ind in np.ndindex(shape_cam):
 
             # no valid los in group
-            iok = v0['indr']['data'][ind] >= 0
+            iok = v0['indr_cross']['data'][ind] >= 0
             if not np.any(iok):
                 continue
 
             # vos re-creation
             ind_RZ = tuple(list(ind) + [iok])
-            R = x0u[v0['indr']['data'][ind_RZ]]
-            Z = x1u[v0['indz']['data'][ind_RZ]]
+            R = x0u[v0['indr_cross']['data'][ind_RZ]]
+            Z = x1u[v0['indz_cross']['data'][ind_RZ]]
 
             # -----------------------------
             # interpolate on matching wavelength ?
@@ -1138,7 +1139,7 @@ def _compute_vos_broadband(
             ind_sa[axis] = ind_RZ
             data[tuple(itt.chain.from_iterable(ind_data))] = np.nansum(
                 datai
-                * v0['sang']['data'][tuple(itt.chain.from_iterable(ind_sa))],
+                * v0['sang_cross']['data'][tuple(itt.chain.from_iterable(ind_sa))],
                 axis=axis,
             )
 
@@ -1355,6 +1356,14 @@ def _compute_vos_spectro(
                 store_keys=key_integrand_interp_lamb,
             )
 
+            # adjust data and units for integration
+            dlamb = np.mean(np.diff(v0['lamb']['data']))
+            coll.ddata[key_integrand_interp_lamb]['data'] *= dlamb
+            coll.ddata[key_integrand_interp_lamb]['units'] = (
+                asunits.Unit(coll.ddata[key_integrand_interp_lamb]['units'])
+                * asunits.Unit(v0['lamb']['units'])
+            )
+
         # -----------------------------
         # interpolate vs local cos
 
@@ -1474,10 +1483,6 @@ def _compute_vos_spectro(
 
         # --------------
         # post-treatment
-
-        if spectral_binning is False:
-            units = units * asunits.Unit(v0['lamb']['units'])
-            sig = sig * np.mean(np.diff(v0['lamb']['data']))
 
         # brightness
         if brightness is True:

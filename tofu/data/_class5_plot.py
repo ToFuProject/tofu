@@ -50,21 +50,24 @@ def plot_rocking_curve(
     if color is None:
         color = 'k'
 
-    # T
-    if T is not None:
-        T = ds._generic_check._check_var(
-            T, 'T',
-            types=(int, float),
-            sign='>0',
-        )
-
     # -----------
     # plot
 
     # is2d
     if is2d:
 
-        if T is not None:
+        if T is False:
+            T = drock['Tref']
+            bragg = None
+            is2d = False
+
+        elif T is not None:
+            T = ds._generic_check._check_var(
+                T, 'T',
+                types=(int, float),
+                sign='>0',
+            )
+
             T0 = coll.ddata[drock['T']]['data']
             braggT = coll.ddata[drock['braggT']]['data']
             indT = np.argmin(np.abs(T0 - T))
@@ -87,10 +90,11 @@ def plot_rocking_curve(
     # not is2d
     if is2d is False:
 
-        bragg = coll.get_crystal_bragglamb(
-            key=key,
-            rocking_curve=False,
-        )[0][0]
+        if bragg is None:
+            bragg = coll.get_crystal_bragglamb(
+                key=key,
+                rocking_curve=False,
+            )[0][0]
 
         return _plot_rc_1d(
             key=key,
@@ -128,6 +132,9 @@ def _plot_rc_1d(
 
     if plot_FW is None:
         plot_FW = True
+
+    if issubclass(dax.__class__, plt.Axes):
+        dax = {'rc': {'handle': dax, 'type': 'matrix'}}
 
     # ----------
     # prepare

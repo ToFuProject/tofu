@@ -97,12 +97,14 @@ class GeometryMatrix(Previous):
     def get_geometry_matrix_concatenated(
         self,
         key=None,
+        key_cam=None,
     ):
         """ Assemble the geometry matrix """
 
         return _compute._concatenate(
             coll=self,
             key=key,
+            key_cam=key_cam,
         )
 
     # -----------------

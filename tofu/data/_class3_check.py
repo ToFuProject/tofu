@@ -81,17 +81,17 @@ def _add_surface3d(
     # create dict
 
     # keys
-    knpts = f'{key}-npts'
+    knpts = f'{key}_npts'
     if gtype != '3d':
-        kp0 = f'{key}-x0'
-        kp1 = f'{key}-x1'
+        kp0 = f'{key}_x0'
+        kp1 = f'{key}_x1'
         outline = (kp0, kp1)
         poly = None
         npts = outline_x0.size
     else:
-        kpx = f'{key}-x'
-        kpy = f'{key}-y'
-        kpz = f'{key}-z'
+        kpx = f'{key}_x'
+        kpy = f'{key}_y'
+        kpz = f'{key}_z'
         poly = (kpx, kpy, kpz)
         outline = None
         npts = poly_x.size
@@ -260,14 +260,25 @@ def _return_as_dict(
         elif cls in ['aperture', 'filter']:
 
             ap = coll.dobj[cls][k0]['dgeom']
-            dout[k0] = {
-                'cent': ap['cent'],
-                'poly_x': coll.ddata[ap['poly'][0]]['data'],
-                'poly_y': coll.ddata[ap['poly'][1]]['data'],
-                'poly_z': coll.ddata[ap['poly'][2]]['data'],
-                'nin': ap['nin'],
-                'e0': ap.get('e0'),
-                'e1': ap.get('e1'),
-            }
+
+            if ap.get('poly') is None:
+                dout[k0] = {
+                    'cent': ap['cent'],
+                    'outline_x0': coll.ddata[ap['outline'][0]]['data'],
+                    'outline_x1': coll.ddata[ap['outline'][1]]['data'],
+                    'nin': ap['nin'],
+                    'e0': ap.get('e0'),
+                    'e1': ap.get('e1'),
+                }
+            else:
+                dout[k0] = {
+                    'cent': ap['cent'],
+                    'poly_x': coll.ddata[ap['poly'][0]]['data'],
+                    'poly_y': coll.ddata[ap['poly'][1]]['data'],
+                    'poly_z': coll.ddata[ap['poly'][2]]['data'],
+                    'nin': ap['nin'],
+                    'e0': ap.get('e0'),
+                    'e1': ap.get('e1'),
+                }
 
     return dout

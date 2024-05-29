@@ -29,6 +29,7 @@ from libc.math cimport atan2 as c_atan2, pi as c_pi
 from libc.math cimport NAN as C_NAN
 from libc.math cimport INFINITY as C_INF
 from libc.stdlib cimport malloc, free
+# from libc.stdio cimport printf   # for debug
 
 # -- extra libraries imports --------------------------------------------------
 import Polygon as plg
@@ -4093,26 +4094,35 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                                     &new_npts_poly,
                                     0, # mode = absolute
                                     _VSMALL)
+
     # == Defining parallel part ================================================
     with nogil, parallel(num_threads=num_threads):
+
         # We use local arrays for each thread so...
         loc_org   = <double *> malloc(sizeof(double) * 3)
         loc_dir   = <double *> malloc(sizeof(double) * 3)
         res_loc = <double *> malloc(2*sizeof(double))
+
         # == The parallelization over the LOS ==================================
         for ind_los in prange(nlos, schedule='dynamic'):
+
             loc_org[0] = ray_orig[0, ind_los]
             loc_org[1] = ray_orig[1, ind_los]
             loc_org[2] = ray_orig[2, ind_los]
             loc_dir[0] = ray_vdir[0, ind_los]
             loc_dir[1] = ray_vdir[1, ind_los]
             loc_dir[2] = ray_vdir[2, ind_los]
+
             # -- Computing values that depend on the LOS/ray -------------------
             upscaDp = loc_dir[0]*loc_org[0] + loc_dir[1]*loc_org[1]
             upar2   = loc_dir[0]*loc_dir[0] + loc_dir[1]*loc_dir[1]
             dpar2   = loc_org[0]*loc_org[0] + loc_org[1]*loc_org[1]
             invuz = 1./loc_dir[2]
+
+            # horizontality criterion
             crit2 = upar2*crit2_base
+
+            # compute
             _dt.simple_dist_los_vpoly_core(loc_org, loc_dir,
                                            list_vpoly_x,
                                            list_vpoly_y,
@@ -4124,11 +4134,14 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                                            res_loc)
             kmin[ind_los] = res_loc[0]
             dist[ind_los] = res_loc[1]
+
         free(loc_org)
         free(loc_dir)
         free(res_loc)
+
     free(list_vpoly_x)
     free(list_vpoly_y)
+
     return kmin, dist
 
 def comp_dist_los_vpoly_vec(int nvpoly, int nlos,

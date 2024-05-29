@@ -73,7 +73,7 @@ def _compute_check(
     )
 
     key_diag = coll.dobj['geom matrix'][key_matrix]['diagnostic']
-    # key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
 
     keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     deg = coll.dobj['bsplines'][keybs]['deg']
@@ -82,7 +82,10 @@ def _compute_check(
     mtype = coll.dobj[coll._which_mesh][keym]['type']
 
     # matrix itself
-    matrix, ref, dind = coll.get_geometry_matrix_concatenated(key_matrix)
+    matrix, ref, dind = coll.get_geometry_matrix_concatenated(
+        key_matrix,
+        key_cam=key_cam,
+    )
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
     units_gmat = coll.ddata[lkmat[0]]['units']
     nchan, nbs = matrix.shape[-2:]
@@ -98,6 +101,7 @@ def _compute_check(
         coll=coll,
         key_diag=key_diag,
         key_data=key_data,
+        key_cam=key_cam,
     )
 
     # sigma
@@ -194,7 +198,7 @@ def _compute_check(
     # --------------
     # inversion refs
 
-    # refbs = coll.dobj['bsplines'][keybs]['ref-bs']
+    # refbs = coll.dobj['bsplines'][keybs]['ref_bs']
     if hastime:
         refinv = (reft, keybs)
     else:
@@ -414,7 +418,7 @@ def _compute_check(
         verb, 'verb',
         default=True,
         types=(bool, int),
-        allowed=[False, 0, True, 1, 2],
+        allowed=[False, 0, True, 1, 2, 3],
     )
     if verb is False:
         verb = 0
@@ -479,12 +483,14 @@ def _check_data(
     coll=None,
     key_diag=None,
     key_data=None,
+    key_cam=None,
 ):
 
     # load ddata from key_data
     ddata = coll.get_diagnostic_data_concatenated(
         key=key_diag,
         key_data=key_data,
+        key_cam=key_cam,
         flat=True,
     )
 
@@ -501,6 +507,7 @@ def _check_sigma(
     coll=None,
     key_diag=None,
     key_sigma=None,
+    key_cam=None,
     sigma=None,
     ddata=None,
     nchan=None,
@@ -537,6 +544,7 @@ def _check_sigma(
             coll=coll,
             key=key_diag,
             key_data=key_sigma,
+            key_cam=key_cam,
             flat=True,
         )
 
@@ -815,10 +823,10 @@ def _check_deriv(
                         f"{dconst[deriv]['rad'][~iok]}\n"
                         "  => excluded"
                     )
-                    warnings.warn
+                    warnings.warn(msg)
 
                 dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
-                dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
+                dconst[deriv]['val'] = dconst[deriv]['val'][iok]
 
                 # sort vs radius
                 inds = np.argsort(dconst[deriv]['rad'])
@@ -1005,13 +1013,22 @@ def _constraints_conflict_iout(
             indout = ibs_coefs[ii, it, :].nonzero()[0][0]
             indin = ibs_coefs[ii, it, :].nonzero()[0][1:]
 
+            # safety check
+            if indin.size == 0:
+                msg = (
+                    "Eq from constraint seems to address a single bspline!"
+                )
+                raise NotImplementedError(msg)
+
             iout_coefs[it, indout] = True
             iin_coefs[it, indout] = False
 
             dcon[k0]['iout'][it] = indout
             dcon[k0]['iin'][it][:] = indin
 
+    # -----------------------
     # final consistency check
+
     lterr = np.any(
         (iout_offset & iout_coefs & iin_coefs)[~iconflict, :],
         axis=1,
@@ -1232,17 +1249,22 @@ def _algo_check(
         b0 = 1
 
         # (a0, b0) are the gamma distribution parameters for lamb
-        kwdargs['a0'] = kwdargs.get('a0', a0) # np.nanmean(dsigma['data']))  # 10 ?
+        if kwdargs.get('a0') is None:
+            kwdargs['a0'] = a0  # np.nanmean(dsigma['data']))  # 10 ?
+
         # to have [x]=1
-        kwdargs['b0'] = kwdargs.get('b0', b0)   # np.math.factorial(a0)**(1 / (a0 + 1))
+        if kwdargs.get('b0') is None:
+            kwdargs['b0'] = b0  # np.math.factorial(a0)**(1 / (a0 + 1))
 
         # (a1, b1) are the gamma distribution parameters for tau
-        kwdargs['a1'] = kwdargs.get('a1', 1)
+        if kwdargs.get('a1') is None:
+            kwdargs['a1'] = 1
+
         # to have [x]=1
-        kwdargs['b1'] = kwdargs.get(
-            'b1',
-            np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1)),
-        )
+        if kwdargs.get('b1') is None:
+            kwdargs['b1'] =(
+                np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1))
+            )
 
         if kwdargs.get('conv_reg') is None:
             kwdargs['conv_reg'] = True
