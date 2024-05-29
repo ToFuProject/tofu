@@ -1081,12 +1081,15 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 # ----- DEBUG / DB -------
                 if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                     if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
-                        printf("other")
+                        printf("\n other/n")
+                        printf("\t- jj = %d", jj)
+                        printf("\t- res_a[0], res_b[0], res_final[0] = %i, %e, %e, %e\n", jj, res_a[0], res_b[0], res_final[0])
+                        printf("\t- res_a[1], res_b[1], res_final[1] = %i, %e, %e, %e\n", jj, res_a[1], res_b[1], res_final[1])# DB
 
             # ----- DEBUG / DB -------
             if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                 if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
-                    printf("Third\n")
+                    printf("\n Third\n")
                     printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])
                     printf("\t- jj, res_a[1], res_final[1] = %i, %e, %e\n", jj, res_a[1], res_final[1])# DB
 
