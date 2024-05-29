@@ -29,7 +29,7 @@ from libc.math cimport atan2 as c_atan2, pi as c_pi
 from libc.math cimport NAN as C_NAN
 from libc.math cimport INFINITY as C_INF
 from libc.stdlib cimport malloc, free
-from libc.stdio cimport printf
+# from libc.stdio cimport printf   # for debug
 
 # -- extra libraries imports --------------------------------------------------
 import Polygon as plg

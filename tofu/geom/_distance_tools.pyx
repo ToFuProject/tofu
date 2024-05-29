@@ -19,7 +19,7 @@ from libc.math cimport fabs as c_abs
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport NAN as C_NAN
 from libc.stdlib cimport malloc, free
-from libc.stdio cimport printf
+# from libc.stdio cimport printf    # for debug
 from ._basic_geom_tools cimport _VSMALL
 from . cimport _basic_geom_tools as _bgt
 from . cimport _sampling_tools as _st
