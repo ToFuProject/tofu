@@ -1225,7 +1225,7 @@ def test16_dist_los_vpoly(debug=False):
     # ----------------------
     # tests values
 
-    if not np.allclose(out[0], exact_ks, rtol=1e-8, atol=1e-9, equal_nan=True):
+    if not np.allclose(out[0], exact_ks, rtol=1e-12, atol=1e-12, equal_nan=True):
         msg = (
             "Wrong values:\n"
             f"\t- out[0]:\n{out[0]}\n"
@@ -1233,7 +1233,7 @@ def test16_dist_los_vpoly(debug=False):
         )
         raise Exception(msg + msg0)
 
-    if not np.allclose(out[1], exact_dists, rtol=1e-8, atol=1e-9, equal_nan=True):
+    if not np.allclose(out[1], exact_dists, rtol=1e-12, atol=1e-12, equal_nan=True):
         msg = (
             "Wrong values:\n"
             f"\t- out[1]:\n{out[1]}\n"
