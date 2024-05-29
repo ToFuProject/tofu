@@ -4135,32 +4135,6 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
             kmin[ind_los] = res_loc[0]
             dist[ind_los] = res_loc[1]
 
-            # ----- DEBUG / DB -----
-            if c_abs(kmin[ind_los] - 14.) < 1e-9 or c_abs(kmin[ind_los] - 6.) < 1e-9:
-                printf("\n\n\n")
-                printf("\n\t- ind_los = %i\n", ind_los)
-                printf("\t- kmin[ind_los] = %e\n", kmin[ind_los])
-                printf("\t- dist[ind_los] = %e\n", dist[ind_los])
-
-                printf("\n\t- loc_org = %e, %e, %e\n", loc_org[0], loc_org[1], loc_org[2])
-                printf("\t- loc_dir = %e, %e, %e\n", loc_dir[0], loc_dir[1], loc_dir[2])
-                printf("\t- new_npts_poly = %i\n", new_npts_poly)
-                printf("\t- upscaDp = %e\n", upscaDp)
-                printf("\t- upar2 = %e\n", upar2)
-                printf("\t- dpar2 = %e\n", dpar2)
-                printf("\t- invuz = %e\n", invuz)
-                printf("\t- crit2 = %e\n", crit2)
-                printf("\t- eps_uz = %e\n", eps_uz)
-                printf("\t- eps_vz = %e\n", eps_vz)
-                printf("\t- eps_a = %e\n", eps_a)
-                printf("\t- eps_b = %e\n", eps_b)
-
-                printf("\n\t- list_vpoly_x[18,19] = %e, %e", list_vpoly_x[18], list_vpoly_x[19])
-                printf("\n\t- list_vpoly_y[18,19] = %e, %e", list_vpoly_y[18], list_vpoly_y[19])
-                printf("\n\n\n")
-
-            # --- END DEBUG ---
-
         free(loc_org)
         free(loc_dir)
         free(res_loc)
