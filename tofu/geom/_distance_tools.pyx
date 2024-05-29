@@ -1029,9 +1029,10 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                         if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                             printf("\t- A / sqd, q = %e, %e\n", sqd, q)
-                            printf("\t- A/ val_b * val_b - val_a * coeff = %e", val_b * val_b - val_a * coeff)
-                            printf("\t- A/ sqrt(4.) = %e", c_sqrt(4.))
-                            printf("\t- A/ sqrt(8.888888991531729e-08) = %e", c_sqrt(8.888888991531729e-08))
+                            printf("\t- A/ val_b * val_b - val_a * coeff = %e\n", val_b * val_b - val_a * coeff)
+                            printf("\t- A/ sqrt(0.) = %e\n", c_sqrt(0.))
+                            printf("\t- A/ sqrt(-0.0001) = %e\n", c_sqrt(-0.0001))
+                            printf("\t- A/ sqrt(8.888888991531729e-08) = %e\n", c_sqrt(8.888888991531729e-08))
                             printf("\t- A / v0, v1 = %e, %e, %e\n", v0, v1, upar2)
                             printf("\t- A / upar2, invuz, upscaDp = %e, %e, %e\n", upar2, invuz, upscaDp)
                             printf("\t- A / val_a, val_b, coeff = %e, %e, %e\n", val_a, val_b, coeff)
