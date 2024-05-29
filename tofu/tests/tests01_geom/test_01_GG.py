@@ -1241,8 +1241,6 @@ def test16_dist_los_vpoly(debug=False):
         )
         raise Exception(msg + msg0)
 
-    raise Exception()
-
 
 # ==============================================================================
 #
