@@ -1175,8 +1175,8 @@ def test16_dist_los_vpoly():
     # tests shapes
 
     msg0 = (
-        "\n\t- ves_poly[0, :] = {ves_poly[0, :]}\n"
-        "\t- ves_poly[1, :] = {ves_poly[1, :]}\n"
+        f"\n\t- ves_poly[0, :] = {ves_poly[0, :]}\n"
+        f"\t- ves_poly[1, :] = {ves_poly[1, :]}\n"
     )
 
     if out[0].shape != exact_ks.shape:

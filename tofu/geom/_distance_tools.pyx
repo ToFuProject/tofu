@@ -920,6 +920,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                          and res_final[0] - res_b[0] > _VSMALL)):
                         res_final[0] = res_b[0] # k
                         res_final[1] = res_b[1] # distance
+
     else:
         # == More general non-horizontal semi-line case ========================
         for jj in range(nvert-1):
@@ -995,7 +996,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             res_a[0] = 0
                             res_a[1] = -k * c_sqrt(norm_dir2)
 
-                if jj == 18 and ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                     if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                         printf("\n Before\n")
                         printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
@@ -1011,7 +1012,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
 
-                    if jj == 18 and ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                    if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                         if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                             printf("After\n")
                             printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
