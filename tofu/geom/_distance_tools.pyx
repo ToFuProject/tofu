@@ -125,8 +125,8 @@ cdef inline void dist_los_circle_core(const double[3] direct,
             rm0sqr = radius * m0sqr
             if (rm0sqr > b1):
                 twoThirds = 2.0 / 3.0
-                sHat = c_sqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
-                gHat = rm0sqr * sHat / c_sqrt(m0sqr * sHat * sHat + b1sqr)
+                sHat = c_sqrt(c_abs((rm0sqr * b1sqr)**twoThirds - b1sqr)) / m0
+                gHat = rm0sqr * sHat / c_sqrt(c_abs(m0sqr * sHat * sHat + b1sqr))
                 cutoff = gHat - sHat
                 if (m2b2 <= -cutoff):
                     s = _bgt.compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2, -m2b2 + rm0)
@@ -390,8 +390,8 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
             rm0sqr = radius * m0sqr
             if (rm0sqr > b1):
                 twoThirds = 2.0 / 3.0
-                sHat = c_sqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
-                gHat = rm0sqr * sHat / c_sqrt(m0sqr * sHat * sHat + b1sqr)
+                sHat = c_sqrt(c_abs((rm0sqr * b1sqr)**twoThirds - b1sqr)) / m0
+                gHat = rm0sqr * sHat / c_sqrt(c_abs(m0sqr * sHat * sHat + b1sqr))
                 cutoff = gHat - sHat
                 if (m2b2 <= -cutoff):
                     s = _bgt.compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2, -m2b2 + rm0)
@@ -953,9 +953,10 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             if ray_vdir_norm[2] < 0:
                                 # if the ray is going down origin is the closest
                                 res_a[0] = 0
-                                res_a[1] = c_sqrt((lpolyx[jj] - upar2)**2
-                                                 + (min(lpolyy[jj], lpolyy[jj+1])
-                                                    - ray_orig[2])**2)
+                                res_a[1] = c_sqrt(c_abs(
+                                    (lpolyx[jj] - upar2)**2
+                                    + (min(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2])**2
+                                ))
                             else:
                                 res_a[0] = (min(lpolyy[jj], lpolyy[jj+1])
                                             - ray_orig[2]) * invuz
@@ -965,9 +966,10 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             if ray_vdir_norm[2] > 0:
                                 # if the ray is going up origin is the closest
                                 res_a[0] = 0
-                                res_a[1] = c_sqrt((lpolyx[jj] - upar2)**2
-                                                 + (max(lpolyy[jj], lpolyy[jj+1])
-                                                    - ray_orig[2])**2)
+                                res_a[1] = c_sqrt(c_abs(
+                                    (lpolyx[jj] - upar2)**2
+                                    + (max(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2])**2
+                                ))
                             else:
                                 res_a[0] = (max(lpolyy[jj], lpolyy[jj+1])
                                             - ray_orig[2]) * invuz
@@ -1020,7 +1022,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             printf("\t- res_a[1], res_b[1], res_final[1] = %e, %e, %e\n", res_a[1], res_b[1], res_final[1])# DB
 
             elif (val_b * val_b >= val_a * coeff):
-                sqd = c_sqrt(val_b * val_b - val_a * coeff)
+                sqd = c_sqrt(c_abs(val_b * val_b - val_a * coeff))
                 # First solution
                 q = (-val_b + sqd) / val_a
 
@@ -1032,7 +1034,6 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             printf("\t- A/ val_b * val_b - val_a * coeff = %e\n", val_b * val_b - val_a * coeff)
                             printf("\t- A/ sqrt(0.) = %e\n", c_sqrt(0.))
                             printf("\t- A/ sqrt(-0.0001) = %e\n", c_sqrt(-0.0001))
-                            printf("\t- A/ sqrt(8.888888991531729e-08) = %e\n", c_sqrt(8.888888991531729e-08))
                             printf("\t- A / v0, v1 = %e, %e, %e\n", v0, v1, upar2)
                             printf("\t- A / upar2, invuz, upscaDp = %e, %e, %e\n", upar2, invuz, upscaDp)
                             printf("\t- A / val_a, val_b, coeff = %e, %e, %e\n", val_a, val_b, coeff)
