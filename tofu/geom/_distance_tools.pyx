@@ -999,7 +999,8 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                     if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                         printf("\n Before\n")
-                        printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
+                        printf("\t- jj = %d\n", jj)
+                        printf("\t- res_a[0], res_final[0] = %e, %e\n", res_a[0], res_final[0])  # DB
                         printf("\t- res_a[1], res_final[1] = %e, %e\n", res_a[1], res_final[1])  # DB
                         printf("\t- ray_vdir_norm = %e, %e, %e\n", ray_vdir_norm[0], ray_vdir_norm[1], ray_vdir_norm[2])
                         printf("\t- ray_orig =  %e, %e, %e\n", ray_orig[0], ray_orig[1], ray_orig[2])
@@ -1015,8 +1016,8 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                         if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                             printf("After\n")
-                            printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])
-                            printf("\t- jj, res_a[1], res_final[1] = %i, %e, %e\n", jj, res_a[1], res_final[1])# DB
+                            printf("\t- res_a[0], res_b[0], res_final[0] = %e, %e, %e\n", res_a[0], res_b[0], res_final[0])
+                            printf("\t- res_a[1], res_b[1], res_final[1] = %e, %e, %e\n", res_a[1], res_b[1], res_final[1])# DB
 
             elif (val_b * val_b >= val_a * coeff):
                 sqd = c_sqrt(val_b * val_b - val_a * coeff)
@@ -1082,16 +1083,17 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                     if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                         printf("\n other/n")
-                        printf("\t- jj = %d", jj)
-                        printf("\t- res_a[0], res_b[0], res_final[0] = %i, %e, %e, %e\n", jj, res_a[0], res_b[0], res_final[0])
-                        printf("\t- res_a[1], res_b[1], res_final[1] = %i, %e, %e, %e\n", jj, res_a[1], res_b[1], res_final[1])# DB
+                        printf("\t- jj = %d\n", jj)
+                        printf("\t- res_a[0], res_b[0], res_final[0] = %e, %e, %e\n", res_a[0], res_b[0], res_final[0])
+                        printf("\t- res_a[1], res_b[1], res_final[1] = %e, %e, %e\n", res_a[1], res_b[1], res_final[1])# DB
 
             # ----- DEBUG / DB -------
             if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                 if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                     printf("\n Third\n")
-                    printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])
-                    printf("\t- jj, res_a[1], res_final[1] = %i, %e, %e\n", jj, res_a[1], res_final[1])# DB
+                    printf("\t- jj = %d\n", jj)
+                    printf("\t- res_a[0], res_b[0], res_final[0] = %e, %e, %e\n", res_a[0], res_b[0], res_final[0])
+                    printf("\t- res_a[1], res_b[1], res_final[1] = %e, %e, %e\n", res_a[1], res_b[1], res_final[1])# DB
 
 
                     if jj == 18: #  and (c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9):
