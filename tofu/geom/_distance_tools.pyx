@@ -1015,7 +1015,8 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                         if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                             printf("After\n")
-                            printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])  # DB
+                            printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])
+                            printf("\t- jj, res_a[1], res_final[1] = %i, %e, %e\n", jj, res_a[1], res_final[1])# DB
 
             elif (val_b * val_b >= val_a * coeff):
                 sqd = c_sqrt(val_b * val_b - val_a * coeff)
@@ -1047,6 +1048,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
+
                 # Second solution
                 q = (-val_b - sqd) / val_a
                 if q < 0:
@@ -1076,10 +1078,20 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[0] = res_b[0]
                     res_final[1] = res_b[1]
 
+                # ----- DEBUG / DB -------
+                if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                    if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                        printf("other")
+
             # ----- DEBUG / DB -------
-            if jj == 18 and ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+            if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                 if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
-                    if (c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9):
+                    printf("Third\n")
+                    printf("\t- jj, res_a[0], res_final[0] = %i, %e, %e\n", jj, res_a[0], res_final[0])
+                    printf("\t- jj, res_a[1], res_final[1] = %i, %e, %e\n", jj, res_a[1], res_final[1])# DB
+
+
+                    if jj == 18: #  and (c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9):
                         printf("\n\n\n")
                         printf("\t- ray_vdir_norm[2] * ray_vdir_norm[2] < crit2 = %d\n", ray_vdir_norm[2] * ray_vdir_norm[2] < crit2)
                         printf("\t- jj / nvert-1 = %i / %i\n", jj, nvert-1)
