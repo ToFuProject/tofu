@@ -1079,16 +1079,20 @@ def test15_LOS_sino_vec():
         assert not np.isnan(np.sum(phi0))
 
 
-def test16_dist_los_vpoly():
-    num_rays = 11
+def test16_dist_los_vpoly(debug=False):
+
+    # vessel
     ves_poly = np.zeros((2, 9))
     ves_poly0 = [2, 3, 4, 5, 5, 4, 3, 2, 2]
     ves_poly1 = [2, 1, 1, 2, 3, 4, 4, 3, 2]
     ves_poly[0] = np.asarray(ves_poly0)
     ves_poly[1] = np.asarray(ves_poly1)
+
     # rays :
+    num_rays = 11
     ray_orig = np.zeros((3, num_rays))
     ray_vdir = np.zeros((3, num_rays))
+
     # ray 0 :
     ray_orig[0][0] = 0
     ray_orig[2][0] = 5
@@ -1143,11 +1147,13 @@ def test16_dist_los_vpoly():
     ray_orig[1][10] = 0.
     ray_orig[2][10] = 2.5
     ray_vdir[0][10] = 1.
+
     out = GG.comp_dist_los_vpoly(
         np.ascontiguousarray(ray_orig, dtype=np.float64),
         np.ascontiguousarray(ray_vdir, dtype=np.float64),
         ves_poly, disc_step=0.5)
 
+    # solutions
     exact_ks = np.r_[3.0,
                 0.,
                 0.,
@@ -1170,6 +1176,15 @@ def test16_dist_los_vpoly():
                    1.0,
                    0.5,
                    0.5]
+
+    # -----------------
+    # plot to debug
+    # ------------------
+
+    fig = plt.figure()
+
+    dax = {}
+    dax['3d'] =
 
     # ----------------------
     # tests shapes

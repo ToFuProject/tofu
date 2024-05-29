@@ -1023,6 +1023,14 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 sqd = c_sqrt(val_b * val_b - val_a * coeff)
                 # First solution
                 q = (-val_b + sqd) / val_a
+
+                # ----------------
+                if jj = 0:
+                    if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                        if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                            printf("\t- A / sqd, q = %e, %e\n", sqd, q)
+                # ------------
+
                 if q < 0:
                     # Then we only need to compute distance to circle C_A
                     dist_los_circle_core(ray_vdir_norm, ray_orig,
@@ -1044,14 +1052,41 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # The closest point on the LOS is its origin
                         res_a[0] = 0
                         res_a[1] = -k * c_sqrt(norm_dir2)
+
+                # ----------------
+                if jj == 0:
+                    if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                        if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                            printf("\t- B / res_a = %e, %e\n", res_a[0], res_a[1])
+                # ------------
+
                 if (res_final[1] - res_a[1] > _VSMALL
                     or (res_final[1] == res_a[1]
                         and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
+                    # ----------------
+                    if jj == 0:
+                        if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                            if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                                printf("\t- C / res_final = %e, %e\n", res_final[0], res_final[1])
+                    # ------------
+
+                # ----------------
+                if jj == 0:
+                    if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                        if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                            printf("\t- D / res_final = %e, %e\n", res_final[0], res_final[1])
+                # ------------
 
                 # Second solution
                 q = (-val_b - sqd) / val_a
+                # ----------------
+                if jj == 0:
+                    if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                        if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                            printf("\t- E / q = %e\n", q)
+                # ------------
                 if q < 0:
                     # Then we only need to compute distance to circle C_A
                     dist_los_circle_core(ray_vdir_norm, ray_orig,
@@ -1073,6 +1108,14 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # The closest point on the LOS is its origin
                         res_b[0] = 0
                         res_b[1] = -k * c_sqrt(norm_dir2)
+
+                # ----------------
+                if jj == 0:
+                    if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
+                        if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
+                            printf("\t- F / res_b = %e, %e\n", res_b[0], res_b[1])
+                # ------------
+
                 if (res_final[1] - res_b[1] > _VSMALL
                     or (res_final[1] == res_b[1]
                         and res_final[0] - res_b[0] > _VSMALL)):
@@ -1096,7 +1139,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     printf("\t- res_a[1], res_b[1], res_final[1] = %e, %e, %e\n", res_a[1], res_b[1], res_final[1])# DB
 
 
-                    if jj == 18: #  and (c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9):
+                    if jj == 0: #  and (c_abs(res_final[0]/norm_dir2_ori - 14.) < 1e-9 or c_abs(res_final[0]/norm_dir2_ori - 6.) < 1e-9):
                         printf("\n\n\n")
                         printf("\t- ray_vdir_norm[2] * ray_vdir_norm[2] < crit2 = %d\n", ray_vdir_norm[2] * ray_vdir_norm[2] < crit2)
                         printf("\t- jj / nvert-1 = %i / %i\n", jj, nvert-1)
