@@ -1025,7 +1025,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 q = (-val_b + sqd) / val_a
 
                 # ----------------
-                if jj = 0:
+                if jj == 0:
                     if ray_vdir_norm[0] == 0. and ray_vdir_norm[1] == 0. and ray_vdir_norm[2] == 1.:
                         if ray_orig[0] == 0. and ray_orig[1] == 0. and ray_orig[2] == -1.:
                             printf("\t- A / sqd, q = %e, %e\n", sqd, q)
