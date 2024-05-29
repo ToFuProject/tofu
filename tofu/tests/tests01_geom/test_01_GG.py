@@ -1181,10 +1181,22 @@ def test16_dist_los_vpoly(debug=False):
     # plot to debug
     # ------------------
 
-    fig = plt.figure()
+    if debug is True:
 
-    dax = {}
-    dax['3d'] =
+        ray_plot = np.concatenate(
+            (
+                ray_orig[..., None],
+                (ray_orig + 4 * ray_vdir)[..., None],
+                np.full((3, num_rays, 1), np.nan)
+            ),
+            axis=-1,
+        ).reshape((3, num_rays * 3))
+
+        import tofu as tf
+        ves = tf.geom.Config(Poly=ves_poly, Name='test', Exp='')
+        dax = ves.plot(proj='3d')
+        dax.plot(ray_plot[0, ...], ray_plot[1, ...], ray_plot[2, ...], '-')
+        dax.plot(ray_orig[0, :], ray_orig[1, :], ray_orig[2, :], marker='o', linestyle='None')
 
     # ----------------------
     # tests shapes
