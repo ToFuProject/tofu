@@ -776,7 +776,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     cdef int jj
     cdef double norm_dir2, norm_dir2_ori
     cdef double radius_z
-    cdef double q, coeff, sqd, k = C_NAN
+    cdef double q = C_NAN, coeff = C_NAN, sqd = C_NAN, k = C_NAN
     cdef double v0, v1, val_a, val_b
     cdef double[2] res_a
     cdef double[2] res_b
