@@ -1126,46 +1126,33 @@ def _get_data(
     **kwdargs,
 ):
 
-    # key, key_cam
-    key, key_cam = coll.get_diagnostic_cam(
+    # ----------------
+    # check inputs
+    # ----------------
+
+    (
+     key, key_cam,
+     spectro, is_vos, is_3d,
+     data,
+     lok, lcam, lquant, llamb, lcomp, lsynth, lraw, lvos,
+    ) = _get_data_check(
+        coll=coll,
         key=key,
         key_cam=key_cam,
+        data=data,
+        rocking_curve=rocking_curve,
+        units=units,
         default=default,
+        **kwdargs,
     )
-    spectro = coll.dobj['diagnostic'][key]['spectro']
-    # is2d = coll.dobj['diagnostic'][key]['is2d']
 
-    # basic check on data
-    if data is not None:
-        lquant = ['etendue', 'amin', 'amax']  # 'los'
-        lcomp = ['length', 'tangency radius', 'alpha', 'alpha_pixel']
-        if spectro:
-            llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
-            lvos = ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']
-        else:
-            llamb = []
-            lvos = ['vos_sang_integ']
-        lsynth = coll.dobj['diagnostic'][key]['signal']
-
-        if len(key_cam) == 1:
-            lraw = [
-                k0 for k0, v0 in coll.ddata.items()
-                if v0['ref'] == coll.dobj['camera'][key_cam[0]]['dgeom']['ref']
-            ]
-        else:
-            lraw = []
-
-        if lsynth is None:
-            lsynth = []
-        lcomp += llamb
-
-        data = ds._generic_check._check_var(
-            data, 'data',
-            types=str,
-            allowed=lquant + lcomp + lsynth + lraw + lvos,
-        )
-
+    # ----------------
     # build ddata
+    # ----------------
+
+    # -----------
+    # initialize
+
     ddata = {}
     static = True
     daxis = None
@@ -1177,47 +1164,6 @@ def _get_data(
         # data is None => kwdargs
 
         if data is None:
-            # check kwdargs
-            dparam = coll.get_param(which='data', returnas=dict)
-            lkout = [k0 for k0 in kwdargs.keys() if k0 not in dparam.keys()]
-
-            if len(lkout) > 0:
-                msg = (
-                    "The following args correspond to no data parameter:\n"
-                    + "\n".join([f"\t- {k0}" for k0 in lkout])
-                )
-                raise Exception(msg)
-
-            # list all available data
-            lok = [
-                k0 for k0, v0 in coll.ddata.items()
-                if v0.get('camera') in key_cam
-            ]
-
-            # Adjust with kwdargs
-            if len(kwdargs) > 0:
-                lok2 = coll.select(
-                    which='data', log='all', returnas=str, **kwdargs,
-                )
-                lok = [k0 for k0 in lok2 if k0 in lok]
-
-            # check there is 1 data per cam
-            lcam = [
-                coll.ddata[k0]['camera'] for k0 in lok
-                if coll.ddata[k0]['camera'] in key_cam
-            ]
-
-            if len(set(lcam)) > len(key_cam):
-                msg = (
-                    "There are more / less data identified than cameras:\n"
-                    f"\t- key_cam:  {key_cam}\n"
-                    f"\t- data cam: {lcam}\n"
-                    f"\t- data: {data}"
-                )
-                raise Exception(msg)
-
-            elif len(set(lcam)) < len(key_cam):
-                pass
 
             # reorder
             ddata = {
@@ -1322,6 +1268,9 @@ def _get_data(
                 dref[cc] = coll.dobj['camera'][cc]['dgeom']['ref']
                 units = 'rad'
 
+    # ------------------------------
+    # data from synthetic diagnostic
+
     elif data in lsynth:
 
         dref = {}
@@ -1358,11 +1307,17 @@ def _get_data(
 
             units = coll.ddata[kdat]['units']
 
+    # -----------------
+    # raw data
+
     elif data in lraw:
         ddata = {key_cam[0]: coll.ddata[data]['data']}
         dref = {key_cam[0]: coll.dobj['camera'][key_cam[0]]['dgeom']['ref']}
         units = coll.ddata[data]['units']
         static = True
+
+    # -----------------
+    # vos data
 
     elif data in lvos:
 
@@ -1419,7 +1374,180 @@ def _get_data(
                 dref[cc] = ref
                 units = coll.ddata[kout]['units']
 
+            elif data == 'vos_vect_cross':
+                pass
+
     return ddata, dref, units, static, daxis
+
+
+# #############################
+# get_data check
+# #############################
+
+
+def _get_data_check(
+    coll=None,
+    key=None,
+    key_cam=None,
+    data=None,
+    rocking_curve=None,
+    units=None,
+    default=None,
+    **kwdargs,
+):
+
+
+    # --------------
+    # key, key_cam
+    # --------------
+
+    # -------------
+    # key, key_cam
+
+    key, key_cam = coll.get_diagnostic_cam(
+        key=key,
+        key_cam=key_cam,
+        default=default,
+    )
+
+    # -----------------------
+    # spectro, is_vos, is_3d
+    # -----------------------
+
+    # -------------
+    # spectro
+
+    spectro = coll.dobj['diagnostic'][key]['spectro']
+
+    # -------------
+    # is_vos, is_3d
+
+    doptics = coll.dobj['diagnostic'][key]['doptics']
+    is_vos = doptics[key_cam[0]].get('dvos') is not None
+    is_3d = is_vos and doptics[key_cam[0]]['dvos']['indr_3d'] is not None
+
+    # -----------------------
+    # initialize output
+    # -----------------------
+
+    lok, lcam, lquant = None, None
+    llamb, lcomp, lsynth = None, None
+    lraw, lvos = None, None
+
+    # -----------------------
+    # basic checks on data
+    # -----------------------
+
+    if data is None:
+
+        # -------------
+        # check kwdargs
+
+        dparam = coll.get_param(which='data', returnas=dict)
+        lkout = [k0 for k0 in kwdargs.keys() if k0 not in dparam.keys()]
+
+        if len(lkout) > 0:
+            msg = (
+                "The following args correspond to no data parameter:\n"
+                + "\n".join([f"\t- {k0}" for k0 in lkout])
+            )
+            raise Exception(msg)
+
+        # -----------------------
+        # list all available data
+
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0.get('camera') in key_cam
+        ]
+
+        # -------------------
+        # Adjust with kwdargs
+
+        if len(kwdargs) > 0:
+            lok2 = coll.select(
+                which='data', log='all', returnas=str, **kwdargs,
+            )
+            lok = [k0 for k0 in lok2 if k0 in lok]
+
+        # -----------------------------
+        # check there is 1 data per cam
+
+        lcam = [
+            coll.ddata[k0]['camera'] for k0 in lok
+            if coll.ddata[k0]['camera'] in key_cam
+        ]
+
+        if len(set(lcam)) > len(key_cam):
+            msg = (
+                "There are more / less data identified than cameras:\n"
+                f"\t- key_cam:  {key_cam}\n"
+                f"\t- data cam: {lcam}\n"
+                f"\t- data: {data}"
+            )
+            raise Exception(msg)
+
+        elif len(set(lcam)) < len(key_cam):
+            pass
+
+    else:
+
+        # ----------------
+        # allowable values
+
+        lquant = ['etendue', 'amin', 'amax']  # 'los'
+        lcomp = ['length', 'tangency radius', 'alpha', 'alpha_pixel']
+
+        # --------------------------
+        # spectro and vos - specific
+
+        if spectro:
+            llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
+            lvos = ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']
+        else:
+            llamb = []
+            lvos = ['vos_sang_integ', 'vos_vect_cross']
+
+        # -----------------
+        # synthetic signals
+
+        lsynth = coll.dobj['diagnostic'][key]['signal']
+
+        #
+        if len(key_cam) == 1:
+            lraw = [
+                k0 for k0, v0 in coll.ddata.items()
+                if v0['ref'] == coll.dobj['camera'][key_cam[0]]['dgeom']['ref']
+            ]
+        else:
+            lraw = []
+
+        if lsynth is None:
+            lsynth = []
+        lcomp += llamb
+
+        # -------------
+        # overall check
+
+        data = ds._generic_check._check_var(
+            data, 'data',
+            types=str,
+            allowed=lquant + lcomp + lsynth + lraw + lvos,
+        )
+
+        # -------------------
+        # post-check - refine
+
+        if data in lvos and is_vos is False:
+            msg = ""
+            raise Exception(msg)
+
+    return (
+     key, key_cam,
+     spectro, is_vos, is_3d,
+     data,
+     lok, lcam, lquant, llamb, lcomp, lsynth, lraw, lvos,
+    )
 
 
 # ##################################################################

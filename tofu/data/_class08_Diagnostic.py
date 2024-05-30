@@ -189,7 +189,7 @@ class Diagnostic(Previous):
         key_data=None,
         key_cam=None,
         flat=None,
-        ):
+    ):
         """ Return concatenated data for chosen cameras
 
 
