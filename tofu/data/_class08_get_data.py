@@ -13,6 +13,8 @@ import datastock as ds
 
 
 from . import _class08_get_data_def
+from . import _get_data_vos_broadband
+from . import _get_data_vos_spectro
 
 
 # ##################################################################
@@ -41,7 +43,7 @@ def _get_data(
      key, key_cam,
      spectro, is_vos, is_3d,
      data,
-     lok, lcam, lquant, llamb, lcomp, lsynth, lraw, lvos,
+     lok, lcam, lquant,
      davail,
     ) = _get_data_check(
         coll=coll,
@@ -64,6 +66,12 @@ def _get_data(
         return
 
     # ----------------
+    # extract lists
+    # ----------------
+
+    dav = {k0: list(v0['fields'].keys()) for k0, v0 in davail.items()}
+
+    # ----------------
     # build ddata
     # ----------------
 
@@ -71,10 +79,14 @@ def _get_data(
     # initialize
 
     ddata = {}
+    dref = {}
+
     static = True
     daxis = None
 
-    # comp = False
+    # -------------
+    # data quantity
+
     if data is None or data in lquant:
 
         # --------------------------
@@ -93,21 +105,12 @@ def _get_data(
 
         elif data in lquant:
             for cc in key_cam:
-                # if data == 'los':
-                #     kr = coll.dobj['diagnostic'][key]['doptics'][cc][data]
-                #     dd = coll.dobj['rays'][kr]['pts']
-                # else:
                 dd = coll.dobj['diagnostic'][key]['doptics'][cc][data]
                 lc = [
                     isinstance(dd, str) and dd in coll.ddata.keys(),
-                    # isinstance(dd, tuple)
-                    # and all([isinstance(di, str) for di in dd])
-                    # and all([di in coll.ddata.keys() for di in dd])
                 ]
                 if lc[0]:
                     ddata[cc] = dd
-                # elif lc[1]:
-                #     ddata[cc] = list(dd)
                 elif dd is None:
                     pass
                 else:
@@ -132,30 +135,12 @@ def _get_data(
             for k0, v0 in ddata.items()
         }
 
-    # --------------------
-    # data to be computed
+    # ------------------------------------
+    # standard LOS-related
 
-    elif data in lcomp:
+    elif data in dav.get('standard - LOS', {}).keys():
 
-        # comp = True
-        ddata = {}
-        dref = {}
-
-        if data in llamb:
-            for cc in key_cam:
-               ddata[cc], dref[cc] = coll.get_diagnostic_lamb(
-                   key=key,
-                   key_cam=cc,
-                   rocking_curve=rocking_curve,
-                   lamb=data,
-                   units=units,
-               )
-            if data in ['lamb', 'lambmin', 'lambmax', 'dlamb']:
-                units = 'm'
-            else:
-                units = ''
-
-        elif data in ['length', 'tangency_radius', 'alpha']:
+        if data in ['length', 'tangency_radius', 'alpha']:
             for cc in key_cam:
                 ddata[cc], _, dref[cc] = coll.get_rays_quantity(
                     key=key,
@@ -185,10 +170,28 @@ def _get_data(
                 dref[cc] = coll.dobj['camera'][cc]['dgeom']['ref']
                 units = 'rad'
 
+    # ------------------------------------
+    # wavelength-related for spectro diags
+
+    elif data in dav.get('spectro - lamb', {}).keys():
+
+        for cc in key_cam:
+           ddata[cc], dref[cc] = coll.get_diagnostic_lamb(
+               key=key,
+               key_cam=cc,
+               rocking_curve=rocking_curve,
+               lamb=data,
+               units=units,
+           )
+        if data in ['lamb', 'lambmin', 'lambmax', 'dlamb']:
+            units = 'm'
+        else:
+            units = ''
+
     # ------------------------------
     # data from synthetic diagnostic
 
-    elif data in lsynth:
+    elif data in dav.get('synth', {}).keys():
 
         dref = {}
         daxis = {}
@@ -227,149 +230,36 @@ def _get_data(
     # -----------------
     # raw data
 
-    elif data in lraw:
+    elif data in dav.get('raw', {}).keys():
+
         ddata = {key_cam[0]: coll.ddata[data]['data']}
         dref = {key_cam[0]: coll.dobj['camera'][key_cam[0]]['dgeom']['ref']}
         units = coll.ddata[data]['units']
         static = True
 
     # -----------------
-    # vos data
+    # vos broadband data
 
-    elif data in lvos:
+    elif data in dav.get('broadband - vos', {}).keys():
 
-        static = True
-        ddata, dref = {}, {}
-        doptics = coll.dobj['diagnostic'][key]['doptics']
+        ddata, dref, units, static = _get_data_vos_broadband.main(
+            coll=coll,
+            key=key,
+            key_cam=key_cam,
+            data=data,
+        )
 
+    # -----------------
+    # vos spectro data
 
-        # sample cross if needed
-        if data.startswith('vos_cross_'):
+    elif data in dav.get('spectro - vos', {}).keys():
 
-            # check
-            pass
-
-
-
-
-
-
-
-
-
-        for cc in key_cam:
-
-            # safety check
-            ref = coll.dobj['camera'][cc]['dgeom']['ref']
-            dvos = doptics[cc].get('dvos')
-            if dvos is None:
-                msg = (
-                    f"Data '{data}' cannot be retrived for diag '{key}' "
-                    "cam '{cc}' because no dvos computed"
-                )
-                raise Exception(msg)
-
-            # cases
-            if data == 'vos_sang_integ':
-                kdata = dvos['sang_cross']
-                ddata[cc] = np.nansum(coll.ddata[kdata]['data'], axis=-1)
-                dref[cc] = ref
-                units = coll.ddata[kdata]['units']
-
-            elif data in ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']:
-                kph = dvos['ph']
-                ph = coll.ddata[kph]['data']
-                ph_tot = np.sum(ph, axis=(-1, -2))
-
-                if data == 'vos_ph_integ':
-                    out = ph_tot
-                    kout = kph
-                else:
-                    kout = dvos['lamb']
-                    re_lamb = [1 for rr in ref] + [1, -1]
-                    lamb = coll.ddata[kout]['data'].reshape(re_lamb)
-
-                    i0 = ph == 0
-                    if data == 'vos_lamb':
-                        out = np.sum(ph * lamb, axis=(-1, -2)) / ph_tot
-                    else:
-                        for ii, i1 in enumerate(re_lamb[:-1]):
-                            lamb = np.repeat(lamb, ph.shape[ii], axis=ii)
-
-                        lamb[i0] = -np.inf
-                        lambmax = np.max(lamb, axis=(-1, -2))
-                        lamb[i0] = np.inf
-                        lambmin = np.min(lamb, axis=(-1, -2))
-                        out = lambmax - lambmin
-                    out[np.all(i0, axis=(-1, -2))] = np.nan
-
-                ddata[cc] = out
-                dref[cc] = ref
-                units = coll.ddata[kout]['units']
-
-            elif data == 'vos_cross_sang':
-
-                # -----------------
-                # get mesh sampling
-
-                dsamp = coll.get_sample_mesh(
-                    key=dvos['keym'],
-                    res=dvos['res_RZ'],
-                    mode='abs',
-                    grid=False,
-                    in_mesh=True,
-                    # non-used
-                    x0=None,
-                    x1=None,
-                    Dx0=None,
-                    Dx1=None,
-                    imshow=False,
-                    store=False,
-                    kx0=None,
-                    kx1=None,
-                )
-
-                # -----------------
-                # prepare image
-
-                n0, n1 = dsamp['x0']['data'].size, dsamp['x1']['data'].size
-                shape = (n0, n1)
-                sang = np.full(shape, np.nan)
-                sang_tot = np.full(shape, 0.)
-
-
-
-            elif data == 'vos_cross_rz':
-
-                # get indices
-                # kindr, kindz = v0['dvos']['ind_cross']
-                pass
-
-            elif data == 'vos_vect_cross_ang':
-
-                # solid angle map
-                ksang = 'sang_cross'
-                ref = coll.ddata[kph]['ref']
-                iok = np.isfinite(coll.ddata[kph]['data'])
-
-                # pixel centers
-                # cr =
-                # cz =
-
-                # vect_cross
-                ang = np.full(iok.shape, np.nan)
-                sli = [None for ss in iok.shape]
-                sli[-1] = slice(None)
-                sli = tuple(sli)
-
-                # ang[iok] = np.arctan2(
-                #    R[sli] - cz[..., None],
-                #    Z[sli] - cr[..., None],
-                # )
-
-                ddata[cc] = ang
-                dref[cc] = ref
-                units = coll.ddata[kdata]['units']
+        ddata, dref, units, static = _get_data_vos_spectro.main(
+            coll=coll,
+            key=key,
+            key_cam=key_cam,
+            data=data,
+        )
 
     return ddata, dref, units, static, daxis
 
@@ -464,8 +354,6 @@ def _get_data_check(
     # -----------------------
 
     lok, lcam, lquant = None, None, None
-    llamb, lcomp, lsynth = None, None, None
-    lraw, lvos = None, None
 
     # -----------------------
     # preliminary
@@ -553,51 +441,30 @@ def _get_data_check(
         lquant = ['etendue', 'amin', 'amax']  # 'los'
         lcomp = ['length', 'tangency radius', 'alpha', 'alpha_pixel']
 
-        # --------------------------
-        # spectro and vos - specific
-
-        if spectro:
-            llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
-            lvos = ['vos_lamb', 'vos_dlamb', 'vos_ph_integ']
-        else:
-            llamb = []
-            lvos = ['vos_cross_rz', 'vos_sang_integ', 'vos_vect_cross']
-
-        # -----------------
-        # synthetic signals
-
-        lsynth = coll.dobj['diagnostic'][key]['signal']
-
-        #
-        if len(key_cam) == 1:
-            lraw = [
-                k0 for k0, v0 in coll.ddata.items()
-                if v0['ref'] == coll.dobj['camera'][key_cam[0]]['dgeom']['ref']
-            ]
-        else:
-            lraw = []
-
-        if lsynth is None:
-            lsynth = []
-        lcomp += llamb
-
         # -------------
         # overall check
 
-        data = ds._generic_check._check_var(
-            data, 'data',
-            types=str,
-            allowed=lquant + lcomp + lsynth + lraw + lvos,
-        )
+        lok = list(itt.chain.from_iterable([
+            list(v0['fields'].keys()) for v0 in davail.values()
+        ]))
 
-        # -------------------
-        # post-check - refine
-
-        if data in lvos and is_vos is False:
+        try:
+            data = ds._generic_check._check_var(
+                data, 'data',
+                types=str,
+                allowed=lok,
+            )
+        except Exception as err:
             msg = (
-                "The following data is not available (dvos not computed):\n"
-                f"\t- key: {key}\n"
-                f"\t- data: {data}\n"
+                f"{err}\n"
+                + _get_data_print(
+                    davail,
+                    key=key,
+                    spectro=spectro,
+                    is_vos=is_vos,
+                    is_3d=is_3d,
+                    returnas_str=True,
+                )
             )
             raise Exception(msg)
 
@@ -605,7 +472,7 @@ def _get_data_check(
      key, key_cam,
      spectro, is_vos, is_3d,
      data,
-     lok, lcam, lquant, llamb, lcomp, lsynth, lraw, lvos,
+     lok, lcam, lquant,
      davail,
     )
 
@@ -616,7 +483,24 @@ def _get_data_check(
 # ##################################################################
 
 
-def _get_data_print(davail, key=None, spectro=None, is_vos=None, is_3d=None):
+def _get_data_print(
+    davail,
+    key=None,
+    spectro=None,
+    is_vos=None,
+    is_3d=None,
+    returnas_str=None,
+):
+
+    # -----------------
+    # check inputs
+    # -----------------
+
+    returnas_str = ds._generic_check._check_var(
+        returnas_str, 'returnas_str',
+        types=bool,
+        default=False,
+    )
 
     # -----------------
     # initialize
@@ -642,13 +526,20 @@ def _get_data_print(davail, key=None, spectro=None, is_vos=None, is_3d=None):
         # header
         msg += f"\n{k0}\n------------------\n"
 
+        # get max length
+        ll = [len(k1) for k1 in v0['fields'].keys()]
+        nmax = np.max(ll) + 1
+
         # list of data
         for k1, v1 in v0['fields'].items():
-            msg += f"\t- {k1.ljust(20)}: \t{v1['doc']}\n"
+            msg += f"\t- {k1.ljust(nmax)}:  {v1['doc']}\n"
 
     # -----------------
     # print
     # -----------------
 
-    print(msg)
-    return
+    if returnas_str is True:
+        return msg
+    else:
+        print(msg)
+        return

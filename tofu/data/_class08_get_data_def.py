@@ -46,7 +46,7 @@ _DAVAIL = {
         },
     },
 
-    'broadband - vos': {
+    'broadband - VOS': {
         'conditions': {'spectro': False, 'is_vos': True},
         'fields': {
             'vos_cross_rz': {
@@ -55,23 +55,23 @@ _DAVAIL = {
             'vos_cross_vect': {
                 'doc': '',
             },
-            'vos_sang_integ': {
-                'doc': '',
+            'vos_pix_sang_sum': {
+                'doc': 'sum of all solid angle from pts, per pixel',
             },
         },
     },
 
-    'spectro - vos': {
+    'spectro - VOS': {
         'conditions': {'spectro': True, 'is_vos': True},
         'fields': {
             'vos_lamb': {
-                'doc': '',
+                'doc': 'reference wavelength, from VOS, per pixel',
             },
             'vos_dlamb': {
-                'doc': '',
+                'doc': '(lambmax - lambmin), from VOS, per pixel',
             },
             'vos_ph_integ': {
-                'doc': '',
+                'doc': 'sum of all ph over pts and wavelengths, per pixel',
             },
         },
     },
@@ -89,22 +89,22 @@ _DAVAIL = {
                 'doc': 'minimal wavelgenth, from LOS, per pixel',
             },
             'dlamb': {
-                'doc': 'wavelength span, from LOS, per pixel',
+                'doc': '(lambmax - lambmin), from LOS, per pixel',
             },
             'res': {
-                'doc': ', from LOS, per pixel',
+                'doc': 'lamb / (lambmax - lambmin), from LOS, per pixel',
             },
         },
     },
 
-    '': {
-        'conditions': None,
-        'fields': {
-            '': {
-                'doc': '',
-            },
-        },
-    },
+    # '': {
+    #     'conditions': None,
+    #     'fields': {
+    #         '': {
+    #             'doc': '',
+    #         },
+    #     },
+    # },
 }
 
 
@@ -157,22 +157,31 @@ def get_davail(
         davail = {k0: davail[k0] for k0 in lok}
 
         # ----------------
-        # add raw data
+        # add parameters
+
+
+        # -------------------------------------
+        # add raw data (fixed pixel-wise data directly from ddata)
 
         if len(key_cam) == 1:
-            lraw = [
-                k0 for k0, v0 in coll.ddata.items()
-                if v0['ref'] == coll.dobj['camera'][key_cam[0]]['dgeom']['ref']
-            ]
-        else:
-            lraw = []
+            davail['raw'] = {
+                'fields': {
+                    k0: {'doc': 'raw static data (1 camera)'}
+                    for k0, v0 in coll.ddata.items()
+                    if v0['ref'] == coll.dobj['camera'][key_cam[0]]['dgeom']['ref']
+                },
+            }
 
         # ------------------
         # add synthetic data
 
         lsynth = coll.dobj['diagnostic'][key]['signal']
-
-        if lsynth is None:
-            lsynth = []
+        if len(lsynth) > 0:
+            davail['synth'] = {
+                'fields': {
+                    k0: {'doc': 'synthetic data'}
+                    for k0 in lsynth
+                },
+            }
 
     return davail
