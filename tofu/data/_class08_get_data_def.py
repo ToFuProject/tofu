@@ -40,9 +40,6 @@ _DAVAIL = {
             'alpha_pixel': {
                 'doc': 'incidence angle of LOS on pixel (start point)',
             },
-            '': {
-                'doc': '',
-            },
         },
     },
 

@@ -13,8 +13,8 @@ import datastock as ds
 
 
 from . import _class08_get_data_def
-from . import _get_data_vos_broadband
-from . import _get_data_vos_spectro
+from . import _class08_get_data_vos_broadband
+from . import _class08_get_data_vos_spectro
 
 
 # ##################################################################
