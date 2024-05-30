@@ -22,13 +22,23 @@ def main(
     data=None,
 ):
 
+    # ---------------------
+    # initialize
+    # ---------------------
+
     static = True
     ddata, dref = {}, {}
     doptics = coll.dobj['diagnostic'][key]['doptics']
 
+    # ---------------------
+    # loop on cameras
+    # ---------------------
+
     for cc in key_cam:
 
+        # --------------
         # safety check
+
         ref = coll.dobj['camera'][cc]['dgeom']['ref']
         dvos = doptics[cc].get('dvos')
         if dvos is None:
@@ -38,52 +48,22 @@ def main(
             )
             raise Exception(msg)
 
+        # ----------------
         # vos_pix_sang_sum
-        if data == 'vos_pix_sang_sum':
+
+        if data == 'vos_pix_sang_integ':
+
             kdata = dvos['sang_cross']
             ddata[cc] = np.nansum(coll.ddata[kdata]['data'], axis=-1)
             dref[cc] = ref
             units = coll.ddata[kdata]['units']
 
-        #
-        elif data == 'vos_cross_sang':
-
-            # -----------------
-            # get mesh sampling
-
-            dsamp = coll.get_sample_mesh(
-                key=dvos['keym'],
-                res=dvos['res_RZ'],
-                mode='abs',
-                grid=False,
-                in_mesh=True,
-                # non-used
-                x0=None,
-                x1=None,
-                Dx0=None,
-                Dx1=None,
-                imshow=False,
-                store=False,
-                kx0=None,
-                kx1=None,
-            )
-
-            # -----------------
-            # prepare image
-
-            n0, n1 = dsamp['x0']['data'].size, dsamp['x1']['data'].size
-            shape = (n0, n1)
-            sang = np.full(shape, np.nan)
-            sang_tot = np.full(shape, 0.)
-
-        elif data == 'vos_cross_rz':
-
-            # get indices
-            # kindr, kindz = v0['dvos']['ind_cross']
-            pass
-
+        # --------------
         # average observation angle per RZ point per pixel in cross section
-        elif data == 'vos_vect_cross_ang':
+
+        elif data == 'vos_cross_ang':
+
+            raise NotImplementedError()
 
             # solid angle map
             ksang = 'sang_cross'

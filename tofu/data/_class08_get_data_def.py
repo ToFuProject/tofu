@@ -46,15 +46,27 @@ _DAVAIL = {
     'broadband - VOS': {
         'conditions': {'spectro': False, 'is_vos': True},
         'fields': {
-            'vos_cross_rz': {
-                'doc': '',
+            'vos_pix_sang_integ': {
+                'doc': 'integral of all solid angle from pts, per pixel',
             },
-            'vos_cross_vect': {
-                'doc': '',
-            },
-            'vos_pix_sang_sum': {
-                'doc': 'sum of all solid angle from pts, per pixel',
-            },
+            # 'vos_cross_ndet': {
+            #     'doc': 'sum of all solid angle from pts, per pixel',
+            # },
+            # 'vos_cross_sang': {
+            #     'doc': 'sum of all solid angle to pixels, per pts',
+            # },
+            # 'vos_cross_ang_pol_target': {
+            #     'doc': 'sum of all solid angle to pixels, per pts',
+            # },
+            # 'vos_cross_ang_pol_score': {
+            #     'doc': 'sum of all solid angle to pixels, per pts',
+            # },
+            # 'vos_cross_ang_tor_target': {
+            #     'doc': 'sum of all solid angle to pixels, per pts',
+            # },
+            # 'vos_cross_ang_tor_score': {
+            #     'doc': 'sum of all solid angle to pixels, per pts',
+            # },
         },
     },
 
