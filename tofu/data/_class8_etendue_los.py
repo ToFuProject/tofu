@@ -202,18 +202,19 @@ def compute_etendue_los(
         if numerical is True:
 
             if spectro is True:
-                etend1 = _compute_etendue_numerical_spectro(
-                    coll=coll,
-                    key_diag=key,
-                    key_cam=key_cam,
-                    is2d=is2d,
-                    doptics=doptics,
-                    los_x=los_x,
-                    los_y=los_y,
-                    los_z=los_z,
-                    margin_par=margin_par,
-                    margin_perp=margin_perp,
-                )
+                etend1 = None
+                # etend1 = _compute_etendue_numerical_spectro(
+                #     coll=coll,
+                #     key_diag=key,
+                #     key_cam=key_cam,
+                #     is2d=is2d,
+                #     doptics=doptics,
+                #     los_x=los_x,
+                #     los_y=los_y,
+                #     los_z=los_z,
+                #     margin_par=margin_par,
+                #     margin_perp=margin_perp,
+                # )
             else:
                 etend1 = _compute_etendue_numerical(
                     coll=coll,
@@ -444,7 +445,8 @@ def _check(
     numerical = ds._generic_check._check_var(
         numerical, 'numerical',
         types=bool,
-        default=True,
+        default=False if spectro else True,
+        allowed=[False] if spectro else [True, False],
     )
 
     # -----------
