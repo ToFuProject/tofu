@@ -392,7 +392,10 @@ def _plot(
         ax1.set_title("nb. of detectors", size=14, fontweight='bold')
 
         cax = fig.add_subplot(gs[0, 15])
-        dax = {'span': ax0, 'ndet': ax1}
+        dax = {'span': ax0, 'ndet': ax1, 'cax': cax}
+
+    else:
+        fig = list(dax.values())[0].figure
 
     # ---------------
     # plot ndet
@@ -412,7 +415,10 @@ def _plot(
             vmax=vmax,
         )
 
-        plt.colorbar(im, cax=cax)
+        if dax.get('cax') is not None:
+            plt.colorbar(im, cax=dax['cax'])
+        else:
+            plt.colorbar(im)
 
     # ---------------
     # plot spans
