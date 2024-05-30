@@ -456,19 +456,10 @@ def _check(
     # -----------
     # return_vector
 
-    if spectro is True:
-        lok = [True, False]
-    else:
-        if keep3d is False:
-            lok = [False]
-        else:
-            lok = [True, False]
-
     return_vector = ds._generic_check._check_var(
         return_vector, 'return_vector',
         types=bool,
         default=False,
-        allowed=lok,
     )
 
     # -----------
@@ -706,7 +697,7 @@ def _store(
             'dV', 'etendlen',
         ]
     else:
-        lk = ['sang_cross', 'sang_3d']
+        lk = ['sang_cross', 'ang_pol_cross', 'ang_tor_cross', 'sang_3d']
 
 
     # ------------
