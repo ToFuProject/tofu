@@ -42,6 +42,7 @@ def _get_data(
      spectro, is_vos, is_3d,
      data,
      lok, lcam, lquant, llamb, lcomp, lsynth, lraw, lvos,
+     davail,
     ) = _get_data_check(
         coll=coll,
         key=key,
@@ -56,6 +57,10 @@ def _get_data(
 
     # print_full_doc
     if key is None:
+        return
+
+    # print diag-specific
+    if data is None and len(kwdargs) == 0:
         return
 
     # ----------------
@@ -150,7 +155,7 @@ def _get_data(
             else:
                 units = ''
 
-        elif data in ['length', 'tangency radius', 'alpha']:
+        elif data in ['length', 'tangency_radius', 'alpha']:
             for cc in key_cam:
                 ddata[cc], _, dref[cc] = coll.get_rays_quantity(
                     key=key,
@@ -159,7 +164,7 @@ def _get_data(
                     segment=-1,
                     lim_to_segments=False,
                 )
-            if data in ['length', 'tangency radius']:
+            if data in ['length', 'tangency_radius']:
                 units = 'm'
             else:
                 units = 'rad'
@@ -337,7 +342,8 @@ def _get_data(
             elif data == 'vos_cross_rz':
 
                 # get indices
-                kindr, kindz = v0['dvos']['ind_cross']
+                # kindr, kindz = v0['dvos']['ind_cross']
+                pass
 
             elif data == 'vos_vect_cross_ang':
 
@@ -356,10 +362,10 @@ def _get_data(
                 sli[-1] = slice(None)
                 sli = tuple(sli)
 
-                ang[iok] = np.arctan2(
-                   R[sli] - cz[..., None],
-                   Z[sli] - cr[..., None],
-                )
+                # ang[iok] = np.arctan2(
+                #    R[sli] - cz[..., None],
+                #    Z[sli] - cr[..., None],
+                # )
 
                 ddata[cc] = ang
                 dref[cc] = ref
@@ -403,7 +409,7 @@ def _get_data_check(
 
     # execute
     if print_full_doc is True:
-        davail = _class08_get_data_def._get_data_davail()
+        davail = _class08_get_data_def.get_davail()
         _get_data_print(davail)
 
     # stop here if relevant
@@ -443,9 +449,11 @@ def _get_data_check(
     # get dict of available data
     # ---------------------------
 
-    davail = _class08_get_data_def._get_data_davail(
+    davail = _class08_get_data_def.get_davail(
         coll=coll,
         key=key,
+        key_cam=key_cam,
+        # conditions
         spectro=spectro,
         is_vos=is_vos,
         is_3d=is_3d,
@@ -455,15 +463,15 @@ def _get_data_check(
     # initialize output
     # -----------------------
 
-    lok, lcam, lquant = None, None
-    llamb, lcomp, lsynth = None, None
+    lok, lcam, lquant = None, None, None
+    llamb, lcomp, lsynth = None, None, None
     lraw, lvos = None, None
 
     # -----------------------
     # preliminary
     # -----------------------
 
-    lc = [data is None, kwdargs is None]
+    lc = [data is None, len(kwdargs) == 0]
     if np.sum(lc) < 1:
         msg = (
             "Please provide data xor kwdargs, not both!\n"
@@ -475,7 +483,7 @@ def _get_data_check(
     # basic checks on data
     # -----------------------
 
-    if all(lc):
+    if all(lc) and print_full_doc is False:
 
         _get_data_print(
             davail,
@@ -598,6 +606,7 @@ def _get_data_check(
      spectro, is_vos, is_3d,
      data,
      lok, lcam, lquant, llamb, lcomp, lsynth, lraw, lvos,
+     davail,
     )
 
 
@@ -613,7 +622,7 @@ def _get_data_print(davail, key=None, spectro=None, is_vos=None, is_3d=None):
     # initialize
     # -----------------
 
-    msg = "\n------------------------------------------\n"
+    msg = "\n\n##############################################\n"
     if key is None:
         msg += "The following data is available in general:\n\n"
     else:
@@ -631,10 +640,11 @@ def _get_data_print(davail, key=None, spectro=None, is_vos=None, is_3d=None):
     for k0, v0 in davail.items():
 
         # header
-        msg += f"{k0}\n------------------\n"
+        msg += f"\n{k0}\n------------------\n"
 
         # list of data
-        msg += "\n".join(["\t- {k1}: {v1}" for k1, v1 in v0.items()])
+        for k1, v1 in v0['fields'].items():
+            msg += f"\t- {k1.ljust(20)}: \t{v1['doc']}\n"
 
     # -----------------
     # print

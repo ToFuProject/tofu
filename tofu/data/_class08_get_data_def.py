@@ -16,35 +16,29 @@ import copy
 
 _DAVAIL = {
 
-    'standard - stored': {
-        'conditions': [],
+    'standard - LOS': {
+        'conditions': None,
         'fields': {
             'etendue': {
-                'doc': 'etendue per pixel',
+                'doc': 'etendue per pixel, from LOS',
             },
-            'amin': {
-                'doc': '',
-            },
-            'amax': {
-                'doc': '',
-            },
-        },
-    },
-
-    'standard - computed': {
-        'conditions': [],
-        'fields': {
+            # 'amin': {
+            #     'doc': '',
+            # },
+            # 'amax': {
+            #     'doc': '',
+            # },
             'length': {
                 'doc': 'length of the LOS',
             },
-            'tangency radius': {
-                'doc': '',
+            'tangency_radius': {
+                'doc': 'minimum major radius of LOS',
             },
             'alpha': {
-                'doc': '',
+                'doc': 'incidence angle of LOS on PFC (end point)',
             },
             'alpha_pixel': {
-                'doc': '',
+                'doc': 'incidence angle of LOS on pixel (start point)',
             },
             '': {
                 'doc': '',
@@ -53,22 +47,22 @@ _DAVAIL = {
     },
 
     'broadband - vos': {
-        'conditions': [],
+        'conditions': {'spectro': False, 'is_vos': True},
         'fields': {
             'vos_cross_rz': {
                 'doc': '',
             },
-            'vos_sang_integ': {
+            'vos_cross_vect': {
                 'doc': '',
             },
-            'vos_vect_cross': {
+            'vos_sang_integ': {
                 'doc': '',
             },
         },
     },
 
     'spectro - vos': {
-        'conditions': [],
+        'conditions': {'spectro': True, 'is_vos': True},
         'fields': {
             'vos_lamb': {
                 'doc': '',
@@ -83,7 +77,7 @@ _DAVAIL = {
     },
 
     'spectro - lamb': {
-        'conditions': [],
+        'conditions': {'spectro': True},
         'fields': {
             'lamb': {
                 'doc': 'reference wavelength, from LOS, per pixel',
@@ -104,7 +98,7 @@ _DAVAIL = {
     },
 
     '': {
-        'conditions': [],
+        'conditions': None,
         'fields': {
             '': {
                 'doc': '',
@@ -120,7 +114,13 @@ _DAVAIL = {
 # ##################################################################
 
 
-def get_davail(key=None, spectro=None, is_vos=None, is_3d=None, coll=None):
+def get_davail(
+    coll=None,
+    key=None,
+    key_cam=None,
+    # conditions
+    **kwdargs, # spectro, is_vos, is_3d
+):
 
     # --------------
     # initialize
@@ -128,7 +128,7 @@ def get_davail(key=None, spectro=None, is_vos=None, is_3d=None, coll=None):
 
     davail = copy.deepcopy(_DAVAIL)
 
-    lcomp += llamb
+    # lcomp += llamb
 
     # -------------------------
     # update for specific diag
@@ -142,7 +142,13 @@ def get_davail(key=None, spectro=None, is_vos=None, is_3d=None, coll=None):
 
         for k0, v0 in davail.items():
 
-            c0 = all([])
+            c0 = (
+                v0['conditions'] is None
+                or all([
+                    kwdargs.get(cc) is vv
+                    for cc, vv in v0['conditions'].items()
+                ])
+            )
 
             if c0:
                 lok.append(k0)

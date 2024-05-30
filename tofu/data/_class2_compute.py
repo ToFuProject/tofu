@@ -507,8 +507,8 @@ def _tangency_radius_check(
     quantity = ds._generic_check._check_var(
         quantity, 'quantity',
         types=str,
-        default='tangency radius',
-        allowed=['alpha', 'tangency radius', 'length'],
+        default='tangency_radius',
+        allowed=['alpha', 'tangency_radius', 'length'],
     )
 
     # lim_to_segments
@@ -525,7 +525,7 @@ def _tangency_radius_check(
     # --------
     # tangency radius-specific
 
-    if quantity == 'tangency radius':
+    if quantity == 'tangency_radius':
         # axis_pt
         if axis_pt is None:
             axis_pt = [0., 0., 0.]
@@ -581,7 +581,7 @@ def _tangency_radius_prepare(
     ABy = np.diff(pts_y, axis=0)
     ABz = np.diff(pts_z, axis=0)
 
-    if quantity == 'tangency radius':
+    if quantity == 'tangency_radius':
         AOx = axis_pt[0] - pts_x[:-1, ...]
         AOy = axis_pt[1] - pts_y[:-1, ...]
         AOz = axis_pt[2] - pts_z[:-1, ...]
@@ -680,7 +680,7 @@ def _tangency_radius(
     # --------
     # radius
 
-    if quantity == 'tangency radius':
+    if quantity == 'tangency_radius':
         kk = np.zeros(ABx.shape, dtype=float)
         iok = ABvn2 > 0.
         kk[iok] = -B[iok] / ABvn2[iok]
@@ -748,7 +748,7 @@ def intersect_radius(
          coll=coll,
          key=key,
          key_cam=key_cam,
-         quantity='tangency radius',
+         quantity='tangency_radius',
          axis_pt=axis_pt,
          axis_vect=axis_vect,
          segment=segment,
