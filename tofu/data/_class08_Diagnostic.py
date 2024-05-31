@@ -13,6 +13,8 @@ import numpy as np
 from ._class07_Camera import Camera as Previous
 from . import _class8_check as _check
 from . import _class8_compute as _compute
+from . import _class08_get_data as _get_data
+from . import _class08_concatenate_data as _concatenate
 from . import _class8_move as _move
 from . import _class8_los_data as _los_data
 from . import _class8_equivalent_apertures as _equivalent_apertures
@@ -157,6 +159,7 @@ class Diagnostic(Previous):
         rocking_curve=None,
         units=None,
         default=None,
+        print_full_doc=None,
         **kwdargs,
         ):
         """ Return dict of data for chosen cameras
@@ -172,7 +175,7 @@ class Diagnostic(Previous):
             'res'
 
         """
-        return _compute._get_data(
+        return _get_data._get_data(
             coll=self,
             key=key,
             key_cam=key_cam,
@@ -180,6 +183,7 @@ class Diagnostic(Previous):
             rocking_curve=rocking_curve,
             units=units,
             default=default,
+            print_full_doc=print_full_doc,
             **kwdargs,
         )
 
@@ -189,12 +193,12 @@ class Diagnostic(Previous):
         key_data=None,
         key_cam=None,
         flat=None,
-        ):
+    ):
         """ Return concatenated data for chosen cameras
 
 
         """
-        return _compute._concatenate_data(
+        return _concatenate._concatenate_data(
             coll=self,
             key=key,
             key_data=key_data,

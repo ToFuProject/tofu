@@ -899,7 +899,7 @@ def _calc_solidangle_apertures_check(
             "Arg pts_x, pts_y and pts_z must share the same shape!\n"
             f"\t- pts_x.shape = {pts_x.shape}\n"
             f"\t- pts_y.shape = {pts_y.shape}\n"
-            f"\t- pts_z.shape = {ptszz.shape}\n"
+            f"\t- pts_z.shape = {pts_z.shape}\n"
         )
         raise Exception(msg)
 

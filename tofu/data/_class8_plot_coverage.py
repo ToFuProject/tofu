@@ -28,6 +28,8 @@ from . import _class8_vos_utilities as _vos_utils
 def main(
     coll=None,
     key=None,
+    # observation directions
+    observation_directions=None,
     # mesh sampling
     key_mesh=None,
     res_RZ=None,
@@ -51,6 +53,7 @@ def main(
     key, is_vos, keym, res_RZ, nan0, dcolor = _check(
         coll=coll,
         key=key,
+        observation_directions=observation_directions,
         key_mesh=key_mesh,
         res_RZ=res_RZ,
         nan0=nan0,
@@ -111,6 +114,7 @@ def main(
 def _check(
     coll=None,
     key=None,
+    observation_directions=None,
     key_mesh=None,
     res_RZ=None,
     nan0=None,
@@ -137,6 +141,23 @@ def _check(
 
     lcam = coll.dobj['diagnostic'][key]['camera']
     is_vos = key in lok_vos
+
+    # is 3d ?
+    doptics = coll.dobj['diagnostic'][key]['doptics']
+    is_3d = doptics[lcam[0]]['dvos']['indr_3d'] is not None
+
+    # ------------------------
+    # observation_directions
+    # ------------------------
+
+    obsdef = None
+    lok = None
+    observation_directions = ds._generic_check._check_var(
+        observation_directions, 'observation_directions',
+        types=bool,
+        default=obsdef,
+        allowed=lok,
+    )
 
     # -------------
     # key mesh
@@ -212,7 +233,7 @@ def _check(
             alpha = 0.5
         dcolor[k0] = mcolors.to_rgba(v0, alpha=alpha)
 
-    return key, is_vos, keym, res_RZ, nan0, dcolor
+    return key, is_vos, observation_directions, keym, res_RZ, nan0, dcolor
 
 
 # ################################################################
@@ -346,11 +367,17 @@ def _plot(
 ):
 
     # ----------------
-    # prepare data
+    # check input
     # ----------------
 
-    if tit is None:
-        tit = f"geometrical coverage of diag '{key}'"
+    # tit
+    if tit is not False:
+        titdef = f"geometrical coverage of diag '{key}'"
+        tit = ds._generic_check._check_var(
+            tit, 'tit',
+            types=str,
+            default=titdef,
+        )
 
     if cmap is None:
         cmap = plt.cm.viridis   # Greys
@@ -360,6 +387,14 @@ def _plot(
 
     if vmax is None:
         vmax = np.nanmax(ndet)
+
+    # ----------------
+    # prepare data
+    # ----------------
+
+    # directions of observation
+
+
 
     # ----------------
     # prepare figure
@@ -392,16 +427,29 @@ def _plot(
         ax1.set_title("nb. of detectors", size=14, fontweight='bold')
 
         cax = fig.add_subplot(gs[0, 15])
-        dax = {'span': ax0, 'ndet': ax1}
+        dax = {
+            'span': {'handle': ax0, 'type': 'span'},
+            'ndet': {'handle': ax1, 'type': 'ndet'},
+            'cax': {'handle': cax, 'type': 'span_colorbar'},
+        }
+
+    else:
+        fig = list(dax.values())[0].figure
+
+    # --------------------
+    # check / format dax
+
+    dax = ds._generic_check._check_dax(dax)
 
     # ---------------
     # plot ndet
     # ---------------
 
-    kax = 'ndet'
-    if dax.get(kax) is not None:
-        ax = dax[kax]
+    ktype = 'ndet'
+    lax = [v0['handle'] for v0 in dax.values() if v0['type'] == ktype]
+    for ax in lax:
 
+        # plot
         im = ax.imshow(
             ndet.T,
             extent=extent,
@@ -412,15 +460,23 @@ def _plot(
             vmax=vmax,
         )
 
-        plt.colorbar(im, cax=cax)
+        # colorbar
+        ktype2 = 'span_colorbar'
+        lcax = [v0['handle'] for v0 in dax.values() if v0['type'] == ktype2]
+        if len(lcax) == 0:
+            plt.colorbar(im)
+        else:
+            for cax in lcax:
+                plt.colorbar(im, cax=dax['cax'])
+
 
     # ---------------
     # plot spans
     # ---------------
 
-    kax = 'span'
-    if dax.get(kax) is not None:
-        ax = dax[kax]
+    ktype = 'span'
+    lax = [v0['handle'] for v0 in dax.values() if v0['type'] == ktype]
+    for ax in lax:
 
         for k0, v0 in dpoly.items():
             ax.fill(
@@ -437,10 +493,16 @@ def _plot(
     # --------------
 
     if config is not None:
-        for kax in ['span', 'ndet']:
-            if dax.get(kax) is not None:
-                config.plot(lax=dax[kax], proj='cross', dLeg=False)
+        for ktype in ['span', 'ndet']:
+            lax = [v0['handle'] for v0 in dax.values() if v0['type'] == ktype]
+            for ax in lax:
+                config.plot(lax=ax, proj='cross', dLeg=False)
 
-    fig.suptitle(tit, size=14, fontweight='bold')
+    # --------------
+    # add tit
+    # --------------
+
+    if tit is not False:
+        fig.suptitle(tit, size=14, fontweight='bold')
 
     return dax
