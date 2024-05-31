@@ -593,6 +593,7 @@ class Test01_Diagnostic():
         for ii, (k0, v0) in enumerate(self.obj.dobj['diagnostic'].items()):
             dax = self.obj.plot_diagnostic(
                 k0,
+                data='etendue',
                 proj=(
                     None if ii % 3 == 0
                     else ('cross' if ii % 3 == 1 else ['cross', 'hor'])
@@ -622,4 +623,3 @@ class Test01_Diagnostic():
             )
             plt.close('all')
             del dax
-
