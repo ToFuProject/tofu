@@ -74,12 +74,16 @@ def _plot_diagnostic_check(
     if c0:
         data = defdata
 
-    ddata, dref, units, static, daxis = coll.get_diagnostic_data(
+    out = coll.get_diagnostic_data(
         key=key,
         key_cam=key_cam,
         data=data,
         units=units,
     )
+    if out is None:
+        return
+
+    ddata, dref, units, static, daxis = out
 
     refz = None
     if static is False:
