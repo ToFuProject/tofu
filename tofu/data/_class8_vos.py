@@ -456,19 +456,10 @@ def _check(
     # -----------
     # return_vector
 
-    if spectro is True:
-        lok = [True, False]
-    else:
-        if keep3d is False:
-            lok = [False]
-        else:
-            lok = [True, False]
-
     return_vector = ds._generic_check._check_var(
         return_vector, 'return_vector',
         types=bool,
         default=False,
-        allowed=lok,
     )
 
     # -----------
@@ -706,7 +697,7 @@ def _store(
             'dV', 'etendlen',
         ]
     else:
-        lk = ['sang_cross', 'sang_3d']
+        lk = ['sang_cross', 'ang_pol_cross', 'ang_tor_cross', 'sang_3d']
 
 
     # ------------
@@ -966,7 +957,7 @@ def _check_get_dvos(
     for k0 in lkout:
         del dvos[k0]
 
-    return dvos, isstore
+    return key_diag, dvos, isstore
 
 
 # ###############################################################
@@ -980,17 +971,23 @@ def get_dvos_xyz(coll=None, key_diag=None, key_cam=None, dvos=None):
     # ---------
     # get dvos
 
-    dvos, isstore = coll.check_diagnostic_dvos(
+    key_diag, dvos, isstore = coll.check_diagnostic_dvos(
         key=key_diag,
         key_cam=key_cam,
         dvos=dvos,
     )
 
     # check
-    if not all([v0.get('indr_3d') is not None for v0 in dvos.values()]):
+    k3d = 'indr_3d'
+    if not all([v0.get(k3d) is not None for v0 in dvos.values()]):
+        lstr = [
+            f"\t\t- dvos['{k0}']: '{k3d}' {'not' if v0.get(k3d) is None else ''} available"
+            for k0, v0 in dvos.items()
+        ]
         msg = (
             "dvos can only provide (x, y, z) if it contains 3d information!\n"
-            f"\t- key_diag: {key_diag}"
+            f"\t- key_diag: {key_diag}\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 

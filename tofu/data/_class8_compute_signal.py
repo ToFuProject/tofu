@@ -393,7 +393,7 @@ def _compute_signal_check(
     # dvos
     if method == 'vos':
         # single camera + get dvos
-        dvos, isstore = coll.check_diagnostic_dvos(
+        key_diag, dvos, isstore = coll.check_diagnostic_dvos(
             key_diag,
             key_cam=key_cam,
             dvos=dvos,
@@ -866,6 +866,20 @@ def _compute_los(
             if timing is True:
                 t06 = dtm.datetime.now()
                 dt['\tintegrate on los'] += (t06-t05).total_seconds()
+
+        # --------------
+        # safety check
+
+        if shape is None:
+            msg = (
+                "Looks like no single LOS can see non-zero emissivity!\n"
+                f"\t- key_los = {key_los}\n"
+                f"\t- ni = {ni}\n"
+                f"\t- R = {R}\n"
+                "\ncoll.show('rays'):\n"
+                + coll.show('rays', returnas=str, verb=False)
+            )
+            raise Exception(msg)
 
         # --------------
         # post-treatment

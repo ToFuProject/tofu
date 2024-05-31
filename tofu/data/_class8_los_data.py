@@ -277,7 +277,7 @@ def _interpolate_along_los(
     # check inputs
 
     (
-        key_diag, key_cam,
+        key_diag, key_cam, key_los,
         key_integrand, key_coords,
         key_bs_integrand, key_bs_coords,
         lok_coords, segment, mode, radius_max,
@@ -304,11 +304,16 @@ def _interpolate_along_los(
     dy = {}
     dout = {}
 
+    # key_los
+    if key_los is not None:
+        doptics = {k0: {'los': k0} for k0 in key_los}
+    else:
+        doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+
     # ---------------
     # loop on cameras
 
     axis_los = 0
-    doptics = coll.dobj['diagnostic'][key_diag]['doptics']
     if key_integrand in lok_coords and key_coords in lok_coords:
 
         for ii, kk in enumerate(key_cam):
@@ -462,6 +467,21 @@ def _interpolate_along_los(
             dx[kk][isok] = q2dx[isok]
             dy[kk][isok] = q2dy[isok]
 
+    # ---------------------
+    # safety check
+
+    lout = [k0 for k0, v0 in dx.items() if v0 is None]
+    if len(lout) > 0:
+        lstr = [f"\t- {k0}" for k0 in lout]
+        msg = (
+            "The following rays seem to have no existence in desired range:\n"
+            + "\n".join(lstr)
+            + "\nDetails:\n"
+            f"\t- segment: {segment}\n"
+            f"\t- radius_max: {radius_max}\n"
+        )
+        raise Exception(msg)
+
     # ------------
     # units
 
@@ -495,6 +515,7 @@ def _interpolate_along_los(
 
     dind = _get_dind(
         coll=coll,
+        doptics=doptics,
         dx=dx,
         dy=dy,
     )
@@ -555,8 +576,35 @@ def _integrate_along_los_check(
     # -----------------
     # keys of diag, cam
 
-    # key_cam
-    key_diag, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
+    lrays = list(coll.dobj.get('rays', {}).keys())
+    ldiag = list(coll.dobj.get('diagnostic', {}).keys())
+    lc = [
+            isinstance(key_diag, str)
+            and key_diag in lrays
+            and key_diag not in ldiag,
+            isinstance(key_diag, list)
+            and all([
+                isinstance(kd, str)
+                and kd in lrays
+                and kd not in ldiag
+                for kd in key_diag
+            ]),
+    ]
+
+    if any(lc):
+        if lc[0]:
+            key_los = [key_diag]
+        else:
+            key_los = key_diag
+        key_cam = key_los
+    else:
+        # key_cam
+        key_diag, key_cam = coll.get_diagnostic_cam(
+            key=key_diag,
+            key_cam=key_cam,
+            default='all',
+        )
+        key_los = None
 
     # -------------------------
     # keys of coords, integrand
@@ -664,10 +712,10 @@ def _integrate_along_los_check(
                 for ii, kk in enumerate(key_cam)
             }
         else:
-            dcolor = {key_cam[0]: None}
+            dcolor = {key_cam[0]: lc[0]}
 
     return (
-        key_diag, key_cam,
+        key_diag, key_cam, key_los,
         key_integrand, key_coords,
         key_bs_integrand, key_bs_coords,
         lok_coords, segment, mode, radius_max,
@@ -717,6 +765,7 @@ def _interpolate_along_los_reshape(
 
 def _get_dind(
     coll=None,
+    doptics=None,
     dx=None,
     dy=None,
 ):
@@ -725,7 +774,9 @@ def _get_dind(
     #  loop on cameras
 
     dind = {}
-    for kcam in dx.keys():
+    for kcam in doptics.keys():
+
+        klos = doptics[kcam]['los']
 
         # ------------------
         # preliminary check
@@ -738,9 +789,9 @@ def _get_dind(
         # ------------------
         # preliminary check
 
-        shape = coll.dobj['camera'][kcam]['dgeom']['shape']
+        shape = coll.dobj['rays'][klos]['shape'][1:]
         nnan = np.prod(shape)
-        if inan.sum() != nnan:
+        if inan.sum() < nnan:
             msg = (
                 f"cam '{kcam}' has unconsistent nb of nans:\n"
                 f"\t- shape: {shape}\n"
@@ -763,7 +814,7 @@ def _get_dind(
         # -----------
         # safety check
 
-        lc = [np.any(inan[ind>=0]), (ind == -1).sum() != nnan]
+        lc = [np.any(inan[ind>=0]), (ind == -1).sum() < nnan]
         if  any(lc):
             msg = (
                 "Inconsistent nans!\n"
@@ -809,7 +860,7 @@ def _interpolate_along_los_plot(
 
         fig = plt.figure()
 
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        ax = fig.add_axes([0.15, 0.1, 0.80, 0.8])
 
         tit = "LOS-interpolated"
         ax.set_title(tit, size=12, fontweight='bold')
@@ -817,6 +868,9 @@ def _interpolate_along_los_plot(
         ax.set_ylabel(ylab)
 
         dax = {'main': ax}
+
+    elif isinstance(dax, plt.Axes) or issubclass(dax.__class__, plt.Axes):
+        dax = {'main': dax}
 
     # main
     kax = 'main'

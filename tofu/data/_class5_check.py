@@ -53,8 +53,10 @@ def _dmat(
 
     # If using hardcoded known crystal
     err = False
+    lk = ['name', 'material', 'miller', 'target']
+    lrockkey = sorted(_rockingcurve_def._DCRYST.keys())
     if isinstance(dmat, str):
-        if dmat not in _rockingcurve_def._DCRYST.keys():
+        if dmat not in lrockkey:
             msg = (
                 f"Arg dmat points to an unknown crystal: '{dmat}'"
             )
@@ -63,8 +65,6 @@ def _dmat(
         ready_to_compute = True
 
     elif isinstance(dmat, dict):
-        lk = ['name', 'material', 'miller', 'target']
-
         if isinstance(dmat.get('drock'), dict):
             if not isinstance(dmat.get('d_hkl'), float):
                 msg = (
@@ -89,7 +89,15 @@ def _dmat(
 
     # Raise error
     if err is True:
-        msg = f"Don't know how to interpret dmat for crystal '{key}':\n{dmat}"
+        lstr = [f"\t\t. {k0}" for k0 in lk]
+        msg = (
+            f"Don't know how to interpret dmat for crystal '{key}':\n"
+            "Expected:\n"
+            "\t- str: key to an existing known rocking curve: {lrockkey}\n"
+            "\t- dict with:\n"
+            + "\n".join(lstr)
+            + f"\nProvided:\n{dmat}\n"
+        )
         raise Exception(msg)
 
     dmat['ready_to_compute'] = ready_to_compute

@@ -163,10 +163,19 @@ def _vos(
         lsang_3d = None
 
     if return_vector is True:
-        lvectx = []
-        lvecty = []
-        lvectz = []
+        lang_tor_cross = []
+        lang_pol_cross = []
+        if keep3d is True:
+            lvectx = []
+            lvecty = []
+            lvectz = []
+        else:
+            lvectx = None
+            lvecty = None
+            lvectz = None
     else:
+        lang_tor_cross = None
+        lang_pol_cross = None
         lvectx = None
         lvecty = None
         lvectz = None
@@ -216,6 +225,9 @@ def _vos(
             lsang_cross.append(np.zeros((npts_cross,), dtype=float))
             lindr_cross.append(np.zeros((npts_cross,), dtype=float))
             lindz_cross.append(np.zeros((npts_cross,), dtype=float))
+            if return_vector is True:
+                lang_pol_cross.append(np.zeros((npts_cross,), dtype=float))
+                lang_tor_cross.append(np.zeros((npts_cross,), dtype=float))
             continue
 
         # re-initialize
@@ -227,6 +239,9 @@ def _vos(
         sang_cross = np.zeros((npts_cross,), dtype=float)
         indr_cross = np.zeros((npts_cross,), dtype=int)
         indz_cross = np.zeros((npts_cross,), dtype=int)
+        if return_vector is True:
+            ang_pol_cross = np.zeros((npts_cross,), dtype=float)
+            ang_tor_cross = np.zeros((npts_cross,), dtype=float)
 
         if verb is True:
             msg = (
@@ -289,18 +304,31 @@ def _vos(
             t0 = dtm.datetime.now()     # DB
             out, dt1, dt2, dt3 = out
 
-        # update cross
+        # update cross-section
         ipt = 0
         for i0, v0 in dind.items():
             for i1 in v0['iz']:
                 ind1 = dind[i0]['indrz'] & (iz == i1)
-                sang_cross[ipt] = np.sum(out[0, ind1]) * v0['dV']
+                totii = np.sum(out[0, ind1]) * v0['dV']
+                sang_cross[ipt] = totii
                 indr_cross[ipt] = i0
                 indz_cross[ipt] = i1
                 bool_cross[i0 + 1, i1 + 1] = sang_cross[ipt] > 0.
+                if vectx is not None:
+                    tor = np.arctan2(yy[ind1], xx[ind1])
+                    ang_pol = np.arctan2(
+                        vectz[0, ind1],
+                        vectx[0, ind1]*np.cos(tor) + vecty[0, ind1]*np.sin(tor),
+                    )
+                    ang_tor = np.arccos(
+                        vectx[0, ind1] * (-np.sin(tor))
+                        + vecty[0, ind1] * np.cos(tor)
+                    )
+                    ang_pol_cross[ipt] = np.sum(out[0, ind1] * ang_pol) / totii
+                    ang_tor_cross[ipt] = np.sum(out[0, ind1] * ang_tor) / totii
                 ipt += 1
 
-        # update hor
+        # update horizontal
         for i0, v0 in dind.items():
             dsang_hor[i0] = np.zeros((v0['phi'].size,))
             for i1 in range(v0['phi'].size):
@@ -376,6 +404,9 @@ def _vos(
         lsang_cross.append(sang_cross)
         lindr_cross.append(indr_cross)
         lindz_cross.append(indz_cross)
+        if lang_pol_cross is not None:
+            lang_pol_cross.append(ang_pol_cross)
+            lang_tor_cross.append(ang_tor_cross)
 
         if keep3d is True:
             lsang_3d.append(sang_3d)
@@ -431,6 +462,20 @@ def _vos(
     lk = ['lsang_cross', 'lindr_cross', 'lindz_cross']
     sang_cross, indr_cross, indz_cross = [dout.get(k0) for k0 in lk]
 
+
+    if lang_pol_cross is not None:
+        dout = _harmonize_reshape_others(
+            lang_pol_cross=lang_pol_cross,
+            lang_tor_cross=lang_tor_cross,
+            # params
+            npix=npix,
+            is2d=is2d,
+            shape=shape[1:],
+        )
+        lk = ['lang_pol_cross', 'lang_tor_cross']
+        ang_pol_cross, ang_tor_cross = [dout.get(k0) for k0 in lk]
+
+
     # 3d
     dout = _harmonize_reshape_others(
         # 3d
@@ -467,6 +512,10 @@ def _vos(
     kiz_cross = f'{key_cam}_vos_iz_cross'
     ksa_cross = f'{key_cam}_vos_sa_cross'
     ref_cross = tuple(list(coll.dobj['camera'][key_cam]['dgeom']['ref']) + [knpts_cross])
+
+    if lang_pol_cross is not None:
+        kap_cross = f'{key_cam}_vos_ang_pol_cross'
+        kat_cross = f'{key_cam}_vos_ang_tor_cross'
 
     if keep3d:
         knpts_3d = f'{key_cam}_vos_npts_3d'
@@ -547,6 +596,26 @@ def _vos(
         },
     })
 
+    # return_vect
+    if lang_pol_cross is not None:
+        dout.update({
+            'ang_pol_cross': {
+                'key': kap_cross,
+                'data': ang_pol_cross,
+                'ref': ref_cross,
+                'units': 'rad',
+                'dim': 'angle',
+            },
+            'ang_tor_cross': {
+                'key': kat_cross,
+                'data': ang_tor_cross,
+                'ref': ref_cross,
+                'units': 'rad',
+                'dim': 'angle',
+            },
+        })
+
+    # keep3d
     if keep3d is True:
         dout.update({
             'indr_3d': {

@@ -19,6 +19,7 @@ from libc.math cimport fabs as c_abs
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport NAN as C_NAN
 from libc.stdlib cimport malloc, free
+# from libc.stdio cimport printf    # for debug
 from ._basic_geom_tools cimport _VSMALL
 from . cimport _basic_geom_tools as _bgt
 from . cimport _sampling_tools as _st
@@ -124,8 +125,8 @@ cdef inline void dist_los_circle_core(const double[3] direct,
             rm0sqr = radius * m0sqr
             if (rm0sqr > b1):
                 twoThirds = 2.0 / 3.0
-                sHat = c_sqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
-                gHat = rm0sqr * sHat / c_sqrt(m0sqr * sHat * sHat + b1sqr)
+                sHat = c_sqrt(c_abs((rm0sqr * b1sqr)**twoThirds - b1sqr)) / m0
+                gHat = rm0sqr * sHat / c_sqrt(c_abs(m0sqr * sHat * sHat + b1sqr))
                 cutoff = gHat - sHat
                 if (m2b2 <= -cutoff):
                     s = _bgt.compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2, -m2b2 + rm0)
@@ -389,8 +390,8 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
             rm0sqr = radius * m0sqr
             if (rm0sqr > b1):
                 twoThirds = 2.0 / 3.0
-                sHat = c_sqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
-                gHat = rm0sqr * sHat / c_sqrt(m0sqr * sHat * sHat + b1sqr)
+                sHat = c_sqrt(c_abs((rm0sqr * b1sqr)**twoThirds - b1sqr)) / m0
+                gHat = rm0sqr * sHat / c_sqrt(c_abs(m0sqr * sHat * sHat + b1sqr))
                 cutoff = gHat - sHat
                 if (m2b2 <= -cutoff):
                     s = _bgt.compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2, -m2b2 + rm0)
@@ -775,11 +776,12 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     cdef int jj
     cdef double norm_dir2, norm_dir2_ori
     cdef double radius_z
-    cdef double q, coeff, sqd, k
+    cdef double q = C_NAN, coeff = C_NAN, sqd = C_NAN, k = C_NAN
     cdef double v0, v1, val_a, val_b
     cdef double[2] res_a
     cdef double[2] res_b
     cdef double[3] circle_tangent
+    cdef double[3] ray_vdir_norm
     cdef double rdotvec
     res_final[0] = 1000000000
     res_final[1] = 1000000000
@@ -788,11 +790,13 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     # Set tolerance value for ray_vdir[2,ii]
     # eps_uz is the tolerated DZ across 20m (max Tokamak size)
     norm_dir2 = c_sqrt(_bgt.compute_dot_prod(ray_vdir, ray_vdir))
+
     norm_dir2_ori = norm_dir2
     for jj in range(3):
-        ray_vdir[jj] = ray_vdir[jj] / norm_dir2
+        ray_vdir_norm[jj] = ray_vdir[jj] / norm_dir2
     norm_dir2 = 1.
-    if ray_vdir[2] * ray_vdir[2] < crit2:
+
+    if ray_vdir_norm[2] * ray_vdir_norm[2] < crit2:
         # -- Case with horizontal semi-line ------------------------------------
         for jj in range(nvert-1):
             if (lpolyy[jj+1] - lpolyy[jj])**2 > eps_vz * eps_vz:
@@ -803,12 +807,12 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                 q = (ray_orig[2] - lpolyy[jj]) / (lpolyy[jj+1] - lpolyy[jj])
                 if q < 0. :
                     # Then we only need to compute distance to circle C_A
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                         lpolyx[jj], lpolyy[jj],
                                         norm_dir2, res_a)
                 elif q > 1:
                     # Then we only need to compute distance to circle C_B
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
                                          norm_dir2, res_a)
                 else:
@@ -816,7 +820,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     # of the circle in the same plane as the LOS and compute the
                     # distance between the LOS and circle.
                     radius_z = q * (lpolyx[jj+1] - lpolyx[jj]) + lpolyx[jj]
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                          radius_z, ray_orig[2],
                                          norm_dir2, res_a)
                     if res_a[1] < _VSMALL:
@@ -824,11 +828,11 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # we need to make the difference
                         k = res_a[0]
                         # we compute the ray from circle center to P
-                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
-                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
+                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir_norm[0]
+                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir_norm[1]
                         circle_tangent[2] = 0. # the line is horizontal
                         rdotvec = _bgt.compute_dot_prod(circle_tangent,
-                                                        ray_vdir)
+                                                        ray_vdir_norm)
                         if c_abs(rdotvec) > _VSMALL:
                             # There is an intersection, distance = C_NAN
                             res_final[1] = C_NAN # distance
@@ -856,7 +860,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     # Then the shortest distance is the distance to the
                     # outline circles
                     # computing dist to cricle C_A of radius R_A and height Z_A
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                          lpolyx[jj], lpolyy[jj],
                                          norm_dir2, res_a)
                     if res_a[1] < _VSMALL:
@@ -864,18 +868,18 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # we need to make the difference
                         k = res_a[0]
                         # we compute the ray from circle center to P
-                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
-                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
+                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir_norm[0]
+                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir_norm[1]
                         circle_tangent[2] = 0. # the ray is horizontal
                         rdotvec = _bgt.compute_dot_prod(circle_tangent,
-                                                        ray_vdir)
+                                                        ray_vdir_norm)
                         if c_abs(rdotvec) > _VSMALL:
                             # There is an intersection, distance = C_NAN
                             res_final[1] = C_NAN # distance
                             res_final[0] = C_NAN # k
                             # no need to continue
                             return
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
                                          norm_dir2, res_b)
                     if res_b[1] < _VSMALL:
@@ -883,11 +887,11 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # we need to make the difference
                         k = res_b[0]
                         # we compute the ray from circle center to P
-                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
-                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
+                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir_norm[0]
+                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir_norm[1]
                         circle_tangent[2] = 0. # the ray is horizontal
                         rdotvec = _bgt.compute_dot_prod(circle_tangent,
-                                                        ray_vdir)
+                                                        ray_vdir_norm)
                         if c_abs(rdotvec) > _VSMALL:
                             # There is an intersection, distance = C_NAN
                             res_final[1] = C_NAN # distance
@@ -905,6 +909,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                          and res_final[0] - res_b[0] > _VSMALL)):
                         res_final[0] = res_b[0] # k
                         res_final[1] = res_b[1] # distance
+
     else:
         # == More general non-horizontal semi-line case ========================
         for jj in range(nvert-1):
@@ -934,24 +939,26 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         elif (lpolyy[jj] >= ray_orig[2]
                               and ray_orig[2] <= lpolyy[jj+1]):
                             # ray origin below cylinder
-                            if ray_vdir[2] < 0:
+                            if ray_vdir_norm[2] < 0:
                                 # if the ray is going down origin is the closest
                                 res_a[0] = 0
-                                res_a[1] = c_sqrt((lpolyx[jj] - upar2)**2
-                                                 + (min(lpolyy[jj], lpolyy[jj+1])
-                                                    - ray_orig[2])**2)
+                                res_a[1] = c_sqrt(c_abs(
+                                    (lpolyx[jj] - upar2)**2
+                                    + (min(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2])**2
+                                ))
                             else:
                                 res_a[0] = (min(lpolyy[jj], lpolyy[jj+1])
                                             - ray_orig[2]) * invuz
                                 res_a[1] = c_abs(lpolyx[jj] - upar2)
                         else:
                             # ray origin above cylinder
-                            if ray_vdir[2] > 0:
+                            if ray_vdir_norm[2] > 0:
                                 # if the ray is going up origin is the closest
                                 res_a[0] = 0
-                                res_a[1] = c_sqrt((lpolyx[jj] - upar2)**2
-                                                 + (max(lpolyy[jj], lpolyy[jj+1])
-                                                    - ray_orig[2])**2)
+                                res_a[1] = c_sqrt(c_abs(
+                                    (lpolyx[jj] - upar2)**2
+                                    + (max(lpolyy[jj], lpolyy[jj+1]) - ray_orig[2])**2
+                                ))
                             else:
                                 res_a[0] = (max(lpolyy[jj], lpolyy[jj+1])
                                             - ray_orig[2]) * invuz
@@ -960,12 +967,12 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     q = -coeff / (2. * val_b)
                     if q < 0. :
                         # Then we only need to compute distance to circle C_A
-                        dist_los_circle_core(ray_vdir, ray_orig,
+                        dist_los_circle_core(ray_vdir_norm, ray_orig,
                                             lpolyx[jj], lpolyy[jj],
                                              norm_dir2, res_a)
                     elif q > 1:
                         # Then we only need to compute distance to circle C_B
-                        dist_los_circle_core(ray_vdir, ray_orig,
+                        dist_los_circle_core(ray_vdir_norm, ray_orig,
                                             lpolyx[jj+1], lpolyy[jj+1],
                                              norm_dir2, res_a)
                     else :
@@ -979,23 +986,26 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             # The closest point on the line is the LOS origin
                             res_a[0] = 0
                             res_a[1] = -k * c_sqrt(norm_dir2)
+
                 if (res_final[1] - res_a[1] > _VSMALL
                     or (res_final[1] == res_a[1]
                         and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
+
             elif (val_b * val_b >= val_a * coeff):
-                sqd = c_sqrt(val_b * val_b - val_a * coeff)
+
+                sqd = c_sqrt(c_abs(val_b * val_b - val_a * coeff))
                 # First solution
                 q = (-val_b + sqd) / val_a
                 if q < 0:
                     # Then we only need to compute distance to circle C_A
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                          lpolyx[jj], lpolyy[jj],
                                          norm_dir2, res_a)
                 elif q > 1:
                     # Then we only need to compute distance to circle C_B
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
                                          norm_dir2, res_a)
                 else :
@@ -1009,21 +1019,23 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # The closest point on the LOS is its origin
                         res_a[0] = 0
                         res_a[1] = -k * c_sqrt(norm_dir2)
+
                 if (res_final[1] - res_a[1] > _VSMALL
                     or (res_final[1] == res_a[1]
                         and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
+
                 # Second solution
                 q = (-val_b - sqd) / val_a
                 if q < 0:
                     # Then we only need to compute distance to circle C_A
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                          lpolyx[jj], lpolyy[jj],
                                          norm_dir2, res_b)
                 elif q > 1:
                     # Then we only need to compute distance to circle C_B
-                    dist_los_circle_core(ray_vdir, ray_orig,
+                    dist_los_circle_core(ray_vdir_norm, ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
                                          norm_dir2, res_b)
                 else:
@@ -1037,17 +1049,20 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # The closest point on the LOS is its origin
                         res_b[0] = 0
                         res_b[1] = -k * c_sqrt(norm_dir2)
+
                 if (res_final[1] - res_b[1] > _VSMALL
                     or (res_final[1] == res_b[1]
                         and res_final[0] - res_b[0] > _VSMALL)):
                     res_final[0] = res_b[0]
                     res_final[1] = res_b[1]
+
     res_final[0] = res_final[0] / norm_dir2_ori
     return
 
-# ==============================================================================
+# =============================================================================
 # == ARE LOS AND EXT-POLY CLOSE
-# ==============================================================================
+# =============================================================================
+
 cdef inline void is_close_los_vpoly_vec_core(int num_poly, int nlos,
                                              double* ray_orig,
                                              double* ray_vdir,

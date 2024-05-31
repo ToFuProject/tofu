@@ -91,7 +91,7 @@ def _bragglamb(
         defrock = False
         lok = (False,)
     else:
-        defrock = True
+        defrock = False
         lok = (False, True)
 
     rocking_curve = ds._generic_check._check_var(
