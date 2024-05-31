@@ -185,7 +185,7 @@ def get_davail(
         # add synthetic data
 
         lsynth = coll.dobj['diagnostic'][key]['signal']
-        if len(lsynth) > 0:
+        if lsynth is not None and len(lsynth) > 0:
             davail['synth'] = {
                 'fields': {
                     k0: {'doc': 'synthetic data'}
