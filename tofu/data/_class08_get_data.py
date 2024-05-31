@@ -242,7 +242,7 @@ def _get_data(
 
     elif data in dav.get('broadband - vos', {}).keys():
 
-        ddata, dref, units, static = _get_data_vos_broadband.main(
+        ddata, dref, units, static = _class08_get_data_vos_broadband.main(
             coll=coll,
             key=key,
             key_cam=key_cam,
@@ -254,7 +254,7 @@ def _get_data(
 
     elif data in dav.get('spectro - vos', {}).keys():
 
-        ddata, dref, units, static = _get_data_vos_spectro.main(
+        ddata, dref, units, static = _class08_get_data_vos_spectro.main(
             coll=coll,
             key=key,
             key_cam=key_cam,
@@ -333,7 +333,7 @@ def _get_data_check(
 
     doptics = coll.dobj['diagnostic'][key]['doptics']
     is_vos = doptics[key_cam[0]].get('dvos') is not None
-    is_3d = is_vos and doptics[key_cam[0]]['dvos']['indr_3d'] is not None
+    is_3d = is_vos and doptics[key_cam[0]]['dvos'].get('indr_3d') is not None
 
     # ---------------------------
     # get dict of available data
