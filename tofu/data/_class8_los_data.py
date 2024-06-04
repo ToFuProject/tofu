@@ -575,6 +575,7 @@ def _integrate_along_los_check(
 
     # -----------------
     # keys of diag, cam
+    # -----------------
 
     lrays = list(coll.dobj.get('rays', {}).keys())
     ldiag = list(coll.dobj.get('diagnostic', {}).keys())
@@ -608,14 +609,19 @@ def _integrate_along_los_check(
 
     # -------------------------
     # keys of coords, integrand
+    # -------------------------
 
+    # ---------------------
     # key_data: coordinates
+
     lok_coords = [
         'x', 'y', 'z', 'R', 'phi', 'ang_vs_ephi',
         'k', 'l', 'ltot', 'itot',
     ]
 
+    # -------------------
     # key_data: integrand
+
     dp2d = coll.get_profiles2d()
     lok_2d = list(dp2d.keys())
     key_integrand = ds._generic_check._check_var(
@@ -625,10 +631,16 @@ def _integrate_along_los_check(
         allowed=lok_coords + lok_2d,
     )
 
+    # --------------------------
+    # key_integrand: 2d or not ?
+
     if key_integrand in lok_2d:
         key_bs_integrand = dp2d[key_integrand]
     else:
         key_bs_integrand = None
+
+    # ------------------
+    # key_coords: check
 
     key_coords = ds._generic_check._check_var(
         key_coords, 'key_coords',
@@ -637,6 +649,9 @@ def _integrate_along_los_check(
         allowed=lok_coords + lok_2d,
     )
 
+    # -----------------------
+    # key_coords: 2d or not ?
+
     if key_coords in lok_2d:
         key_bs_coords = dp2d[key_coords]
     else:
@@ -644,6 +659,7 @@ def _integrate_along_los_check(
 
     # -----------------
     # Sampling parameters
+    # -----------------
 
     # segment
     segment = ds._generic_check._check_var(
@@ -691,28 +707,75 @@ def _integrate_along_los_check(
 
     # -----------------
     # Plotting parameters
+    # -----------------
 
+    # ------
     # plot
+
     plot = ds._generic_check._check_var(
         plot, 'plot',
         types=bool,
         default=True,
     )
 
+    # --------
     # dcolor
-    if not isinstance(dcolor, dict):
-        if dcolor is None:
-            lc = ['k', 'r', 'g', 'b', 'm', 'c']
-        elif mcolors.is_color_like(dcolor):
-            lc = [dcolor]
 
-        if len(key_cam) > 1:
-            dcolor = {
-                kk: lc[ii % len(lc)]
-                for ii, kk in enumerate(key_cam)
+
+    if mcolors.is_color_like(dcolor):
+        lc = [dcolor]
+    else:
+        lc = ['k', 'r', 'g', 'b', 'm', 'c']
+
+    if not isinstance(dcolor, dict):
+        dcolor = {
+            kk: {
+                'color': lc[ii % len(lc)],
+                'ls': '-',
+                'marker': '.',
+                'lw': 1,
             }
-        else:
-            dcolor = {key_cam[0]: lc[0]}
+            for ii, kk in enumerate(key_cam)
+        }
+
+    elif not any([kk in dcolor.keys() for kk in key_cam]):
+        dcolor = {
+            kk: {
+                'color': dcolor.get('color', lc[ii % len(lc)]),
+                'ls': dcolor.get('ls', '-'),
+                'marker': dcolor.get('marker', '.'),
+                'lw': dcolor.get('lw', 1),
+                'ms': dcolor.get('ms', 6),
+            }
+            for ii, kk in enumerate(key_cam)
+        }
+
+    # check
+    try:
+        for ii, kk in enumerate(key_cam):
+            dcolor[kk] = {
+                'color': dcolor.get(kk, {}).get('color', lc[ii % len(lc)]),
+                'ls': dcolor.get(kk, {}).get('ls', '-'),
+                'lw': dcolor.get(kk, {}).get('lw', 1),
+                'marker': dcolor.get(kk, {}).get('marker', '.'),
+                'ms': dcolor.get(kk, {}).get('ms', 6),
+            }
+
+    except Exception as err:
+        msg = (
+            "Arg dcolor must be a dict with camera keys specifying plotting:\n"
+            f"\t- camera keys for diag '{key_diag}': {key_cam}\n"
+            "\t- expected values: dict of 'color', 'ls', 'lw', 'marker', ...\n"
+            "\t{\n"
+            "\t\t'color': ...,\n"
+            "\t\t'ls': ...,\n"
+            "\t\t'lw': ...,\n"
+            "\t\t'marker': ...,\n"
+            "\t\t'ms': ...,\n"
+            "\t}\n"
+            "\nProvided:\n{dcolor}\n"
+        )
+        raise Exception(msg)
 
     return (
         key_diag, key_cam, key_los,
@@ -888,11 +951,8 @@ def _interpolate_along_los_plot(
             ax.plot(
                 xx,
                 yy,
-                c=dcolor[k0],
-                marker='.',
-                ls='-',
-                ms=8,
                 label=k0,
+                **dcolor[k0],
             )
 
         ax.legend()
