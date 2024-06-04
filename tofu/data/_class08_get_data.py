@@ -138,7 +138,7 @@ def _get_data(
     # ------------------------------------
     # standard LOS-related
 
-    elif data in dav.get('standard - LOS', {}).keys():
+    elif data in dav.get('standard - LOS', []):
 
         if data in ['length', 'tangency_radius', 'alpha']:
             for cc in key_cam:
@@ -173,7 +173,7 @@ def _get_data(
     # ------------------------------------
     # wavelength-related for spectro diags
 
-    elif data in dav.get('spectro - lamb', {}).keys():
+    elif data in dav.get('spectro - lamb', []):
 
         for cc in key_cam:
            ddata[cc], dref[cc] = coll.get_diagnostic_lamb(
@@ -191,7 +191,7 @@ def _get_data(
     # ------------------------------
     # data from synthetic diagnostic
 
-    elif data in dav.get('synth', {}).keys():
+    elif data in dav.get('synth', []):
 
         dref = {}
         daxis = {}
@@ -230,7 +230,7 @@ def _get_data(
     # -----------------
     # raw data
 
-    elif data in dav.get('raw', {}).keys():
+    elif data in dav.get('raw', []):
 
         ddata = {key_cam[0]: coll.ddata[data]['data']}
         dref = {key_cam[0]: coll.dobj['camera'][key_cam[0]]['dgeom']['ref']}
@@ -240,7 +240,7 @@ def _get_data(
     # -----------------
     # vos broadband data
 
-    elif data in dav.get('broadband - vos', {}).keys():
+    elif data in dav.get('broadband - vos', []):
 
         ddata, dref, units, static = _class08_get_data_vos_broadband.main(
             coll=coll,
@@ -252,7 +252,7 @@ def _get_data(
     # -----------------
     # vos spectro data
 
-    elif data in dav.get('spectro - vos', {}).keys():
+    elif data in dav.get('spectro - vos', []):
 
         ddata, dref, units, static = _class08_get_data_vos_spectro.main(
             coll=coll,
