@@ -1186,8 +1186,11 @@ class Diagnostic(Previous):
 
     def plot_diagnostic(
         self,
+        # keys
         key=None,
         key_cam=None,
+        keyZ=None,
+        # options
         optics=None,
         elements=None,
         proj=None,
@@ -1218,8 +1221,11 @@ class Diagnostic(Previous):
 
         return _plot._plot_diagnostic(
             coll=self,
+            # keys
             key=key,
             key_cam=key_cam,
+            keyZ=keyZ,
+            # options
             optics=optics,
             elements=elements,
             proj=proj,
