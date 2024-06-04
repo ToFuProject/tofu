@@ -387,33 +387,32 @@ def _interpolate_along_los(
                         inplace=False,
                     )[c2d]
 
-                    llmin = pts_ll[jj][np.nanargmin(q2d['data'], axis=q2d['ref'].index(None))]
-
                     # check shapes
-                    pts_ll[jj], q2d, axis_los = _interpolate_along_los_reshape(
+                    pts_ll2, q2d, axis_los = _interpolate_along_los_reshape(
                         xdata=pts_ll[jj],
                         ydata=q2d['data'],
                         yref=q2d['ref'],
                     )
 
+                    llmin = pts_ll[jj][np.nanargmin(q2d, axis=axis_los)]
+
                     sli = tuple([
                         None if ij == axis_los else slice(None)
                         for ij in range(q2d.ndim)
                     ])
-                    pts_ll[jj] = pts_ll[jj] - llmin[sli]
+                    pts_ll2 = pts_ll2 - llmin[sli]
 
 
                     # concatenate
-                    iok = np.isfinite(q2d) & np.isfinite(pts_ll[jj])
                     if j0 == 0:
-                        dx[kk] = pts_ll[jj]
+                        dx[kk] = pts_ll2
                         dy[kk] = q2d
                         sh = list(q2d.shape)
                         sh[axis_los] = 1
                         nan = np.full(sh, np.nan)
                     else:
                         dx[kk] = np.concatenate(
-                            (dx[kk], nan, pts_ll[jj]),
+                            (dx[kk], nan, pts_ll2),
                             axis=axis_los,
                         )
                         dy[kk] = np.concatenate(
@@ -860,8 +859,8 @@ def _integrate_along_los_check(
             "\t\t'marker': ...,\n"
             "\t\t'ms': ...,\n"
             "\t}\n"
-            "\nProvided:\n{dcolor}\n"
-        )
+            "\nProvided:\n{dcolor}\n\n\n"
+        ) + str(err)
         raise Exception(msg)
 
     return (
