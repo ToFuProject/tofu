@@ -278,7 +278,7 @@ def _interpolate_along_los(
 
     (
         key_diag, key_cam, key_los,
-        key_integrand, key_coords,
+        key_integrand, key_coords0, key_coords,
         key_bs_integrand, key_bs_coords,
         lok_coords, segment, mode, radius_max,
         plot, dcolor,
@@ -358,48 +358,110 @@ def _interpolate_along_los(
                 mode=mode,
                 segment=segment,
                 radius_max=radius_max,
-                concatenate=True,
+                concatenate=key_coords0 != 'l_from_impact',
                 return_coords=['x', 'y', 'z', cll],
             )
 
-            Ri = np.hypot(pts_x, pts_y)
+            if key_coords0 == 'l_from_impact':
 
-            # interpolate
-            q2d = coll.interpolate(
-                keys=c2d,
-                x0=Ri,
-                x1=pts_z,
-                ref_key=key_bs,
-                grid=False,
-                domain=domain,
-                crop=True,
-                nan0=True,
-                val_out=val_out,
-                return_params=None,
-                store=False,
-                inplace=False,
-            )[c2d]
+                j0 = 0
+                for jj in range(len(pts_x)):
+                    if np.all(np.isnan(pts_x[jj])):
+                        continue
 
-            # check shapes
-            pts_ll, q2d, axis_los = _interpolate_along_los_reshape(
-                coll=coll,
-                xdata=pts_ll,
-                xref=None,
-                ydata=q2d['data'],
-                yref=q2d['ref'],
-            )
+                    Ri = np.hypot(pts_x[jj], pts_y[jj])
 
-            # initialize and fill
-            dx[kk] = np.full(q2d.shape, np.nan)
-            dy[kk] = np.full(q2d.shape, np.nan)
+                    # interpolate
+                    q2d = coll.interpolate(
+                        keys=c2d,
+                        x0=Ri,
+                        x1=pts_z[jj],
+                        ref_key=key_bs,
+                        grid=False,
+                        domain=domain,
+                        crop=True,
+                        nan0=True,
+                        val_out=val_out,
+                        return_params=None,
+                        store=False,
+                        inplace=False,
+                    )[c2d]
 
-            isok = np.isfinite(q2d) & np.isfinite(Ri)
-            if key_coords in lok_coords:
-                dx[kk][isok] = pts_ll[isok]
-                dy[kk][isok] = q2d[isok]
+                    # check shapes
+                    pts_ll2, q2d, axis_los = _interpolate_along_los_reshape(
+                        xdata=pts_ll[jj],
+                        ydata=q2d['data'],
+                        yref=q2d['ref'],
+                    )
+
+                    llmin = pts_ll[jj][np.nanargmin(q2d, axis=axis_los)]
+
+                    sli = tuple([
+                        None if ij == axis_los else slice(None)
+                        for ij in range(q2d.ndim)
+                    ])
+                    pts_ll2 = pts_ll2 - llmin[sli]
+
+
+                    # concatenate
+                    if j0 == 0:
+                        dx[kk] = pts_ll2
+                        dy[kk] = q2d
+                        sh = list(q2d.shape)
+                        sh[axis_los] = 1
+                        nan = np.full(sh, np.nan)
+                    else:
+                        dx[kk] = np.concatenate(
+                            (dx[kk], nan, pts_ll2),
+                            axis=axis_los,
+                        )
+                        dy[kk] = np.concatenate(
+                            (dy[kk], nan, q2d),
+                            axis=axis_los,
+                        )
+                    j0 += 1
+
+                iout = ~(np.isfinite(dx[kk]) & np.isfinite(dy[kk]))
+                dx[kk][iout] = np.nan
+                dy[kk][iout] = np.nan
+
             else:
-                dx[kk][isok] = q2d[isok]
-                dy[kk][isok] = pts_ll[isok]
+                Ri = np.hypot(pts_x, pts_y)
+
+                # interpolate
+                q2d = coll.interpolate(
+                    keys=c2d,
+                    x0=Ri,
+                    x1=pts_z,
+                    ref_key=key_bs,
+                    grid=False,
+                    domain=domain,
+                    crop=True,
+                    nan0=True,
+                    val_out=val_out,
+                    return_params=None,
+                    store=False,
+                    inplace=False,
+                )[c2d]
+
+                # check shapes
+                pts_ll, q2d, axis_los = _interpolate_along_los_reshape(
+                    xdata=pts_ll,
+                    ydata=q2d['data'],
+                    yref=q2d['ref'],
+                )
+
+                # initialize and fill
+                dx[kk] = np.full(q2d.shape, np.nan)
+                dy[kk] = np.full(q2d.shape, np.nan)
+
+                isok = np.isfinite(q2d) & np.isfinite(Ri)
+                if key_coords in lok_coords:
+                    dx[kk][isok] = pts_ll[isok]
+                    dy[kk][isok] = q2d[isok]
+                else:
+                    dx[kk][isok] = q2d[isok]
+                    dy[kk][isok] = pts_ll[isok]
 
     else:
         for ii, kk in enumerate(key_cam):
@@ -521,6 +583,13 @@ def _interpolate_along_los(
     )
 
     # ------------
+    # advanced computing
+
+    if key_coords0 == 'l_from_impact':
+        for kcam in dx.keys():
+            dx[kcam] = dx[kcam]
+
+    # ------------
     # format
 
     dout['integrand'] = {
@@ -575,6 +644,7 @@ def _integrate_along_los_check(
 
     # -----------------
     # keys of diag, cam
+    # -----------------
 
     lrays = list(coll.dobj.get('rays', {}).keys())
     ldiag = list(coll.dobj.get('diagnostic', {}).keys())
@@ -608,14 +678,19 @@ def _integrate_along_los_check(
 
     # -------------------------
     # keys of coords, integrand
+    # -------------------------
 
+    # ---------------------
     # key_data: coordinates
+
     lok_coords = [
         'x', 'y', 'z', 'R', 'phi', 'ang_vs_ephi',
         'k', 'l', 'ltot', 'itot',
     ]
 
+    # -------------------
     # key_data: integrand
+
     dp2d = coll.get_profiles2d()
     lok_2d = list(dp2d.keys())
     key_integrand = ds._generic_check._check_var(
@@ -625,17 +700,43 @@ def _integrate_along_los_check(
         allowed=lok_coords + lok_2d,
     )
 
+    # --------------------------
+    # key_integrand: 2d or not ?
+
     if key_integrand in lok_2d:
         key_bs_integrand = dp2d[key_integrand]
     else:
         key_bs_integrand = None
 
+    # ------------------
+    # key_coords: check
+
     key_coords = ds._generic_check._check_var(
         key_coords, 'key_coords',
         types=str,
         default='k',
-        allowed=lok_coords + lok_2d,
+        allowed=lok_coords + lok_2d + ['l_from_impact'],
     )
+
+    # Check that key_integrand is 2d
+    key_coords0 = key_coords
+    if key_coords == 'l_from_impact':
+
+        if key_integrand not in lok_2d:
+            msg = (
+                "Option 'l_from_impact' only available if:\n"
+                "\t- 'key_coords' = 'l_from_impact'\n"
+                "\t- 'key_integrand' = a 2d profile\n"
+                "Provided:\n"
+                f"\t 'key_coords' = {key_coords}\n"
+                f"\t 'key_integrand' = {key_integrand}\n"
+            )
+            raise Exception(msg)
+
+        key_coords = 'l'
+
+    # -----------------------
+    # key_coords: 2d or not ?
 
     if key_coords in lok_2d:
         key_bs_coords = dp2d[key_coords]
@@ -644,6 +745,7 @@ def _integrate_along_los_check(
 
     # -----------------
     # Sampling parameters
+    # -----------------
 
     # segment
     segment = ds._generic_check._check_var(
@@ -691,32 +793,79 @@ def _integrate_along_los_check(
 
     # -----------------
     # Plotting parameters
+    # -----------------
 
+    # ------
     # plot
+
     plot = ds._generic_check._check_var(
         plot, 'plot',
         types=bool,
         default=True,
     )
 
+    # --------
     # dcolor
-    if not isinstance(dcolor, dict):
-        if dcolor is None:
-            lc = ['k', 'r', 'g', 'b', 'm', 'c']
-        elif mcolors.is_color_like(dcolor):
-            lc = [dcolor]
 
-        if len(key_cam) > 1:
-            dcolor = {
-                kk: lc[ii % len(lc)]
-                for ii, kk in enumerate(key_cam)
+
+    if mcolors.is_color_like(dcolor):
+        lc = [dcolor]
+    else:
+        lc = ['k', 'r', 'g', 'b', 'm', 'c']
+
+    if not isinstance(dcolor, dict):
+        dcolor = {
+            kk: {
+                'color': lc[ii % len(lc)],
+                'ls': '-',
+                'marker': '.',
+                'lw': 1,
             }
-        else:
-            dcolor = {key_cam[0]: lc[0]}
+            for ii, kk in enumerate(key_cam)
+        }
+
+    elif not any([kk in dcolor.keys() for kk in key_cam]):
+        dcolor = {
+            kk: {
+                'color': dcolor.get('color', lc[ii % len(lc)]),
+                'ls': dcolor.get('ls', '-'),
+                'marker': dcolor.get('marker', '.'),
+                'lw': dcolor.get('lw', 1),
+                'ms': dcolor.get('ms', 6),
+            }
+            for ii, kk in enumerate(key_cam)
+        }
+
+    # check
+    try:
+        for ii, kk in enumerate(key_cam):
+            dcolor[kk] = {
+                'color': dcolor.get(kk, {}).get('color', lc[ii % len(lc)]),
+                'ls': dcolor.get(kk, {}).get('ls', '-'),
+                'lw': dcolor.get(kk, {}).get('lw', 1),
+                'marker': dcolor.get(kk, {}).get('marker', '.'),
+                'ms': dcolor.get(kk, {}).get('ms', 6),
+            }
+
+    except Exception as err:
+        msg = (
+            "Arg dcolor must be a dict with camera keys specifying plotting:\n"
+            f"\t- camera keys for diag '{key_diag}': {key_cam}\n"
+            "\t- expected values: dict of 'color', 'ls', 'lw', 'marker', ...\n"
+            "\t{\n"
+            "\t\t'color': ...,\n"
+            "\t\t'ls': ...,\n"
+            "\t\t'lw': ...,\n"
+            "\t\t'marker': ...,\n"
+            "\t\t'ms': ...,\n"
+            "\t}\n"
+            "\nProvided:\n{dcolor}\n\n\n"
+        ) + str(err)
+        raise Exception(msg)
 
     return (
         key_diag, key_cam, key_los,
-        key_integrand, key_coords,
+        key_integrand, key_coords0, key_coords,
         key_bs_integrand, key_bs_coords,
         lok_coords, segment, mode, radius_max,
         plot, dcolor,
@@ -729,9 +878,7 @@ def _integrate_along_los_check(
 
 
 def _interpolate_along_los_reshape(
-    coll=None,
     xdata=None,
-    xref=None,
     ydata=None,
     yref=None,
 ):
@@ -888,11 +1035,8 @@ def _interpolate_along_los_plot(
             ax.plot(
                 xx,
                 yy,
-                c=dcolor[k0],
-                marker='.',
-                ls='-',
-                ms=8,
                 label=k0,
+                **dcolor[k0],
             )
 
         ax.legend()

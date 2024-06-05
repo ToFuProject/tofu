@@ -313,6 +313,8 @@ def _sample(
             kk[itot == np.nanmax(itot)] = 1.
         else:
             kk = [ii - np.floor(ii) for ii in itot]
+            for ij in range(len(kk)):
+                kk[ij][itot[ij] == np.nanmax(itot[ij])] = 1.
 
     lout = []
     for cc in return_coords:
