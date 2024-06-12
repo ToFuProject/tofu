@@ -15,7 +15,7 @@ import datastock as ds
 # ###############################################################
 
 
-def _sample(
+def main(
     coll=None,
     key=None,
     key_cam=None,
@@ -406,46 +406,21 @@ def _sample(
             lout.append(pts_z)
 
         elif cc == 'R':
-            if concatenate is True or mode == 'rel':
-                lout.append(np.hypot(pts_x, pts_y))
-            else:
-                lout.append([
-                    np.hypot(px, py)
-                    for px, py in zip(pts_x, pts_y)
-                ])
+            lout.append(np.hypot(pts_x, pts_y))
 
         elif cc == 'phi':
-            if concatenate is True or mode == 'rel':
-                lout.append(np.arctan2(pts_y, pts_x))
-            else:
-                lout.append([
-                    np.arctan2(py, px)
-                    for px, py in zip(pts_x, pts_y)
-                ])
+            lout.append(np.arctan2(pts_y, pts_x))
 
         elif cc == 'ang_vs_ephi':
-            if concatenate is True or mode == 'rel':
-                phi = np.arctan2(pts_y, pts_x)
-                ux = np.diff(pts_x, axis=0)
-                uy = np.diff(pts_y, axis=0)
-                ux = np.concatenate((ux[0:1, ...], ux), axis=0)
-                uy = np.concatenate((uy[0:1, ...], uy), axis=0)
-                vn = np.sqrt(ux**2 + uy**2)
-                ux = ux / vn
-                uy = uy / vn
-                lout.append(np.arccos(-np.sin(phi)*ux + np.cos(phi)*uy))
-            else:
-                lout.append([])
-                for px, py in zip(pts_x, pts_y):
-                    phi = np.arctan2(py, px)
-                    ux = np.diff(px, axis=0)
-                    uy = np.diff(py, axis=0)
-                    ux = np.concatenate((ux[0:1, ...], ux), axis=0)
-                    uy = np.concatenate((uy[0:1, ...], uy), axis=0)
-                    vn = np.sqrt(ux**2 + uy**2)
-                    ux = ux / vn
-                    uy = uy / vn
-                    lout[-1].append(np.arccos(-np.sin(phi)*ux + np.cos(phi)*uy))
+            phi = np.arctan2(pts_y, pts_x)
+            ux = np.diff(pts_x, axis=0)
+            uy = np.diff(pts_y, axis=0)
+            ux = np.concatenate((ux[0:1, ...], ux), axis=0)
+            uy = np.concatenate((uy[0:1, ...], uy), axis=0)
+            vn = np.sqrt(ux**2 + uy**2)
+            ux = ux / vn
+            uy = uy / vn
+            lout.append(np.arccos(-np.sin(phi)*ux + np.cos(phi)*uy))
 
         elif cc == 'itot':
             lout.append(itot)
@@ -454,16 +429,9 @@ def _sample(
             lout.append(kk)
 
         elif cc == 'l':
-            if concatenate is True or mode == 'rel':
-                lout.append(kk*length)
-            else:
-                lout.append([
-                    kki * ll
-                    for kki, ll in zip(kk, length)
-                ])
+            lout.append(kk*length)
 
         elif cc == 'ltot':
-            # if concatenate is True or mode == 'rel':
             # import matplotlib.pyplot as plt
             # plt.figure()
             # plt.subplot(1,4,1)
@@ -477,11 +445,6 @@ def _sample(
             # import pdb; pdb.set_trace()     # DB
 
             lout.append(kk*length + lengthtot)
-            # else:
-            #     lout.append([
-            #         kki * ll1 + ll0
-            #         for kki, ll1, ll0 in zip(kk, length, lengthtot)
-            #     ])
 
     return lout
 
