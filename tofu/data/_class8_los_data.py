@@ -262,6 +262,7 @@ def _interpolate_along_los(
     mode=None,
     segment=None,
     radius_max=None,
+    concatenate=None,
     # interpolating
     domain=None,
     val_out=None,
@@ -280,6 +281,7 @@ def _interpolate_along_los(
         key_diag, key_cam, key_los,
         key_integrand, key_coords0, key_coords,
         key_bs_integrand, key_bs_coords,
+        concatenate,
         lok_coords, segment, mode, radius_max,
         plot, dcolor,
     ) = _integrate_along_los_check(
@@ -292,6 +294,7 @@ def _interpolate_along_los(
         segment=segment,
         mode=mode,
         radius_max=radius_max,
+        concatenate=concatenate,
         # plotting
         plot=plot,
         dcolor=dcolor,
@@ -329,7 +332,7 @@ def _interpolate_along_los(
                 mode=mode,
                 segment=segment,
                 radius_max=radius_max,
-                concatenate=True,
+                concatenate=concatenate,
                 return_coords=[key_coords, key_integrand],
             )
 
@@ -477,7 +480,7 @@ def _interpolate_along_los(
                 mode=mode,
                 segment=segment,
                 radius_max=radius_max,
-                concatenate=True,
+                concatenate=concatenate,
                 return_coords=['x', 'y', 'z'],
                 )
 
@@ -637,6 +640,7 @@ def _integrate_along_los_check(
     segment=None,
     mode=None,
     radius_max=None,
+    concatenate=None,
     # plotting
     plot=None,
     dcolor=None,
@@ -804,6 +808,20 @@ def _integrate_along_los_check(
         default=True,
     )
 
+    # -----------------
+    # concatenate
+    # -----------------
+
+    concatenate = ds._generic_check._check_var(
+        concatenate, 'concatenate',
+        types=bool,
+        default=plot,
+    )
+
+    if plot is True and concatenate is False:
+        msg = "Arg concatenate must be True if plot is True"
+        raise Exception(msg)
+
     # --------
     # dcolor
 
@@ -867,6 +885,7 @@ def _integrate_along_los_check(
         key_diag, key_cam, key_los,
         key_integrand, key_coords0, key_coords,
         key_bs_integrand, key_bs_coords,
+        concatenate,
         lok_coords, segment, mode, radius_max,
         plot, dcolor,
     )

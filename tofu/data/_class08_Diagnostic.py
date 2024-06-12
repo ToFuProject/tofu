@@ -1050,6 +1050,7 @@ class Diagnostic(Previous):
         mode=None,
         segment=None,
         radius_max=None,
+        concatenate=None,
         # interpolating
         domain=None,
         val_out=None,
@@ -1074,6 +1075,7 @@ class Diagnostic(Previous):
             mode=mode,
             segment=segment,
             radius_max=radius_max,
+            concatenate=concatenate,
             # interpolating
             domain=domain,
             val_out=val_out,
