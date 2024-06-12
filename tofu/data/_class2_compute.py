@@ -37,7 +37,7 @@ def _sample(
     (
         res, mode, concatenate,
         segment, ind_flat, radius_max,
-        return_coords, out_xyz, out_k,
+        return_coords, out_xyz, out_k, out_l,
     ) = _sample_check(
         res=res,
         mode=mode,
@@ -55,17 +55,24 @@ def _sample(
     # ------------------------
     # get points of interest
 
+    # get rays points (nseg+1, nx0, nx1, ...)
     pts_x, pts_y, pts_z = coll.get_rays_pts(key=key, key_cam=key_cam)
+
+    # extract sizes
     npts = pts_x.shape[0]
     npix = np.prod(pts_x.shape[1:])
     i0 = np.arange(0, npts)
 
-    # segment
+    # ---------------------------
+    # optional segment selection
+
     if segment is not None:
         segment[segment < 0] = npts - 1 + segment[segment < 0]
         iseg = np.r_[segment, segment[-1] + 1]
 
-    # ind_flat
+    # ---------------------------------------
+    # optional ind_flat (selection of pixels)
+
     if ind_flat is not None:
         ind_flat[ind_flat < 0] = npix - 1 + ind_flat[ind_flat < 0]
 
@@ -73,17 +80,23 @@ def _sample(
         pts_y = np.reshape(pts_y, (npts, -1))[:, ind_flat]
         pts_z = np.reshape(pts_z, (npts, -1))[:, ind_flat]
 
-    # length
+    # -------------------------------
+    # get original length per segment
+
     length_orig = np.sqrt(
         np.diff(pts_x, axis=0)**2
         + np.diff(pts_y, axis=0)**2
         + np.diff(pts_z, axis=0)**2
     )
+
+    # total length from starting point
     zeros = np.zeros(tuple(np.r_[1, length_orig.shape[1:]]), dtype=float)
     length0 = np.cumsum(np.concatenate((zeros, length_orig), axis=0), axis=0)
     length1 = np.concatenate((length_orig, length_orig[-1:, ...]), axis=0)
 
+    # ---------------------------
     # changes to pts
+
     if radius_max is not None:
         pts_x, pts_y, pts_z, i0 = coll.get_rays_intersect_radius(
             key=key,
@@ -130,12 +143,13 @@ def _sample(
     if pts_x.size == 0 or not np.any(np.isfinite(pts_x)):
         return [None]*len(return_coords)
 
-    # -----------
-    # compute
-    # -----------
+    # --------------------
+    # compute sampling
+    # ---------------------
 
-    # -------------------------
-    # prepare sampling indices
+    # ------------------
+    # relative sampling
+    # => each segment / pixel has ame number of points
 
     # rel
     if mode == 'rel':
@@ -167,35 +181,57 @@ def _sample(
                 axis=0,
             )(itot)
 
-        if 'l' in return_coords or 'ltot' in return_coords:
+        # get length
+        if out_l:
             i1 = np.floor(itot).astype(int)
             i1[i1 == length1.shape[0] - 1] -= 1
             length = length1[i1, ...]
             lengthtot = length0[i1, ...]
 
-    # abs => for pts.ndim >= 3 (2d cameras and above), flattened list
+    # --------------------
+    # absolute sampling
+    # different nb of pts per segment / pixel
+
     else:
 
+        # get indices of valid pts
         iok = np.isfinite(pts_x)
-        nn = np.ceil(length_rad / res).astype(int)
 
-        nan = np.r_[np.nan, np.nan]
-        lpx, lpy, lpz, itot, llen, lentot = [], [], [], [], [], []
+        # get shape of arrays based on max nb of points ()
+        nn = np.ceil(length_rad / res).astype(int)
+        nmax = np.nansum(nn, axis=0) + 1
+        shape = tuple(np.r_[np.nanmax(nmax), length_rad.shape[1:]])
+
+        # initialize arrays
+        # lpx, lpy, lpz, itot, llen, lentot = [], [], [], [], [], []
+        itot = np.full(shape, np.nan)
+
+        if out_xyz:
+            lpx = np.full(shape, np.nan)
+            lpy = np.full(shape, np.nan)
+            lpz = np.full(shape, np.nan)
+
+        if out_l:
+            llen = np.full(shape, np.nan)
+            lentot = np.full(shape, np.nan)
+
+        # loop in pixels
         for ind in itt.product(*[range(ss) for ss in pts_x.shape[1:]]):
 
-            sli = tuple([slice(None)] + list(ind))
-            ioki = iok[sli]
+            sli0 = tuple([slice(None)] + list(ind))
+            ioki = iok[sli0]
             iokin = ioki[:-1] * ioki[1:]
 
+            # trivial case
             if not np.any(iokin):
-                itot.append(nan)
-                if out_xyz:
-                    lpx.append(nan)
-                    lpy.append(nan)
-                    lpz.append(nan)
-                if 'l' in return_coords or 'ltot' in return_coords:
-                    llen.append(nan)
-                    lentot.append(nan)
+                # itot.append(nan)
+                # if out_xyz:
+                #     lpx.append(nan)
+                #     lpy.append(nan)
+                #     lpz.append(nan)
+                # if 'l' in return_coords or 'ltot' in return_coords:
+                #     llen.append(nan)
+                #     lentot.append(nan)
                 continue
 
             # get sli2 and i0i
@@ -208,6 +244,7 @@ def _sample(
 
             # itoti
             itoti = []
+            anyok = False
             for jj in range(i0i.size - 1):
                 if np.all(np.isfinite(i0i[jj:jj+2])):
                     itoti.append(
@@ -217,104 +254,148 @@ def _sample(
                             nni[jj] + 1,
                         )[:-1]
                     )
+                    anyok = True
+
+            if anyok is False:
+                continue
 
             if np.isfinite(i0i[-1]):
                 itoti.append([i0i[-1]])
 
             itoti = np.concatenate(tuple(itoti))
-            itot.append(itoti)
+
+            # safety check
+            ni = itoti.size
+            if nmax[ind] != ni:
+                msg = (
+                    "Mismatch between:\n"
+                    f"\t- nmax[{ind}] = {nmax[ind]}\n"
+                    f"\t- itoti.size = {itoti.size}\n"
+                )
+                raise Exception(msg)
+
+            slin = tuple([np.arange(ni)] + list(ind))
+            itot[slin] = itoti
+
+            # itoti = np.concatenate(tuple(itoti))
+            # itot.append(itoti)
 
             # interpolate
             if out_xyz:
-                lpx.append(scpinterp.interp1d(
+                lpx[slin] = scpinterp.interp1d(
                     i0i,
                     pts_x[sli2],
                     kind='linear',
                     axis=0,
-                )(itoti))
+                )(itoti)
 
-                lpy.append(scpinterp.interp1d(
+                lpy[slin] = scpinterp.interp1d(
                     i0i,
                     pts_y[sli2],
                     kind='linear',
                     axis=0,
-                )(itoti))
+                )(itoti)
 
-                lpz.append(scpinterp.interp1d(
+                lpz[slin] = scpinterp.interp1d(
                     i0i,
                     pts_z[sli2],
                     kind='linear',
                     axis=0,
-                )(itoti))
+                )(itoti)
 
-            if 'l' in return_coords or 'ltot' in return_coords:
+            if out_l:
                 i1 = np.floor(itoti).astype(int)
                 # i1[i1 == length0.shape[0] - 1] -= 1
                 i1[i1 == ioki.sum()] -= 1
-                llen.append(length1[sli2][i1])
-                lentot.append(length0[sli2][i1])
+
+                llen[slin] = length1[sli2][i1]
+                lentot[slin] = length0[sli2][i1]
+
+                # llen.append(length1[sli2][i1])
+                # lentot.append(length0[sli2][i1])
 
         if out_xyz:
             pts_x, pts_y, pts_z = lpx, lpy, lpz
-        if 'l' in return_coords or 'ltot' in return_coords:
+        if out_l:
             length = llen
             lengthtot = lentot
 
     # -------------------------------------
     # optional concatenation (for plotting)
+    # -------------------------------------
 
     if concatenate is True:
-        if mode == 'rel':
-            shape = tuple(np.r_[np.r_[1], pts_x.shape[1:]])
-            nan = np.full(shape, np.nan)
-            if out_k:
-                itot2 = np.full(pts_x.shape, np.nan)
-                for ii in range(pts_x.shape[0]):
-                    itot2[ii, ...] = itot[ii]
-                itot = np.concatenate((itot2, nan), axis=0).T.ravel()
-            if out_xyz:
-                pts_x = np.concatenate((pts_x, nan), axis=0).T.ravel()
-                pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
-                pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
-            if 'l' in return_coords or 'ltot' in return_coords:
-                length = np.concatenate((length, nan), axis=0).T.ravel()
-                lengthtot = np.concatenate((lengthtot, nan), axis=0).T.ravel()
+        # if mode == 'rel':
+        shape_nan = tuple(np.r_[np.r_[1], pts_x.shape[1:]])
+        nan = np.full(shape_nan, np.nan)
+        if out_k:
+            itot2 = np.full(pts_x.shape, np.nan)
+            for ii in range(pts_x.shape[0]):
+                itot2[ii, ...] = itot[ii]
+            itot = np.concatenate((itot2, nan), axis=0).T.ravel()
+        if out_xyz:
+            pts_x = np.concatenate((pts_x, nan), axis=0).T.ravel()
+            pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
+            pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
+        if out_l:
+            length = np.concatenate((length, nan), axis=0).T.ravel()
+            lengthtot = np.concatenate((lengthtot, nan), axis=0).T.ravel()
 
+        # else:
+        #     if out_k:
+        #         itot = np.concatenate(
+        #             tuple([np.append(pp, np.nan) for pp in itot])
+        #             )
+        #     if out_xyz:
+        #         pts_x = np.concatenate(
+        #             tuple([np.append(pp, np.nan) for pp in pts_x])
+        #             )
+        #         pts_y = np.concatenate(
+        #             tuple([np.append(pp, np.nan) for pp in pts_y])
+        #             )
+        #         pts_z = np.concatenate(
+        #             tuple([np.append(pp, np.nan) for pp in pts_z])
+        #             )
+        #     if 'l' in return_coords or 'ltot' in return_coords:
+        #         length = np.concatenate(
+        #             tuple([np.append(pp, np.nan) for pp in length])
+        #             )
+        #         lengthtot = np.concatenate(
+        #             tuple([np.append(pp, np.nan) for pp in lengthtot])
+        #             )
 
-        else:
-            if out_k:
-                itot = np.concatenate(
-                    tuple([np.append(pp, np.nan) for pp in itot])
-                    )
-            if out_xyz:
-                pts_x = np.concatenate(
-                    tuple([np.append(pp, np.nan) for pp in pts_x])
-                    )
-                pts_y = np.concatenate(
-                    tuple([np.append(pp, np.nan) for pp in pts_y])
-                    )
-                pts_z = np.concatenate(
-                    tuple([np.append(pp, np.nan) for pp in pts_z])
-                    )
-            if 'l' in return_coords or 'ltot' in return_coords:
-                length = np.concatenate(
-                    tuple([np.append(pp, np.nan) for pp in length])
-                    )
-                lengthtot = np.concatenate(
-                    tuple([np.append(pp, np.nan) for pp in lengthtot])
-                    )
+    # -------------
+    # adjust npts
+    # -------------
+
+    iok = np.any(np.isfinite(itot), axis=0)
+    if not np.all(iok):
+        sli= tuple([itot] + [slice(None) for ss in itot.shape[1:]])
+        itot = itot[sli]
+        if out_xyz:
+            pts_x = pts_x[sli]
+            pts_y = pts_y[sli]
+            pts_z = pts_z[sli]
+        if out_l:
+            length = length[sli]
+            lengthtot = lengthtot[sli]
+
+    # -------------
+    # adjust kk
+    # -------------
+
+    if out_k:
+        # if concatenate is True or mode == 'rel':
+        kk = itot - np.floor(itot)
+        kk[itot == np.nanmax(itot)] = 1.
+        # else:
+        #     kk = [ii - np.floor(ii) for ii in itot]
+        #     for ij in range(len(kk)):
+        #         kk[ij][itot[ij] == np.nanmax(itot[ij])] = 1.
 
     # -------------
     # return
-
-    if out_k:
-        if concatenate is True or mode == 'rel':
-            kk = itot - np.floor(itot)
-            kk[itot == np.nanmax(itot)] = 1.
-        else:
-            kk = [ii - np.floor(ii) for ii in itot]
-            for ij in range(len(kk)):
-                kk[ij][itot[ij] == np.nanmax(itot[ij])] = 1.
+    # -------------
 
     lout = []
     for cc in return_coords:
@@ -385,25 +466,25 @@ def _sample(
                 ])
 
         elif cc == 'ltot':
-            if concatenate is True or mode == 'rel':
-                # import matplotlib.pyplot as plt
-                # plt.figure()
-                # plt.subplot(1,4,1)
-                # plt.plot(kk)
-                # plt.subplot(1,4,2)
-                # plt.plot(length)
-                # plt.subplot(1,4,3)
-                # plt.plot(lengthtot)
-                # plt.subplot(1,4,4)
-                # plt.plot(kk*length + lengthtot)
-                # import pdb; pdb.set_trace()     # DB
+            # if concatenate is True or mode == 'rel':
+            # import matplotlib.pyplot as plt
+            # plt.figure()
+            # plt.subplot(1,4,1)
+            # plt.plot(kk)
+            # plt.subplot(1,4,2)
+            # plt.plot(length)
+            # plt.subplot(1,4,3)
+            # plt.plot(lengthtot)
+            # plt.subplot(1,4,4)
+            # plt.plot(kk*length + lengthtot)
+            # import pdb; pdb.set_trace()     # DB
 
-                lout.append(kk*length + lengthtot)
-            else:
-                lout.append([
-                    kki * ll1 + ll0
-                    for kki, ll1, ll0 in zip(kk, length, lengthtot)
-                ])
+            lout.append(kk*length + lengthtot)
+            # else:
+            #     lout.append([
+            #         kki * ll1 + ll0
+            #         for kki, ll1, ll0 in zip(kk, length, lengthtot)
+            #     ])
 
     return lout
 
@@ -477,11 +558,12 @@ def _sample_check(
 
     out_xyz = any([ss in return_coords for ss in lok_xyz])
     out_k = any([ss in return_coords for ss in lok_k])
+    out_l = any(['l' in return_coords, 'ltot' in return_coords])
 
     return (
         res, mode, concatenate,
         segment, ind_flat, radius_max,
-        return_coords, out_xyz, out_k,
+        return_coords, out_xyz, out_k, out_l
     )
 
 
