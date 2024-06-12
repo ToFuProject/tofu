@@ -71,6 +71,10 @@ def main(
     # optional ind_flat (selection of pixels)
 
     if ind_flat is not None:
+
+        # check ind
+        ind = _check_ind_channels(ind, shape=pts_x.shape[1:], key=key)
+
         ind_flat[ind_flat < 0] = npix - 1 + ind_flat[ind_flat < 0]
 
         pts_x = np.reshape(pts_x, (npts, -1))[:, ind_flat]
@@ -464,7 +468,13 @@ def _sample_check(
     return_coords=None,
 ):
 
+    # -------------
+    # booleans
+    # -------------
+
+    # ---------
     # res
+
     res = ds._generic_check._check_var(
         res, 'res',
         types=float,
@@ -472,7 +482,9 @@ def _sample_check(
         sign='> 0',
     )
 
+    # ---------
     # mode
+
     mode = ds._generic_check._check_var(
         mode, 'mode',
         types=str,
@@ -480,22 +492,35 @@ def _sample_check(
         allowed=['rel', 'abs'],
     )
 
+    # ------------
     # concatenate
+
     concatenate = ds._generic_check._check_var(
         concatenate, 'concatenate',
         types=bool,
         default=False,
     )
 
-    # segment
+    # ----------------
+    # segment indices
+    # ----------------
+
     if segment is not None:
         segment = np.atleast_1d(segment).astype(int).ravel()
 
-    # ind_flat
+    # ---------
+    # ind: indeices of channels
+    # ---------
+
     if ind_flat is not None:
+
+        ndim =
+
         ind_flat = np.atleast_1d(ind_flat).astype(int).ravel()
 
+    # --------------------
     # tangency_radius_max
+
     if radius_max is not None:
         radius_max = ds._generic_check._check_var(
             radius_max, 'radius_max',
@@ -507,7 +532,10 @@ def _sample_check(
             msg = "radius_max can only be used with mode='abs'!"
             raise Exception(msg)
 
+    # -------------
     # return_coords
+    # -------------
+
     if isinstance(return_coords, str):
         return_coords = [return_coords]
 
@@ -530,3 +558,52 @@ def _sample_check(
         segment, ind_flat, radius_max,
         return_coords, out_xyz, out_k, out_l
     )
+
+
+# ###############################################################
+#                   check indices of channels
+# ###############################################################
+
+
+def _check_ind_channels(
+    ind=None,
+    shape=None,
+    key=None,
+):
+
+    # ------------------------
+    # basic conformity checks
+    # ------------------------
+
+    if len(shape) == 1 and not isinstance(ind, tuple):
+        ind = (ind,)
+
+    c0 = (
+        isinstance(ind, tuple)
+        and len(ind) == len(shape)
+    )
+    if not c0:
+        msg = (
+            ""
+        )
+        raise Exception(msg)
+
+    # ------------------------
+    # test
+    # ------------------------
+
+    try:
+        aa = np.empty(shape)[ind]
+        del aa
+    except Exception as err:
+        msg = (
+            f"Arg ind_ch must be compatible with shape of rays '{key}':\n"
+            f"\t- rays shape: {shape}\n"
+            f"\t- ind_ch: {ind_ch}\n"
+        ) + str(err)
+        raise Exception(msg)
+
+    # ind_flat[ind_flat < 0] = npix - 1 + ind_flat[ind_flat < 0]
+
+
+    return ind
