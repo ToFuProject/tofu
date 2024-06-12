@@ -279,7 +279,7 @@ def _interpolate_along_los(
 
     (
         key_diag, key_cam, key_los,
-        key_integrand, key_coords0, key_coords,
+        key_integrand, key_coords,
         key_bs_integrand, key_bs_coords,
         concatenate,
         lok_coords, segment, mode, radius_max,
@@ -361,110 +361,46 @@ def _interpolate_along_los(
                 mode=mode,
                 segment=segment,
                 radius_max=radius_max,
-                concatenate=key_coords0 != 'l_from_impact',
+                concatenate=concatenate,
                 return_coords=['x', 'y', 'z', cll],
             )
 
-            if key_coords0 == 'l_from_impact':
+            Ri = np.hypot(pts_x, pts_y)
 
-                j0 = 0
-                for jj in range(len(pts_x)):
-                    if np.all(np.isnan(pts_x[jj])):
-                        continue
+            # interpolate
+            q2d = coll.interpolate(
+                keys=c2d,
+                x0=Ri,
+                x1=pts_z,
+                ref_key=key_bs,
+                grid=False,
+                domain=domain,
+                crop=True,
+                nan0=True,
+                val_out=val_out,
+                return_params=None,
+                store=False,
+                inplace=False,
+            )[c2d]
 
-                    Ri = np.hypot(pts_x[jj], pts_y[jj])
+            # check shapes
+            pts_ll, q2d, axis_los = _interpolate_along_los_reshape(
+                xdata=pts_ll,
+                ydata=q2d['data'],
+                yref=q2d['ref'],
+            )
 
-                    # interpolate
-                    q2d = coll.interpolate(
-                        keys=c2d,
-                        x0=Ri,
-                        x1=pts_z[jj],
-                        ref_key=key_bs,
-                        grid=False,
-                        domain=domain,
-                        crop=True,
-                        nan0=True,
-                        val_out=val_out,
-                        return_params=None,
-                        store=False,
-                        inplace=False,
-                    )[c2d]
+            # initialize and fill
+            dx[kk] = np.full(q2d.shape, np.nan)
+            dy[kk] = np.full(q2d.shape, np.nan)
 
-                    # check shapes
-                    pts_ll2, q2d, axis_los = _interpolate_along_los_reshape(
-                        xdata=pts_ll[jj],
-                        ydata=q2d['data'],
-                        yref=q2d['ref'],
-                    )
-
-                    llmin = pts_ll[jj][np.nanargmin(q2d, axis=axis_los)]
-
-                    sli = tuple([
-                        None if ij == axis_los else slice(None)
-                        for ij in range(q2d.ndim)
-                    ])
-                    pts_ll2 = pts_ll2 - llmin[sli]
-
-
-                    # concatenate
-                    if j0 == 0:
-                        dx[kk] = pts_ll2
-                        dy[kk] = q2d
-                        sh = list(q2d.shape)
-                        sh[axis_los] = 1
-                        nan = np.full(sh, np.nan)
-                    else:
-                        dx[kk] = np.concatenate(
-                            (dx[kk], nan, pts_ll2),
-                            axis=axis_los,
-                        )
-                        dy[kk] = np.concatenate(
-                            (dy[kk], nan, q2d),
-                            axis=axis_los,
-                        )
-                    j0 += 1
-
-                iout = ~(np.isfinite(dx[kk]) & np.isfinite(dy[kk]))
-                dx[kk][iout] = np.nan
-                dy[kk][iout] = np.nan
-
+            isok = np.isfinite(q2d) & np.isfinite(Ri)
+            if key_coords in lok_coords:
+                dx[kk][isok] = pts_ll[isok]
+                dy[kk][isok] = q2d[isok]
             else:
-                Ri = np.hypot(pts_x, pts_y)
-
-                # interpolate
-                q2d = coll.interpolate(
-                    keys=c2d,
-                    x0=Ri,
-                    x1=pts_z,
-                    ref_key=key_bs,
-                    grid=False,
-                    domain=domain,
-                    crop=True,
-                    nan0=True,
-                    val_out=val_out,
-                    return_params=None,
-                    store=False,
-                    inplace=False,
-                )[c2d]
-
-                # check shapes
-                pts_ll, q2d, axis_los = _interpolate_along_los_reshape(
-                    xdata=pts_ll,
-                    ydata=q2d['data'],
-                    yref=q2d['ref'],
-                )
-
-                # initialize and fill
-                dx[kk] = np.full(q2d.shape, np.nan)
-                dy[kk] = np.full(q2d.shape, np.nan)
-
-                isok = np.isfinite(q2d) & np.isfinite(Ri)
-                if key_coords in lok_coords:
-                    dx[kk][isok] = pts_ll[isok]
-                    dy[kk][isok] = q2d[isok]
-                else:
-                    dx[kk][isok] = q2d[isok]
-                    dy[kk][isok] = pts_ll[isok]
+                dx[kk][isok] = q2d[isok]
+                dy[kk][isok] = pts_ll[isok]
 
     else:
         for ii, kk in enumerate(key_cam):
@@ -584,13 +520,6 @@ def _interpolate_along_los(
         dx=dx,
         dy=dy,
     )
-
-    # ------------
-    # advanced computing
-
-    if key_coords0 == 'l_from_impact':
-        for kcam in dx.keys():
-            dx[kcam] = dx[kcam]
 
     # ------------
     # format
@@ -719,25 +648,8 @@ def _integrate_along_los_check(
         key_coords, 'key_coords',
         types=str,
         default='k',
-        allowed=lok_coords + lok_2d + ['l_from_impact'],
+        allowed=lok_coords + lok_2d,
     )
-
-    # Check that key_integrand is 2d
-    key_coords0 = key_coords
-    if key_coords == 'l_from_impact':
-
-        if key_integrand not in lok_2d:
-            msg = (
-                "Option 'l_from_impact' only available if:\n"
-                "\t- 'key_coords' = 'l_from_impact'\n"
-                "\t- 'key_integrand' = a 2d profile\n"
-                "Provided:\n"
-                f"\t 'key_coords' = {key_coords}\n"
-                f"\t 'key_integrand' = {key_integrand}\n"
-            )
-            raise Exception(msg)
-
-        key_coords = 'l'
 
     # -----------------------
     # key_coords: 2d or not ?
@@ -883,7 +795,7 @@ def _integrate_along_los_check(
 
     return (
         key_diag, key_cam, key_los,
-        key_integrand, key_coords0, key_coords,
+        key_integrand, key_coords,
         key_bs_integrand, key_bs_coords,
         concatenate,
         lok_coords, segment, mode, radius_max,
