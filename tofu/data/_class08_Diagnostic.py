@@ -17,6 +17,7 @@ from . import _class08_get_data as _get_data
 from . import _class08_concatenate_data as _concatenate
 from . import _class8_move as _move
 from . import _class8_los_data as _los_data
+from . import _class08_interpolate_along_los as _interpolate_along_los
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_vos as _vos
@@ -1064,7 +1065,7 @@ class Diagnostic(Previous):
         """ Compute and plot interpolated data along the los of the diagnostic
 
         """
-        return _los_data._interpolate_along_los(
+        return _interpolate_along_los.main(
             coll=self,
             key_diag=key_diag,
             key_cam=key_cam,
