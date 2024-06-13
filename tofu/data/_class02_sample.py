@@ -202,7 +202,6 @@ def main(
         shape = tuple(np.r_[np.nanmax(nmax), length_rad.shape[1:]])
 
         # initialize arrays
-        # lpx, lpy, lpz, itot, llen, lentot = [], [], [], [], [], []
         itot = np.full(shape, np.nan)
 
         if out_xyz:
@@ -223,14 +222,6 @@ def main(
 
             # trivial case
             if not np.any(iokin):
-                # itot.append(nan)
-                # if out_xyz:
-                #     lpx.append(nan)
-                #     lpy.append(nan)
-                #     lpz.append(nan)
-                # if 'l' in return_coords or 'ltot' in return_coords:
-                #     llen.append(nan)
-                #     lentot.append(nan)
                 continue
 
             # get sli2 and i0i
@@ -276,9 +267,6 @@ def main(
             slin = tuple([np.arange(ni)] + list(ind))
             itot[slin] = itoti
 
-            # itoti = np.concatenate(tuple(itoti))
-            # itot.append(itoti)
-
             # interpolate
             if out_xyz:
                 lpx[slin] = scpinterp.interp1d(
@@ -304,14 +292,10 @@ def main(
 
             if out_l:
                 i1 = np.floor(itoti).astype(int)
-                # i1[i1 == length0.shape[0] - 1] -= 1
                 i1[i1 == ioki.sum()] -= 1
 
                 llen[slin] = length1[sli2][i1]
                 lentot[slin] = length0[sli2][i1]
-
-                # llen.append(length1[sli2][i1])
-                # lentot.append(length0[sli2][i1])
 
         if out_xyz:
             pts_x, pts_y, pts_z = lpx, lpy, lpz
@@ -324,44 +308,37 @@ def main(
     # -------------------------------------
 
     if concatenate is True:
+
         # if mode == 'rel':
         shape_nan = tuple(np.r_[np.r_[1], pts_x.shape[1:]])
         nan = np.full(shape_nan, np.nan)
+
         if out_k:
             itot2 = np.full(pts_x.shape, np.nan)
             for ii in range(pts_x.shape[0]):
                 itot2[ii, ...] = itot[ii]
-            itot = np.concatenate((itot2, nan), axis=0).T.ravel()
-        if out_xyz:
-            pts_x = np.concatenate((pts_x, nan), axis=0).T.ravel()
-            pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
-            pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
-        if out_l:
-            length = np.concatenate((length, nan), axis=0).T.ravel()
-            lengthtot = np.concatenate((lengthtot, nan), axis=0).T.ravel()
+            itot = remove_consecutive_nans(
+                np.concatenate((itot2, nan), axis=0).T.ravel()
+            )
 
-        # else:
-        #     if out_k:
-        #         itot = np.concatenate(
-        #             tuple([np.append(pp, np.nan) for pp in itot])
-        #             )
-        #     if out_xyz:
-        #         pts_x = np.concatenate(
-        #             tuple([np.append(pp, np.nan) for pp in pts_x])
-        #             )
-        #         pts_y = np.concatenate(
-        #             tuple([np.append(pp, np.nan) for pp in pts_y])
-        #             )
-        #         pts_z = np.concatenate(
-        #             tuple([np.append(pp, np.nan) for pp in pts_z])
-        #             )
-        #     if 'l' in return_coords or 'ltot' in return_coords:
-        #         length = np.concatenate(
-        #             tuple([np.append(pp, np.nan) for pp in length])
-        #             )
-        #         lengthtot = np.concatenate(
-        #             tuple([np.append(pp, np.nan) for pp in lengthtot])
-        #             )
+        if out_xyz:
+            pts_x = remove_consecutive_nans(
+                np.concatenate((pts_x, nan), axis=0).T.ravel()
+            )
+            pts_y = remove_consecutive_nans(
+                np.concatenate((pts_y, nan), axis=0).T.ravel()
+            )
+            pts_z = remove_consecutive_nans(
+                np.concatenate((pts_z, nan), axis=0).T.ravel()
+            )
+
+        if out_l:
+            length = remove_consecutive_nans(
+                np.concatenate((length, nan), axis=0).T.ravel()
+            )
+            lengthtot = remove_consecutive_nans(
+                np.concatenate((lengthtot, nan), axis=0).T.ravel()
+            )
 
     # -------------
     # adjust npts
@@ -384,13 +361,8 @@ def main(
     # -------------
 
     if out_k:
-        # if concatenate is True or mode == 'rel':
         kk = itot - np.floor(itot)
         kk[itot == np.nanmax(itot)] = 1.
-        # else:
-        #     kk = [ii - np.floor(ii) for ii in itot]
-        #     for ij in range(len(kk)):
-        #         kk[ij][itot[ij] == np.nanmax(itot[ij])] = 1.
 
     # -------------
     # return
@@ -557,20 +529,55 @@ def _check_ind_channels(
     shape=None,
     key=None,
 ):
+    """ Make sure ind_ch is a tuple (one dim per dim of shape)
+
+    Make sure it is made of slice or np.ndarray
+    To preserve the dimensions of the array even if ind_ch is a scalar
+
+    Parameters
+    ----------
+    ind_ch : tuple of np.ndarrays, like from np.nonzero() or np.unravel_index()
+        indices of the desired channels
+    shape : TYPE, optional
+        DESCRIPTION. The default is None.
+    key : TYPE, optional
+        DESCRIPTION. The default is None.
+
+    Returns
+    -------
+    ind_ch : TYPE
+        DESCRIPTION.
+
+    """
+
+    # ------------------------
+    # special retro-compatible case
+    # ------------------------
+
+    if np.isscalar(ind_ch) and len(shape) > 1:
+        ind_ch = np.unravel_index(ind_ch, shape)
 
     # ------------------------
     # basic conformity checks
     # ------------------------
 
+    # single index
     if len(shape) == 1 and not isinstance(ind_ch, tuple):
         ind_ch = (ind_ch,)
 
+    # check is tuple
     c0 = (
         isinstance(ind_ch, tuple)
         and len(ind_ch) == len(shape)
     )
     if not c0:
         _err_ind(ind_ch, shape, key)
+
+    # check all parts are np.ndarrays
+    ind_ch = tuple([
+        ii if isinstance(ii, (slice, np.ndarray)) else np.r_[ii]
+        for ii in ind_ch
+    ])
 
     # ------------------------
     # test
@@ -595,3 +602,26 @@ def _err_ind(ind_ch, shape, key, err=None):
         msg += "\n\n{err}"
 
     raise Exception(msg)
+
+
+# ###############################################################
+#                   remove consecutive nans
+# ###############################################################
+
+
+def remove_consecutive_nans(arr):
+
+    # -----------------
+    # preliminary check
+    # -----------------
+
+    assert arr.ndim == 1, f"arr must be 1d: {arr.shape}"
+
+    # -------------------
+    # get indices on nans
+    # -------------------
+
+    ind = np.nonzero(np.isnan(arr))[0]
+    cons = np.r_[False, np.diff(ind) == 1]
+
+    return np.delete(arr, ind[cons])
