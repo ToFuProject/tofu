@@ -333,7 +333,7 @@ def main(
     # ------------
 
     if plot is True:
-        return _interpolate_along_los_plot(
+        return interpolate_along_los_plot(
             dout=dout,
             axis_los=axis_los,
             # plotting
@@ -529,62 +529,13 @@ def _integrate_along_los_check(
 
     # --------
     # dcolor
+    # --------
 
-
-    if mcolors.is_color_like(dcolor):
-        lc = [dcolor]
-    else:
-        lc = ['k', 'r', 'g', 'b', 'm', 'c']
-
-    if not isinstance(dcolor, dict):
-        dcolor = {
-            kk: {
-                'color': lc[ii % len(lc)],
-                'ls': '-',
-                'marker': '.',
-                'lw': 1,
-            }
-            for ii, kk in enumerate(key_cam)
-        }
-
-    elif not any([kk in dcolor.keys() for kk in key_cam]):
-        dcolor = {
-            kk: {
-                'color': dcolor.get('color', lc[ii % len(lc)]),
-                'ls': dcolor.get('ls', '-'),
-                'marker': dcolor.get('marker', '.'),
-                'lw': dcolor.get('lw', 1),
-                'ms': dcolor.get('ms', 6),
-            }
-            for ii, kk in enumerate(key_cam)
-        }
-
-    # check
-    try:
-        for ii, kk in enumerate(key_cam):
-            dcolor[kk] = {
-                'color': dcolor.get(kk, {}).get('color', lc[ii % len(lc)]),
-                'ls': dcolor.get(kk, {}).get('ls', '-'),
-                'lw': dcolor.get(kk, {}).get('lw', 1),
-                'marker': dcolor.get(kk, {}).get('marker', '.'),
-                'ms': dcolor.get(kk, {}).get('ms', 6),
-            }
-
-    except Exception as err:
-        msg = (
-            "Arg dcolor must be a dict with camera keys specifying plotting:\n"
-            f"\t- camera keys for diag '{key_diag}': {key_cam}\n"
-            "\t- expected values: dict of 'color', 'ls', 'lw', 'marker', ...\n"
-            "\t{\n"
-            "\t\t'color': ...,\n"
-            "\t\t'ls': ...,\n"
-            "\t\t'lw': ...,\n"
-            "\t\t'marker': ...,\n"
-            "\t\t'ms': ...,\n"
-            "\t}\n"
-            "\nProvided:\n{dcolor}\n\n\n"
-        ) + str(err)
-        raise Exception(msg)
+    dcolor = _plot_check(
+        dcolor=dcolor,
+        key_diag=key_diag,
+        key_cam=key_cam,
+    )
 
     return (
         key_diag, key_cam, key_los,
@@ -707,7 +658,7 @@ def _get_dind(
 # ################################################################
 
 
-def _interpolate_along_los_plot(
+def interpolate_along_los_plot(
     dout=None,
     axis_los=None,
     # plotting
@@ -718,14 +669,27 @@ def _interpolate_along_los_plot(
     dax=None,
 ):
 
+
+    # -------------
+    # check inputs
+    # -------------
+
+    dcolor = _plot_check(
+        dcolor=dcolor,
+        key_diag=None,
+        key_cam=list(dout['coords']['ddata'].keys()),
+    )
+
     # ------------
     # prepare
+    # -------------
 
     xlab = f"{dout['coords']['key']} ({dout['coords']['units']})"
     ylab = f"{dout['integrand']['key']} ({dout['integrand']['units']})"
 
     # -----------
     # make figure
+    # -----------
 
     if dax is None:
 
@@ -743,7 +707,10 @@ def _interpolate_along_los_plot(
     elif isinstance(dax, plt.Axes) or issubclass(dax.__class__, plt.Axes):
         dax = {'main': dax}
 
+    # -------------
     # main
+    # -------------
+
     kax = 'main'
     if dax.get(kax) is not None:
         ax = dax[kax]
@@ -771,3 +738,80 @@ def _interpolate_along_los_plot(
             ax.set_ylim(top=vmax)
 
     return dout, dax
+
+
+# #####################
+# check inputs
+# #####################
+
+
+def _plot_check(
+    dcolor=None,
+    key_diag=None,
+    key_cam=None,
+):
+
+    # ------------------
+    # preliminary checks
+    # ------------------
+
+    if mcolors.is_color_like(dcolor):
+        lc = [dcolor]
+    else:
+        lc = ['k', 'r', 'g', 'b', 'm', 'c']
+
+    if not isinstance(dcolor, dict):
+        dcolor = {
+            kk: {
+                'color': lc[ii % len(lc)],
+                'ls': '-',
+                'marker': '.',
+                'lw': 1,
+            }
+            for ii, kk in enumerate(key_cam)
+        }
+
+    elif not any([kk in dcolor.keys() for kk in key_cam]):
+        dcolor = {
+            kk: {
+                'color': dcolor.get('color', lc[ii % len(lc)]),
+                'ls': dcolor.get('ls', '-'),
+                'marker': dcolor.get('marker', '.'),
+                'lw': dcolor.get('lw', 1),
+                'ms': dcolor.get('ms', 6),
+            }
+            for ii, kk in enumerate(key_cam)
+        }
+
+    # ------------
+    # check
+    # ------------
+
+    try:
+        for ii, kk in enumerate(key_cam):
+            dcolor[kk] = {
+                'color': dcolor.get(kk, {}).get('color', lc[ii % len(lc)]),
+                'ls': dcolor.get(kk, {}).get('ls', '-'),
+                'lw': dcolor.get(kk, {}).get('lw', 1),
+                'marker': dcolor.get(kk, {}).get('marker', '.'),
+                'ms': dcolor.get(kk, {}).get('ms', 6),
+            }
+
+    except Exception as err:
+
+        msg = (
+            "Arg dcolor must be a dict with camera keys specifying plotting:\n"
+            f"\t- camera keys for diag '{key_diag}': {key_cam}\n"
+            "\t- expected values: dict of 'color', 'ls', 'lw', 'marker', ...\n"
+            "\t{\n"
+            "\t\t'color': ...,\n"
+            "\t\t'ls': ...,\n"
+            "\t\t'lw': ...,\n"
+            "\t\t'marker': ...,\n"
+            "\t\t'ms': ...,\n"
+            "\t}\n"
+            "\nProvided:\n{dcolor}\n\n\n"
+        ) + str(err)
+        raise Exception(msg)
+
+    return dcolor
