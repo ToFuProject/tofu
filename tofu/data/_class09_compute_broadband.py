@@ -105,8 +105,8 @@ def _compute_los(
                 keys=None,
                 ref_key=key_bs,
                 # interpolation pts
-                x0=R,
-                x1=Z,
+                x0=R[:, 0],
+                x1=Z[:, 0],
                 submesh=True,
                 grid=False,
                 # common ref
@@ -142,7 +142,7 @@ def _compute_los(
             # integrate
             mat[tuple(sli_mat)] = scpinteg.simpson(
                 datai,
-                x=length,
+                x=length[:, 0],
                 axis=axis,
             )
 
