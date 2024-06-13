@@ -22,7 +22,7 @@ def main(
     res=None,
     mode=None,
     segment=None,
-    ind_flat=None,
+    ind_ch=None,
     radius_max=None,
     concatenate=None,
     return_coords=None,
@@ -33,14 +33,13 @@ def main(
 
     (
         res, mode, concatenate,
-        segment, ind_flat, radius_max,
+        segment, radius_max,
         return_coords, out_xyz, out_k, out_l,
     ) = _sample_check(
         res=res,
         mode=mode,
         concatenate=concatenate,
         segment=segment,
-        ind_flat=ind_flat,
         radius_max=radius_max,
         return_coords=return_coords,
     )
@@ -57,7 +56,6 @@ def main(
 
     # extract sizes
     npts = pts_x.shape[0]
-    npix = np.prod(pts_x.shape[1:])
     i0 = np.arange(0, npts)
 
     # ---------------------------
@@ -70,16 +68,15 @@ def main(
     # ---------------------------------------
     # optional ind_flat (selection of pixels)
 
-    if ind_flat is not None:
+    if ind_ch is not None:
 
         # check ind
-        ind = _check_ind_channels(ind, shape=pts_x.shape[1:], key=key)
+        ind_ch = _check_ind_channels(ind_ch, shape=pts_x.shape[1:], key=key)
 
-        ind_flat[ind_flat < 0] = npix - 1 + ind_flat[ind_flat < 0]
-
-        pts_x = np.reshape(pts_x, (npts, -1))[:, ind_flat]
-        pts_y = np.reshape(pts_y, (npts, -1))[:, ind_flat]
-        pts_z = np.reshape(pts_z, (npts, -1))[:, ind_flat]
+        sli = tuple([slice(None)] + list(ind_ch))
+        pts_x = pts_x[sli]
+        pts_y = pts_y[sli]
+        pts_z = pts_z[sli]
 
     # -------------------------------
     # get original length per segment
@@ -110,11 +107,12 @@ def main(
         )[3:]
 
         # ind_flat
-        if ind_flat is not None:
-            pts_x = np.reshape(pts_x, (pts_x.shape[0], -1))[:, ind_flat]
-            pts_y = np.reshape(pts_y, (pts_x.shape[0], -1))[:, ind_flat]
-            pts_z = np.reshape(pts_z, (pts_x.shape[0], -1))[:, ind_flat]
-            i0 = np.reshape(i0, (pts_x.shape[0], -1))[:, ind_flat]
+        if ind_ch is not None:
+            sli = tuple([slice(None)] + list(ind_ch))
+            pts_x = pts_x[sli]
+            pts_y = pts_y[sli]
+            pts_z = pts_z[sli]
+            i0 = i0[sli]
 
         length_rad = np.sqrt(
             np.diff(pts_x, axis=0)**2
@@ -462,7 +460,6 @@ def _sample_check(
     res=None,
     mode=None,
     segment=None,
-    ind_flat=None,
     radius_max=None,
     concatenate=None,
     return_coords=None,
@@ -508,16 +505,6 @@ def _sample_check(
     if segment is not None:
         segment = np.atleast_1d(segment).astype(int).ravel()
 
-    # ---------
-    # ind: indeices of channels
-    # ---------
-
-    if ind_flat is not None:
-
-        ndim =
-
-        ind_flat = np.atleast_1d(ind_flat).astype(int).ravel()
-
     # --------------------
     # tangency_radius_max
 
@@ -555,7 +542,7 @@ def _sample_check(
 
     return (
         res, mode, concatenate,
-        segment, ind_flat, radius_max,
+        segment, radius_max,
         return_coords, out_xyz, out_k, out_l
     )
 
@@ -566,7 +553,7 @@ def _sample_check(
 
 
 def _check_ind_channels(
-    ind=None,
+    ind_ch=None,
     shape=None,
     key=None,
 ):
@@ -575,35 +562,36 @@ def _check_ind_channels(
     # basic conformity checks
     # ------------------------
 
-    if len(shape) == 1 and not isinstance(ind, tuple):
-        ind = (ind,)
+    if len(shape) == 1 and not isinstance(ind_ch, tuple):
+        ind_ch = (ind_ch,)
 
     c0 = (
-        isinstance(ind, tuple)
-        and len(ind) == len(shape)
+        isinstance(ind_ch, tuple)
+        and len(ind_ch) == len(shape)
     )
     if not c0:
-        msg = (
-            ""
-        )
-        raise Exception(msg)
+        _err_ind(ind_ch, shape, key)
 
     # ------------------------
     # test
     # ------------------------
 
     try:
-        aa = np.empty(shape)[ind]
+        aa = np.empty(shape)[ind_ch]
         del aa
     except Exception as err:
-        msg = (
-            f"Arg ind_ch must be compatible with shape of rays '{key}':\n"
-            f"\t- rays shape: {shape}\n"
-            f"\t- ind_ch: {ind_ch}\n"
-        ) + str(err)
-        raise Exception(msg)
+        _err_ind(ind_ch, shape, key, err=err)
 
-    # ind_flat[ind_flat < 0] = npix - 1 + ind_flat[ind_flat < 0]
+    return ind_ch
 
 
-    return ind
+def _err_ind(ind_ch, shape, key, err=None):
+    msg = (
+        f"Arg ind_ch must be compatible with shape of rays '{key}':\n"
+        f"\t- rays shape: {shape}\n"
+        f"\t- ind_ch: {ind_ch}\n"
+    )
+    if err is not None:
+        msg += "\n\n{err}"
+
+    raise Exception(msg)

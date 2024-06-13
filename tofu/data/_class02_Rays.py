@@ -158,7 +158,7 @@ class Rays(Previous):
         res=None,
         mode=None,
         segment=None,
-        ind_flat=None,
+        ind_ch=None,
         radius_max=None,
         concatenate=None,
         return_coords=None,
@@ -175,6 +175,8 @@ class Rays(Previous):
             sampling mode
                 - 'rel': relative, res is in [0, 1], 0.1 = 10 samples / segment
                 - 'abs': absolute, res is a distance in m
+        ind_ch:    tuple of indices (as from np.nonzero())
+            indices of the channels that need to be sampled
         segment:    None / int / iterable of ints
             indices of te segments to be sampled
                 - None: all
@@ -184,7 +186,7 @@ class Rays(Previous):
         radius_max:     None / float
             If provided, only sample the portion of segments that are inside
             the provided ;ajor radius
-        conctenate:     bool
+        concatenate:     bool
             flag indicating whether to concatenate the sampled points per ray
         """
 
@@ -195,7 +197,7 @@ class Rays(Previous):
             res=res,
             mode=mode,
             segment=segment,
-            ind_flat=ind_flat,
+            ind_ch=ind_ch,
             radius_max=radius_max,
             concatenate=concatenate,
             return_coords=return_coords,
