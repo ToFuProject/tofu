@@ -683,8 +683,8 @@ def _compute_los(
             ni = i1 - i0
 
             # get rid of undefined LOS
-            ind_flat = [jj for jj in range(i0, i1) if ilosok[jj]]
-            ni = len(ind_flat)
+            ind_ch = np.array([jj for jj in range(i0, i1) if ilosok[jj]], dtype=int)
+            ni = ind_ch.size
 
             # no valid los in group
             if ni == 0:
@@ -696,7 +696,7 @@ def _compute_los(
                 res=res,
                 mode=mode,
                 segment=None,
-                ind_flat=ind_flat,
+                ind_ch=ind_ch,
                 radius_max=radius_max,
                 concatenate=True,
                 return_coords=['R', 'z', 'ltot'],
@@ -760,7 +760,7 @@ def _compute_los(
                 key_integrand_interp = kbinned
 
             elif spectro:
-                ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_flat[0]]))
+                ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_ch[0]]))
                 domain = {key_ref_spectro: {'ind': np.r_[ind]}}
 
             # timing
@@ -844,7 +844,7 @@ def _compute_los(
                 dataii[~iok2[slii]] = 0.
 
                 # slice data
-                sli0[axis] = ind_flat[jj]
+                sli0[axis] = ind_ch[jj]
                 sli = tuple(sli0)
 
                 # if jj in [50, 51]:

@@ -884,6 +884,7 @@ def _prepare_los(
 
         # los
         if dlos_n[k0] is not None:
+
             los_x, los_y, los_z = coll.sample_rays(
                 key=dlos_n[k0],
                 res=los_res,

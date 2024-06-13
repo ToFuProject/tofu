@@ -202,7 +202,7 @@ def main(
                 radius_max=radius_max,
                 concatenate=concatenate,
                 return_coords=['x', 'y', 'z'],
-                )
+            )
 
             Ri = np.hypot(pts_x, pts_y)
 
