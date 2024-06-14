@@ -5,15 +5,11 @@
 # import copy
 
 
-# Common
-import numpy as np
-import datastock as ds
-
-
 # tofu
 from ._class01_Plasma2D import Plasma2D as Previous
 from . import _class2_check as _check
-from . import _class2_compute as _compute
+from . import _class02_sample as _sample
+from . import _class02_tangency_radius as _tangency_radius
 from . import _class2_plot as _plot
 from . import _class2_sinogram as _sinogram
 from . import _class02_save2stp as _save2stp
@@ -162,7 +158,7 @@ class Rays(Previous):
         res=None,
         mode=None,
         segment=None,
-        ind_flat=None,
+        ind_ch=None,
         radius_max=None,
         concatenate=None,
         return_coords=None,
@@ -179,6 +175,8 @@ class Rays(Previous):
             sampling mode
                 - 'rel': relative, res is in [0, 1], 0.1 = 10 samples / segment
                 - 'abs': absolute, res is a distance in m
+        ind_ch:    tuple of indices (as from np.nonzero())
+            indices of the channels that need to be sampled
         segment:    None / int / iterable of ints
             indices of te segments to be sampled
                 - None: all
@@ -188,18 +186,18 @@ class Rays(Previous):
         radius_max:     None / float
             If provided, only sample the portion of segments that are inside
             the provided ;ajor radius
-        conctenate:     bool
+        concatenate:     bool
             flag indicating whether to concatenate the sampled points per ray
         """
 
-        return _compute._sample(
+        return _sample.main(
             coll=self,
             key=key,
             key_cam=key_cam,
             res=res,
             mode=mode,
             segment=segment,
-            ind_flat=ind_flat,
+            ind_ch=ind_ch,
             radius_max=radius_max,
             concatenate=concatenate,
             return_coords=return_coords,
@@ -245,7 +243,7 @@ class Rays(Previous):
             The ref tuple on which the data depends
         """
 
-        return _compute._tangency_radius(
+        return _tangency_radius._tangency_radius(
             coll=self,
             key=key,
             key_cam=key_cam,
@@ -302,7 +300,7 @@ class Rays(Previous):
 
         """
 
-        return _compute.intersect_radius(
+        return _tangency_radius.intersect_radius(
             coll=self,
             key=key,
             key_cam=key_cam,

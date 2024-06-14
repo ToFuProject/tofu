@@ -664,6 +664,7 @@ def _compute_los(
         # ---------------------------------------------------
         # loop on group of pixels (to limit memory footprint)
 
+        shape_cam = coll.dobj['camera'][k0]['dgeom']['shape']
         shape = None
         for ii in range(ngroup):
 
@@ -683,8 +684,9 @@ def _compute_los(
             ni = i1 - i0
 
             # get rid of undefined LOS
-            ind_flat = [jj for jj in range(i0, i1) if ilosok[jj]]
-            ni = len(ind_flat)
+            ind_ch_flat = np.array([jj for jj in range(i0, i1) if ilosok[jj]], dtype=int)
+            ind_ch = np.unravel_index(ind_ch_flat, shape_cam)
+            ni = ind_ch_flat.size
 
             # no valid los in group
             if ni == 0:
@@ -696,7 +698,7 @@ def _compute_los(
                 res=res,
                 mode=mode,
                 segment=None,
-                ind_flat=ind_flat,
+                ind_ch=ind_ch,
                 radius_max=radius_max,
                 concatenate=True,
                 return_coords=['R', 'z', 'ltot'],
@@ -710,8 +712,8 @@ def _compute_los(
             inannb = np.r_[-1, inan.nonzero()[0]]
             nnan = inan.sum()
 
-            # some lines can be nan if non-existant
-            assert nnan == ni, f"{nnan} vs {ni}"
+            # some lines can be nan if non-existant:
+            assert nnan == ni, f"{nnan} != {ni}"
 
             # timing
             if timing is True:
@@ -760,7 +762,7 @@ def _compute_los(
                 key_integrand_interp = kbinned
 
             elif spectro:
-                ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_flat[0]]))
+                ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_ch_flat[0]]))
                 domain = {key_ref_spectro: {'ind': np.r_[ind]}}
 
             # timing
@@ -844,7 +846,7 @@ def _compute_los(
                 dataii[~iok2[slii]] = 0.
 
                 # slice data
-                sli0[axis] = ind_flat[jj]
+                sli0[axis] = ind_ch_flat[jj]
                 sli = tuple(sli0)
 
                 # if jj in [50, 51]:
