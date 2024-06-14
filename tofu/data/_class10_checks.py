@@ -758,6 +758,7 @@ def _check_rminmax(
     else:
         lok.append('allin')
         dok = 'allin'
+
     dconst[rm]['lim'] = ds._generic_check._check_var(
         dconst[rm].get('lim'), "dconstraints['{rm}']['lim']",
         default=dok,

@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
 
 
-# Built-in
-import datetime as dtm
-
-
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.colors as mcolors
 import datastock as ds
 import bsplines2d as bs2
-
-
-# specific
-from . import _generic_check
 
 
 # #############################################################################
@@ -50,7 +41,7 @@ def _plot_geometry_matrix_check(
     )
 
     keybs = coll.dobj['geom matrix'][key]['bsplines']
-    refbs = coll.dobj['bsplines'][keybs]['ref']
+    # refbs = coll.dobj['bsplines'][keybs]['ref']
     keym = coll.dobj['bsplines'][keybs]['mesh']
 
     key_diag = coll.dobj['geom matrix'][key]['diagnostic']
@@ -81,7 +72,6 @@ def _plot_geometry_matrix_check(
         indt = 0
 
     # plot_mesh
-    wm = coll._which_mesh
     plot_mesh = ds._generic_check._check_var(
         plot_mesh, 'plot_mesh',
         # default=coll.dobj[wm][keym]['type'] != 'polar',
@@ -426,7 +416,7 @@ def plot_geometry_matrix(
     (
         bsplinetot, bspline1,
         extent, interp,
-        ptslos, indlosoki,
+        ptslos, indlosok,
         ich_bf,
         coll1, refs,
     ) = _plot_geometry_matrix_prepare(
@@ -490,8 +480,7 @@ def plot_geometry_matrix(
         dax=dax,
         ind=ind,
         cmap=cmap,
-        vmin=vmin,
-        vmax=vmax,
+        dvminmax={'data': {'min': vmin, 'max': vmax}},
         aspect=aspect,
         connect=False,
     )
@@ -500,7 +489,7 @@ def plot_geometry_matrix(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        im = ax.imshow(
+        ax.imshow(
             bspline1,
             extent=extent,
             interpolation=interp,
@@ -549,7 +538,7 @@ def plot_geometry_matrix(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        im = ax.imshow(
+        ax.imshow(
             bsplinetot,
             extent=extent,
             interpolation=interp,
@@ -617,8 +606,8 @@ def _create_dax(
 
     # ax01 = matrix
     ax01 = fig.add_subplot(gs[0, 1])
-    ax01.set_ylabel(f'channels')
-    ax01.set_xlabel(f'basis functions')
+    ax01.set_ylabel('channels')
+    ax01.set_xlabel('basis functions')
     ax01.set_title(key, size=14)
     ax01.tick_params(
         axis="x",
@@ -629,14 +618,14 @@ def _create_dax(
 
     # ax00 = horizontal
     ax00 = fig.add_subplot(gs[0, 0], sharex=ax01)
-    ax00.set_xlabel(f'basis functions')
-    ax00.set_ylabel(f'data')
+    ax00.set_xlabel('basis functions')
+    ax00.set_ylabel('data')
     ax00.set_ylim(vmin, vmax)
 
     # ax02 = vertical
     ax02 = fig.add_subplot(gs[0, 2], sharey=ax01)
-    ax02.set_xlabel(f'channels')
-    ax02.set_ylabel(f'data')
+    ax02.set_xlabel('channels')
+    ax02.set_ylabel('data')
     ax02.tick_params(
         axis="x",
         bottom=False, top=True,
@@ -653,14 +642,14 @@ def _create_dax(
 
     if indt is not None:
         axt = fig.add_subplot(gs[0, 3], sharey=ax00)
-        axt.set_xlabel(f'time')
-        axt.set_ylabel(f'data')
+        axt.set_xlabel('time')
+        axt.set_ylabel('data')
 
 
     # ax10 = cross1
     ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
-    ax10.set_xlabel(f'R (m)')
-    ax10.set_ylabel(f'Z (m)')
+    ax10.set_xlabel('R (m)')
+    ax10.set_ylabel('Z (m)')
 
     # ax11 = crosstot
     ax11 = fig.add_subplot(
@@ -669,8 +658,8 @@ def _create_dax(
         sharex=ax10,
         sharey=ax10,
     )
-    ax11.set_xlabel(f'R (m)')
-    ax11.set_ylabel(f'Z (m)')
+    ax11.set_xlabel('R (m)')
+    ax11.set_ylabel('Z (m)')
 
     # ax12 = cross2
     ax12 = fig.add_subplot(
@@ -679,8 +668,8 @@ def _create_dax(
         sharex=ax10,
         sharey=ax10,
     )
-    ax12.set_xlabel(f'R (m)')
-    ax12.set_ylabel(f'Z (m)')
+    ax12.set_xlabel('R (m)')
+    ax12.set_ylabel('Z (m)')
 
     # text
     axt0 = fig.add_subplot(gs[0, -1], frameon=False)
