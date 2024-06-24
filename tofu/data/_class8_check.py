@@ -37,7 +37,7 @@ def _diagnostics_check(
     # doptics
     # -----------
 
-    doptics, lap, lfilt, lcryst, lgrat =_check_doptics_basics(
+    doptics, lap, lfilt, lcryst, lgrat = _check_doptics_basics(
         coll=coll,
         doptics=doptics,
         key=key,
@@ -100,10 +100,11 @@ def _diagnostics_check(
         else:
             paths = doptics[cam]['paths']
             lind = [range(ss) for ss in dgeom_cam['shape']]
-            for ind in itt.product(lind):
+            for ind in itt.product(*lind):
 
-                sli = tuple(np.r_[ind, slice(None)])
+                sli = tuple(list(ind) + [slice(None)])
                 iop = paths[sli]
+
                 lop = doptics[cam]['optics'][iop]
                 lcls = doptics[cam]['cls'][iop]
 
@@ -117,7 +118,7 @@ def _diagnostics_check(
                         cam=cam,
                         is2d=is2d,
                         parallel=parallel,
-                        indpix=ind,
+                        ind_pix=ind,
                         dgeom_cam=dgeom_cam,
                         # iterated over
                         last_ref_cls=last_ref_cls,
@@ -181,8 +182,9 @@ def _check_doptics_basics(
 
     if isinstance(doptics, str):
         doptics = {doptics: []}
+
     if isinstance(doptics, (list, tuple)):
-        doptics = {doptics[0]: list(doptics[1:])}
+        doptics = {doptics[0]: type(doptics)(doptics[1:])}
 
     if not isinstance(doptics, dict):
         _err_doptics(key=key, doptics=doptics)
@@ -272,7 +274,19 @@ def _check_doptics_basics(
 
             # pur collimator camera
             elif isinstance(v0['optics'], tuple) and len(shape_cam) == 1:
-                doptics[k0]['paths'] = np.eye(shape, dtype=bool)
+
+                if shape_cam[0] != noptics:
+                    msg = (
+                        "Directly providing optics as tuple for collimators:\n"
+                        f"\t- diag = '{key}'\n"
+                        f"\t- cam = '{k0}'\n"
+                        f"\t- shape_cam = {shape_cam}\n"
+                        f"\t- noptics = {noptics}\n"
+                    )
+                    raise Exception(msg)
+
+                doptics[k0]['paths'] = np.eye(noptics, dtype=bool)
+                doptics[k0]['optics'] = list(v0['optics'])
 
             else:
                 _err_doptics(key=key, doptics=doptics)
@@ -314,8 +328,8 @@ def _check_doptics_basics(
 
         doptics2[k0] = {
             'camera': k0,
-            'optics': doptics[k0]['optics'],
-            'cls': lcls,
+            'optics': np.array(doptics[k0]['optics']),
+            'cls': np.array(lcls),
             'pinhole': pinhole,
             'paths': doptics[k0]['paths'],
             'los': None,
@@ -711,7 +725,7 @@ def _get_optics_cls(coll=None, optics=None):
     # check
     optics = ds._generic_check._check_var_iter(
         optics, 'optics',
-        types=list,
+        types=(list, tuple),
         types_iter=str,
         allowed=lok,
     )

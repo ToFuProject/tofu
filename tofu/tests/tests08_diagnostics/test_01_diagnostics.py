@@ -26,6 +26,7 @@ sys.path.pop(0)
 
 
 #######################################################
+#######################################################
 #
 #     Setup and Teardown
 #
@@ -40,6 +41,7 @@ def teardown_module():
     pass
 
 
+#######################################################
 #######################################################
 #
 #     Utilities routines
@@ -85,11 +87,19 @@ def _nine0e1_from_orientations(
     return nin, e0, e1
 
 
+# #######################################
+#              Apertures
+# #######################################
+
+
 def _apertures():
 
     start, vect, v0, v1 = _ref_line()
 
+    # -------------------------
     # ap0 : planar from outline
+    # -------------------------
+
     out0 = 0.01 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.15 * vect
@@ -100,6 +110,7 @@ def _apertures():
         theta=np.pi/10.,
         phi=0.,
     )
+
     ap0 = {
         'outline_x0': out0,
         'outline_x1': out1,
@@ -109,7 +120,10 @@ def _apertures():
         'e1': e1,
     }
 
+    # ---------------------
     # ap1 : planar from 3d
+    # ---------------------
+
     out0 = 0.01 * np.r_[-1, 1, 0]
     out1 = 0.01 * np.r_[-0.5, -0.5, 0.5]
     cent = start + 0.2 * vect
@@ -132,7 +146,10 @@ def _apertures():
         'nin': nin,
     }
 
+    # ---------------------
     # ap2 : non-planar
+    # ---------------------
+
     out0 = 0.005 * np.r_[-1, 1, 2, 0, -2]
     out1 = 0.005 * np.r_[-1, -1, 0, 1, 0]
     cent = start + 0.3 * vect
@@ -156,7 +173,66 @@ def _apertures():
         'nin': nin,
     }
 
-    return {'ap0': ap0, 'ap1': ap1, 'ap2': ap2}
+    # ----------------------------------
+    # lap : non-planar for collimator
+    # ----------------------------------
+
+    out0 = 0.001 * np.r_[-1, 1, 1, -1]
+    out1 = 0.003 * np.r_[-1, -1, 1, 1]
+
+    nin, e0, e1 = _nine0e1_from_orientations(
+        vect=vect,
+        v0=v0,
+        v1=v1,
+        theta=np.pi/20.,
+        phi=0.,
+    )
+
+    npix = 10
+    nins = np.full((npix, 3), np.nan)
+    e0s = np.full((npix, 3), np.nan)
+    e1s = np.full((npix, 3), np.nan)
+    for ii, tt in enumerate(np.pi/20 * np.linspace(-1, 1, npix)):
+        nins[ii, :], e0s[ii, :], e1s[ii, :] = _nine0e1_from_orientations(
+            vect=vect,
+            v0=v0,
+            v1=v1,
+            theta=tt,
+            phi=0.,
+        )
+
+    kl0 = 0.02 * np.linspace(-1, 1, npix)
+    klin = 0.01 * np.linspace(-1, 1, npix)**2
+    delta = 0.05
+    cents_x = cent[0] + kl0 * e0[0] + (klin + delta) * nins[:, 0]
+    cents_y = cent[1] + kl0 * e0[1] + (klin + delta) * nins[:, 1]
+    cents_z = cent[2] + kl0 * e0[2] + (klin + delta) * nins[:, 2]
+
+    dap3 = {
+        f'lap{ii}': {
+            'outline_x0': out0,
+            'outline_x1': out1,
+            'cent': np.r_[cents_x[ii], cents_y[ii], cents_z[ii]],
+            'nin': nins[ii, :],
+            'e0': e0s[ii, :],
+            'e1': e1s[ii, :],
+        }
+        for ii in range(npix)
+    }
+
+    # ------------
+    # dout
+    # -------------
+
+    dout = {'ap0': ap0, 'ap1': ap1, 'ap2': ap2}
+    dout.update(dap3)
+
+    return dout
+
+
+# #######################################
+#              Filters
+# #######################################
 
 
 def _filters():
@@ -185,11 +261,19 @@ def _filters():
     }
 
 
+# #######################################
+#              Cameras
+# #######################################
+
+
 def _cameras():
 
     start, vect, v0, v1 = _ref_line()
 
+    # ---------------------
     # c0: 1d non-parallel
+    # ---------------------
+
     out0 = 0.002 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
@@ -240,7 +324,9 @@ def _cameras():
         },
     }
 
+    # -------------------------
     # c1: 1d parallel coplanar
+    # -------------------------
 
     kl = 0.02*np.linspace(-1, 1, 10)
     cents_x = cent[0] + kl * e0[0]
@@ -270,7 +356,10 @@ def _cameras():
         },
     }
 
+    # ---------------------
     # c2: 2d
+    # ---------------------
+
     out0 = 0.005 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
@@ -310,6 +399,11 @@ def _cameras():
         'cam111': copy.deepcopy(c1),
         'cam222': copy.deepcopy(c2),
     }
+
+
+# #######################################
+#              Crystals
+# #######################################
 
 
 def _crystals():
@@ -400,6 +494,11 @@ def _configurations():
     }
 
 
+# #######################################
+#              Diagnostics
+# #######################################
+
+
 def _diagnostics():
 
     # d0: single 1d camera
@@ -412,22 +511,22 @@ def _diagnostics():
     d2 = {'doptics': 'cam2'}
 
     # d3: 1d + 1 aperture
-    d3 = {'doptics': ('cam00', 'ap0')}
+    d3 = {'doptics': ['cam00', 'ap0']}
 
     # d4: 2d + 1 aperture
-    d4 = {'doptics': ('cam11', 'ap0')}
+    d4 = {'doptics': ['cam11', 'ap0']}
 
     # d5: 2d + 1 aperture
-    d5 = {'doptics': ('cam22', 'ap0')}
+    d5 = {'doptics': ['cam22', 'ap0']}
 
     # d6: 1d + multiple apertures
-    d6 = {'doptics': ('cam000', 'ap0', 'filt0', 'ap2')}
+    d6 = {'doptics': ['cam000', 'ap0', 'filt0', 'ap2']}
 
     # d7: 1d parallel coplanar + multiple apertures
-    d7 = {'doptics': ('cam111', 'ap0', 'filt0', 'ap2')}
+    d7 = {'doptics': ['cam111', 'ap0', 'filt0', 'ap2']}
 
     # d8: 2d + multiple apertures
-    d8 = {'doptics': ('cam222', 'ap0', 'filt0', 'ap2')}
+    d8 = {'doptics': ['cam222', 'ap0', 'filt0', 'ap2']}
 
     # # d9: 2d + spherical crystal
     # d9 = {'optics': ('c3','cryst0')}
@@ -437,6 +536,21 @@ def _diagnostics():
 
     # # d11: 2d + toroidal crystal + slit
     # d11 = {'optics': ('c3','cryst2', 'slit1')}
+
+    # d12: 1d collimator camera, one aperture per pixel
+    d12 = {
+        'doptics': tuple(['cam0'] + [k1 for k1 in [f'lap{ii}' for ii in range(10)]]),
+    }
+
+    # d13: 1d collimator-hybrid camera
+    d13 = {
+        'doptics': {
+            'cam0': {
+                'optics': [f'lap{ii}' for ii in range(10)] + ['ap0'],
+                'paths': np.concatenate((np.eye(10), np.ones((10, 1))), axis=1),
+            },
+        },
+    }
 
     return {
         'diag0': d0,
@@ -451,9 +565,12 @@ def _diagnostics():
         # 'd9': d9,
         # 'd10': d10,
         # 'd11': d11,
+        'd12': d12,
+        'd13': d13,
     }
 
 
+#######################################################
 #######################################################
 #
 #     Tests
@@ -501,7 +618,7 @@ class Test01_Diagnostic():
             self.obj.add_diagnostic(
                 key=k0,
                 config=conf,
-                reflections_nb=2,
+                reflections_nb=1,
                 reflections_type='specular',
                 **v0,
             )

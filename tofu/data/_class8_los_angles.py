@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
+import itertools as itt
+
+
 import numpy as np
 import scipy.interpolate as scpinterp
 from scipy.spatial import ConvexHull
-import matplotlib.pyplot as plt     # DB
+# import matplotlib.pyplot as plt     # DB
 
 
 import datastock as ds
@@ -104,8 +107,10 @@ def compute_los_angles(
         # rough estimate of vos
 
         if compute_vos_from_los is True:
+
             if ii == 0:
                 print(f"\tComputing vos from los for diag '{key}'")
+
             _vos_from_los(
                 coll=coll,
                 key=key,
@@ -148,6 +153,7 @@ def _vos_from_los(
 
     # --------------
     # check inputs
+    # --------------
 
     # res
     res = ds._generic_check._check_var(
@@ -157,8 +163,9 @@ def _vos_from_los(
         sign='>0',
     )
 
-    # --------------
+    # -----------
     # prepare
+    # -----------
 
     # lspectro
     lspectro = [
@@ -183,34 +190,39 @@ def _vos_from_los(
 
     # ----------
     # poly_cross
+    # ----------
 
     lpoly_cross = []
     lpoly_hor = []
-    lind = []
-    npix = v0['cx'].size
-    dphi = np.full((2, npix), np.nan)
-    for ii in range(v0['cx'].size):
 
-        if not v0['iok'][ii]:
+    shape0 = v0['cx'].shape
+    dphi = np.full(tuple([2] + list(shape0)), np.nan)
+    linds = [range(ss) for ss in shape0]
+
+    for ii, ind in enumerate(itt.product(*linds)):
+
+        if not v0['iok'][ind]:
             continue
 
-        lind.append(ii)
+        sli = tuple(list(ind) + [slice(None)])
 
         if not par:
-            e0 = [coll.ddata[kk]['data'][ii] for kk in ke0]
-            e1 = [coll.ddata[kk]['data'][ii] for kk in ke1]
+            e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
+            e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
             dx = out0 * e0[0] + out1 * e1[0]
             dy = out0 * e0[1] + out1 * e1[1]
             dz = out0 * e0[2] + out1 * e1[2]
 
+        # -----------------------
         # get start / end points
+
         ptsx, ptsy, ptsz = _get_rays_from_pix(
             coll=coll,
-            cx=v0['cx'][ii],
-            cy=v0['cy'][ii],
-            cz=v0['cz'][ii],
-            x0=np.r_[v0['x0'][ii, :], v0['cents0'][ii]],
-            x1=np.r_[v0['x1'][ii, :], v0['cents1'][ii]],
+            cx=v0['cx'][ind],
+            cy=v0['cy'][ind],
+            cz=v0['cz'][ind],
+            x0=np.r_[v0['x0'][sli], v0['cents0'][ind]],
+            x1=np.r_[v0['x1'][sli], v0['cents1'][ind]],
             dx=np.r_[0],
             dy=np.r_[0],
             dz=np.r_[0],
@@ -219,49 +231,65 @@ def _vos_from_los(
             config=config,
         )
 
+        # ---------
         # sampling
+
         length = np.sqrt(
             np.diff(ptsx, axis=0)**2
             + np.diff(ptsy, axis=0)**2
             + np.diff(ptsz, axis=0)**2
         )
+
         npts = int(np.ceil(np.nanmax(length) / res))
-        ind = np.linspace(0, 1, npts)
+        indi = np.linspace(0, 1, npts)
         iok = np.all(np.isfinite(ptsx), axis=0)
+
+        # -------------
+        # interpolate
+
         ptsx = scpinterp.interp1d(
             [0, 1],
             ptsx[:, iok],
             kind='linear',
             axis=0,
-        )(ind).ravel()
+        )(indi).ravel()
+
         ptsy = scpinterp.interp1d(
             [0, 1],
             ptsy[:, iok],
             kind='linear',
             axis=0,
-        )(ind).ravel()
+        )(indi).ravel()
+
         ptsz = scpinterp.interp1d(
             [0, 1],
             ptsz[:, iok],
             kind='linear',
             axis=0,
-        )(ind).ravel()
+        )(indi).ravel()
 
+        # -------
         # dphi
+
         phi = np.arctan2(ptsy, ptsx)
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
         if phimax - phimin > np.pi:
             phimin, phimax = phimax, phimin + 2.*np.pi
-        dphi[:, ii] = (phimin, phimax)
+        dphi[0, ind] = phimin
+        dphi[1, ind] = phimax
 
+        # -----------
         # poly_cross
+
         ptsr = np.hypot(ptsx, ptsy)
         convh = ConvexHull(np.array([ptsr, ptsz]).T)
         conv0 = ptsr[convh.vertices]
         conv1 = ptsz[convh.vertices]
         lpoly_cross.append((conv0, conv1))
 
+        # -----------
         # poly_hor
+
         convh = ConvexHull(np.array([ptsx, ptsy]).T)
         conv0 = ptsx[convh.vertices]
         conv1 = ptsy[convh.vertices]
@@ -269,59 +297,83 @@ def _vos_from_los(
 
     # ------------------------
     # poly_cross harmonization
+    # ------------------------
 
     lnc = [pp[0].size for pp in lpoly_cross]
     lnh = [pp[0].size for pp in lpoly_hor]
     nmaxc = np.max(lnc)
     nmaxh = np.max(lnh)
-    pcross0 = np.full((nmaxc, npix), np.nan)
-    pcross1 = np.full((nmaxc, npix), np.nan)
-    phor0 = np.full((nmaxh, npix), np.nan)
-    phor1 = np.full((nmaxh, npix), np.nan)
-    for ii, indi in enumerate(lind):
 
+    # ------------
+    # prepare
+
+    shc = tuple([nmaxc] + list(shape0))
+    shh = tuple([nmaxh] + list(shape0))
+    pcross0 = np.full(shc, np.nan)
+    pcross1 = np.full(shc, np.nan)
+    phor0 = np.full(shh, np.nan)
+    phor1 = np.full(shh, np.nan)
+
+    for ii, ind in enumerate(itt.product(*linds)):
+
+        if not v0['iok'][ind]:
+            continue
+
+        sli = tuple([slice(None)] + list(ind))
+
+        # --------
         # cross
+
         if lnc[ii] < nmaxc:
             iextra = np.linspace(0.1, 0.9, nmaxc - lnc[ii])
-            ind = np.r_[0, iextra, np.arange(1, lnc[ii])].astype(int)
-            pcross0[:, indi] = scpinterp.interp1d(
+            indi = np.r_[0, iextra, np.arange(1, lnc[ii])].astype(int)
+
+            pcross0[sli] = scpinterp.interp1d(
                 range(lnc[ii]),
                 lpoly_cross[ii][0],
                 kind='linear',
                 axis=0,
-            )(ind)
-            pcross1[:, indi] = scpinterp.interp1d(
+            )(indi)
+
+            pcross1[sli] = scpinterp.interp1d(
                 range(lnc[ii]),
                 lpoly_cross[ii][1],
                 kind='linear',
                 axis=0,
-            )(ind)
-        else:
-            pcross0[:, indi] = lpoly_cross[ii][0]
-            pcross1[:, indi] = lpoly_cross[ii][1]
+            )(indi)
 
+        else:
+            pcross0[sli] = lpoly_cross[ii][0]
+            pcross1[sli] = lpoly_cross[ii][1]
+
+        # --------
         # hor
+
         if lnh[ii] < nmaxh:
             iextra = np.linspace(0.1, 0.9, nmaxh - lnh[ii])
-            ind = np.r_[0, iextra, np.arange(1, lnh[ii])].astype(int)
-            phor0[:, indi] = scpinterp.interp1d(
+            indi = np.r_[0, iextra, np.arange(1, lnh[ii])].astype(int)
+
+            phor0[sli] = scpinterp.interp1d(
                 range(lnh[ii]),
                 lpoly_hor[ii][0],
                 kind='linear',
                 axis=0,
-            )(ind)
-            phor1[:, indi] = scpinterp.interp1d(
+            )(indi)
+
+            phor1[sli] = scpinterp.interp1d(
                 range(lnh[ii]),
                 lpoly_hor[ii][1],
                 kind='linear',
                 axis=0,
-            )(ind)
+            )(indi)
+
         else:
-            phor0[:, indi] = lpoly_hor[ii][0]
-            phor1[:, indi] = lpoly_hor[ii][1]
+            phor0[sli] = lpoly_hor[ii][0]
+            phor1[sli] = lpoly_hor[ii][1]
 
     # ----------
     # store
+    # ----------
 
     _vos_from_los_store(
         coll=coll,

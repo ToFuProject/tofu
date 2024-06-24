@@ -2,13 +2,10 @@
 
 
 import numpy as np
-import scipy.interpolate as scpinterp
 import matplotlib.pyplot as plt
 
 
 import Polygon as plg
-# from Polygon import Utils as plgUtils
-from scipy.spatial import ConvexHull
 import datastock as ds
 
 
@@ -34,7 +31,7 @@ def equivalent_apertures(
     # options
     ind_ap_lim_spectral=None,
     convex=None,
-    harmonize=None,
+    harmonize=None,     # Deprecated ?
     reshape=None,
     return_for_etendue=None,
     # plot
@@ -47,6 +44,7 @@ def equivalent_apertures(
 
     # -------------
     # check inputs
+    # -------------
 
     (
         key,
@@ -63,7 +61,7 @@ def equivalent_apertures(
         lop_post,
         lop_post_cls,
         is2d,
-        shape0,
+        # shape0,
         cx,
         cy,
         cz,
@@ -81,13 +79,14 @@ def equivalent_apertures(
     ) = _check(**locals())
 
     if pixel is None:
-        pixel = np.arange(0, cx.size)
+        pixel = np.unravel_index(np.arange(0, cx.size), cx.shape)
 
     if return_for_etendue is None:
         return_for_etendue = False
 
     # ---------------
     # Prepare optics
+    # ---------------
 
     lpoly_pre = [
         coll.get_optics_poly(
@@ -114,6 +113,7 @@ def equivalent_apertures(
 
     # -------------------
     # prepare functions
+    # -------------------
 
     # coordinate func
     coord_x01toxyz = coll.get_optics_x01toxyz(key=kref)
@@ -153,16 +153,20 @@ def equivalent_apertures(
 
     # -------------------
     # prepare output
+    # -------------------
 
     x0 = []
     x1 = []
 
     # ---------------
     # loop on pixels
+    # ---------------
 
     # dt = np.zeros((14,), dtype=float)
 
+    # -----------------------------------------
     # add pts to initial polygon only if curved
+
     if spectro:
         rcurv = np.r_[coll.dobj[cref][kref]['dgeom']['curve_r']]
         ind = ~np.isinf(rcurv)
@@ -173,13 +177,19 @@ def equivalent_apertures(
     else:
         addp0 = False
 
+    # --------------
     # intial polygon
+
     p_a = coll.get_optics_outline(key=kref, add_points=addp0)
     p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
 
-    iok = np.ones((pixel.size,), dtype=bool)
+    # ---------------
+    # start loop
 
-    for ii, ij in enumerate(pixel):
+    npix = pixel[0].size
+    shape0 = cx.shape
+    iok = np.ones(shape0, dtype=bool)
+    for ii, ij in enumerate(zip(*pixel)):
 
         # ----- DEBUG -------
         # if ij not in [1148]:
@@ -190,8 +200,8 @@ def equivalent_apertures(
         # -------------------
 
         if verb is True:
-            msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {pixel.size}"
-            end = '\n' if ii == len(pixel) - 1 else '\r'
+            msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {npix}"
+            end = '\n' if ii == npix - 1 else '\r'
             print(msg, end=end, flush=True)
 
         p0, p1 = func(
@@ -220,7 +230,7 @@ def equivalent_apertures(
 
         # convex hull
         if p0 is None or p0.size == 0:
-            iok[ii] = False
+            iok[ij] = False
 
         elif convex:
             pass
@@ -281,6 +291,7 @@ def equivalent_apertures(
             lp0=x0,
             lp1=x1,
             nmin=150 if curved else 0,
+            shape=shape0,
         )
 
     # -------------
@@ -297,46 +308,55 @@ def equivalent_apertures(
         px = np.full(x0.shape, np.nan)
         py = np.full(x0.shape, np.nan)
         pz = np.full(x0.shape, np.nan)
-        cents0 = np.full((x0.shape[0],), np.nan)
-        cents1 = np.full((x0.shape[0],), np.nan)
-        area = np.full((x0.shape[0],), np.nan)
 
-        for ii, ip in enumerate(pixel):
+        cents0 = np.full(shape0, np.nan)
+        cents1 = np.full(shape0, np.nan)
+        area = np.full(shape0, np.nan)
 
-            if not iok[ii]:
+        sli0 = np.array(list(shape0) + [slice(None)])
+        for ii, ind in enumerate(zip(*pixel)):
+
+            if not iok[ij]:
                 continue
 
-            pxi, pyi, pzi = coord_x01toxyz(x0=x0[ii, :], x1=x1[ii, :])
+            # update slice
+            sli0[:-1] = ind
+            sli = tuple(sli0)
 
+            # gt coordinates in x, y, z
+            pxi, pyi, pzi = coord_x01toxyz(x0=x0[sli], x1=x1[sli])
+
+            # derive pts on plane
             (
-                px[ii, :], py[ii, :], pz[ii, :],
+                px[sli], py[sli], pz[sli],
                 _, _, _, _, _, p0, p1,
             ) = pts2plane(
-                pts_x=cx[ii],
-                pts_y=cy[ii],
-                pts_z=cz[ii],
-                vect_x=pxi - cx[ii],
-                vect_y=pyi - cy[ii],
-                vect_z=pzi - cz[ii],
+                pts_x=cx[ind],
+                pts_y=cy[ind],
+                pts_z=cz[ind],
+                vect_x=pxi - cx[ind],
+                vect_y=pyi - cy[ind],
+                vect_z=pzi - cz[ind],
                 strict=False,
                 return_x01=True,
             )
 
             # area
-            area[ii] = plg.Polygon(np.array([p0, p1]).T).area()
+            area[ind] = plg.Polygon(np.array([p0, p1]).T).area()
 
             # centroid in 3d
-            polyi = plg.Polygon(np.array([x0[ii, :], x1[ii, :]]).T)
+            polyi = plg.Polygon(np.array([x0[sli], x1[sli]]).T)
             cent = polyi.center()
+
             if not polyi.isInside(*cent):
                 cent = _get_centroid(
-                    x0[ii, :],
-                    x1[ii, :],
+                    x0[sli],
+                    x1[sli],
                     cent,
                     debug=False,
                 )
 
-            cents0[ii], cents1[ii] = cent
+            cents0[ind], cents1[ind] = cent
 
             # --- DEBUG ---------
             # if ii in [1148]:
@@ -374,6 +394,7 @@ def equivalent_apertures(
     # reshape if necessary
     # --------------------
 
+    shape0 = cx.shape
     ntot = np.prod(shape0)
     if is2d and harmonize and reshape and x0.shape[0] == ntot:
         shape = tuple(np.r_[shape0, x0.shape[-1]])
@@ -521,15 +542,18 @@ def _check(
 
     # --------
     # key
+    # --------
 
+    # allowed
     lok = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
         if any([
-            v1['collimator']
-            or len(v1['optics']) > 0
+            len(v1['optics']) > 0
             for v1 in v0['doptics'].values()
         ])
     ]
+
+    # check
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
@@ -539,8 +563,9 @@ def _check(
 
     # -----------
     # key_cam
+    # --------
 
-    lok =coll.dobj['diagnostic'][key]['camera']
+    lok = coll.dobj['diagnostic'][key]['camera']
     key_cam = ds._generic_check._check_var(
         key_cam, 'key_cam',
         types=str,
@@ -549,21 +574,19 @@ def _check(
 
     # --------
     # doptics
+    # --------
 
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
-    collimator = doptics['collimator']
-
-    if collimator:
-        raise NotImplementedError("Collimator camera, TBF")
-
-    else:
-        optics = doptics['optics']
-        optics_cls = doptics['cls']
-
+    optics = doptics['optics']
+    optics_cls = doptics['cls']
+    pinhole = doptics['pinhole']
     ispectro = doptics.get('ispectro')
 
-    # --------
+    # safety check
+
+    # ----------
     # curvature
+    # ----------
 
     if spectro:
         clssp = optics_cls[ispectro[0]]
@@ -583,32 +606,31 @@ def _check(
 
     # -------------------------------------------------
     # ldeti: list of individual camera dict (per pixel)
+    # -------------------------------------------------
 
     dgeom = coll.dobj['camera'][key_cam]['dgeom']
     cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
     is2d = dgeom['nd'] == '2d'
-    shape0 = cx.shape
-
-    if is2d:
-        cx = cx.ravel()
-        cy = cy.ravel()
-        cz = cz.ravel()
 
     # ---------
     # pixel
+    # ---------
 
     if pixel is not None:
-        pixel = np.atleast_1d(pixel).astype(int)
-
-        if pixel.ndim == 2 and pixel.shape[1] == 2 and is2d:
-            pixel = pixel[:, 0] * shape0[1]  + pixel[:, 1]
-
-        if pixel.ndim != 1:
-            msg = "pixel can only have ndim = 2 for 2d cameras!"
-            raise Exception(msg)
+        try:
+            _ = np.empty(dgeom['shape'])[pixel]
+        except Exception as err:
+            msg = (
+                "Arg pixel must be an index applicable to camera shape\n"
+                f"\t- camera: '{key_cam}'\n"
+                f"\t- shape: {dgeom['shape']}\n"
+                f"\t- pixel: {pixel}\n"
+            )
+            raise Exception(msg) from err
 
     # ------------------------------------
     # compute equivalent optics if spectro
+    # ------------------------------------
 
     if spectro and len(optics[ispectro[0]+1:]) > 0:
 
@@ -633,11 +655,6 @@ def _check(
         else:
             raise NotImplementedError()
 
-    elif collimator:
-        raise NotImplementedError()
-        lop_post = []
-        lop_post_cls = []
-
     else:
         kref = optics[-1]
         cref = optics_cls[-1]
@@ -648,6 +665,7 @@ def _check(
 
     # -----------
     # add_points
+    # -----------
 
     add_points = ds._generic_check._check_var(
         add_points, 'add_points',
@@ -695,6 +713,7 @@ def _check(
         harmonize, 'harmonize',
         types=bool,
         default=True,
+        allowed=[True],
     )
 
     # -----------
@@ -757,7 +776,6 @@ def _check(
         lop_post,
         lop_post_cls,
         is2d,
-        shape0,
         cx,
         cy,
         cz,
