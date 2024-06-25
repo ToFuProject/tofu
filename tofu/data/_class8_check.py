@@ -98,23 +98,27 @@ def _diagnostics_check(
         # each pixel has specific optics
 
         else:
+
+            optics = np.array(doptics[cam]['optics'])
+            lcls = np.array(doptics[cam]['cls'])
             paths = doptics[cam]['paths']
+
             lind = [range(ss) for ss in dgeom_cam['shape']]
             for ind in itt.product(*lind):
 
                 sli = tuple(list(ind) + [slice(None)])
                 iop = paths[sli]
 
-                lop = doptics[cam]['optics'][iop]
-                lcls = doptics[cam]['cls'][iop]
+                lopi = optics[iop]
+                lclsi = lcls[iop]
 
-                for ii, oo in enumerate(lop):
+                for ii, oo in enumerate(lopi):
                     last_ref_cls, last_ref = _check_optic(
                         coll=coll,
                         key=key,
                         # optic
                         oo=oo,
-                        ocls=lcls[ii],
+                        ocls=lclsi[ii],
                         cam=cam,
                         is2d=is2d,
                         parallel=parallel,
@@ -328,9 +332,9 @@ def _check_doptics_basics(
 
         doptics2[k0] = {
             'camera': k0,
-            'optics': np.array(doptics[k0]['optics']),
-            'cls': np.array(lcls),
-            'pinhole': pinhole,
+            'optics': doptics[k0]['optics'],
+            'cls': lcls,
+            'pinhole': bool(pinhole),
             'paths': doptics[k0]['paths'],
             'los': None,
             'vos': None,
