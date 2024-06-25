@@ -100,7 +100,8 @@ def compute_etendue_los(
         # get equivalent apertures for all pixels
 
         (
-            x0, x1, kref, iok,
+            pinhole, optics, iref,
+            x0, x1, iok,
             px, py, pz,
             cx, cy, cz,
             cents0, cents1,
@@ -130,7 +131,7 @@ def compute_etendue_los(
 
         if spectro:
 
-            dmat = coll.dobj['crystal'][kref]['dmat']
+            dmat = coll.dobj['crystal'][optics[iref]]['dmat']
             if rocking_curve_fw is None:
                 if dmat.get('drock') is not None:
                     rocking_curve_fw = dmat['drock']['FW']
@@ -263,7 +264,7 @@ def compute_etendue_los(
             'analytical': etend0,
             'numerical': etend1,
             'res': res,
-            'kref': kref,
+            'iref': iref,
             'los_x': los_x,
             'los_y': los_y,
             'los_z': los_z,
@@ -597,7 +598,6 @@ def _loop_on_pix(
     # compute area, solid angle, los
     # ------------------------------
 
-    nd = x0.shape[0]
     lind = [range(ss) for ss in shape0]
     for ii, ind in enumerate(itt.product(*lind)):
 
@@ -698,6 +698,7 @@ def _loop_on_pix(
         + los_y * plane_nin[1]
         + los_z * plane_nin[2]
     )
+
 
     # -----------
     # surfaces

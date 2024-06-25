@@ -49,17 +49,16 @@ def equivalent_apertures(
     (
         key,
         key_cam,
-        kref,
-        cref,
+        iref,
+        pinhole,
+        paths,
         spectro,
         ispectro,
         curved,
         concave,
         curve_mult,
-        lop_pre,
-        lop_pre_cls,
-        lop_post,
-        lop_post_cls,
+        optics,
+        optics_cls,
         is2d,
         # shape0,
         cx,
@@ -88,64 +87,81 @@ def equivalent_apertures(
     # Prepare optics
     # ---------------
 
-    lpoly_pre = [
+    # polygons of optics before the spectral element
+    lpoly = [
         coll.get_optics_poly(
-            key=k0,
+            key=oo,
             mode='thr',
             add_points=add_points,
             min_threshold=min_threshold,
             return_outline=False,
         )
-        for k0 in lop_pre
+        for oo in optics
     ]
-    nop_pre = len(lop_pre)
 
-    lx01_post = [
+    # polygons of optics after the spectral element
+    lx01 = [
         coll.get_optics_outline(
-            key=k0,
+            key=oo,
             mode='thr',
             add_points=add_points,
             min_threshold=min_threshold,
         )
-        for c0, k0 in zip(lop_post_cls, lop_post)
+        for oo in optics
     ]
-    nop_post = len(lop_post)
+
+    if pinhole is True:
+        lpoly_pre = [pp for ii, pp in enumerate(lpoly) if ii < iref]
+        lx01_post = [pp for ii, pp in enumerate(lx01) if ii < iref]
 
     # -------------------
     # prepare functions
     # -------------------
 
+    # ---------------------
+    # coordinates functions
+
     # coordinate func
-    coord_x01toxyz = coll.get_optics_x01toxyz(key=kref)
-    lcoord_x01toxyz_poly = [
-        coll.get_optics_x01toxyz(key=oo)
-        for oo in lop_post
-    ]
+    lcoord_x01toxyz_poly = [coll.get_optics_x01toxyz(key=oo) for oo in optics]
+    if pinhole is True:
+        coord_x01toxyz = coll.get_optics_x01toxyz(key=optics[iref])
+        lcoord_x01toxyz_poly = [
+            coll.get_optics_x01toxyz(key=optics[ii])
+            for ii in range(iref+1, len(optics))
+        ]
 
+    # ------------
     # pts2pts func
-    if spectro:
-        pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
-        if len(lop_post) > 0:
-            cls_ap_lim = lop_post_cls[ind_ap_lim_spectral]
-            kap_lim = lop_post[ind_ap_lim_spectral]
-            dist_cryst2ap = np.linalg.norm(
-                coll.dobj[cls_ap_lim][kap_lim]['dgeom']['cent']
-                - coll.dobj[cref][kref]['dgeom']['cent']
-            )
+
+    pts2pt = None
+    dist_cryst2ap = 0.
+    if spectro is True:
+        if pinhole is True:
+            pts2pt = coll.get_optics_reflect_pts2pt(key=optics[iref])
+            if iref < len(optics) - 1:
+                cls_ap_lim = optics_cls[ind_ap_lim_spectral]
+                kap_lim = optics[ind_ap_lim_spectral]
+                dist_cryst2ap = np.linalg.norm(
+                    coll.dobj[cls_ap_lim][kap_lim]['dgeom']['cent']
+                    - coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['cent']
+                )
+
         else:
-            dist_cryst2ap = 0.
-    else:
-        pts2pt = None
-        dist_cryst2ap = None
+            lpts2pt = [
+                coll.get_optics_reflect_pts2pt(key=optics[ii]) for ii in iref
+            ]
 
+    # --------------
     # ptsvect func
-    ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
-    lptsvect_poly = [
-        coll.get_optics_reflect_ptsvect(key=oo)
-        for oo in lop_post
-    ]
 
+    lptsvect = [coll.get_optics_reflect_ptsvect(key=oo) for oo in optics]
+    if pinhole is True:
+        ptsvect = coll.get_optics_reflect_ptsvect(key=optics[iref])
+        lptsvect_post = [pp for ii, pp in enumerate(lptsvect) if ii > iref]
+
+    # ------------------------
     # equivalent aperture func
+
     if spectro:
         func = _get_equivalent_aperture_spectro
     else:
@@ -168,7 +184,8 @@ def equivalent_apertures(
     # add pts to initial polygon only if curved
 
     if spectro:
-        rcurv = np.r_[coll.dobj[cref][kref]['dgeom']['curve_r']]
+        assert pinhole is True, "How to handle spectr with pinhole = False here ?"
+        rcurv = np.r_[coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['curve_r']]
         ind = ~np.isinf(rcurv)
         if np.any(rcurv[ind] > 0):
             addp0 = add_points
@@ -176,12 +193,6 @@ def equivalent_apertures(
             addp0 = False
     else:
         addp0 = False
-
-    # --------------
-    # intial polygon
-
-    p_a = coll.get_optics_outline(key=kref, add_points=addp0)
-    p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
 
     # ---------------
     # start loop
@@ -204,19 +215,49 @@ def equivalent_apertures(
             end = '\n' if ii == npix - 1 else '\r'
             print(msg, end=end, flush=True)
 
+        # -----------------------
+        # adjust optics if needed
+
+        if pinhole is False:
+
+            sli = tuple(list(ij) + [slice(None)])
+            iop = np.nonzero(paths[sli])[0]
+
+            lpoly_pre = [lpoly[jj] for jj in iop if jj < iref[ij]]
+            lx01_post = [lx01[jj] for jj in iop if jj > iref[ij]]
+            lptsvect_post = [lptsvect[jj] for jj in iop if jj > iref[ij]]
+
+            # ref-specific
+            coord_x01toxyz = coll.get_optics_x01toxyz(key=optics[iref[ij]])
+            ptsvect = coll.get_optics_reflect_ptsvect(key=optics[iref[ij]])
+
+            # initial polygon
+            p_a = coll.get_optics_outline(key=optics[iref[ij]], add_points=addp0)
+            p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
+
+            if spectro is True:
+                pts2pt = lpts2pt[iref[ij]]
+
+        else:
+            # initial polygon
+            if ii == 0:
+                p_a = coll.get_optics_outline(key=optics[iref], add_points=addp0)
+                p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
+
+        # -------
+        # compute
+
         p0, p1 = func(
             p_a=p_a,
             pt=np.r_[cx[ij], cy[ij], cz[ij]],
-            nop_pre=nop_pre,
             lpoly_pre=lpoly_pre,
-            nop_post=nop_post,
             lx01_post=lx01_post,
             # functions
             coord_x01toxyz=coord_x01toxyz,
             lcoord_x01toxyz_poly=lcoord_x01toxyz_poly,
             pts2pt=pts2pt,
             ptsvect=ptsvect,
-            lptsvect_poly=lptsvect_poly,
+            lptsvect_poly=lptsvect_post,
             # options
             add_points=add_points,
             convex=convex,
@@ -300,10 +341,17 @@ def equivalent_apertures(
 
     if return_for_etendue is True:
 
-        pts2plane = coll.get_optics_reflect_ptsvect(
-            key=kref,
-            asplane=True,
-        )
+        # --------------
+        # get pts2plane
+
+        if pinhole is True:
+            pts2plane = coll.get_optics_reflect_ptsvect(
+                key=optics[iref],
+                asplane=True,
+            )
+
+        # ---------------
+        # initialize
 
         px = np.full(x0.shape, np.nan)
         py = np.full(x0.shape, np.nan)
@@ -311,19 +359,34 @@ def equivalent_apertures(
 
         cents0 = np.full(shape0, np.nan)
         cents1 = np.full(shape0, np.nan)
+
+        if pinhole is False:
+            centsx = np.full(shape0, np.nan)
+            centsy = np.full(shape0, np.nan)
+            centsz = np.full(shape0, np.nan)
+            plane_nin = np.full(tuple(np.r_[3, shape0]), np.nan)
+
         area = np.full(shape0, np.nan)
 
         sli0 = np.array(list(shape0) + [slice(None)])
-        for ii, ind in enumerate(zip(*pixel)):
+        for ii, ij in enumerate(zip(*pixel)):
 
             if not iok[ij]:
                 continue
 
             # update slice
-            sli0[:-1] = ind
+            sli0[:-1] = ij
             sli = tuple(sli0)
 
-            # gt coordinates in x, y, z
+            # get coordinates in x, y, z
+            if pinhole is False:
+                coord_x01toxyz = coll.get_optics_x01toxyz(key=optics[iref[ij]])
+                pts2plane = coll.get_optics_reflect_ptsvect(
+                    key=optics[iref[ij]],
+                    asplane=True,
+                )
+
+            # pts x, y, z
             pxi, pyi, pzi = coord_x01toxyz(x0=x0[sli], x1=x1[sli])
 
             # derive pts on plane
@@ -331,18 +394,18 @@ def equivalent_apertures(
                 px[sli], py[sli], pz[sli],
                 _, _, _, _, _, p0, p1,
             ) = pts2plane(
-                pts_x=cx[ind],
-                pts_y=cy[ind],
-                pts_z=cz[ind],
-                vect_x=pxi - cx[ind],
-                vect_y=pyi - cy[ind],
-                vect_z=pzi - cz[ind],
+                pts_x=cx[ij],
+                pts_y=cy[ij],
+                pts_z=cz[ij],
+                vect_x=pxi - cx[ij],
+                vect_y=pyi - cy[ij],
+                vect_z=pzi - cz[ij],
                 strict=False,
                 return_x01=True,
             )
 
             # area
-            area[ind] = plg.Polygon(np.array([p0, p1]).T).area()
+            area[ij] = plg.Polygon(np.array([p0, p1]).T).area()
 
             # centroid in 3d
             polyi = plg.Polygon(np.array([x0[sli], x1[sli]]).T)
@@ -356,7 +419,16 @@ def equivalent_apertures(
                     debug=False,
                 )
 
-            cents0[ind], cents1[ind] = cent
+            cents0[ij], cents1[ij] = cent
+
+            # x, y, z coordinates
+            if pinhole is False:
+                centsx[ij], centsy[ij], centsz[ij] = coord_x01toxyz(
+                    x0=cents0[ij],
+                    x1=cents1[ij],
+                )
+                sli = tuple([slice(None)] + list(ij))
+                plane_nin[sli] = coll.dobj[optics_cls[iref[ij]]][optics[iref[ij]]]['dgeom']['nin']
 
             # --- DEBUG ---------
             # if ii in [1148]:
@@ -371,14 +443,17 @@ def equivalent_apertures(
             #     )
             # --------------------
 
-        centsx, centsy, centsz = coord_x01toxyz(
-            x0=cents0,
-            x1=cents1,
-        )
-        # add centroid to x0, x1
+        # -------------------
+        # x, y, z coordinates
 
+        if pinhole is True:
+            centsx, centsy, centsz = coord_x01toxyz(
+                x0=cents0,
+                x1=cents1,
+            )
 
-        plane_nin = coll.dobj[cref][kref]['dgeom']['nin']
+            # add centroid to x0, x1
+            plane_nin = coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['nin']
 
         # ------ DEBUG --------
         # if True:
@@ -406,7 +481,10 @@ def equivalent_apertures(
     # -------------
 
     if plot is True:
-        out0, out1 = coll.get_optics_outline(key=kref, add_points=False)
+        if pinhole is True:
+            out0, out1 = coll.get_optics_outline(key=optics[iref], add_points=False)
+        else:
+            raise NotImplementedError()
         _plot(
             poly_x0=out0,
             poly_x1=out1,
@@ -426,7 +504,8 @@ def equivalent_apertures(
 
     if return_for_etendue:
         return (
-            x0, x1, kref, iok,
+            pinhole, optics, iref,
+            x0, x1, iok,
             px, py, pz,
             cx, cy, cz,
             cents0, cents1,
@@ -435,7 +514,7 @@ def equivalent_apertures(
             spectro, dist_cryst2ap
         )
     else:
-        return x0, x1, kref, iok
+        return x0, x1, optics[iref], iok
 
 
 def _get_centroid(p0, p1, cent, debug=None):
@@ -579,10 +658,11 @@ def _check(
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
     optics = doptics['optics']
     optics_cls = doptics['cls']
-    pinhole = doptics['pinhole']
     ispectro = doptics.get('ispectro')
 
     # safety check
+    pinhole = doptics['pinhole']
+    paths = doptics.get('paths')
 
     # ----------
     # curvature
@@ -640,28 +720,20 @@ def _check(
                 len(ispectro) == 2
                 and len(optics[ispectro[1]+1:]) == 0
             )
-
         )
 
         # apertures after crystal => reflection
         if c0:
-            kref = optics[ispectro[0]]
-            cref = optics_cls[ispectro[0]]
-            lop_pre = optics[:ispectro[0]]
-            lop_pre_cls = optics_cls[:ispectro[0]]
-            lop_post = optics[ispectro[0]+1:]
-            lop_post_cls = optics_cls[ispectro[0]+1:]
+            iref = ispectro[0]
 
         else:
             raise NotImplementedError()
 
     else:
-        kref = optics[-1]
-        cref = optics_cls[-1]
-        lop_pre = optics[:-1]
-        lop_pre_cls = optics_cls[:-1]
-        lop_post = []
-        lop_post_cls = []
+        if pinhole is True:
+            iref = len(optics)-1
+        else:
+            iref = np.max(paths * np.arange(paths.shape[-1]), axis=-1)
 
     # -----------
     # add_points
@@ -681,7 +753,7 @@ def _check(
         ind_ap_lim_spectral = int(ds._generic_check._check_var(
             ind_ap_lim_spectral, 'ind_ap_lim_spectral',
             types=(float, int),
-            default=0,
+            default=min(np.mean(iref)+1, len(optics)),
         ))
     else:
         ind_ap_lim_spectral = None
@@ -764,17 +836,16 @@ def _check(
     return (
         key,
         key_cam,
-        kref,
-        cref,
+        iref,
+        pinhole,
+        paths,
         spectro,
         ispectro,
         curved,
         concave,
         curve_mult,
-        lop_pre,
-        lop_pre_cls,
-        lop_post,
-        lop_post_cls,
+        optics,
+        optics_cls,
         is2d,
         cx,
         cy,
@@ -802,7 +873,6 @@ def _check(
 def _get_equivalent_aperture(
     p_a=None,
     pt=None,
-    nop_pre=None,
     lpoly_pre=None,
     ptsvect=None,
     # debug
@@ -811,10 +881,16 @@ def _get_equivalent_aperture(
     **kwdargs,
 ):
 
+    # --------------
     # loop on optics
+    # --------------
+
+    nop_pre = len(lpoly_pre)
     for jj in range(nop_pre):
 
+        # --------------------------
         # project on reference frame
+
         p0, p1 = ptsvect(
             pts_x=pt[0],
             pts_y=pt[1],
@@ -834,7 +910,9 @@ def _get_equivalent_aperture(
             _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
         # --------------------
 
+        # -------
         # inside
+
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             p_a = plg.Polygon(np.array([p0, p1]).T)
         else:
@@ -856,9 +934,7 @@ def _get_equivalent_aperture(
 def _get_equivalent_aperture_spectro(
     p_a=None,
     pt=None,
-    nop_pre=None,
     lpoly_pre=None,
-    nop_post=None,
     lx01_post=None,
     # functions
     coord_x01toxyz=None,
@@ -877,10 +953,16 @@ def _get_equivalent_aperture_spectro(
     debug=None,
 ):
 
+    # -----------------------------
     # loop on optics before crystal
+    # -----------------------------
+
+    nop_pre = len(lpoly_pre)
     for jj in range(nop_pre):
 
+        # --------------------------
         # project on reference frame
+
         p0, p1 = ptsvect(
             pts_x=pt[0],
             pts_y=pt[1],
@@ -892,7 +974,9 @@ def _get_equivalent_aperture_spectro(
             return_x01=True,
         )[-2:]
 
+        # ------
         # inside
+
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             p_a = plg.Polygon(np.array([p0, p1]).T)
         else:
@@ -901,14 +985,21 @@ def _get_equivalent_aperture_spectro(
             if p_a.nPoints() < 3:
                 return None, None
 
+    # --------------
     # extract p0, p1
+
     p0, p1 = np.array(p_a.contour(0)).T
 
+    # -----------------------------
     # loop on optics after crystal
-    for jj in range(nop_post):
+    # -----------------------------
+
+    for jj in range(len(lx01_post)):
         # print(f'\t {jj} / {nop_post}')      # DB
 
+        # ----------
         # reflection
+
         p0, p1 = _class5_projections._get_reflection(
             # inital contour
             x0=p0,
@@ -956,7 +1047,9 @@ def _get_equivalent_aperture_spectro(
         #     )
         # ----------------------
 
+        # ------------
         # intersection
+
         p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
         if p_a.nPoints() < 3:
             # print('\n\t \t None 1\n')       # DB

@@ -44,25 +44,17 @@ def compute_los_angles(
 
     # ------------
     # check inputs
+    # ------------
 
-    # key
-    lok = list(coll.dobj.get('diagnostic', {}))
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
-    is2d = coll.dobj['diagnostic'][key]['is2d']
-
-    # compute_vos_from_los
-    compute_vos_from_los = ds._generic_check._check_var(
-        compute_vos_from_los, 'compute_vos_from_los',
-        types=bool,
-        default=True,
+    key, is2d, compute_vos_from_los = _check(
+        coll=coll,
+        key=key,
+        compute_vos_from_los=compute_vos_from_los,
     )
 
     # ---------------
     # loop on cameras
+    # ---------------
 
     print(f"\tComputing los for diag '{key}'")
     for ii, (key_cam, v0) in enumerate(dcompute.items()):
@@ -138,6 +130,42 @@ def compute_los_angles(
 
 # ###########################################################
 # ###########################################################
+#               check
+# ###########################################################
+
+
+def _check(
+    coll=None,
+    key=None,
+    compute_vos_from_los=None,
+):
+
+    # ----------
+    # key
+
+    lok = list(coll.dobj.get('diagnostic', {}))
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    is2d = coll.dobj['diagnostic'][key]['is2d']
+
+    # ---------------------
+    # compute_vos_from_los
+
+    compute_vos_from_los = ds._generic_check._check_var(
+        compute_vos_from_los, 'compute_vos_from_los',
+        types=bool,
+        default=True,
+    )
+
+    return key, is2d, compute_vos_from_los
+
+
+# ###########################################################
+# ###########################################################
 #               VOS from LOS
 # ###########################################################
 
@@ -167,9 +195,13 @@ def _vos_from_los(
     # prepare
     # -----------
 
+    # optics
+    optics = coll.dobj['diagnostic'][key]['doptics'][key_cam]['optics']
+    pinhole = coll.dobj['diagnostic'][key]['doptics'][key_cam]['pinhole']
+
     # lspectro
     lspectro = [
-        oo for oo in coll.dobj['diagnostic'][key]['doptics'][key_cam]['optics']
+        oo for oo in optics
         if oo in coll.dobj.get('crystal', {}).keys()
         or oo in coll.dobj.get('grating', {}).keys()
     ]
@@ -187,7 +219,6 @@ def _vos_from_los(
         ke0 = dgeom['e0']
         ke1 = dgeom['e1']
 
-
     # ----------
     # poly_cross
     # ----------
@@ -202,31 +233,36 @@ def _vos_from_los(
     for ii, ind in enumerate(itt.product(*linds)):
 
         if not v0['iok'][ind]:
+            lpoly_cross.append(None)
+            lpoly_hor.append(None)
             continue
 
         sli = tuple(list(ind) + [slice(None)])
+        iref = v0['iref'] if pinhole is True else v0['iref'][ind]
 
-        if not par:
-            e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
-            e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
-            dx = out0 * e0[0] + out1 * e1[0]
-            dy = out0 * e0[1] + out1 * e1[1]
-            dz = out0 * e0[2] + out1 * e1[2]
+        # if not par:
+        #     e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
+        #     e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
+            # dx = out0 * e0[0] + out1 * e1[0]
+            # dy = out0 * e0[1] + out1 * e1[1]
+            # dz = out0 * e0[2] + out1 * e1[2]
 
         # -----------------------
         # get start / end points
 
         ptsx, ptsy, ptsz = _get_rays_from_pix(
             coll=coll,
+            # start points
             cx=v0['cx'][ind],
             cy=v0['cy'][ind],
             cz=v0['cz'][ind],
-            x0=np.r_[v0['x0'][sli], v0['cents0'][ind]],
-            x1=np.r_[v0['x1'][sli], v0['cents1'][ind]],
             dx=np.r_[0],
             dy=np.r_[0],
             dz=np.r_[0],
-            coords=coll.get_optics_x01toxyz(key=v0['kref']),
+            # end points
+            x0=np.r_[v0['x0'][sli], v0['cents0'][ind]],
+            x1=np.r_[v0['x1'][sli], v0['cents1'][ind]],
+            coords=coll.get_optics_x01toxyz(key=optics[iref]),
             lspectro=lspectro,
             config=config,
         )
@@ -285,6 +321,7 @@ def _vos_from_los(
         convh = ConvexHull(np.array([ptsr, ptsz]).T)
         conv0 = ptsr[convh.vertices]
         conv1 = ptsz[convh.vertices]
+
         lpoly_cross.append((conv0, conv1))
 
         # -----------
@@ -293,14 +330,15 @@ def _vos_from_los(
         convh = ConvexHull(np.array([ptsx, ptsy]).T)
         conv0 = ptsx[convh.vertices]
         conv1 = ptsy[convh.vertices]
+
         lpoly_hor.append((conv0, conv1))
 
     # ------------------------
     # poly_cross harmonization
     # ------------------------
 
-    lnc = [pp[0].size for pp in lpoly_cross]
-    lnh = [pp[0].size for pp in lpoly_hor]
+    lnc = [0 if pp is None else pp[0].size for pp in lpoly_cross]
+    lnh = [0 if pp is None else pp[0].size for pp in lpoly_hor]
     nmaxc = np.max(lnc)
     nmaxh = np.max(lnh)
 
@@ -502,16 +540,18 @@ def _vos_from_los_store(
 def _get_rays_from_pix(
     coll=None,
     kref=None,
+    # starting points
     cx=None,
     cy=None,
     cz=None,
-    x0=None,
-    x1=None,
     dx=None,
     dy=None,
     dz=None,
-    lspectro=None,
+    # end points
+    x0=None,
+    x1=None,
     coords=None,
+    lspectro=None,
     config=None,
 ):
 
