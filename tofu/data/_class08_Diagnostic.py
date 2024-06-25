@@ -249,6 +249,7 @@ class Diagnostic(Previous):
 
         """
 
+        # prepare computation
         dcompute, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
