@@ -184,7 +184,7 @@ def _apertures():
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=np.pi/20.,
+        theta=0.,
         phi=0.,
     )
 
@@ -194,19 +194,19 @@ def _apertures():
     e1s = np.full((npix, 3), np.nan)
     for ii, tt in enumerate(np.pi/20 * np.linspace(-1, 1, npix)):
         nins[ii, :], e0s[ii, :], e1s[ii, :] = _nine0e1_from_orientations(
-            vect=vect,
-            v0=v0,
-            v1=v1,
+            vect=nin,
+            v0=e0,
+            v1=e1,
             theta=tt,
             phi=0.,
         )
 
-    kl0 = 0.02 * np.linspace(-1, 1, npix)
-    klin = 0.01 * np.linspace(-1, 1, npix)**2
+    # kl0 = 0.02 * np.linspace(-1, 1, npix)
+    klin = 0.2
     delta = 0.05
-    cents_x = cent[0] + kl0 * e0[0] + (klin + delta) * nins[:, 0]
-    cents_y = cent[1] + kl0 * e0[1] + (klin + delta) * nins[:, 1]
-    cents_z = cent[2] + kl0 * e0[2] + (klin + delta) * nins[:, 2]
+    cents_x = cent[0] - (klin - delta) * nins[:, 0]    #  + kl0 * e0[0]
+    cents_y = cent[1] - (klin - delta) * nins[:, 1]    # + kl0 * e0[1]
+    cents_z = cent[2] - (klin - delta) * nins[:, 2]    # + kl0 * e0[2]
 
     dap3 = {
         f'lap{ii}': {
@@ -282,7 +282,7 @@ def _cameras():
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=np.pi/20.,
+        theta=0.,
         phi=0.,
     )
 
@@ -292,18 +292,19 @@ def _cameras():
     e1s = np.full((npix, 3), np.nan)
     for ii, tt in enumerate(np.pi/20 * np.linspace(-1, 1, 10)):
         nins[ii, :], e0s[ii, :], e1s[ii, :] = _nine0e1_from_orientations(
-            vect=vect,
-            v0=v0,
-            v1=v1,
+            vect=nin,
+            v0=e0,
+            v1=e1,
             theta=tt,
             phi=0.,
         )
 
-    kl0 = 0.02*np.linspace(-1, 1, 10)
-    klin = 0.01 * np.linspace(-1, 1, 10)**2
-    cents_x = cent[0] + kl0 * e0[0] + klin * nins[:, 0]
-    cents_y = cent[1] + kl0 * e0[1] + klin * nins[:, 1]
-    cents_z = cent[2] + kl0 * e0[2] + klin * nins[:, 2]
+    # kl0 = 0.02*np.linspace(-1, 1, 10)
+    # klin = 0.01 * np.linspace(-1, 1, 10)**2
+    klin = 0.2
+    cents_x = cent[0] - klin * nins[:, 0]    # + kl0 * e0[0]
+    cents_y = cent[1] - klin * nins[:, 1]    # + kl0 * e0[1]
+    cents_z = cent[2] - klin * nins[:, 2]    # + kl0 * e0[2]
 
     c0 = {
         'dgeom': {
@@ -596,26 +597,26 @@ class Test01_Diagnostic():
         ddiag = _diagnostics()
 
         # instanciate
-        self.obj = tf.data.Collection()
+        self.coll = tf.data.Collection()
 
         # add apertures
         for k0, v0 in dapertures.items():
-            self.obj.add_aperture(key=k0, **v0)
+            self.coll.add_aperture(key=k0, **v0)
 
         # add filters
         for k0, v0 in dfilters.items():
-            self.obj.add_filter(key=k0, **v0)
+            self.coll.add_filter(key=k0, **v0)
 
         # add cameras
         for k0, v0 in dcameras.items():
             if 'cam0' in k0 or 'cam1' in k0:
-                self.obj.add_camera_1d(key=k0, **v0)
+                self.coll.add_camera_1d(key=k0, **v0)
             else:
-                self.obj.add_camera_2d(key=k0, **v0)
+                self.coll.add_camera_2d(key=k0, **v0)
 
         # add diagnostics
         for k0, v0 in ddiag.items():
-            self.obj.add_diagnostic(
+            self.coll.add_diagnostic(
                 key=k0,
                 config=conf,
                 reflections_nb=1,
@@ -625,7 +626,7 @@ class Test01_Diagnostic():
 
         # add crystals
         for k0, v0 in dcrystals.items():
-            self.obj.add_crystal(key=k0, **v0)
+            self.coll.add_crystal(key=k0, **v0)
 
         # add crystal optics
         self.doptics = {}
@@ -636,7 +637,7 @@ class Test01_Diagnostic():
                 apdim = [100e-6, 8e-2] if cc != 'pinhole' else None
                 pinrad = 500e-6 if cc == 'pinhole' else None
 
-                loptics = self.obj.get_crystal_ideal_configuration(
+                loptics = self.coll.get_crystal_ideal_configuration(
                     key=k0,
                     configuration=cc,
                     # parameters
@@ -658,7 +659,7 @@ class Test01_Diagnostic():
                     loptics.append('ap0')
 
                 # add diag
-                gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
+                gtype = self.coll.dobj['crystal'][k0]['dgeom']['type']
                 if gtype not in ['toroidal']:
                     self.doptics.update({
                         f'{k0}-{ii}': loptics,
@@ -666,22 +667,22 @@ class Test01_Diagnostic():
 
         # add crystal optics
         for k0, v0 in self.doptics.items():
-            self.obj.add_diagnostic(
+            self.coll.add_diagnostic(
                 doptics=v0,
                 config=self.conf,
             )
         # add toroidal
-        # self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
+        # self.coll.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
 
     # ----------
     # tests
 
     """
     def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
-        for k0, v0 in self.obj.dobj['diagnostic'].items():
+        for k0, v0 in self.coll.dobj['diagnostic'].items():
             if len(v0['optics']) == 1 or v0['spectro'] is not False:
                 continue
-            self.obj.compute_diagnostic_etendue_los(
+            self.coll.compute_diagnostic_etendue_los(
                 key=k0,
                 res=res,
                 numerical=True,
@@ -695,20 +696,20 @@ class Test01_Diagnostic():
     def test02_get_outline(self):
 
         # apertures
-        for k0, v0 in self.obj.dobj['aperture'].items():
-            dout = self.obj.get_optics_outline(k0)
+        for k0, v0 in self.coll.dobj['aperture'].items():
+            dout = self.coll.get_optics_outline(k0)
 
         # camera
-        for k0, v0 in self.obj.dobj['camera'].items():
-            dout = self.obj.get_optics_outline(k0)
+        for k0, v0 in self.coll.dobj['camera'].items():
+            dout = self.coll.get_optics_outline(k0)
 
         # crystals
-        for k0, v0 in self.obj.dobj['crystal'].items():
-            dout = self.obj.get_optics_outline(k0)
+        for k0, v0 in self.coll.dobj['crystal'].items():
+            dout = self.coll.get_optics_outline(k0)
 
     def test03_plot(self):
-        for ii, (k0, v0) in enumerate(self.obj.dobj['diagnostic'].items()):
-            dax = self.obj.plot_diagnostic(
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+            dax = self.coll.plot_diagnostic(
                 k0,
                 data='etendue',
                 proj=(
@@ -721,14 +722,14 @@ class Test01_Diagnostic():
 
     def test04_sinogram(self):
 
-        lrays = list(self.obj.dobj['rays'].keys())
+        lrays = list(self.coll.dobj['rays'].keys())
         ldiag = [
-            k0 for k0, v0 in self.obj.dobj['diagnostic'].items()
+            k0 for k0, v0 in self.coll.dobj['diagnostic'].items()
             if any([v1.get('los') is not None for v1 in v0['doptics'].values()])
         ]
         lk = [lrays] + ldiag
         for ii, k0 in enumerate(lk):
-            dout, dax = self.obj.get_sinogram(
+            dout, dax = self.coll.get_sinogram(
                 key=k0,
                 ang='theta' if ii % 2 == 0 else 'xi',
                 ang_units='deg' if ii % 3 == 0 else 'radian',
