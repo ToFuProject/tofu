@@ -365,6 +365,7 @@ class Rays(Previous):
     def get_sinogram(
         self,
         key=None,
+        segment=None,
         # config
         config=None,
         kVes=None,
@@ -405,6 +406,7 @@ class Rays(Previous):
         return _sinogram.sinogram(
             coll=self,
             key=key,
+            segment=segment,
             # config
             config=config,
             kVes=kVes,
