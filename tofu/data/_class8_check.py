@@ -523,7 +523,7 @@ def _get_spectro_PHA(
             any([
                 k1 in coll.dobj.get('crystal', {}).keys()
                 or k1 in coll.dobj.get('grating', {}).keys()
-                for k1 in v0
+                for k1 in v0['optics']
             ])
         )
         for k0, v0 in doptics.items()
@@ -537,7 +537,7 @@ def _get_spectro_PHA(
         msg = (
             f"diag '{key}' must be either all spectro or all non-spectro!\n"
             + "\n".join([f"\t- {k0}: {v0}" for k0, v0 in dspectro.items()])
-            )
+        )
         raise Exception(msg)
 
     spectro = lc[0] is True
