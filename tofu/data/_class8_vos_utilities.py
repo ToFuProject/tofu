@@ -47,7 +47,8 @@ def _get_poly_margin(
     # add margin
     return (
         cent[0] + (1. + margin) * (p0 - cent[0]),
-        cent[1] + (1. + margin) * (p1 - cent[1]),   )
+        cent[1] + (1. + margin) * (p1 - cent[1]),
+    )
 
 
 # ###############################################
