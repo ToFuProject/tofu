@@ -112,7 +112,7 @@ def equivalent_apertures(
 
     if pinhole is True:
         lpoly_pre = [pp for ii, pp in enumerate(lpoly) if ii < iref]
-        lx01_post = [pp for ii, pp in enumerate(lx01) if ii < iref]
+        lx01_post = [pp for ii, pp in enumerate(lx01) if ii > iref]
 
     # -------------------
     # prepare functions
@@ -145,11 +145,6 @@ def equivalent_apertures(
                     coll.dobj[cls_ap_lim][kap_lim]['dgeom']['cent']
                     - coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['cent']
                 )
-
-        else:
-            lpts2pt = [
-                coll.get_optics_reflect_pts2pt(key=optics[ii]) for ii in iref
-            ]
 
     # --------------
     # ptsvect func
@@ -232,16 +227,22 @@ def equivalent_apertures(
             ptsvect = coll.get_optics_reflect_ptsvect(key=optics[iref[ij]])
 
             # initial polygon
-            p_a = coll.get_optics_outline(key=optics[iref[ij]], add_points=addp0)
+            p_a = coll.get_optics_outline(
+                key=optics[iref[ij]],
+                add_points=addp0,
+            )
             p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
 
             if spectro is True:
-                pts2pt = lpts2pt[iref[ij]]
+                pts2pt = coll.get_optics_reflect_pts2pt(key=optics[iref[ij]])
 
         else:
             # initial polygon
             if ii == 0:
-                p_a = coll.get_optics_outline(key=optics[iref], add_points=addp0)
+                p_a = coll.get_optics_outline(
+                    key=optics[iref],
+                    add_points=addp0,
+                )
                 p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
 
         # -------
@@ -1036,7 +1037,7 @@ def _get_equivalent_aperture_spectro(
             )
 
         # --- DEBUG ---------
-        # if ij in [1148]:
+        # if debug:
         #     _debug_plot(
         #         p_a=p_a,
         #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
