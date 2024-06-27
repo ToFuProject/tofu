@@ -5,7 +5,9 @@ Created on Wed Feb 14 08:12:28 2024
 @author: dvezinet
 """
 
+
 # Built-in
+import itertools as itt
 
 
 # Common
@@ -50,7 +52,7 @@ def main(
     # check inputs
     # -------------
 
-    key, is_vos, keym, res_RZ, nan0, dcolor = _check(
+    key, is_vos, observation_directions, keym, res_RZ, nan0, dcolor = _check(
         coll=coll,
         key=key,
         observation_directions=observation_directions,
@@ -150,13 +152,11 @@ def _check(
     # observation_directions
     # ------------------------
 
-    obsdef = None
-    lok = None
+    obsdef = False
     observation_directions = ds._generic_check._check_var(
         observation_directions, 'observation_directions',
         types=bool,
         default=obsdef,
-        allowed=lok,
     )
 
     # -------------
@@ -299,13 +299,26 @@ def _compute(
         for kcam, v0 in doptics.items():
 
             kindr, kindz = v0['dvos']['ind_cross']
-            for ii in range(coll.ddata[kindr]['data'].shape[0]):
 
-                iok = coll.ddata[kindr]['data'][ii, :] >= 0
+            shape_poly = coll.ddata[kindr]['data'].shape
+            lind = [range(ss) for ss in shape_poly[:-1]]
+
+            sli0 = np.asarray(list(shape_poly[:-1]) + [slice(None)])
+            sli = np.asarray(list(shape_poly[:-1]) + [slice(None)])
+
+            for ii, ij in enumerate(itt.product(*lind)):
+
+                # get rid of -1
+                sli0[:-1] = ij
+                sli[-1] = coll.ddata[kindr]['data'][tuple(sli0)] >= 0
+
+                # get indices to incremente
+                sli[:-1] = ij
                 ind = (
-                    coll.ddata[kindr]['data'][ii, iok],
-                    coll.ddata[kindz]['data'][ii, iok],
+                    coll.ddata[kindr]['data'][tuple(sli)],
+                    coll.ddata[kindz]['data'][tuple(sli)],
                 )
+
                 ndet[ind] += 1
 
     # -----------------
@@ -402,7 +415,7 @@ def _plot(
 
     if dax is None:
         if fs is None:
-            fs = (14, 9)
+            fs = (14, 7)
 
         if dmargin is None:
             dmargin = {
@@ -421,32 +434,32 @@ def _plot(
         ax0.set_title("spans", size=14, fontweight='bold')
 
         # ax1 = nb of detectors
-        ax1 = fig.add_subplot(gs[0, 9:], sharex=ax0, sharey=ax0)
+        ax1 = fig.add_subplot(gs[0, 9:-1], sharex=ax0, sharey=ax0)
         ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
         ax1.set_xlabel('R (m)', size=12, fontweight='bold')
         ax1.set_title("nb. of detectors", size=14, fontweight='bold')
 
-        cax = fig.add_subplot(gs[0, 15])
+        # colorbar
+        cax = fig.add_subplot(gs[0, -1], frameon=False)
+
         dax = {
             'span': {'handle': ax0, 'type': 'span'},
             'ndet': {'handle': ax1, 'type': 'ndet'},
             'cax': {'handle': cax, 'type': 'span_colorbar'},
         }
 
-    else:
-        fig = list(dax.values())[0].figure
-
     # --------------------
     # check / format dax
 
     dax = ds._generic_check._check_dax(dax)
+    fig = list(dax.values())[0]['handle'].figure
 
     # ---------------
     # plot ndet
     # ---------------
 
     ktype = 'ndet'
-    lax = [v0['handle'] for v0 in dax.values() if v0['type'] == ktype]
+    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
     for ax in lax:
 
         # plot
@@ -462,20 +475,20 @@ def _plot(
 
         # colorbar
         ktype2 = 'span_colorbar'
-        lcax = [v0['handle'] for v0 in dax.values() if v0['type'] == ktype2]
+        lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
         if len(lcax) == 0:
             plt.colorbar(im)
         else:
             for cax in lcax:
-                plt.colorbar(im, cax=dax['cax'])
-
+                plt.colorbar(im, cax=cax)
+                # cax.set_ylabel("nb. of detectors", size=14, fontweight='bold')
 
     # ---------------
     # plot spans
     # ---------------
 
     ktype = 'span'
-    lax = [v0['handle'] for v0 in dax.values() if v0['type'] == ktype]
+    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
     for ax in lax:
 
         for k0, v0 in dpoly.items():
@@ -494,7 +507,7 @@ def _plot(
 
     if config is not None:
         for ktype in ['span', 'ndet']:
-            lax = [v0['handle'] for v0 in dax.values() if v0['type'] == ktype]
+            lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
             for ax in lax:
                 config.plot(lax=ax, proj='cross', dLeg=False)
 
