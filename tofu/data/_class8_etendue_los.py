@@ -265,6 +265,7 @@ def compute_etendue_los(
             'numerical': etend1,
             'res': res,
             'iref': iref,
+            'optics': optics,
             'los_x': los_x,
             'los_y': los_y,
             'los_z': los_z,
@@ -583,7 +584,6 @@ def _loop_on_pix(
     # prepare data
     # -------------
 
-    nd = len(ldet)
     shape0 = cx.shape
     los_x = np.full(shape0, np.nan)
     los_y = np.full(shape0, np.nan)

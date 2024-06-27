@@ -205,19 +205,24 @@ def _vos_from_los(
         if oo in coll.dobj.get('crystal', {}).keys()
         or oo in coll.dobj.get('grating', {}).keys()
     ]
-    par = coll.dobj['camera'][key_cam]['dgeom']['parallel']
+
+    dgeom = coll.dobj['camera'][key_cam]['dgeom']
+    par = dgeom['parallel']
 
     if par:
         dx, dy, dz = coll.get_camera_dxyz(
             key=key_cam,
             include_center=True,
         )
+
     else:
-        dgeom = coll.dobj['camera'][key_cam]['dgeom']
         out0 = coll.ddata[dgeom['outline'][0]]['data']
         out1 = coll.ddata[dgeom['outline'][1]]['data']
         ke0 = dgeom['e0']
         ke1 = dgeom['e1']
+
+    if pinhole is True:
+        iref = v0['iref']
 
     # ----------
     # poly_cross
@@ -238,14 +243,15 @@ def _vos_from_los(
             continue
 
         sli = tuple(list(ind) + [slice(None)])
-        iref = v0['iref'] if pinhole is True else v0['iref'][ind]
+        if pinhole is False:
+            iref = v0['iref'][ind]
 
         # if not par:
         #     e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
         #     e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
-            # dx = out0 * e0[0] + out1 * e1[0]
-            # dy = out0 * e0[1] + out1 * e1[1]
-            # dz = out0 * e0[2] + out1 * e1[2]
+        #     dx = out0 * e0[0] + out1 * e1[0]
+        #     dy = out0 * e0[1] + out1 * e1[1]
+        #     dz = out0 * e0[2] + out1 * e1[2]
 
         # -----------------------
         # get start / end points
@@ -265,6 +271,8 @@ def _vos_from_los(
             coords=coll.get_optics_x01toxyz(key=optics[iref]),
             lspectro=lspectro,
             config=config,
+            # debug
+            key=key,
         )
 
         # ---------
@@ -318,6 +326,7 @@ def _vos_from_los(
         # poly_cross
 
         ptsr = np.hypot(ptsx, ptsy)
+
         convh = ConvexHull(np.array([ptsr, ptsz]).T)
         conv0 = ptsr[convh.vertices]
         conv1 = ptsz[convh.vertices]
@@ -553,6 +562,8 @@ def _get_rays_from_pix(
     coords=None,
     lspectro=None,
     config=None,
+    # debug
+    key=None,
 ):
 
     # pixels points (start)
@@ -659,11 +670,12 @@ def _angle_spectro(
     # ------------
     # prepare
 
-    angmin = np.full(v0['cx'].size, np.nan)
-    angmax = np.full(v0['cx'].size, np.nan)
+    angmin = np.full(v0['cx'].shape, np.nan)
+    angmax = np.full(v0['cx'].shape, np.nan)
 
-    ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
-    coords = coll.get_optics_x01toxyz(key=v0['kref'])
+    kref = v0['optics'][v0['iref']]
+    ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
+    coords = coll.get_optics_x01toxyz(key=kref)
 
     # dx, dy, dz = coll.get_camera_dxyz(
     #     key=key_cam,
@@ -680,27 +692,31 @@ def _angle_spectro(
     print(msg)
 
     # langles = []        # DB
-    for ii in range(v0['cx'].size):
+    linds = [range(ss) for ss in v0['cx'].shape]
+    for ii, ij in enumerate(itt.product(*linds)):
 
         # verb
         msg = f"\t\t\tpixel {ii+1} / {v0['cx'].size}"
         end = "\n" if ii == v0['cx'].size - 1 else "\r"
         print(msg, end=end, flush=True)
 
-        if not v0['iok'][ii]:
+        if not v0['iok'][ij]:
             continue
 
         # get 3d coordiantes of points on pixel
-        cxi = v0['cx'][ii] # + dx
-        cyi = v0['cy'][ii] # + dy
-        czi = v0['cz'][ii] # + dz
+        cxi = v0['cx'][ij] # + dx
+        cyi = v0['cy'][ij] # + dy
+        czi = v0['cz'][ij] # + dz
 
         nc = 1 # cxi.size
 
+        # slice for x0
+        sli = tuple(list(ij) + [slice(None)])
+
         # get 3d coords of points on crystal
         exi, eyi, ezi = coords(
-            v0['x0'][ii, :],
-            v0['x1'][ii, :],
+            v0['x0'][sli],
+            v0['x1'][sli],
         )
         ne = exi.size
 
@@ -723,16 +739,12 @@ def _angle_spectro(
 
         # Correct for approximation of using
         # the same projected reflection from the center for all
-        ang0 = np.nanmean(angles[:ne])
+        # ang0 = np.nanmean(angles[:ne])
         # angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
 
-        angmin[ii] = np.nanmin(angles[:ne])
-        angmax[ii] = np.nanmax(angles[:ne])
+        angmin[ij] = np.nanmin(angles[:ne])
+        angmax[ij] = np.nanmax(angles[:ne])
         # langles.append(angles)      # DB
-
-    if is2d:
-        angmin = angmin.reshape(v0['shape0'])
-        angmax = angmax.reshape(v0['shape0'])
 
     # ddata
     kamin = f'{key}_{key_cam}_amin'
