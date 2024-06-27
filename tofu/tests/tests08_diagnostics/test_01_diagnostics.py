@@ -124,9 +124,9 @@ def _apertures():
     # ap1 : planar from 3d
     # ---------------------
 
-    out0 = 0.01 * np.r_[-1, 1, 0]
-    out1 = 0.01 * np.r_[-0.5, -0.5, 0.5]
-    cent = start + 0.2 * vect
+    out0 = 0.05 * np.r_[-1, 1, 0]
+    out1 = 0.05 * np.r_[-0.5, -0.5, 0.5]
+    cent = start + 0.20 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
         v0=v0,
@@ -150,8 +150,8 @@ def _apertures():
     # ap2 : non-planar
     # ---------------------
 
-    out0 = 0.005 * np.r_[-1, 1, 2, 0, -2]
-    out1 = 0.005 * np.r_[-1, -1, 0, 1, 0]
+    out0 = 0.01 * np.r_[-1, 1, 2, 0, -2]
+    out1 = 0.01 * np.r_[-1, -1, 0, 1, 0]
     cent = start + 0.3 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
@@ -635,7 +635,7 @@ class Test01_Diagnostic():
             for ii, cc in enumerate(dconfig[k0]):
 
                 apdim = [100e-6, 8e-2] if cc != 'pinhole' else None
-                pinrad = 500e-6 if cc == 'pinhole' else None
+                pinrad = 1e-2 if cc == 'pinhole' else None
 
                 loptics = self.coll.get_crystal_ideal_configuration(
                     key=k0,
@@ -670,6 +670,7 @@ class Test01_Diagnostic():
             self.coll.add_diagnostic(
                 doptics=v0,
                 config=self.conf,
+                compute_vos_from_los=True,
             )
         # add toroidal
         # self.coll.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
@@ -741,3 +742,33 @@ class Test01_Diagnostic():
             )
             plt.close('all')
             del dax
+
+    def test05_vos(self):
+
+        # add mesh
+        key_mesh = 'm0'
+
+        if key_mesh not in self.coll.dobj.get('mesh', {}).keys():
+            self.coll.add_mesh_2d_rect(
+                key=key_mesh,
+                res=0.1,
+                crop_poly=self.conf,
+            )
+
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+
+            doptics = self.coll.dobj['diagnostic'][k0]['doptics']
+            lcam = self.coll.dobj['diagnostic'][k0]['camera']
+            if len(doptics[lcam[0]]['optics']) == 0:
+                continue
+
+            self.coll.compute_diagnostic_vos(
+                # keys
+                key_diag=k0,
+                key_mesh=key_mesh,
+                # resolution
+                res_RZ=0.05,
+                res_phi=0.03,
+                res_lamb=None,
+                store=True,
+            )
