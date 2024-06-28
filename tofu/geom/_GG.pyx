@@ -3025,7 +3025,7 @@ def integrate1d(y, double dx, t=None, str method='sum'):
     if method=='sum':
         s = np.sum(y, axis=axm)*dx
     elif method=='simps':
-        s = scpintg.simps(y, x=None, dx=dx, axis=axm)
+        s = scpintg.simpson(y, x=None, dx=dx, axis=axm)
     elif method=='romb':
         s = scpintg.romb(y, dx=dx, axis=axm, show=False)
     else:
@@ -3239,7 +3239,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                 jjp1 = indbis[ii+1]
                 val_mv = val_2d[:,jj:jjp1]
                 loc_r = reseff_mv[ii]
-                sig[:,ii] = scpintg.simps(val_mv,
+                sig[:,ii] = scpintg.simpson(val_mv,
                                              x=None, dx=loc_r, axis=-1)
         else:  # Romberg integration mode
             for ii in range(nlos):
@@ -3279,7 +3279,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
-                        sig[jj, ii] = scpintg.simps(val, x=None,
+                        sig[jj, ii] = scpintg.simpson(val, x=None,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:  # romberg integration mode
                 for ii in range(nlos):
@@ -3325,7 +3325,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], **fkwdargs)
-                        sig[jj, ii] = scpintg.simps(val, x=None,
+                        sig[jj, ii] = scpintg.simpson(val, x=None,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:  # "romberg" integration mode
                 for ii in range(nlos):
@@ -3374,7 +3374,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_vdir[:, ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
                     # integration
-                    sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
+                    sig[:, ii] = scpintg.simpson(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
             elif n_imode == 2:  # romberg integration mode
                 for ii in range(nlos):
@@ -3415,7 +3415,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:, ii:ii+1],
                                                      ray_vdir[:, ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
-                    sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
+                    sig[:, ii] = scpintg.simpson(val, x=None, axis=-1,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:  # "romberg" integration mode
                 for ii in range(nlos):
