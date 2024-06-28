@@ -249,6 +249,7 @@ class Diagnostic(Previous):
 
         """
 
+        # prepare computation
         dcompute, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
@@ -661,7 +662,9 @@ class Diagnostic(Previous):
         store=None,
         debug=None,
     ):
-        """"""
+        """ Get the equivalent projected aperture for each pixel
+        """
+
         return _equivalent_apertures.equivalent_apertures(
             coll=self,
             key=key,

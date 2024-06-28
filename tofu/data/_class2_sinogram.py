@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.gridspec import GridSpec
+from mpl_toolkits.mplot3d import Axes3D
 import datastock as ds
 
 
@@ -28,6 +29,7 @@ from . import _generic_plot
 def sinogram(
     coll=None,
     key=None,
+    segment=None,
     # config
     config=None,
     kVes=None,
@@ -60,6 +62,7 @@ def sinogram(
 
     (
         key,
+        segment,
         # config
         config,
         kVes,
@@ -74,6 +77,7 @@ def sinogram(
     ) = _check(**locals())
 
     if len(key) == 0 and config is None:
+        print('None', key, config)
         return
 
     # -----------------
@@ -92,6 +96,7 @@ def sinogram(
         dout[k0] = _compute_rays(
             coll=coll,
             kray=k0,
+            segment=segment,
             R0=R0,
             Z0=Z0,
             # options
@@ -225,6 +230,7 @@ def sinogram(
 def _check(
     coll=None,
     key=None,
+    segment=None,
     # config
     config=None,
     kVes=None,
@@ -266,22 +272,38 @@ def _check(
         allowed=ldiag + lrays,
     )
 
-    # if diag => single
-    if any([ss in ldiag for ss in key]) and len(key) != 1:
-        msg = (
-            "Arg key must be either a list of ray keys or a single diag key!\n"
-            f"Provided: {key}"
-        )
-        raise Exception(msg)
+    # # if diag => single
+    # if any([ss in ldiag for ss in key]) and len(key) != 1:
+    #     msg = (
+    #         "Arg key must be either a list of ray keys or a single diag key!\n"
+    #         f"Provided: {key}"
+    #     )
+    #     raise Exception(msg)
 
-    # convrt to list of rays
-    if key[0] in ldiag:
-        lcam = coll.dobj['diagnostic'][key[0]]['camera']
-        doptics = coll.dobj['diagnostic'][key[0]]['doptics']
-        key = [
-            doptics[k0]['los'] for k0 in lcam
-            if doptics[k0]['los'] is not None
-        ]
+    # convert to list of rays
+    if any([k0 in ldiag and k0 not in lrays for k0 in key]):
+        for ii, k0 in enumerate(key):
+            if k0 in lrays:
+                key[ii] = [k0]
+            else:
+                lcam = coll.dobj['diagnostic'][k0]['camera']
+                doptics = coll.dobj['diagnostic'][k0]['doptics']
+                key[ii] = [
+                    doptics[k1]['los'] for k1 in lcam
+                    if doptics[k1]['los'] is not None
+                ]
+
+        if any([isinstance(k0, list) for k0 in key]):
+            key = list(itt.chain.from_iterable(key))
+
+    # ------------
+    # segment
+
+    segment = ds._generic_check._check_var(
+        segment, 'segment',
+        types=int,
+        default=-1,
+    )
 
     # -------------------
     # config
@@ -352,6 +374,7 @@ def _check(
 
     return (
         key,
+        segment,
         # config
         config,
         kVes,
@@ -403,6 +426,7 @@ def _get_RZ0(
 def _compute_rays(
     coll=None,
     kray=None,
+    segment=None,
     R0=None,
     Z0=None,
     # options
@@ -412,13 +436,19 @@ def _compute_rays(
     # --------------------------------
     # compute (for first segment only)
 
+    # segment
+    seg_pts = segment
+    seg_vect = segment
+    if segment < 0:
+        seg_pts -= 1
+
     # starting points
     ptsx, ptsy, ptsz = coll.get_rays_pts(kray)
-    ptsx, ptsy, ptsz = ptsx[0, ...], ptsy[0, ...], ptsz[0, ...]
+    ptsx, ptsy, ptsz = ptsx[seg_pts, ...], ptsy[seg_pts, ...], ptsz[seg_pts, ...]
 
     # unit vectors
     vectx, vecty, vectz = coll.get_rays_vect(kray, norm=True)
-    vectx, vecty, vectz = vectx[0, ...], vecty[0, ...], vectz[0, ...]
+    vectx, vecty, vectz = vectx[seg_vect, ...], vecty[seg_vect, ...], vectz[seg_vect, ...]
     vnorm2d = np.sqrt(vectx**2 + vecty**2)
 
     # dphi
@@ -486,43 +516,61 @@ def _compute_rays(
         roots = poly.roots()
         roots = np.real(roots[np.isreal(roots)])
 
+        # positive only
+        roots = roots[roots>=0.]
+
+        # extract solution
         nsol = roots.size
         if nsol > 0:
-            if nsol > 2:
+            if nsol > 1:
                 dwarn[ind] = roots
+            roots0[ind] = roots[np.argmin(np.abs(roots))]
 
-            elif nsol <= 2:
-                roots0[ind] = roots[np.argmin(np.abs(roots))]
-
-    # -----------------------
+    # ----------
     # warnings
 
     if len(dwarn) > 0 and verb == 2:
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dwarn.items()]
-        msg = (
-            "\nSinogram computation\n"
-            f"The following rays of '{kray}' have non-unique solutions:\n"
-            + "\n".join(lstr)
+        _multiple_solutions(
+            kray=kray,
+            dwarn=dwarn,
+            warn=True,
+            # plot
+            plot=True,
+            R0=R0, Z0=Z0,
+            ptsx=ptsx, ptsy=ptsy, ptsz=ptsz,
+            vectx=vectx, vecty=vecty, vectz=vectz,
         )
-        warnings.warn(msg)
 
     # -----------------------
-    # derive impact and angle
+    # initialize output
+    # -----------------------
 
     impact = np.full(ptsx.shape, np.nan)
     ang = np.full(ptsx.shape, np.nan)
 
+    rootsx = np.full(ptsx.shape, np.nan)
+    rootsy = np.full(ptsx.shape, np.nan)
+    rootsz = np.full(ptsx.shape, np.nan)
+
+    # ---------------
+    # store
+    # ---------------
+
     iok = np.isfinite(roots0)
 
-    rootsx = ptsx[iok] + roots0[iok] * vectx[iok]
-    rootsy = ptsy[iok] + roots0[iok] * vecty[iok]
-    rootsz = ptsz[iok] + roots0[iok] * vectz[iok]
+    rootsx[iok] = ptsx[iok] + roots0[iok] * vectx[iok]
+    rootsy[iok] = ptsy[iok] + roots0[iok] * vecty[iok]
+    rootsz[iok] = ptsz[iok] + roots0[iok] * vectz[iok]
 
-    rootphi = np.arctan2(rootsy, rootsx)
+    # --------------
+    # safety check
+    # --------------
 
-    erx = rootsx - R0*np.cos(rootphi)
-    ery = rootsy - R0*np.sin(rootphi)
-    erz = rootsz - Z0
+    rootphi = np.arctan2(rootsy[iok], rootsx[iok])
+
+    erx = rootsx[iok] - R0*np.cos(rootphi)
+    ery = rootsy[iok] - R0*np.sin(rootphi)
+    erz = rootsz[iok] - Z0
 
     ern = np.sqrt(erx**2 + ery**2 + erz**2)
 
@@ -536,16 +584,20 @@ def _compute_rays(
         )
         raise Exception(msg)
 
+    # ---------------
     # impact and ang
+
     impact[iok] = ern
     ang[iok] = np.arctan2(erz, erx*np.cos(rootphi) + ery*np.sin(rootphi))
 
     # -------------
     # format ouput
+    # -------------
 
     dout = {
         'R0': R0,
         'Z0': Z0,
+        'segment': segment,
         'root_kk': roots0,
         'root_ptx': rootsx,
         'root_pty': rootsy,
@@ -557,6 +609,111 @@ def _compute_rays(
 
     return dout
 
+
+# ###############################################################
+# ###############################################################
+#            Multiple solutions
+# ###############################################################
+
+
+def _multiple_solutions(
+    kray=None,
+    dwarn=None,
+    warn=None,
+    # plot
+    plot=None,
+    R0=None,
+    Z0=None,
+    ptsx=None, ptsy=None, ptsz=None,
+    vectx=None, vecty=None, vectz=None,
+):
+
+    # ---------------------
+    # pring warning
+    # ---------------------
+
+    if warn is True:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dwarn.items()]
+        msg = (
+            "\nSinogram computation\n"
+            f"The following rays of '{kray}' have non-unique solutions:\n"
+            + "\n".join(lstr)
+        )
+        warnings.warn(msg)
+
+    # ---------------------
+    # plot
+    # ---------------------
+
+    if plot is True:
+
+        # ------------
+        # prepare data
+
+        theta = np.pi * np.linspace(-1, 1, 101)
+        tit = f"Rays from '{kray}' with multiple sinogram roots"
+
+        # --------------
+        # prepare figure
+
+        fig = plt.figure()
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection='3d')
+        ax.set_xlabel('x (m)', size=12, fontweight='bold')
+        ax.set_ylabel('y (m)', size=12, fontweight='bold')
+        ax.set_zlabel('z (m)', size=12, fontweight='bold')
+        ax.set_title(tit, size=12, fontweight='bold')
+
+        # --------------
+        # plot
+
+        # Reference
+        ax.plot(
+            R0 * np.cos(theta),
+            R0 * np.sin(theta),
+            Z0 * np.ones(theta.shape),
+            c='k',
+            ls='-',
+            marker='None',
+        )
+
+        # Lines
+        for ind, roots in dwarn.items():
+
+            # line
+            ax.plot(
+                ptsx[ind] + 1.5 * np.max(roots) * np.r_[0, 1] * vectx[ind],
+                ptsy[ind] + 1.5 * np.max(roots) * np.r_[0, 1] * vecty[ind],
+                ptsz[ind] + 1.5 * np.max(roots) * np.r_[0, 1] * vectz[ind],
+                c='k',
+                ls='-',
+                marker='None',
+            )
+
+            # roots
+            rx = ptsx[ind] + roots * vectx[ind]
+            ry = ptsy[ind] + roots * vecty[ind]
+            rz = ptsz[ind] + roots * vectz[ind]
+
+            rphi = np.arctan2(ry, rx)
+
+            erx = R0 * np.cos(rphi)
+            ery = R0 * np.sin(rphi)
+            erz = Z0 * np.ones(rx.shape)
+
+            nan = np.full(roots.shape, np.nan)
+            px = np.array([rx, erx, nan]).T.ravel()
+            py = np.array([ry, ery, nan]).T.ravel()
+            pz = np.array([rz, erz, nan]).T.ravel()
+
+            ax.plot(
+                px,
+                py,
+                pz,
+                c='r',
+                ls='-',
+            )
+
+    return
 
 
 # ###############################################################

@@ -380,8 +380,8 @@ def _camera_1d(
     # dref
 
     npts = outline_x0.size
-    knpts = f'{key}-npts'
-    knpix = f'{key}-npix'
+    knpts = f'{key}_npts'
+    knpix = f'{key}_npix'
     dref = {
         knpts: {'size': npts},
         knpix: {'size': npix},
@@ -736,10 +736,10 @@ def _camera_2d(
     # dref
 
     npts = outline_x0.size
-    knpts = f'{key}-npts'
-    knpix0 = f'{key}-npix0'
-    knpix1 = f'{key}-npix1'
-    knpix = f'{key}-npix'
+    knpts = f'{key}_npts'
+    knpix0 = f'{key}_npix0'
+    knpix1 = f'{key}_npix1'
+    knpix = f'{key}_npix'
     dref = {
         knpts: {'size': npts},
         knpix0: {'size': npix0},
@@ -750,8 +750,8 @@ def _camera_2d(
     # -------------
     # ddata
 
-    kc0 = f'{key}-c0'
-    kc1 = f'{key}-c1'
+    kc0 = f'{key}_c0'
+    kc1 = f'{key}_c1'
     kout0 = f'{key}_outx0'
     kout1 = f'{key}_outx1'
 

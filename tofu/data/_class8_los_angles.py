@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
+import itertools as itt
+
+
 import numpy as np
 import scipy.interpolate as scpinterp
 from scipy.spatial import ConvexHull
-import matplotlib.pyplot as plt     # DB
+# import matplotlib.pyplot as plt     # DB
 
 
 import datastock as ds
@@ -41,25 +44,17 @@ def compute_los_angles(
 
     # ------------
     # check inputs
+    # ------------
 
-    # key
-    lok = list(coll.dobj.get('diagnostic', {}))
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
-    is2d = coll.dobj['diagnostic'][key]['is2d']
-
-    # compute_vos_from_los
-    compute_vos_from_los = ds._generic_check._check_var(
-        compute_vos_from_los, 'compute_vos_from_los',
-        types=bool,
-        default=True,
+    key, is2d, compute_vos_from_los = _check(
+        coll=coll,
+        key=key,
+        compute_vos_from_los=compute_vos_from_los,
     )
 
     # ---------------
     # loop on cameras
+    # ---------------
 
     print(f"\tComputing los for diag '{key}'")
     for ii, (key_cam, v0) in enumerate(dcompute.items()):
@@ -104,8 +99,10 @@ def compute_los_angles(
         # rough estimate of vos
 
         if compute_vos_from_los is True:
+
             if ii == 0:
                 print(f"\tComputing vos from los for diag '{key}'")
+
             _vos_from_los(
                 coll=coll,
                 key=key,
@@ -133,6 +130,42 @@ def compute_los_angles(
 
 # ###########################################################
 # ###########################################################
+#               check
+# ###########################################################
+
+
+def _check(
+    coll=None,
+    key=None,
+    compute_vos_from_los=None,
+):
+
+    # ----------
+    # key
+
+    lok = list(coll.dobj.get('diagnostic', {}))
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    is2d = coll.dobj['diagnostic'][key]['is2d']
+
+    # ---------------------
+    # compute_vos_from_los
+
+    compute_vos_from_los = ds._generic_check._check_var(
+        compute_vos_from_los, 'compute_vos_from_los',
+        types=bool,
+        default=True,
+    )
+
+    return key, is2d, compute_vos_from_los
+
+
+# ###########################################################
+# ###########################################################
 #               VOS from LOS
 # ###########################################################
 
@@ -148,6 +181,7 @@ def _vos_from_los(
 
     # --------------
     # check inputs
+    # --------------
 
     # res
     res = ds._generic_check._check_var(
@@ -157,171 +191,236 @@ def _vos_from_los(
         sign='>0',
     )
 
-    # --------------
+    # -----------
     # prepare
+    # -----------
+
+    # optics
+    optics = coll.dobj['diagnostic'][key]['doptics'][key_cam]['optics']
+    pinhole = coll.dobj['diagnostic'][key]['doptics'][key_cam]['pinhole']
 
     # lspectro
     lspectro = [
-        oo for oo in coll.dobj['diagnostic'][key]['doptics'][key_cam]['optics']
+        oo for oo in optics
         if oo in coll.dobj.get('crystal', {}).keys()
         or oo in coll.dobj.get('grating', {}).keys()
     ]
-    par = coll.dobj['camera'][key_cam]['dgeom']['parallel']
+
+    dgeom = coll.dobj['camera'][key_cam]['dgeom']
+    par = dgeom['parallel']
 
     if par:
         dx, dy, dz = coll.get_camera_dxyz(
             key=key_cam,
             include_center=True,
         )
+
     else:
-        dgeom = coll.dobj['camera'][key_cam]['dgeom']
         out0 = coll.ddata[dgeom['outline'][0]]['data']
         out1 = coll.ddata[dgeom['outline'][1]]['data']
         ke0 = dgeom['e0']
         ke1 = dgeom['e1']
 
+    if pinhole is True:
+        iref = v0['iref']
 
     # ----------
     # poly_cross
+    # ----------
 
     lpoly_cross = []
     lpoly_hor = []
-    lind = []
-    npix = v0['cx'].size
-    dphi = np.full((2, npix), np.nan)
-    for ii in range(v0['cx'].size):
 
-        if not v0['iok'][ii]:
+    shape0 = v0['cx'].shape
+    dphi = np.full(tuple([2] + list(shape0)), np.nan)
+    linds = [range(ss) for ss in shape0]
+
+    for ii, ind in enumerate(itt.product(*linds)):
+
+        if not v0['iok'][ind]:
+            lpoly_cross.append(None)
+            lpoly_hor.append(None)
             continue
 
-        lind.append(ii)
+        sli = tuple(list(ind) + [slice(None)])
+        if pinhole is False:
+            iref = v0['iref'][ind]
 
-        if not par:
-            e0 = [coll.ddata[kk]['data'][ii] for kk in ke0]
-            e1 = [coll.ddata[kk]['data'][ii] for kk in ke1]
-            dx = out0 * e0[0] + out1 * e1[0]
-            dy = out0 * e0[1] + out1 * e1[1]
-            dz = out0 * e0[2] + out1 * e1[2]
+        # if not par:
+        #     e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
+        #     e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
+        #     dx = out0 * e0[0] + out1 * e1[0]
+        #     dy = out0 * e0[1] + out1 * e1[1]
+        #     dz = out0 * e0[2] + out1 * e1[2]
 
+        # -----------------------
         # get start / end points
+
         ptsx, ptsy, ptsz = _get_rays_from_pix(
             coll=coll,
-            cx=v0['cx'][ii],
-            cy=v0['cy'][ii],
-            cz=v0['cz'][ii],
-            x0=np.r_[v0['x0'][ii, :], v0['cents0'][ii]],
-            x1=np.r_[v0['x1'][ii, :], v0['cents1'][ii]],
+            # start points
+            cx=v0['cx'][ind],
+            cy=v0['cy'][ind],
+            cz=v0['cz'][ind],
             dx=np.r_[0],
             dy=np.r_[0],
             dz=np.r_[0],
-            coords=coll.get_optics_x01toxyz(key=v0['kref']),
+            # end points
+            x0=np.r_[v0['x0'][sli], v0['cents0'][ind]],
+            x1=np.r_[v0['x1'][sli], v0['cents1'][ind]],
+            coords=coll.get_optics_x01toxyz(key=optics[iref]),
             lspectro=lspectro,
             config=config,
+            # debug
+            key=key,
         )
 
+        # ---------
         # sampling
+
         length = np.sqrt(
             np.diff(ptsx, axis=0)**2
             + np.diff(ptsy, axis=0)**2
             + np.diff(ptsz, axis=0)**2
         )
+
         npts = int(np.ceil(np.nanmax(length) / res))
-        ind = np.linspace(0, 1, npts)
+        indi = np.linspace(0, 1, npts)
         iok = np.all(np.isfinite(ptsx), axis=0)
+
+        # -------------
+        # interpolate
+
         ptsx = scpinterp.interp1d(
             [0, 1],
             ptsx[:, iok],
             kind='linear',
             axis=0,
-        )(ind).ravel()
+        )(indi).ravel()
+
         ptsy = scpinterp.interp1d(
             [0, 1],
             ptsy[:, iok],
             kind='linear',
             axis=0,
-        )(ind).ravel()
+        )(indi).ravel()
+
         ptsz = scpinterp.interp1d(
             [0, 1],
             ptsz[:, iok],
             kind='linear',
             axis=0,
-        )(ind).ravel()
+        )(indi).ravel()
 
+        # -------
         # dphi
+
         phi = np.arctan2(ptsy, ptsx)
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
         if phimax - phimin > np.pi:
             phimin, phimax = phimax, phimin + 2.*np.pi
-        dphi[:, ii] = (phimin, phimax)
+        dphi[0, ind] = phimin
+        dphi[1, ind] = phimax
 
+        # -----------
         # poly_cross
+
         ptsr = np.hypot(ptsx, ptsy)
+
         convh = ConvexHull(np.array([ptsr, ptsz]).T)
         conv0 = ptsr[convh.vertices]
         conv1 = ptsz[convh.vertices]
+
         lpoly_cross.append((conv0, conv1))
 
+        # -----------
         # poly_hor
+
         convh = ConvexHull(np.array([ptsx, ptsy]).T)
         conv0 = ptsx[convh.vertices]
         conv1 = ptsy[convh.vertices]
+
         lpoly_hor.append((conv0, conv1))
 
     # ------------------------
     # poly_cross harmonization
+    # ------------------------
 
-    lnc = [pp[0].size for pp in lpoly_cross]
-    lnh = [pp[0].size for pp in lpoly_hor]
+    lnc = [0 if pp is None else pp[0].size for pp in lpoly_cross]
+    lnh = [0 if pp is None else pp[0].size for pp in lpoly_hor]
     nmaxc = np.max(lnc)
     nmaxh = np.max(lnh)
-    pcross0 = np.full((nmaxc, npix), np.nan)
-    pcross1 = np.full((nmaxc, npix), np.nan)
-    phor0 = np.full((nmaxh, npix), np.nan)
-    phor1 = np.full((nmaxh, npix), np.nan)
-    for ii, indi in enumerate(lind):
 
+    # ------------
+    # prepare
+
+    shc = tuple([nmaxc] + list(shape0))
+    shh = tuple([nmaxh] + list(shape0))
+    pcross0 = np.full(shc, np.nan)
+    pcross1 = np.full(shc, np.nan)
+    phor0 = np.full(shh, np.nan)
+    phor1 = np.full(shh, np.nan)
+
+    for ii, ind in enumerate(itt.product(*linds)):
+
+        if not v0['iok'][ind]:
+            continue
+
+        sli = tuple([slice(None)] + list(ind))
+
+        # --------
         # cross
+
         if lnc[ii] < nmaxc:
             iextra = np.linspace(0.1, 0.9, nmaxc - lnc[ii])
-            ind = np.r_[0, iextra, np.arange(1, lnc[ii])].astype(int)
-            pcross0[:, indi] = scpinterp.interp1d(
+            indi = np.r_[0, iextra, np.arange(1, lnc[ii])].astype(int)
+
+            pcross0[sli] = scpinterp.interp1d(
                 range(lnc[ii]),
                 lpoly_cross[ii][0],
                 kind='linear',
                 axis=0,
-            )(ind)
-            pcross1[:, indi] = scpinterp.interp1d(
+            )(indi)
+
+            pcross1[sli] = scpinterp.interp1d(
                 range(lnc[ii]),
                 lpoly_cross[ii][1],
                 kind='linear',
                 axis=0,
-            )(ind)
-        else:
-            pcross0[:, indi] = lpoly_cross[ii][0]
-            pcross1[:, indi] = lpoly_cross[ii][1]
+            )(indi)
 
+        else:
+            pcross0[sli] = lpoly_cross[ii][0]
+            pcross1[sli] = lpoly_cross[ii][1]
+
+        # --------
         # hor
+
         if lnh[ii] < nmaxh:
             iextra = np.linspace(0.1, 0.9, nmaxh - lnh[ii])
-            ind = np.r_[0, iextra, np.arange(1, lnh[ii])].astype(int)
-            phor0[:, indi] = scpinterp.interp1d(
+            indi = np.r_[0, iextra, np.arange(1, lnh[ii])].astype(int)
+
+            phor0[sli] = scpinterp.interp1d(
                 range(lnh[ii]),
                 lpoly_hor[ii][0],
                 kind='linear',
                 axis=0,
-            )(ind)
-            phor1[:, indi] = scpinterp.interp1d(
+            )(indi)
+
+            phor1[sli] = scpinterp.interp1d(
                 range(lnh[ii]),
                 lpoly_hor[ii][1],
                 kind='linear',
                 axis=0,
-            )(ind)
+            )(indi)
+
         else:
-            phor0[:, indi] = lpoly_hor[ii][0]
-            phor1[:, indi] = lpoly_hor[ii][1]
+            phor0[sli] = lpoly_hor[ii][0]
+            phor1[sli] = lpoly_hor[ii][1]
 
     # ----------
     # store
+    # ----------
 
     _vos_from_los_store(
         coll=coll,
@@ -450,17 +549,21 @@ def _vos_from_los_store(
 def _get_rays_from_pix(
     coll=None,
     kref=None,
+    # starting points
     cx=None,
     cy=None,
     cz=None,
-    x0=None,
-    x1=None,
     dx=None,
     dy=None,
     dz=None,
-    lspectro=None,
+    # end points
+    x0=None,
+    x1=None,
     coords=None,
+    lspectro=None,
     config=None,
+    # debug
+    key=None,
 ):
 
     # pixels points (start)
@@ -567,11 +670,12 @@ def _angle_spectro(
     # ------------
     # prepare
 
-    angmin = np.full(v0['cx'].size, np.nan)
-    angmax = np.full(v0['cx'].size, np.nan)
+    angmin = np.full(v0['cx'].shape, np.nan)
+    angmax = np.full(v0['cx'].shape, np.nan)
 
-    ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
-    coords = coll.get_optics_x01toxyz(key=v0['kref'])
+    kref = v0['optics'][v0['iref']]
+    ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
+    coords = coll.get_optics_x01toxyz(key=kref)
 
     # dx, dy, dz = coll.get_camera_dxyz(
     #     key=key_cam,
@@ -588,27 +692,31 @@ def _angle_spectro(
     print(msg)
 
     # langles = []        # DB
-    for ii in range(v0['cx'].size):
+    linds = [range(ss) for ss in v0['cx'].shape]
+    for ii, ij in enumerate(itt.product(*linds)):
 
         # verb
         msg = f"\t\t\tpixel {ii+1} / {v0['cx'].size}"
         end = "\n" if ii == v0['cx'].size - 1 else "\r"
         print(msg, end=end, flush=True)
 
-        if not v0['iok'][ii]:
+        if not v0['iok'][ij]:
             continue
 
         # get 3d coordiantes of points on pixel
-        cxi = v0['cx'][ii] # + dx
-        cyi = v0['cy'][ii] # + dy
-        czi = v0['cz'][ii] # + dz
+        cxi = v0['cx'][ij] # + dx
+        cyi = v0['cy'][ij] # + dy
+        czi = v0['cz'][ij] # + dz
 
         nc = 1 # cxi.size
 
+        # slice for x0
+        sli = tuple(list(ij) + [slice(None)])
+
         # get 3d coords of points on crystal
         exi, eyi, ezi = coords(
-            v0['x0'][ii, :],
-            v0['x1'][ii, :],
+            v0['x0'][sli],
+            v0['x1'][sli],
         )
         ne = exi.size
 
@@ -631,16 +739,12 @@ def _angle_spectro(
 
         # Correct for approximation of using
         # the same projected reflection from the center for all
-        ang0 = np.nanmean(angles[:ne])
+        # ang0 = np.nanmean(angles[:ne])
         # angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
 
-        angmin[ii] = np.nanmin(angles[:ne])
-        angmax[ii] = np.nanmax(angles[:ne])
+        angmin[ij] = np.nanmin(angles[:ne])
+        angmax[ij] = np.nanmax(angles[:ne])
         # langles.append(angles)      # DB
-
-    if is2d:
-        angmin = angmin.reshape(v0['shape0'])
-        angmax = angmax.reshape(v0['shape0'])
 
     # ddata
     kamin = f'{key}_{key_cam}_amin'

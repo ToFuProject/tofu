@@ -226,7 +226,7 @@ def _dmat(
         pmax = np.nanmax(power_ratio)
 
         # integrated reflectivity
-        dmat['drock']['integ_reflect'] = scpinteg.simps(
+        dmat['drock']['integ_reflect'] = scpinteg.simpson(
             power_ratio,
             x=angle_rel,
         )

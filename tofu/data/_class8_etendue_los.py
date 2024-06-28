@@ -2,6 +2,7 @@
 
 
 import warnings
+import itertools as itt
 
 
 import numpy as np
@@ -51,6 +52,7 @@ def compute_etendue_los(
 
     # ------------
     # check inputs
+    # ------------
 
     (
         key,
@@ -81,18 +83,25 @@ def compute_etendue_los(
         store=store,
     )
 
+    # -----------
+    # verb
+
     if verb is True:
         msg = f"\nComputing etendue / los for diag '{key}':"
         print(msg)
 
+    # ---------------
     # prepare optics
+    # ---------------
+
     for key_cam, v0 in dcompute.items():
 
         # ------------------------
         # get equivalent apertures for all pixels
 
         (
-            x0, x1, kref, iok,
+            pinhole, optics, iref,
+            x0, x1, iok,
             px, py, pz,
             cx, cy, cz,
             cents0, cents1,
@@ -121,7 +130,8 @@ def compute_etendue_los(
         # spectro => rocking curve
 
         if spectro:
-            dmat = coll.dobj['crystal'][kref]['dmat']
+
+            dmat = coll.dobj['crystal'][optics[iref]]['dmat']
             if rocking_curve_fw is None:
                 if dmat.get('drock') is not None:
                     rocking_curve_fw = dmat['drock']['FW']
@@ -172,25 +182,26 @@ def compute_etendue_los(
         # --------------------
         # compute analytically
 
-        nd = len(v0['ldet'])
+        shape0 = cx.shape
         if analytical is True:
-            etend0 = np.full(tuple(np.r_[3 + (spectro is True), nd]), np.nan)
+
+            etend0 = np.full(tuple(np.r_[3 + (spectro is True), shape0]), np.nan)
 
             # 0th order
-            etend0[0, :] = ap_area * det_area / distances**2
+            etend0[0, ...] = ap_area * det_area / distances**2
 
             # 1st order
-            etend0[1, :] = (
+            etend0[1, ...] = (
                 cos_los_ap * ap_area
                 * cos_los_det * det_area / distances**2
             )
 
             # 2nd order
-            etend0[2, :] = cos_los_ap * ap_area * solid_angles
+            etend0[2, ...] = cos_los_ap * ap_area * solid_angles
 
             # 3rd order for spectro
             if spectro:
-                etend0[3, :] = cos_los_ap * ap_area * solid_angles_rc
+                etend0[3, ...] = cos_los_ap * ap_area * solid_angles_rc
 
         else:
             etend0 = None
@@ -235,7 +246,7 @@ def compute_etendue_los(
         # optional plotting
 
         if plot is True:
-            dax = _plot_etendues(
+            _ = _plot_etendues(
                 etend0=etend0,
                 etend1=etend1,
                 res=res,
@@ -244,19 +255,7 @@ def compute_etendue_los(
         # --------
         # reshape
 
-        # etend0
-        if etend0 is not None and is2d:
-            etend0 = etend0.reshape(tuple(np.r_[etend0.shape[0], v0['shape0']]))
-
-        # etend1
-        if etend1 is not None and is2d:
-            etend1 = etend1.reshape(tuple(np.r_[res.size, v0['shape0']]))
-
-        # los
-        if los_x.shape != v0['shape0']:
-            los_x = los_x.reshape(v0['shape0'])
-            los_y = los_y.reshape(v0['shape0'])
-            los_z = los_z.reshape(v0['shape0'])
+        assert los_x.shape == shape0, (los_x.shape, shape0)
 
         # --------------------
         # return dict
@@ -265,7 +264,8 @@ def compute_etendue_los(
             'analytical': etend0,
             'numerical': etend1,
             'res': res,
-            'kref': kref,
+            'iref': iref,
+            'optics': optics,
             'los_x': los_x,
             'los_y': los_y,
             'los_z': los_z,
@@ -283,6 +283,7 @@ def compute_etendue_los(
 
     # ----------
     # store
+    # ----------
 
     if store is not False:
 
@@ -363,7 +364,9 @@ def _check(
 
     # --------
     # key
+    # ---------
 
+    # allowed values
     lok = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
         if any([
@@ -371,29 +374,38 @@ def _check(
             for v1 in v0['doptics'].values()
         ])
     ]
+
+    # check
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lok,
     )
 
+    # -------------
     # spectro, is2d
+
     spectro = coll.dobj['diagnostic'][key]['spectro']
     is2d = coll.dobj['diagnostic'][key]['is2d']
 
+    # --------
     # doptics
+
     doptics = coll.dobj['diagnostic'][key]['doptics']
     dcompute = {
-        k0: {'compute': v0['collimator'] or len(v0['optics']) > 0}
+        k0: {'compute': len(v0['optics']) > 0}
         for k0, v0 in doptics.items()
     }
 
     # -------------------------------------------------
     # ldeti: list of individual camera dict (per pixel)
+    # -------------------------------------------------
 
     for k0, v0 in doptics.items():
 
         dgeom = coll.dobj['camera'][k0]['dgeom']
+        lind = [range(ss) for ss in dgeom['shape']]
+
         cx, cy, cz = coll.get_camera_cents_xyz(key=k0)
         dvect = coll.get_camera_unit_vectors(key=k0)
         outline = dgeom['outline']
@@ -401,37 +413,30 @@ def _check(
         out1 = coll.ddata[outline[1]]['data']
         is2d = dgeom['nd'] == '2d'
         par = dgeom['parallel']
-        dcompute[k0]['shape0'] = cx.shape
-
-        if is2d:
-            cx = cx.ravel()
-            cy = cy.ravel()
-            cz = cz.ravel()
-
-        nd = cx.size
 
         dcompute[k0]['ldet'] = [
             {
-                'cents_x': cx[ii],
-                'cents_y': cy[ii],
-                'cents_z': cz[ii],
+                'cents_x': cx[ind],
+                'cents_y': cy[ind],
+                'cents_z': cz[ind],
                 'outline_x0': out0,
                 'outline_x1': out1,
-                'nin_x': dvect['nin_x'] if par else dvect['nin_x'][ii],
-                'nin_y': dvect['nin_y'] if par else dvect['nin_y'][ii],
-                'nin_z': dvect['nin_z'] if par else dvect['nin_z'][ii],
-                'e0_x': dvect['e0_x'] if par else dvect['e0_x'][ii],
-                'e0_y': dvect['e0_y'] if par else dvect['e0_y'][ii],
-                'e0_z': dvect['e0_z'] if par else dvect['e0_z'][ii],
-                'e1_x': dvect['e1_x'] if par else dvect['e1_x'][ii],
-                'e1_y': dvect['e1_y'] if par else dvect['e1_y'][ii],
-                'e1_z': dvect['e1_z'] if par else dvect['e1_z'][ii],
+                'nin_x': dvect['nin_x'] if par else dvect['nin_x'][ind],
+                'nin_y': dvect['nin_y'] if par else dvect['nin_y'][ind],
+                'nin_z': dvect['nin_z'] if par else dvect['nin_z'][ind],
+                'e0_x': dvect['e0_x'] if par else dvect['e0_x'][ind],
+                'e0_y': dvect['e0_y'] if par else dvect['e0_y'][ind],
+                'e0_z': dvect['e0_z'] if par else dvect['e0_z'][ind],
+                'e1_x': dvect['e1_x'] if par else dvect['e1_x'][ind],
+                'e1_y': dvect['e1_y'] if par else dvect['e1_y'][ind],
+                'e1_z': dvect['e1_z'] if par else dvect['e1_z'][ind],
             }
-            for ii in range(nd)
+            for ind in itt.product(*lind)
         ]
 
     # -----------
     # analytical
+    # -----------
 
     analytical = ds._generic_check._check_var(
         analytical, 'analytical',
@@ -441,6 +446,7 @@ def _check(
 
     # -----------
     # numerical
+    # -----------
 
     numerical = ds._generic_check._check_var(
         numerical, 'numerical',
@@ -451,12 +457,14 @@ def _check(
 
     # -----------
     # res
+    # -----------
 
     if res is not None:
         res = np.atleast_1d(res).ravel()
 
     # -----------
     # margin_par
+    # -----------
 
     margin_par = ds._generic_check._check_var(
         margin_par, 'margin_par',
@@ -466,6 +474,7 @@ def _check(
 
     # -----------
     # margin_perp
+    # -----------
 
     margin_perp = ds._generic_check._check_var(
         margin_perp, 'margin_perp',
@@ -475,6 +484,7 @@ def _check(
 
     # -----------
     # check
+    # -----------
 
     check = ds._generic_check._check_var(
         check, 'check',
@@ -484,6 +494,7 @@ def _check(
 
     # -----------
     # verb
+    # -----------
 
     verb = ds._generic_check._check_var(
         verb, 'verb',
@@ -493,6 +504,7 @@ def _check(
 
     # -----------
     # plot
+    # -----------
 
     if plot is None:
         plot = True
@@ -502,12 +514,14 @@ def _check(
 
     # -----------
     # store
+    # -----------
 
     lok = [False]
     if analytical is True:
         lok.append('analytical')
     if numerical is True:
         lok.append('numerical')
+
     store = ds._generic_check._check_var(
         store, 'store',
         default=lok[-1],
@@ -566,34 +580,38 @@ def _loop_on_pix(
     res=None,
 ):
 
+    # -------------
     # prepare data
-    nd = len(ldet)
-    los_x = np.full((nd,), np.nan)
-    los_y = np.full((nd,), np.nan)
-    los_z = np.full((nd,), np.nan)
-    solid_angles = np.zeros((nd,), dtype=float)
-    solid_angles_rc = np.zeros((nd,), dtype=float)
-    cos_los_det = np.full((nd,), np.nan)
-    distances = np.full((nd,), np.nan)
-    mindiff = np.full((nd,), np.nan)
+    # -------------
 
-    # -------------------------
+    shape0 = cx.shape
+    los_x = np.full(shape0, np.nan)
+    los_y = np.full(shape0, np.nan)
+    los_z = np.full(shape0, np.nan)
+    solid_angles = np.zeros(shape0, dtype=float)
+    solid_angles_rc = np.zeros(shape0, dtype=float)
+    cos_los_det = np.full(shape0, np.nan)
+    distances = np.full(shape0, np.nan)
+    mindiff = np.full(shape0, np.nan)
+
+    # ------------------------------
     # compute area, solid angle, los
+    # ------------------------------
 
-    nd = x0.shape[0]
-    for ii in range(nd):
+    lind = [range(ss) for ss in shape0]
+    for ii, ind in enumerate(itt.product(*lind)):
 
-        if not iok[ii]:
+        if not iok[ind]:
             continue
 
         # ------------
         # solid angles
 
-        solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
+        solid_angles[ind] = _comp_solidangles.calc_solidangle_apertures(
             # observation points
-            pts_x=centsx[ii],
-            pts_y=centsy[ii],
-            pts_z=centsz[ii],
+            pts_x=centsx[ind],
+            pts_y=centsy[ind],
+            pts_z=centsz[ind],
             # polygons
             apertures=None,
             detectors=ldet[ii],
@@ -606,23 +624,28 @@ def _loop_on_pix(
             timing=False,
         )[0, 0]
 
+        # -------------
         # rocking curve
+
         if spectro:
+
             out0 = ldet[ii]['outline_x0']
             width0 = np.max(np.abs(np.diff(out0)))
             dist = np.sqrt(
-                (centsx[ii] - ldet[ii]['cents_x'])**2
-                + (centsy[ii] - ldet[ii]['cents_y'])**2
-                + (centsz[ii] - ldet[ii]['cents_z'])**2
+                (centsx[ind] - ldet[ii]['cents_x'])**2
+                + (centsy[ind] - ldet[ii]['cents_y'])**2
+                + (centsz[ind] - ldet[ii]['cents_z'])**2
             )
+
             withrc = dist * rocking_curve_fw * (dist + dist_cryst2ap / dist)
             out0_norm = out0 / width0
             ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
-            solid_angles_rc[ii] = _comp_solidangles.calc_solidangle_apertures(
+
+            solid_angles_rc[ind] = _comp_solidangles.calc_solidangle_apertures(
                 # observation points
-                pts_x=centsx[ii],
-                pts_y=centsy[ii],
-                pts_z=centsz[ii],
+                pts_x=centsx[ind],
+                pts_y=centsy[ind],
+                pts_z=centsz[ind],
                 # polygons
                 apertures=None,
                 detectors=ldet[ii],
@@ -635,8 +658,9 @@ def _loop_on_pix(
                 timing=False,
             )[0, 0]
 
-    # -----------
+    # -------------
     # rocking curve
+    # -------------
 
     if spectro:
         solid_angles_rc *= rocking_curve_max
@@ -645,6 +669,7 @@ def _loop_on_pix(
 
     # -------------
     # normalize los
+    # -------------
 
     los_x = centsx - cx
     los_y = centsy - cy
@@ -658,12 +683,13 @@ def _loop_on_pix(
 
     # ------
     # angles
+    # ------
 
-    for ii in range(nd):
-        cos_los_det[ii] = (
-            los_x[ii] * ldet[ii]['nin_x']
-            + los_y[ii] * ldet[ii]['nin_y']
-            + los_z[ii] * ldet[ii]['nin_z']
+    for ii, ind in enumerate(itt.product(*lind)):
+        cos_los_det[ind] = (
+            los_x[ind] * ldet[ii]['nin_x']
+            + los_y[ind] * ldet[ii]['nin_y']
+            + los_z[ind] * ldet[ii]['nin_z']
         )
 
     # abs() because for spectro nin is the other way around
@@ -673,8 +699,10 @@ def _loop_on_pix(
         + los_z * plane_nin[2]
     )
 
+
     # -----------
     # surfaces
+    # -----------
 
     # det
     if ldet[0].get('pix_area') is None:
@@ -682,11 +710,13 @@ def _loop_on_pix(
             ldet[0]['outline_x0'],
             ldet[0]['outline_x1'],
         ]).T).area()
+
     else:
         det_area = ldet[0]['pix_area']
 
     # -------------------------------------
     # det outline discretization resolution
+    # -------------------------------------
 
     if res is None:
 

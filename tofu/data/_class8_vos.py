@@ -782,7 +782,7 @@ def _store(
                     coll.remove_data(key=v0[k1]['key'])
                 else:
                     msg = (
-                        f"Not overwriting existing data '{k1}'\n"
+                        f"Not overwriting existing data '{v0[k1]['key']}'\n"
                         "To force update use overwrite = True"
                     )
                     raise Exception(msg)

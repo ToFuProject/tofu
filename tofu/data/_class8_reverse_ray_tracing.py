@@ -182,9 +182,9 @@ def _from_pts(
     if len(shape) > 1:
         shape_new = tuple(np.r_[shape_cam, shape])
         for k0 in ['sang']:
-            dout[k0] = dout[k0].reshape(shape_new)
+            dout[k0]['data'] = dout[k0]['data'].reshape(shape_new)
         for k0 in ['sang0']:
-            dout[k0] = dout[k0].reshape(shape_new)
+            dout[k0]['data'] = dout[k0]['data'].reshape(shape_new)
 
     # -------
     # plot
@@ -456,9 +456,17 @@ def _prepare_optics(
     key_cam=None,
 ):
 
+    # -----------------------
+    # get optics and classes
+    # -----------------------
+
     doptics = coll.dobj['diagnostic'][key]['doptics']
     lop = doptics[key_cam]['optics']
     lop, lcls = coll.get_optics_cls(lop)
+
+    # ------------------
+    # safety check
+    # ------------------
 
     cls_spectro = 'crystal'
     kspectro = lop[lcls.index(cls_spectro)]
@@ -466,6 +474,10 @@ def _prepare_optics(
     if len(lop[:ispectro]) > 1:
         msg = "Not yet implemented optics between crystal and camera!"
         raise NotImplementedError(msg)
+
+    # ------------------
+    # list of polygons post crystal
+    # ------------------
 
     # lpoly_post = []
     lpoly_post = [
@@ -477,15 +489,21 @@ def _prepare_optics(
         for k0 in lop[ispectro+1:]
     ]
 
-    # get initial polygon
+    # get initial polygon of crystal
     p0x, p0y, p0z = coll.get_optics_poly(key=kspectro, add_points=None)
 
-    # unit vectors
+    # ------------------
+    # unit vectors of crystal
+    # ------------------
+
     nin = coll.dobj[cls_spectro][kspectro]['dgeom']['nin']
     e0 = coll.dobj[cls_spectro][kspectro]['dgeom']['e0']
     e1 = coll.dobj[cls_spectro][kspectro]['dgeom']['e1']
 
-    # get functions
+    # ------------------
+    # get functions for crystal and camera
+    # ------------------
+
     ptsvect_plane = coll.get_optics_reflect_ptsvect(key=kspectro, asplane=True)
     ptsvect_spectro = coll.get_optics_reflect_ptsvect(key=kspectro, isnorm=True)
     ptsvect_cam = coll.get_optics_reflect_ptsvect(key=key_cam, fast=True)
@@ -495,13 +513,19 @@ def _prepare_optics(
         asplane=True,
     )
 
+    # ------------------
     # Get centers of crystal and camera to estimate distance
+    # ------------------
+
     cent_spectro = coll.dobj[cls_spectro][kspectro]['dgeom']['cent']
     cent_cam = coll.dobj['camera'][key_cam]['dgeom']['cent']
     dist_to_cam = np.linalg.norm(cent_spectro - cent_cam)
     pix_size = np.sqrt(coll.dobj['camera'][key_cam]['dgeom']['pix_area'])
 
+    # ------------------
     # prepare camera bin edges
+    # ------------------
+
     kcc = coll.dobj['camera'][key_cam]['dgeom']['cents']
     cc0 = coll.ddata[kcc[0]]['data']
     cc1 = coll.ddata[kcc[1]]['data']

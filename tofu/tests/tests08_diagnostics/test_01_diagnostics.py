@@ -26,6 +26,7 @@ sys.path.pop(0)
 
 
 #######################################################
+#######################################################
 #
 #     Setup and Teardown
 #
@@ -40,6 +41,7 @@ def teardown_module():
     pass
 
 
+#######################################################
 #######################################################
 #
 #     Utilities routines
@@ -85,11 +87,19 @@ def _nine0e1_from_orientations(
     return nin, e0, e1
 
 
+# #######################################
+#              Apertures
+# #######################################
+
+
 def _apertures():
 
     start, vect, v0, v1 = _ref_line()
 
+    # -------------------------
     # ap0 : planar from outline
+    # -------------------------
+
     out0 = 0.01 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.15 * vect
@@ -100,6 +110,7 @@ def _apertures():
         theta=np.pi/10.,
         phi=0.,
     )
+
     ap0 = {
         'outline_x0': out0,
         'outline_x1': out1,
@@ -109,10 +120,13 @@ def _apertures():
         'e1': e1,
     }
 
+    # ---------------------
     # ap1 : planar from 3d
-    out0 = 0.01 * np.r_[-1, 1, 0]
-    out1 = 0.01 * np.r_[-0.5, -0.5, 0.5]
-    cent = start + 0.2 * vect
+    # ---------------------
+
+    out0 = 0.05 * np.r_[-1, 1, 0]
+    out1 = 0.05 * np.r_[-0.5, -0.5, 0.5]
+    cent = start + 0.20 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
         v0=v0,
@@ -132,9 +146,12 @@ def _apertures():
         'nin': nin,
     }
 
+    # ---------------------
     # ap2 : non-planar
-    out0 = 0.005 * np.r_[-1, 1, 2, 0, -2]
-    out1 = 0.005 * np.r_[-1, -1, 0, 1, 0]
+    # ---------------------
+
+    out0 = 0.01 * np.r_[-1, 1, 2, 0, -2]
+    out1 = 0.01 * np.r_[-1, -1, 0, 1, 0]
     cent = start + 0.3 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
@@ -156,7 +173,66 @@ def _apertures():
         'nin': nin,
     }
 
-    return {'ap0': ap0, 'ap1': ap1, 'ap2': ap2}
+    # ----------------------------------
+    # lap : non-planar for collimator
+    # ----------------------------------
+
+    out0 = 0.005 * np.r_[-1, 1, 1, -1]
+    out1 = 0.003 * np.r_[-1, -1, 1, 1]
+
+    nin, e0, e1 = _nine0e1_from_orientations(
+        vect=vect,
+        v0=v0,
+        v1=v1,
+        theta=0.,
+        phi=0.,
+    )
+
+    npix = 10
+    nins = np.full((npix, 3), np.nan)
+    e0s = np.full((npix, 3), np.nan)
+    e1s = np.full((npix, 3), np.nan)
+    for ii, tt in enumerate(np.pi/20 * np.linspace(-1, 1, npix)):
+        nins[ii, :], e0s[ii, :], e1s[ii, :] = _nine0e1_from_orientations(
+            vect=nin,
+            v0=e0,
+            v1=e1,
+            theta=tt,
+            phi=0.,
+        )
+
+    # kl0 = 0.02 * np.linspace(-1, 1, npix)
+    klin = 0.2
+    delta = 0.05
+    cents_x = cent[0] - (klin - delta) * nins[:, 0]    #  + kl0 * e0[0]
+    cents_y = cent[1] - (klin - delta) * nins[:, 1]    # + kl0 * e0[1]
+    cents_z = cent[2] - (klin - delta) * nins[:, 2]    # + kl0 * e0[2]
+
+    dap3 = {
+        f'lap{ii}': {
+            'outline_x0': out0,
+            'outline_x1': out1,
+            'cent': np.r_[cents_x[ii], cents_y[ii], cents_z[ii]],
+            'nin': nins[ii, :],
+            'e0': e0s[ii, :],
+            'e1': e1s[ii, :],
+        }
+        for ii in range(npix)
+    }
+
+    # ------------
+    # dout
+    # -------------
+
+    dout = {'ap0': ap0, 'ap1': ap1, 'ap2': ap2}
+    dout.update(dap3)
+
+    return dout
+
+
+# #######################################
+#              Filters
+# #######################################
 
 
 def _filters():
@@ -185,11 +261,19 @@ def _filters():
     }
 
 
+# #######################################
+#              Cameras
+# #######################################
+
+
 def _cameras():
 
     start, vect, v0, v1 = _ref_line()
 
+    # ---------------------
     # c0: 1d non-parallel
+    # ---------------------
+
     out0 = 0.002 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
@@ -198,7 +282,7 @@ def _cameras():
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=np.pi/20.,
+        theta=0.,
         phi=0.,
     )
 
@@ -208,18 +292,19 @@ def _cameras():
     e1s = np.full((npix, 3), np.nan)
     for ii, tt in enumerate(np.pi/20 * np.linspace(-1, 1, 10)):
         nins[ii, :], e0s[ii, :], e1s[ii, :] = _nine0e1_from_orientations(
-            vect=vect,
-            v0=v0,
-            v1=v1,
+            vect=nin,
+            v0=e0,
+            v1=e1,
             theta=tt,
             phi=0.,
         )
 
-    kl0 = 0.02*np.linspace(-1, 1, 10)
-    klin = 0.01 * np.linspace(-1, 1, 10)**2
-    cents_x = cent[0] + kl0 * e0[0] + klin * nins[:, 0]
-    cents_y = cent[1] + kl0 * e0[1] + klin * nins[:, 1]
-    cents_z = cent[2] + kl0 * e0[2] + klin * nins[:, 2]
+    # kl0 = 0.02*np.linspace(-1, 1, 10)
+    # klin = 0.01 * np.linspace(-1, 1, 10)**2
+    klin = 0.2
+    cents_x = cent[0] - klin * nins[:, 0]    # + kl0 * e0[0]
+    cents_y = cent[1] - klin * nins[:, 1]    # + kl0 * e0[1]
+    cents_z = cent[2] - klin * nins[:, 2]    # + kl0 * e0[2]
 
     c0 = {
         'dgeom': {
@@ -240,7 +325,9 @@ def _cameras():
         },
     }
 
+    # -------------------------
     # c1: 1d parallel coplanar
+    # -------------------------
 
     kl = 0.02*np.linspace(-1, 1, 10)
     cents_x = cent[0] + kl * e0[0]
@@ -270,7 +357,10 @@ def _cameras():
         },
     }
 
+    # ---------------------
     # c2: 2d
+    # ---------------------
+
     out0 = 0.005 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
@@ -309,7 +399,14 @@ def _cameras():
         'cam000': copy.deepcopy(c0),
         'cam111': copy.deepcopy(c1),
         'cam222': copy.deepcopy(c2),
+        'cam0000': copy.deepcopy(c0),
+        'cam00000': copy.deepcopy(c0),
     }
+
+
+# #######################################
+#              Crystals
+# #######################################
 
 
 def _crystals():
@@ -400,6 +497,11 @@ def _configurations():
     }
 
 
+# #######################################
+#              Diagnostics
+# #######################################
+
+
 def _diagnostics():
 
     # d0: single 1d camera
@@ -412,22 +514,22 @@ def _diagnostics():
     d2 = {'doptics': 'cam2'}
 
     # d3: 1d + 1 aperture
-    d3 = {'doptics': ('cam00', 'ap0')}
+    d3 = {'doptics': ['cam00', 'ap0']}
 
     # d4: 2d + 1 aperture
-    d4 = {'doptics': ('cam11', 'ap0')}
+    d4 = {'doptics': ['cam11', 'ap0']}
 
     # d5: 2d + 1 aperture
-    d5 = {'doptics': ('cam22', 'ap0')}
+    d5 = {'doptics': ['cam22', 'ap0']}
 
     # d6: 1d + multiple apertures
-    d6 = {'doptics': ('cam000', 'ap0', 'filt0', 'ap2')}
+    d6 = {'doptics': ['cam000', 'ap0', 'filt0', 'ap2']}
 
     # d7: 1d parallel coplanar + multiple apertures
-    d7 = {'doptics': ('cam111', 'ap0', 'filt0', 'ap2')}
+    d7 = {'doptics': ['cam111', 'ap0', 'filt0', 'ap2']}
 
     # d8: 2d + multiple apertures
-    d8 = {'doptics': ('cam222', 'ap0', 'filt0', 'ap2')}
+    d8 = {'doptics': ['cam222', 'ap0', 'filt0', 'ap2']}
 
     # # d9: 2d + spherical crystal
     # d9 = {'optics': ('c3','cryst0')}
@@ -437,6 +539,21 @@ def _diagnostics():
 
     # # d11: 2d + toroidal crystal + slit
     # d11 = {'optics': ('c3','cryst2', 'slit1')}
+
+    # d12: 1d collimator camera, one aperture per pixel
+    d12 = {
+        'doptics': tuple(['cam0000'] + [k1 for k1 in [f'lap{ii}' for ii in range(10)]]),
+    }
+
+    # d13: 1d collimator-hybrid camera
+    d13 = {
+        'doptics': {
+            'cam00000': {
+                'optics': [f'lap{ii}' for ii in range(10)] + ['ap0'],
+                'paths': np.concatenate((np.eye(10), np.ones((10, 1))), axis=1),
+            },
+        },
+    }
 
     return {
         'diag0': d0,
@@ -451,9 +568,12 @@ def _diagnostics():
         # 'd9': d9,
         # 'd10': d10,
         # 'd11': d11,
+        'd12': d12,
+        'd13': d13,
     }
 
 
+#######################################################
 #######################################################
 #
 #     Tests
@@ -479,36 +599,36 @@ class Test01_Diagnostic():
         ddiag = _diagnostics()
 
         # instanciate
-        self.obj = tf.data.Collection()
+        self.coll = tf.data.Collection()
 
         # add apertures
         for k0, v0 in dapertures.items():
-            self.obj.add_aperture(key=k0, **v0)
+            self.coll.add_aperture(key=k0, **v0)
 
         # add filters
         for k0, v0 in dfilters.items():
-            self.obj.add_filter(key=k0, **v0)
+            self.coll.add_filter(key=k0, **v0)
 
         # add cameras
         for k0, v0 in dcameras.items():
             if 'cam0' in k0 or 'cam1' in k0:
-                self.obj.add_camera_1d(key=k0, **v0)
+                self.coll.add_camera_1d(key=k0, **v0)
             else:
-                self.obj.add_camera_2d(key=k0, **v0)
+                self.coll.add_camera_2d(key=k0, **v0)
 
         # add diagnostics
         for k0, v0 in ddiag.items():
-            self.obj.add_diagnostic(
+            self.coll.add_diagnostic(
                 key=k0,
                 config=conf,
-                reflections_nb=2,
+                reflections_nb=1,
                 reflections_type='specular',
                 **v0,
             )
 
         # add crystals
         for k0, v0 in dcrystals.items():
-            self.obj.add_crystal(key=k0, **v0)
+            self.coll.add_crystal(key=k0, **v0)
 
         # add crystal optics
         self.doptics = {}
@@ -517,9 +637,9 @@ class Test01_Diagnostic():
             for ii, cc in enumerate(dconfig[k0]):
 
                 apdim = [100e-6, 8e-2] if cc != 'pinhole' else None
-                pinrad = 500e-6 if cc == 'pinhole' else None
+                pinrad = 1e-2 if cc == 'pinhole' else None
 
-                loptics = self.obj.get_crystal_ideal_configuration(
+                loptics = self.coll.get_crystal_ideal_configuration(
                     key=k0,
                     configuration=cc,
                     # parameters
@@ -529,7 +649,7 @@ class Test01_Diagnostic():
                     focal_distance=2.,
                     # store
                     store=True,
-                    key_cam=f'{k0}-cam{ii}',
+                    key_cam=f'{k0}_cam{ii}',
                     aperture_dimensions=apdim,
                     pinhole_radius=pinrad,
                     cam_pixels_nb=[5, 3],
@@ -537,34 +657,35 @@ class Test01_Diagnostic():
                     returnas=list,
                 )
 
-                if 'cryst1-slit' in loptics:
+                if 'cryst1_slit' in loptics:
                     loptics.append('ap0')
 
                 # add diag
-                gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
+                gtype = self.coll.dobj['crystal'][k0]['dgeom']['type']
                 if gtype not in ['toroidal']:
                     self.doptics.update({
-                        f'{k0}-{ii}': loptics,
+                        f'{k0}_{ii}': loptics,
                     })
 
         # add crystal optics
         for k0, v0 in self.doptics.items():
-            self.obj.add_diagnostic(
+            self.coll.add_diagnostic(
                 doptics=v0,
                 config=self.conf,
+                compute_vos_from_los=True,
             )
         # add toroidal
-        # self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
+        # self.coll.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
 
     # ----------
     # tests
 
     """
     def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
-        for k0, v0 in self.obj.dobj['diagnostic'].items():
+        for k0, v0 in self.coll.dobj['diagnostic'].items():
             if len(v0['optics']) == 1 or v0['spectro'] is not False:
                 continue
-            self.obj.compute_diagnostic_etendue_los(
+            self.coll.compute_diagnostic_etendue_los(
                 key=k0,
                 res=res,
                 numerical=True,
@@ -578,20 +699,20 @@ class Test01_Diagnostic():
     def test02_get_outline(self):
 
         # apertures
-        for k0, v0 in self.obj.dobj['aperture'].items():
-            dout = self.obj.get_optics_outline(k0)
+        for k0, v0 in self.coll.dobj['aperture'].items():
+            _ = self.coll.get_optics_outline(k0)
 
         # camera
-        for k0, v0 in self.obj.dobj['camera'].items():
-            dout = self.obj.get_optics_outline(k0)
+        for k0, v0 in self.coll.dobj['camera'].items():
+            _ = self.coll.get_optics_outline(k0)
 
         # crystals
-        for k0, v0 in self.obj.dobj['crystal'].items():
-            dout = self.obj.get_optics_outline(k0)
+        for k0, v0 in self.coll.dobj['crystal'].items():
+            _ = self.coll.get_optics_outline(k0)
 
     def test03_plot(self):
-        for ii, (k0, v0) in enumerate(self.obj.dobj['diagnostic'].items()):
-            dax = self.obj.plot_diagnostic(
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+            dax = self.coll.plot_diagnostic(
                 k0,
                 data='etendue',
                 proj=(
@@ -604,14 +725,14 @@ class Test01_Diagnostic():
 
     def test04_sinogram(self):
 
-        lrays = list(self.obj.dobj['rays'].keys())
+        lrays = list(self.coll.dobj['rays'].keys())
         ldiag = [
-            k0 for k0, v0 in self.obj.dobj['diagnostic'].items()
+            k0 for k0, v0 in self.coll.dobj['diagnostic'].items()
             if any([v1.get('los') is not None for v1 in v0['doptics'].values()])
         ]
         lk = [lrays] + ldiag
         for ii, k0 in enumerate(lk):
-            dout, dax = self.obj.get_sinogram(
+            dout, dax = self.coll.get_sinogram(
                 key=k0,
                 ang='theta' if ii % 2 == 0 else 'xi',
                 ang_units='deg' if ii % 3 == 0 else 'radian',
@@ -623,3 +744,125 @@ class Test01_Diagnostic():
             )
             plt.close('all')
             del dax
+
+    def test05_vos(self):
+
+        # add mesh
+        key_mesh = 'm0'
+
+        if key_mesh not in self.coll.dobj.get('mesh', {}).keys():
+            self.coll.add_mesh_2d_rect(
+                key=key_mesh,
+                res=0.1,
+                crop_poly=self.conf,
+            )
+
+        # compute vos
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+
+            doptics = self.coll.dobj['diagnostic'][k0]['doptics']
+            lcam = self.coll.dobj['diagnostic'][k0]['camera']
+            if len(doptics[lcam[0]]['optics']) == 0:
+                continue
+
+            self.coll.compute_diagnostic_vos(
+                # keys
+                key_diag=k0,
+                key_mesh=key_mesh,
+                # resolution
+                res_RZ=0.03,
+                res_phi=0.04,
+                # spectro
+                n0=5,
+                n1=5,
+                res_lamb=1e-10,
+                visibility=False,
+                store=True,
+            )
+
+    def test06_plot_coverage(self):
+
+        # add mesh
+        key_mesh = 'm0'
+
+        if key_mesh not in self.coll.dobj.get('mesh', {}).keys():
+            self.coll.add_mesh_2d_rect(
+                key=key_mesh,
+                res=0.1,
+                crop_poly=self.conf,
+            )
+
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+            lcam = self.coll.dobj['diagnostic'][k0]['camera']
+            doptics = self.coll.dobj['diagnostic'][k0]['doptics']
+            if len(doptics[lcam[0]]['optics']) == 0:
+                continue
+            if self.coll.dobj['diagnostic'][k0]['spectro']:
+                continue
+
+            if self.coll.dobj['diagnostic'][k0]['doptics'][lcam[0]]['dvos'].get('keym') is None:
+                self.coll.compute_diagnostic_vos(
+                    # keys
+                    key_diag=k0,
+                    key_mesh=key_mesh,
+                    # resolution
+                    res_RZ=0.03,
+                    res_phi=0.04,
+                    # spectro
+                    n0=5,
+                    n1=5,
+                    res_lamb=1e-10,
+                    visibility=False,
+                    store=True,
+                )
+            print(k0)
+            _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
+
+        plt.close('all')
+
+    def test07_reverse_ray_tracing(self):
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+            lcam = self.coll.dobj['diagnostic'][k0]['camera']
+            doptics = self.coll.dobj['diagnostic'][k0]['doptics']
+            if len(doptics[lcam[0]]['optics']) == 0:
+                continue
+            if not self.coll.dobj['diagnostic'][k0]['spectro']:
+                continue
+
+            # Get points
+            ptsx, ptsy, ptsz = self.coll.get_rays_pts(k0)
+            kcryst = list(doptics.values())[0]['optics'][0]
+            lamb = self.coll.get_crystal_bragglamb(
+                key=kcryst,
+                lamb=None,
+                bragg=None,
+                norder=None,
+                rocking_curve=None,
+            )[1]
+
+            _ = self.coll.get_raytracing_from_pts(
+                key=k0,
+                key_cam=None,
+                key_mesh=None,
+                res_RZ=None,
+                res_phi=None,
+                ptsx=ptsx[-1, ...],
+                ptsy=ptsy[-1, ...],
+                ptsz=ptsz[-1, ...],
+                n0=3,
+                n1=3,
+                lamb0=lamb,
+                res_lamb=None,
+                rocking_curve=None,
+                res_rock_curve=None,
+                append=None,
+                plot=True,
+                dax=None,
+                plot_pixels=None,
+                plot_config=None,
+                vmin=None,
+                vmax=None,
+                aspect3d=None,
+                elements=None,
+                colorbar=None,
+            )

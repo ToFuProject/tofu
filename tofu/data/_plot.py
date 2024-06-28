@@ -1227,9 +1227,9 @@ def _DataCam12D_plot_spectral(lData, key=None,
 
     # --------------
     # data sum
-    ldataint = [scpinteg.trapz(ldata[ii], x=llamb[ii].ravel(), axis=2)
+    ldataint = [scpinteg.trapezoid(ldata[ii], x=llamb[ii].ravel(), axis=2)
                 if llambother[ii] is None
-                else np.vstack([scpinteg.trapz(ldata[ii][:,jj,:],
+                else np.vstack([scpinteg.trapezoid(ldata[ii][:,jj,:],
                                                x=llamb[ii][jj,:],axis=1)
                                 for jj in range(0,nch)]).T
                 for ii in range(0,nDat)]

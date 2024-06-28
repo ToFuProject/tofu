@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-import copy
-import itertools as itt
-
 import numpy as np
-import scipy.interpolate as scpinterp
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-
-
 import datastock as ds
 
 
@@ -43,6 +35,8 @@ def move_to(
 
     # trivial case
     nochange = all([ss is None for ss in [x, y, z, R, phi, theta, dphi, tilt]])
+    if nochange is True:
+        return
 
     # key, key_cam
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
@@ -345,7 +339,7 @@ def _extract_coords_cam1d(
     kc = coll.dobj['camera'][key_cam]['dgeom']['cents']
     parallel = coll.dobj['camera'][key_cam]['dgeom']['parallel']
 
-    # cents 
+    # cents
     shape = tuple(np.r_[3, coll.ddata[kc[0]]['data'].shape])
     dout['cents'] = np.zeros(shape)
     for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
@@ -446,7 +440,7 @@ def reset_coords_cam1d(
     kc = coll.dobj[opc][op]['dgeom']['cents']
     parallel = coll.dobj[opc][op]['dgeom']['parallel']
 
-    # cents 
+    # cents
     for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
         coll._ddata[kc[ii]]['data'] = (
             cc_new[ii]

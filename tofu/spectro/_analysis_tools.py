@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 
-_LTYPES = [int, float, np.int_, np.float_]
+_LTYPES = [int, float, np.int_, np.float64]
 
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
 _WINTIT = f'tofu-{__version__}\treport issues / requests at {_GITHUB}'
