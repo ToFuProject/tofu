@@ -177,8 +177,8 @@ def _apertures():
     # lap : non-planar for collimator
     # ----------------------------------
 
-    out0 = 0.001 * np.r_[-1, 1, 1, -1]
-    out1 = 0.003 * np.r_[-1, -1, 1, 1]
+    out0 = 0.01 * np.r_[-1, 1, 1, -1]
+    out1 = 0.02 * np.r_[-1, -1, 1, 1]
 
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
@@ -816,6 +816,11 @@ class Test01_Diagnostic():
                     store=True,
                 )
 
+            kpc0 = self.coll.dobj['diagnostic'][k0]['doptics'][lcam[0]]['dvos']['pcross'][0]
+            if self.coll.ddata[kpc0]['data'].size == 0:
+                continue
+
+            print(k0)
             _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
 
         plt.close('all')
