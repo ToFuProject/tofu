@@ -1467,7 +1467,7 @@ def LOS_calc_signal(
     if method == "sum":
         Int = np.sum(Vals) * dLr
     elif method == "simps":
-        Int = scpintg.simps(Vals, x=None, dx=dLr)
+        Int = scpintg.simpson(Vals, x=None, dx=dLr)
     elif method == "romb":
         Int = scpintg.romb(Vals, dx=dLr, show=False)
     return Int
