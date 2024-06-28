@@ -6049,9 +6049,9 @@ def compute_solid_angle_noapertures(
     cdef int dd, nn, pp, tt
     cdef int tri0, tri1, tri2
     cdef float sca
-    cdef double[::1] poly_x = det_outline_x0
-    cdef double[::1] poly_y = det_outline_x0
-    cdef double[::1] poly_z = det_outline_x0
+    cdef double[::1] poly_x
+    cdef double[::1] poly_y
+    cdef double[::1] poly_z
 
     # initialize solid angle array with zeros
     cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
@@ -6065,10 +6065,9 @@ def compute_solid_angle_noapertures(
     for dd in range(nd):
 
         # build 3d polygon
-        for nn in range(nout):
-            poly_x[nn] = det_cents_x[dd] + det_outline_x0[nn] * det_e0_x[dd] + det_outline_x1[nn] * det_e1_x[dd]
-            poly_y[nn] = det_cents_y[dd] + det_outline_x0[nn] * det_e0_y[dd] + det_outline_x1[nn] * det_e1_y[dd]
-            poly_z[nn] = det_cents_z[dd] + det_outline_x0[nn] * det_e0_z[dd] + det_outline_x1[nn] * det_e1_z[dd]
+        poly_x = det_cents_x[dd] + det_outline_x0 * det_e0_x[dd] + det_outline_x1 * det_e1_x[dd]
+        poly_y = det_cents_y[dd] + det_outline_x0 * det_e0_y[dd] + det_outline_x1 * det_e1_y[dd]
+        poly_z = det_cents_z[dd] + det_outline_x0 * det_e0_z[dd] + det_outline_x1 * det_e1_z[dd]
 
         # loop 2: on npts (observation points)
         for pp in range(npts):
