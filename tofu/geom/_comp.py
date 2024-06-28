@@ -24,7 +24,7 @@ except Exception:
     from . import _GG as _GG
 
 
-_LTYPES = [int, float, np.int_, np.float_]
+_LTYPES = [int, float, np.int_, np.float64]
 _RES = 0.1
 
 
@@ -515,7 +515,7 @@ def _Ves_get_sample_checkinputs(
     dres = {'edge': 1, 'cross': 2, 'surface': 2, 'volume': 3}
     if res is None:
         res = _SAMPLE_RES[which]
-    ltypes = [int, float, np.int_, np.float_]
+    ltypes = [int, float, np.int_, np.float64]
     c0 = (type(res) in ltypes
           or (hasattr(res, "__iter__")
               and len(res) == dres[which]
@@ -620,7 +620,7 @@ def _Ves_get_sampleEdge(
     )
 
     # specific
-    ltypes = [int, float, np.int_, np.float_]
+    ltypes = [int, float, np.int_, np.float64]
     assert type(offsetIn) in ltypes
 
     # -------------

@@ -493,7 +493,7 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
     # ------------------------------------------------
 
     # Check braggref
-    ltypes = [int, float, np.int_, np.float_]
+    ltypes = [int, float, np.int_, np.float64]
     c0 = bool(
         type(dbragg.get('braggref')) in ltypes
         and dbragg['braggref'] >= 0

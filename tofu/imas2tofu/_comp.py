@@ -251,7 +251,7 @@ def get_fsig(sig):
         lc = [(stack and nsig > 1 and isinstance(sig[0], np.ndarray)
                and all([ss.shape == sig[0].shape for ss in sig[1:]])),
               (stack and nsig > 1
-               and type(sig[0]) in [int, float, np.int_, np.float_, str]),
+               and type(sig[0]) in [int, float, np.int_, np.float64, str]),
               (stack and nsig == 1
                and type(sig) in [np.ndarray, list, tuple])]
 
@@ -514,7 +514,7 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     if nan is True:
         for ii in range(0, len(data)):
             c0 = (isinstance(data[ii], np.ndarray)
-                  and data[ii].dtype in [np.float_, np.int_])
+                  and data[ii].dtype in [np.float64, np.int_])
             if c0 is True:
                 # Make sure to test only non-nan to avoid warning
                 ind = (~np.isnan(data[ii])).nonzero()

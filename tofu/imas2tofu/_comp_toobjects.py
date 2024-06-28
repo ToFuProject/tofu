@@ -1203,7 +1203,7 @@ def data_checkformat_tlim(t, tlim=None,
     lc = [tlim is None,
           tlim is False,
           (isinstance(tlim, list) and len(tlim) == 2
-           and all([(type(tt) in [int, float, np.int_, np.float_]
+           and all([(type(tt) in [int, float, np.int_, np.float64]
                      or (isinstance(tt, str)
                          and names is not None
                          and tt in names)
