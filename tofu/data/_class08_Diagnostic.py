@@ -31,6 +31,7 @@ from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
 from . import _class8_plot_coverage as _plot_coverage
 from . import _class08_save2stp as _save2stp
+from . import _class08_save2json as _save2json
 
 
 __all__ = ['Diagnostic']
@@ -1412,14 +1413,14 @@ class Diagnostic(Previous):
         pfe_save=None,
         overwrite=None,
     ):
-        """ Save a set of 'rays' to a stp file (CAD-readable)
+        """ Save desired diagnostic to a stp file (CAD-readable)
 
         Parameters
         ----------
         key : str, optional
             key to the existing set of rays
         pfe : str, optional
-            valid path-file-extension (file str) where to save the stp file
+            valid path-file-extension (file str) where to save the file
 
         Returns
         -------
@@ -1428,6 +1429,58 @@ class Diagnostic(Previous):
         """
 
         return _save2stp.main(
+            # ---------------
+            # input from tofu
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            key_optics=key_optics,
+            # ---------------
+            # options
+            factor=factor,
+            color=color,
+            # ---------------
+            # saving
+            pfe_save=pfe_save,
+            overwrite=overwrite,
+        )
+
+    # --------------------------
+    # save to json
+    # --------------------------
+
+    def save_diagnostic_to_json(
+        # ---------------
+        # input from tofu
+        self,
+        key=None,
+        key_cam=None,
+        key_optics=None,
+        # ---------------
+        # options
+        factor=None,
+        color=None,
+        # ---------------
+        # saving
+        pfe_save=None,
+        overwrite=None,
+    ):
+        """ Save desired diagnostic to a json file
+
+        Parameters
+        ----------
+        key : str, optional
+            key to the existing set of rays
+        pfe : str, optional
+            valid path-file-extension (file str) where to save the file
+
+        Returns
+        -------
+        None.
+
+        """
+
+        return _save2json.main(
             # ---------------
             # input from tofu
             coll=self,

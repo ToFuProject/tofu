@@ -815,7 +815,6 @@ class Test01_Diagnostic():
                     visibility=False,
                     store=True,
                 )
-            print(k0)
             _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
 
         plt.close('all')
