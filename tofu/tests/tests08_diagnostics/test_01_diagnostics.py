@@ -177,8 +177,8 @@ def _apertures():
     # lap : non-planar for collimator
     # ----------------------------------
 
-    out0 = 0.01 * np.r_[-1, 1, 1, -1]
-    out1 = 0.02 * np.r_[-1, -1, 1, 1]
+    out0 = 0.005 * np.r_[-1, 1, 1, -1]
+    out1 = 0.003 * np.r_[-1, -1, 1, 1]
 
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
@@ -700,15 +700,15 @@ class Test01_Diagnostic():
 
         # apertures
         for k0, v0 in self.coll.dobj['aperture'].items():
-            dout = self.coll.get_optics_outline(k0)
+            _ = self.coll.get_optics_outline(k0)
 
         # camera
         for k0, v0 in self.coll.dobj['camera'].items():
-            dout = self.coll.get_optics_outline(k0)
+            _ = self.coll.get_optics_outline(k0)
 
         # crystals
         for k0, v0 in self.coll.dobj['crystal'].items():
-            dout = self.coll.get_optics_outline(k0)
+            _ = self.coll.get_optics_outline(k0)
 
     def test03_plot(self):
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
@@ -815,11 +815,6 @@ class Test01_Diagnostic():
                     visibility=False,
                     store=True,
                 )
-
-            kpc0 = self.coll.dobj['diagnostic'][k0]['doptics'][lcam[0]]['dvos']['pcross'][0]
-            if self.coll.ddata[kpc0]['data'].size == 0:
-                continue
-
             print(k0)
             _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
 
@@ -845,7 +840,7 @@ class Test01_Diagnostic():
                 rocking_curve=None,
             )[1]
 
-            dout = self.coll.get_raytracing_from_pts(
+            _ = self.coll.get_raytracing_from_pts(
                 key=k0,
                 key_cam=None,
                 key_mesh=None,
