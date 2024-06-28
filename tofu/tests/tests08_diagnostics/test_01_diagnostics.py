@@ -757,6 +757,7 @@ class Test01_Diagnostic():
                 crop_poly=self.conf,
             )
 
+        # compute vos
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
 
             doptics = self.coll.dobj['diagnostic'][k0]['doptics']
@@ -780,6 +781,17 @@ class Test01_Diagnostic():
             )
 
     def test06_plot_coverage(self):
+
+        # add mesh
+        key_mesh = 'm0'
+
+        if key_mesh not in self.coll.dobj.get('mesh', {}).keys():
+            self.coll.add_mesh_2d_rect(
+                key=key_mesh,
+                res=0.1,
+                crop_poly=self.conf,
+            )
+
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
             lcam = self.coll.dobj['diagnostic'][k0]['camera']
             doptics = self.coll.dobj['diagnostic'][k0]['doptics']
@@ -787,6 +799,23 @@ class Test01_Diagnostic():
                 continue
             if self.coll.dobj['diagnostic'][k0]['spectro']:
                 continue
+
+            if self.coll.dobj['diagnostic'][k0]['doptics'][lcam[0]].get('dvos') is None:
+                self.coll.compute_diagnostic_vos(
+                    # keys
+                    key_diag=k0,
+                    key_mesh=key_mesh,
+                    # resolution
+                    res_RZ=0.03,
+                    res_phi=0.04,
+                    # spectro
+                    n0=5,
+                    n1=5,
+                    res_lamb=1e-10,
+                    visibility=False,
+                    store=True,
+                )
+
             _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
         plt.close('all')
 
