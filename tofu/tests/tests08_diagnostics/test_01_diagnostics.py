@@ -399,6 +399,8 @@ def _cameras():
         'cam000': copy.deepcopy(c0),
         'cam111': copy.deepcopy(c1),
         'cam222': copy.deepcopy(c2),
+        'cam0000': copy.deepcopy(c0),
+        'cam00000': copy.deepcopy(c0),
     }
 
 
@@ -540,13 +542,13 @@ def _diagnostics():
 
     # d12: 1d collimator camera, one aperture per pixel
     d12 = {
-        'doptics': tuple(['cam0'] + [k1 for k1 in [f'lap{ii}' for ii in range(10)]]),
+        'doptics': tuple(['cam0000'] + [k1 for k1 in [f'lap{ii}' for ii in range(10)]]),
     }
 
     # d13: 1d collimator-hybrid camera
     d13 = {
         'doptics': {
-            'cam0': {
+            'cam00000': {
                 'optics': [f'lap{ii}' for ii in range(10)] + ['ap0'],
                 'paths': np.concatenate((np.eye(10), np.ones((10, 1))), axis=1),
             },
@@ -647,7 +649,7 @@ class Test01_Diagnostic():
                     focal_distance=2.,
                     # store
                     store=True,
-                    key_cam=f'{k0}-cam{ii}',
+                    key_cam=f'{k0}_cam{ii}',
                     aperture_dimensions=apdim,
                     pinhole_radius=pinrad,
                     cam_pixels_nb=[5, 3],
@@ -655,14 +657,14 @@ class Test01_Diagnostic():
                     returnas=list,
                 )
 
-                if 'cryst1-slit' in loptics:
+                if 'cryst1_slit' in loptics:
                     loptics.append('ap0')
 
                 # add diag
                 gtype = self.coll.dobj['crystal'][k0]['dgeom']['type']
                 if gtype not in ['toroidal']:
                     self.doptics.update({
-                        f'{k0}-{ii}': loptics,
+                        f'{k0}_{ii}': loptics,
                     })
 
         # add crystal optics
@@ -767,8 +769,70 @@ class Test01_Diagnostic():
                 key_diag=k0,
                 key_mesh=key_mesh,
                 # resolution
-                res_RZ=0.05,
-                res_phi=0.03,
-                res_lamb=None,
+                res_RZ=0.03,
+                res_phi=0.04,
+                # spectro
+                n0=5,
+                n1=5,
+                res_lamb=1e-10,
+                visibility=False,
                 store=True,
+            )
+
+    def test06_plot_coverage(self):
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+            lcam = self.coll.dobj['diagnostic'][k0]['camera']
+            doptics = self.coll.dobj['diagnostic'][k0]['doptics']
+            if len(doptics[lcam[0]]['optics']) == 0:
+                continue
+            if self.coll.dobj['diagnostic'][k0]['spectro']:
+                continue
+            _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
+        plt.close('all')
+
+    def test07_reverse_ray_tracing(self):
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+            lcam = self.coll.dobj['diagnostic'][k0]['camera']
+            doptics = self.coll.dobj['diagnostic'][k0]['doptics']
+            if len(doptics[lcam[0]]['optics']) == 0:
+                continue
+            if not self.coll.dobj['diagnostic'][k0]['spectro']:
+                continue
+
+            # Get points
+            ptsx, ptsy, ptsz = self.coll.get_rays_pts(k0)
+            kcryst = list(doptics.values())[0]['optics'][0]
+            lamb = self.coll.get_crystal_bragglamb(
+                key=kcryst,
+                lamb=None,
+                bragg=None,
+                norder=None,
+                rocking_curve=None,
+            )[1]
+
+            dout = self.coll.get_raytracing_from_pts(
+                key=k0,
+                key_cam=None,
+                key_mesh=None,
+                res_RZ=None,
+                res_phi=None,
+                ptsx=ptsx[-1, ...],
+                ptsy=ptsy[-1, ...],
+                ptsz=ptsz[-1, ...],
+                n0=3,
+                n1=3,
+                lamb0=lamb,
+                res_lamb=None,
+                rocking_curve=None,
+                res_rock_curve=None,
+                append=None,
+                plot=True,
+                dax=None,
+                plot_pixels=None,
+                plot_config=None,
+                vmin=None,
+                vmax=None,
+                aspect3d=None,
+                elements=None,
+                colorbar=None,
             )
