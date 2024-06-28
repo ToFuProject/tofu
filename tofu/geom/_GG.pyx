@@ -6009,8 +6009,8 @@ def compute_solid_angle_noapertures(
     double[::1] pts_y,
     double[::1] pts_z,
     # detectors: polygon coordinates in 2d (common to all detectors)
-    double[::1] det_outline_x0,
-    double[::1] det_outline_x1,
+    np.ndarray[double, ndim=1] det_outline_x0,
+    np.ndarray[double, ndim=1] det_outline_x1,
     # detectors: centers coordinates as three 1d arrays
     double[::1] det_cents_x,
     double[::1] det_cents_y,
