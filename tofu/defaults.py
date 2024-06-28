@@ -7,6 +7,9 @@ Including in particular computing parameters, dictionnaries and figures
 #matplotlib.use('WxAgg')
 #matplotlib.interactive(True)
 
+import math
+
+
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from mpl_toolkits.mplot3d import Axes3D
@@ -1001,9 +1004,9 @@ mu0 = 1000.
 
 
 AugTikho_a0 = 10                                                    # (Regul. parameter, larger a => larger variance)
-AugTikho_b0 = np.math.factorial(AugTikho_a0)**(1/(AugTikho_a0+1))   # To have [x] = 1
+AugTikho_b0 = math.factorial(AugTikho_a0)**(1/(AugTikho_a0+1))   # To have [x] = 1
 AugTikho_a1 = 2                                                     # (Noise), a as small as possible for small variance
-AugTikho_b1 = np.math.factorial(AugTikho_a1)**(1/(AugTikho_a1+1))   # To have [x] = 1
+AugTikho_b1 = math.factorial(AugTikho_a1)**(1/(AugTikho_a1+1))   # To have [x] = 1
 AugTikho_d = 0.95                                                   # Exponent for rescaling of a0bis in V2, typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
 
 AugTkLsmrAtol = 1.e-8
@@ -1477,7 +1480,3 @@ def Plot_Inv_FFTPow_DefAxes(NPts=6, a4=False):
         Lax[-2].set_xlabel(r"time (s)", fontsize=12, fontweight='bold')
         Lax[-1].set_xlabel(r"time (s)", fontsize=12, fontweight='bold')
     return axInv, axc, axRetro, axSXR, Lax
-
-
-
-

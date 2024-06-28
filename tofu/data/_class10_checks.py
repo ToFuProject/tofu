@@ -4,6 +4,7 @@
 # Built-in
 import copy
 import warnings
+import math
 
 
 # Common
@@ -1255,7 +1256,7 @@ def _algo_check(
 
         # to have [x]=1
         if kwdargs.get('b0') is None:
-            kwdargs['b0'] = b0  # np.math.factorial(a0)**(1 / (a0 + 1))
+            kwdargs['b0'] = b0  # math.factorial(a0)**(1 / (a0 + 1))
 
         # (a1, b1) are the gamma distribution parameters for tau
         if kwdargs.get('a1') is None:
@@ -1264,7 +1265,7 @@ def _algo_check(
         # to have [x]=1
         if kwdargs.get('b1') is None:
             kwdargs['b1'] =(
-                np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1))
+                math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1))
             )
 
         if kwdargs.get('conv_reg') is None:
