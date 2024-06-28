@@ -146,7 +146,7 @@ def _check(
 
     # is 3d ?
     doptics = coll.dobj['diagnostic'][key]['doptics']
-    is_3d = doptics[lcam[0]]['dvos']['indr_3d'] is not None
+    # is_3d = doptics[lcam[0]]['dvos'].get('indr_3d') is not None
 
     # ------------------------
     # observation_directions
