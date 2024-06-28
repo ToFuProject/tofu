@@ -6045,7 +6045,8 @@ def compute_solid_angle_noapertures(
 
     cdef int npts = pts_x.size
     cdef int nd = det_cents_x.size
-    cdef dd, pp, tt
+    cdef int dd, pp, tt
+    cdef int tri0, tri1, tri2
     cdef float sca
     cdef double[::1] poly_x
     cdef double[::1] poly_y
@@ -6083,17 +6084,21 @@ def compute_solid_angle_noapertures(
             # loop on triangles
             for tt in range(tri.shape[0]):
 
+                tri0 = tri[tt, 0]
+                tri1 = tri[tt, 1]
+                tri2 = tri[tt, 2]
+
                 # computation 2: solid angle of triangle from pts
                 solid_angle[dd, pp] += _st.comp_sa_tri(
-                    poly_x[tri[tt, 0]],
-                    poly_y[tri[tt, 0]],
-                    poly_z[tri[tt, 0]],
-                    poly_x[tri[tt, 1]],
-                    poly_y[tri[tt, 1]],
-                    poly_z[tri[tt, 1]],
-                    poly_x[tri[tt, 2]],
-                    poly_y[tri[tt, 2]],
-                    poly_z[tri[tt, 2]],
+                    poly_x[tri0],
+                    poly_y[tri0],
+                    poly_z[tri0],
+                    poly_x[tri1],
+                    poly_y[tri1],
+                    poly_z[tri1],
+                    poly_x[tri2],
+                    poly_y[tri2],
+                    poly_z[tri2],
                     pts_x[pp],
                     pts_y[pp],
                     pts_z[pp],
