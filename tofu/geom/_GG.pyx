@@ -3519,7 +3519,7 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
                                   double circ_radius, double circ_normz,
                                   double[9] results,
                                   bint is_LOS_Mode=False,
-                                  double kOut=C_INF) nogil:
+                                  double kOut=C_INF) noexcept nogil:
     cdef double[3] dirv, orig
     cdef double[2] res
     cdef double normu, normu_sqr
@@ -3588,7 +3588,7 @@ cdef inline void NEW_los_sino_tor_vec(int nlos,
                                       double[::1] circle_closest_imptheta,
                                       double[::1] circle_closest_phi,
                                       bint is_LOS_Mode=False,
-                                      double[::1] kOut=None) nogil:
+                                      double[::1] kOut=None) noexcept nogil:
     cdef int ind_los
     cdef double* dirv
     cdef double* orig
