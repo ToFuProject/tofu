@@ -775,7 +775,7 @@ def _make_dict(
 
     # key_nseg
     if key_nseg is None:
-        knseg = f'{key}-nseg'
+        knseg = f'{key}_nseg'
         dref = {
             knseg: {'size': nseg},
         }
