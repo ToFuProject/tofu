@@ -800,7 +800,7 @@ class Test01_Diagnostic():
             if self.coll.dobj['diagnostic'][k0]['spectro']:
                 continue
 
-            if self.coll.dobj['diagnostic'][k0]['doptics'][lcam[0]].get('dvos') is None:
+            if self.coll.dobj['diagnostic'][k0]['doptics'][lcam[0]]['dvos'].get('keym') is None:
                 self.coll.compute_diagnostic_vos(
                     # keys
                     key_diag=k0,
@@ -817,6 +817,7 @@ class Test01_Diagnostic():
                 )
 
             _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
+
         plt.close('all')
 
     def test07_reverse_ray_tracing(self):
