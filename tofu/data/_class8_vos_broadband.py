@@ -116,6 +116,9 @@ def _vos(
         phor1 = coll.ddata[kph1]['data']
         dphi = doptics[key_cam]['dvos']['dphi']
 
+    # pinhole?
+    pinhole = doptics[key_cam]['pinhole']
+
     # ---------------
     # prepare det
     # ---------------
@@ -133,9 +136,12 @@ def _vos(
     # prepare lap
     # -----------
 
-    lap = coll.get_optics_as_input_solid_angle(
-        keys=doptics[key_cam]['optics'],
-    )
+    optics = doptics[key_cam]['optics']
+    dap0 = coll.get_optics_as_input_solid_angle(keys=optics)
+    if pinhole is False:
+        paths = doptics[key_cam]['paths']
+    else:
+        dap = dap0
 
     if timing:
         t11 = dtm.datetime.now()     # DB
@@ -250,8 +256,8 @@ def _vos(
             end = '\n 'if ii == npix - 1 else '\r'
             print(msg, end=end, flush=True)
 
-        # ---------------------
-        # loop on volume points
+        # --------------------------------
+        # get formatted detector geometry
 
         # get detector / aperture
         deti = _get_deti(
@@ -270,6 +276,17 @@ def _vos(
             t111 = dtm.datetime.now()     # DB
             dt111 += (t111-t000).total_seconds()
 
+        # --------------------------------
+        # get pixel-specific apertures if not pinhole
+
+        if pinhole is False:
+            sli_path = tuple(list(ind) + [slice(None)])
+            iop = np.nonzero(paths[sli_path])[0]
+            dap = {optics[ii]: dap0[optics[ii]] for ii in iop}
+
+        # -------------------
+        # compute solid angle
+
         # compute
         out = _comp_solidangles.calc_solidangle_apertures(
             # observation points
@@ -277,7 +294,7 @@ def _vos(
             pts_y=yy,
             pts_z=zz,
             # polygons
-            apertures=lap,
+            apertures=dap,
             detectors=deti,
             # possible obstacles
             config=config,
