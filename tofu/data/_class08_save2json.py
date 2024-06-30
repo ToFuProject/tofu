@@ -279,14 +279,14 @@ def _extract_diagnostic(
     # ----------------------
 
     # initialze with simple values
-    dout['diagnostic'] = {
+    dout['diagnostic'].update({
         k0: v0
         for k0, v0 in coll.dobj['diagnostic'][key].items()
         if not (
                 isinstance(v0, dict)
                 or k0 in excluded
             )
-    }
+    })
 
     # ----------------------
     # prepare doptics extraction
@@ -297,6 +297,12 @@ def _extract_diagnostic(
     lcam = coll.dobj['diagnostic'][key]['camera']
     doptics = coll.dobj['diagnostic'][key]['doptics']
 
+    ldirect = [
+        'vos', 'dvos',
+        'etendue',
+        'los', 'amin', 'amax',
+    ]
+
     # ----------------------
     # extract points
     # ----------------------
@@ -306,9 +312,10 @@ def _extract_diagnostic(
         # -----------------------------
         # initialize with simple values
 
+
         dout['diagnostic']['doptics'][kcam] = {
             k1: v1 for k1, v1 in doptics[kcam].items()
-            if k1 not in ['vos', 'dvos', 'etendue', 'los', 'amin', 'amax']
+            if k1 not in ldirect
         }
 
         # --------
@@ -324,11 +331,18 @@ def _extract_diagnostic(
                 'units': coll.ddata[kd]['units'],
             }
 
+        # ------------
+        # etendue key
+
+        dout['diagnostic']['doptics'][kcam]['etendue_key'] = doptics[kcam]['etendue']
+
         # ---------
         # los
 
         klos = doptics[kcam]['los']
         ptsx, ptsy, ptsz = coll.get_rays_pts(klos)
+
+        klos = doptics[kcam]['los']
 
         dout['diagnostic']['doptics'][kcam].update({
             'los_x_start': {
@@ -344,16 +358,29 @@ def _extract_diagnostic(
                 'units': 'm',
             },
             'los_x_end': {
-                'data': ptsx[1, ...],
+                'data': ptsx[1:, ...],
                 'units': 'm',
             },
             'los_y_end': {
-                'data': ptsy[1, ...],
+                'data': ptsy[1:, ...],
                 'units': 'm',
             },
             'los_z_end': {
-                'data': ptsz[1, ...],
+                'data': ptsz[1:, ...],
                 'units': 'm',
+            },
+            'los_key': klos,
+            'los_alpha': {
+                'data': coll.ddata[coll.dobj['rays'][klos]['alpha']]['data'],
+                'units': 'rad'
+            },
+            'los_dalpha': {
+                'data': coll.ddata[coll.dobj['rays'][klos]['reflect_dalpha']]['data'],
+                'units': 'rad'
+            },
+            'los_dbeta': {
+                'data': coll.ddata[coll.dobj['rays'][klos]['reflect_dbeta']]['data'],
+                'units': 'rad'
             },
         })
 
@@ -363,12 +390,16 @@ def _extract_diagnostic(
         pc0, pc1 = doptics[kcam]['dvos']['pcross']
         dout['diagnostic']['doptics'][kcam].update({
             'pcross_x0': {
+                'key': pc0,
                 'data': coll.ddata[pc0]['data'],
                 'units': coll.ddata[pc0]['units'],
+                'ref': coll.ddata[pc0]['ref'],
             },
             'pcross_x1': {
+                'key': pc1,
                 'data': coll.ddata[pc1]['data'],
                 'units': coll.ddata[pc1]['units'],
+                'ref': coll.ddata[pc1]['ref'],
             },
         })
 
@@ -378,12 +409,26 @@ def _extract_diagnostic(
         ph0, ph1 = doptics[kcam]['dvos']['phor']
         dout['diagnostic']['doptics'][kcam].update({
             'phor_x0': {
+                'key': ph0,
                 'data': coll.ddata[ph0]['data'],
                 'units': coll.ddata[ph0]['units'],
+                'ref': coll.ddata[ph0]['ref'],
             },
             'phor_x1': {
+                'key': ph1,
                 'data': coll.ddata[ph1]['data'],
                 'units': coll.ddata[ph1]['units'],
+                'ref': coll.ddata[ph1]['ref'],
+            },
+        })
+
+        # ------------
+        # vos - dphi
+
+        dout['diagnostic']['doptics'][kcam].update({
+            'dphi': {
+                'data': doptics[kcam]['dvos']['dphi'],
+                'units': 'rad',
             },
         })
 
@@ -410,7 +455,7 @@ def _extract_dgeom_dmisc(
 
     if lok_geom is None:
         lok_geom=[
-            'type', 'parallel', 'shape',
+            'type', 'nd', 'parallel', 'shape',
             'poly', 'cents', 'outline',
             'curve_r',
             'cent', 'nin', 'e0', 'e1',
@@ -423,13 +468,19 @@ def _extract_dgeom_dmisc(
     # extract points
     # ----------------------
 
-    dout= dict.fromkeys(keys, {'dgeom': {}, 'dmisc': {}})
+    dout = {}
     for i0, key in enumerate(keys):
 
         # -----------
         # initialize
 
         dgeom = coll.dobj[which][key]['dgeom']
+
+        dout[key] = {
+            'key': key,
+            'dgeom': {},
+            'dmisc': {},
+        }
 
         for i1, (k1, v1) in enumerate(dgeom.items()):
 
@@ -440,6 +491,7 @@ def _extract_dgeom_dmisc(
             # deal with simple cases
 
             if k1 in lok_geom:
+
                 if isinstance(v1, (str, bool)):
                     dout[key]['dgeom'][k1] = v1
 
@@ -716,7 +768,7 @@ def _save(
 _DFUNC = {
     'camera': _extract_camera,
     'aperture': _extract_aperture,
-    'filter': _extract_aperture,
+    'filter': _extract_filter,
     'crystal': _extract_crystal,
     # 'grating': _extract_grating,
 }
