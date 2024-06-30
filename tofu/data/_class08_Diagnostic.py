@@ -1495,3 +1495,26 @@ class Diagnostic(Previous):
             pfe_save=pfe_save,
             overwrite=overwrite,
         )
+
+    def add_diagnostic_from_file(
+        self,
+        pfe=None,
+    ):
+        """ Adds a diagnostic instance (and necessary optics) from json file
+
+        Parameters
+        ----------
+        pfe : str
+            path/file.ext to desired file
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+
+        return _loadfromjson.main(
+            coll=self,
+            pfe=pfe,
+        )
