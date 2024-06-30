@@ -1486,7 +1486,6 @@ class Diagnostic(Previous):
             coll=self,
             key=key,
             key_cam=key_cam,
-            key_optics=key_optics,
             # ---------------
             # options
             factor=factor,
