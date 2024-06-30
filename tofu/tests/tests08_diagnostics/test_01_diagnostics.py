@@ -865,3 +865,22 @@ class Test01_Diagnostic():
                 elements=None,
                 colorbar=None,
             )
+
+    def test08_save_to_json(self):
+
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+
+            lcam = self.coll.dobj['diagnostic'][k0]['camera']
+            doptics = self.coll.dobj['diagnostic'][k0]['doptics']
+            if len(doptics[lcam[0]]['optics']) == 0 or k0 == 'diag6':
+                continue
+
+            # saving
+            pfe = os.path.join(_PATH_HERE, f"{k0}.json")
+            self.coll.save_diagnostic_to_json(k0, pfe_save=pfe)
+
+            # reloading
+            coll2 = tf.data.load_diagnostic_from_json(pfe)
+
+            # remove file
+            os.remove(pfe)
