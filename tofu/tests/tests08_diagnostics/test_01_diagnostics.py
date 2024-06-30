@@ -880,7 +880,7 @@ class Test01_Diagnostic():
             self.coll.save_diagnostic_to_json(k0, pfe_save=pfe)
 
             # reloading
-            coll2 = tf.data.load_diagnostic_from_json(pfe)
+            _ = tf.data.load_diagnostic_from_file(pfe)
 
             # remove file
             os.remove(pfe)

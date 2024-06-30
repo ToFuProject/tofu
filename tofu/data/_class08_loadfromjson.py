@@ -6,7 +6,6 @@ Created on Sat Jun 29 20:39:20 2024
 """
 
 
-import os
 import json
 
 
@@ -24,13 +23,14 @@ def main(
     # input from tofu
     pfe=None,
     coll=None,
+    fname=None,
 ):
 
     # ----------------
     # check inputs
     # --------------
 
-    coll, pfe, fname, dout = _check(
+    dout = _check(
         coll=coll,
         pfe=pfe,
     )
@@ -77,46 +77,6 @@ def _check(
     pfe=None,
 ):
 
-    # ---------------
-    # coll
-    # ---------------
-
-    from ._class10_Inversion import Inversion as Collection
-
-    if coll is None:
-        coll = Collection()
-
-    else:
-        c0 = isinstance(coll, Collection)
-        if not c0:
-            msg = (
-                "Arg coll must be a tf.data.Collection instance!\n"
-                f"\t Provided:\n{coll}\n"
-            )
-            raise Exception(msg)
-
-    # ---------------
-    # pfe
-    # ---------------
-
-    c0 = (
-        isinstance(pfe, str)
-        and os.path.isfile(pfe)
-        and pfe.endswith('.json')
-    )
-    if not c0:
-        msg = (
-            "Arg 'pfe' must be a 'path/file.ext' to an existing json file!\n"
-            f"\t- Provided: {pfe}\n"
-        )
-        raise Exception(msg)
-
-    # -------------
-    # fname
-    # -------------
-
-    fname = os.path.split(pfe)[-1][:-4]
-
     # --------------------
     # load dict from file
     # --------------------
@@ -139,7 +99,7 @@ def _check(
         )
         raise Exception(msg)
 
-    return coll, pfe, fname, dout
+    return dout
 
 
 # #################################################################

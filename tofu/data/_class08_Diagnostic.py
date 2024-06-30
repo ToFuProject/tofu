@@ -31,7 +31,7 @@ from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
 from . import _class8_plot_coverage as _plot_coverage
 from . import _class08_save2stp as _save2stp
-from . import _class08_save2json as _save2json
+from . import _class08_saveload_from_file as _saveload_from_file
 
 
 __all__ = ['Diagnostic']
@@ -1480,7 +1480,7 @@ class Diagnostic(Previous):
 
         """
 
-        return _save2json.main(
+        return _saveload_from_file.main(
             # ---------------
             # input from tofu
             coll=self,
@@ -1514,7 +1514,7 @@ class Diagnostic(Previous):
 
         """
 
-        return _loadfromjson.main(
+        return _saveload_from_file.main(
             coll=self,
             pfe=pfe,
         )

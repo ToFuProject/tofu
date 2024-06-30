@@ -37,11 +37,11 @@ def main(
     coll=None,
     key=None,
     key_cam=None,
-    # ---------------
+    # -------------
     # options
     factor=None,
     color=None,
-    # ---------------
+    # -------------
     # saving
     pfe_save=None,
     overwrite=None,
@@ -51,23 +51,6 @@ def main(
     # ----------------
     # check inputs
     # --------------
-
-    (
-        key, key_cam,
-        factor, color,
-        pfe_save, overwrite,
-    ) = _check(
-        coll=coll,
-        key=key,
-        key_cam=key_cam,
-        # options
-        factor=factor,
-        color=color,
-        # saving
-        pfe_save=pfe_save,
-        overwrite=overwrite,
-        ext='json',
-    )
 
     fname = os.path.split(pfe_save)[-1][:-4]
 
@@ -139,7 +122,7 @@ def _check(
     # saving
     pfe_save=None,
     overwrite=None,
-    ext='stp',
+    ext='json',
 ):
 
 
