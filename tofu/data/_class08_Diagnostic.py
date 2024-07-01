@@ -1394,10 +1394,10 @@ class Diagnostic(Previous):
         )
 
     # --------------------------
-    # save to stp
+    # save to file
     # --------------------------
 
-    def save_diagnostic_to_stp(
+    def save_diagnostic_to_file(
         # ---------------
         # input from tofu
         self,
@@ -1413,7 +1413,7 @@ class Diagnostic(Previous):
         pfe_save=None,
         overwrite=None,
     ):
-        """ Save desired diagnostic to a stp file (CAD-readable)
+        """ Save desired diagnostic to a json or stp file
 
         Parameters
         ----------
@@ -1428,64 +1428,13 @@ class Diagnostic(Previous):
 
         """
 
-        return _save2stp.main(
+        return _saveload_from_file.save(
             # ---------------
             # input from tofu
             coll=self,
             key=key,
             key_cam=key_cam,
             key_optics=key_optics,
-            # ---------------
-            # options
-            factor=factor,
-            color=color,
-            # ---------------
-            # saving
-            pfe_save=pfe_save,
-            overwrite=overwrite,
-        )
-
-    # --------------------------
-    # save to json
-    # --------------------------
-
-    def save_diagnostic_to_json(
-        # ---------------
-        # input from tofu
-        self,
-        key=None,
-        key_cam=None,
-        key_optics=None,
-        # ---------------
-        # options
-        factor=None,
-        color=None,
-        # ---------------
-        # saving
-        pfe_save=None,
-        overwrite=None,
-    ):
-        """ Save desired diagnostic to a json file
-
-        Parameters
-        ----------
-        key : str, optional
-            key to the existing set of rays
-        pfe : str, optional
-            valid path-file-extension (file str) where to save the file
-
-        Returns
-        -------
-        None.
-
-        """
-
-        return _saveload_from_file.main(
-            # ---------------
-            # input from tofu
-            coll=self,
-            key=key,
-            key_cam=key_cam,
             # ---------------
             # options
             factor=factor,
@@ -1514,7 +1463,7 @@ class Diagnostic(Previous):
 
         """
 
-        return _saveload_from_file.main(
+        return _saveload_from_file.load(
             coll=self,
             pfe=pfe,
         )
