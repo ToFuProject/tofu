@@ -138,7 +138,7 @@ def _compute_check(
     # Time synchronisation between matrix and data
 
     # check if common / different time dependence
-    hastime, reft, keyt, t, dind = _refs._get_ref_vector_common(
+    hastime, reft, keyt, t, dindt = _refs._get_ref_vector_common(
         coll=coll,
         ddata=ddata,
         key_matrix=key_matrix,
@@ -151,21 +151,21 @@ def _compute_check(
         reft = f'{key}-nt'
 
     # update all accordingly
-    if hastime and dind is not None:
+    if hastime and dindt is not None:
         # matrix side
         lkmat = coll.dobj['geom matrix'][key_matrix]['data']
-        c0 = any([dind.get(k0, {}).get('ind') is not None for k0 in lkmat])
+        c0 = any([dindt.get(k0, {}).get('ind') is not None for k0 in lkmat])
         if c0:
-            matrix = matrix[dind[lkmat[0]]['ind'], ...]
+            matrix = matrix[dindt[lkmat[0]]['ind'], ...]
 
         # data side
         c0 = any([
-            k0 in dind.keys() for k0 in ddata['keys']
-            if dind[k0].get('ind') is not None
+            k0 in dindt.keys() for k0 in ddata['keys']
+            if dindt[k0].get('ind') is not None
         ])
         if c0:
-            assert all([k0 in dind.keys() for k0 in ddata['keys']])
-            lind = [dind[k0]['ind'] for k0 in ddata['keys']]
+            assert all([k0 in dindt.keys() for k0 in ddata['keys']])
+            lind = [dindt[k0]['ind'] for k0 in ddata['keys']]
             assert all([iii.size == lind[0].size for iii in lind[1:]])
 
             ind0 = lind[0]
