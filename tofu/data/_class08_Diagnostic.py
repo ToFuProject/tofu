@@ -31,6 +31,7 @@ from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
 from . import _class8_plot_coverage as _plot_coverage
 from . import _class08_save2stp as _save2stp
+from . import _class08_saveload_from_file as _saveload_from_file
 
 
 __all__ = ['Diagnostic']
@@ -1393,10 +1394,10 @@ class Diagnostic(Previous):
         )
 
     # --------------------------
-    # save to stp
+    # save to file
     # --------------------------
 
-    def save_diagnostic_to_stp(
+    def save_diagnostic_to_file(
         # ---------------
         # input from tofu
         self,
@@ -1412,14 +1413,14 @@ class Diagnostic(Previous):
         pfe_save=None,
         overwrite=None,
     ):
-        """ Save a set of 'rays' to a stp file (CAD-readable)
+        """ Save desired diagnostic to a json or stp file
 
         Parameters
         ----------
         key : str, optional
             key to the existing set of rays
         pfe : str, optional
-            valid path-file-extension (file str) where to save the stp file
+            valid path-file-extension (file str) where to save the file
 
         Returns
         -------
@@ -1427,7 +1428,7 @@ class Diagnostic(Previous):
 
         """
 
-        return _save2stp.main(
+        return _saveload_from_file.save(
             # ---------------
             # input from tofu
             coll=self,
@@ -1442,4 +1443,27 @@ class Diagnostic(Previous):
             # saving
             pfe_save=pfe_save,
             overwrite=overwrite,
+        )
+
+    def add_diagnostic_from_file(
+        self,
+        pfe=None,
+    ):
+        """ Adds a diagnostic instance (and necessary optics) from json file
+
+        Parameters
+        ----------
+        pfe : str
+            path/file.ext to desired file
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+
+        return _saveload_from_file.load(
+            coll=self,
+            pfe=pfe,
         )

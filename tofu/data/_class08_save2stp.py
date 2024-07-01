@@ -153,6 +153,7 @@ def _check(
     # saving
     pfe_save=None,
     overwrite=None,
+    ext='stp',
 ):
 
     # ---------------
@@ -239,7 +240,7 @@ def _check(
     if pfe_save is None:
         path = os.path.abspath('.')
         name = key if key is not None else _NAME
-        pfe_save = os.path.join(path, f"{name}.stp")
+        pfe_save = os.path.join(path, f"{name}.{ext}")
 
     # check
     c0 = (
@@ -251,14 +252,14 @@ def _check(
     )
     if not c0:
         msg = (
-            "Arg pfe_save must be a saving file str ending in '.stp'!\n"
+            f"Arg pfe_save must be a saving file str ending in '.{ext}'!\n"
             f"Provided: {pfe_save}"
         )
         raise Exception(msg)
 
     # makesure extension is included
-    if not pfe_save.endswith('.stp'):
-        pfe_save = f"{pfe_save}.stp"
+    if not pfe_save.endswith(f'.{ext}'):
+        pfe_save = f"{pfe_save}.{ext}"
 
     # ----------------
     # overwrite

@@ -390,9 +390,9 @@ def _camera_1d(
     # -------------
     # ddata
 
-    kcx = f'{key}-cx'
-    kcy = f'{key}-cy'
-    kcz = f'{key}-cz'
+    kcx = f'{key}_cx'
+    kcy = f'{key}_cy'
+    kcz = f'{key}_cz'
     kout0 = f'{key}_outx0'
     kout1 = f'{key}_outx1'
 
@@ -448,15 +448,15 @@ def _camera_1d(
         o_e1 = e1
 
     else:
-        kinx = f'{key}-nin_x'
-        kiny = f'{key}-nin_y'
-        kinz = f'{key}-nin_z'
-        ke0x = f'{key}-e0_x'
-        ke0y = f'{key}-e0_y'
-        ke0z = f'{key}-e0_z'
-        ke1x = f'{key}-e1_x'
-        ke1y = f'{key}-e1_y'
-        ke1z = f'{key}-e1_z'
+        kinx = f'{key}_nin_x'
+        kiny = f'{key}_nin_y'
+        kinz = f'{key}_nin_z'
+        ke0x = f'{key}_e0_x'
+        ke0y = f'{key}_e0_y'
+        ke0z = f'{key}_e0_z'
+        ke1x = f'{key}_e1_x'
+        ke1y = f'{key}_e1_y'
+        ke1z = f'{key}_e1_z'
 
         o_nin = (kinx, kiny, kinz)
         o_e0 = (ke0x, ke0y, ke0z)

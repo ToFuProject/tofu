@@ -64,6 +64,11 @@ class Rays(Previous):
         length=None,
         config=None,
         strict=None,
+        # angles
+        alpha=None,
+        dalpha=None,
+        dbeta=None,
+        # reflections
         reflections_nb=None,
         reflections_type=None,
         key_nseg=None,
@@ -101,6 +106,11 @@ class Rays(Previous):
             length=length,
             config=config,
             strict=strict,
+            # angles
+            alpha=alpha,
+            dalpha=dalpha,
+            dbeta=dbeta,
+            # reflections
             reflections_nb=reflections_nb,
             reflections_type=reflections_type,
             key_nseg=key_nseg,
