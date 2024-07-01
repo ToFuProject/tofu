@@ -877,7 +877,7 @@ class Test01_Diagnostic():
 
             # saving
             pfe = os.path.join(_PATH_HERE, f"{k0}.json")
-            self.coll.save_diagnostic_to_json(k0, pfe_save=pfe)
+            self.coll.save_diagnostic_to_file(k0, pfe_save=pfe)
 
             # reloading
             _ = tf.data.load_diagnostic_from_file(pfe)
