@@ -244,6 +244,13 @@ class Test01_Inversions():
                 if comb == ('algo1', 'D1N2'):
                     continue
 
+                dconstraints = None
+                if km == 'm2':
+                    if jj == 1:
+                        dconstraints = {'deriv1': {'rad': 0, 'val': 0}}
+                    elif jj == 2:
+                        dconstraints = {'rmax': 0.70}
+
                 kdat = 's0' if kd == 'd0' else 's1'
                 self.coll.add_inversion(
                     algo=comb[0],
@@ -256,6 +263,7 @@ class Test01_Inversions():
                     kwdargs={'tol': 1.e-2, 'maxiter': 100},
                     maxiter_outer=10,
                     dref_vector={'units': 's'},
+                    dconstraints=dconstraints,
                     verb=1,
                 )
                 ksig = f'{kdat}-sigma'

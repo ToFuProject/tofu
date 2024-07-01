@@ -279,17 +279,25 @@ def _check_doptics_basics(
             # pur collimator camera
             elif isinstance(v0['optics'], tuple) and len(shape_cam) == 1:
 
-                if shape_cam[0] != noptics:
+                mod = noptics % shape_cam[0]
+                if mod != 0:
                     msg = (
                         "Directly providing optics as tuple for collimators:\n"
                         f"\t- diag = '{key}'\n"
                         f"\t- cam = '{k0}'\n"
                         f"\t- shape_cam = {shape_cam}\n"
                         f"\t- noptics = {noptics}\n"
+                        f"\t- mod = {mod}\n"
+                        "noptics should be a multiple of the nb of sensors!\n"
                     )
                     raise Exception(msg)
 
-                doptics[k0]['paths'] = np.eye(noptics, dtype=bool)
+                nmult = noptics // shape_cam[0]
+                paths = np.zeros((shape_cam[0], noptics), dtype=bool)
+                for ii in range(shape_cam[0]):
+                    paths[ii, (ii*nmult):(ii+1)*nmult] = True
+                doptics[k0]['paths'] = paths
+
                 doptics[k0]['optics'] = list(v0['optics'])
 
             else:
