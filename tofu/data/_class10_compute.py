@@ -755,7 +755,9 @@ def _compute_inv_loop(
 
         if dcon is not None:
             ic = 0 if ii == 0 or not dcon['hastime'] else ii
-            nbsi, indbsi, Tni, TTni, Tyni, Ri, yni, bi = _update_ttyn_constraints(
+            (
+                nbsi, indbsi, Tni, TTni, Tyni, Ri, yni, bi,
+            ) = _update_ttyn_constraints(
                 sparse=sparse,
                 Tni=Tni,
                 TTni=TTni,
@@ -1080,10 +1082,10 @@ def _update_ttyn_constraints(
     # pre-assign
     A = dcon['coefs'][ii]
     At = A.T
-    O = dcon['offset'][ii, :]
+    off = dcon['offset'][ii, :]
 
     # yni
-    yni = yni - Tni.dot(O)
+    yni = yni - Tni.dot(off)
 
     # Tni
     Tni = Tni.dot(A)
@@ -1092,13 +1094,13 @@ def _update_ttyn_constraints(
     if regul:
 
         # Tyni
-        Tyni = At.dot( Tyni -TTni.dot(O) - mu * Ri.dot(O) )
+        Tyni = At.dot(Tyni - TTni.dot(off) - mu * Ri.dot(off))
 
         # TTni
-        TTni = At.dot( TTni.dot(A) )
+        TTni = At.dot(TTni.dot(A))
 
         # Ri
-        Ri = At.dot( Ri.dot(A) )
+        Ri = At.dot(Ri.dot(A))
 
     # indbsi
     indbsi = dcon['indbs'][ii]
@@ -1107,7 +1109,7 @@ def _update_ttyn_constraints(
     nbsi = Tni.shape[1]
 
     # bounds
-    if np.isscalar(bounds[0]):
+    if bounds is None or np.isscalar(bounds[0]):
         pass
     elif isinstance(bounds[0], np.ndarray):
         bounds = (bounds[0][indbsi], bounds[1][indbsi])
