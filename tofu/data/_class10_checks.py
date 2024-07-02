@@ -4,6 +4,7 @@
 # Built-in
 import copy
 import warnings
+import math
 
 
 # Common
@@ -137,7 +138,7 @@ def _compute_check(
     # Time synchronisation between matrix and data
 
     # check if common / different time dependence
-    hastime, reft, keyt, t, dind = _refs._get_ref_vector_common(
+    hastime, reft, keyt, t, dindt = _refs._get_ref_vector_common(
         coll=coll,
         ddata=ddata,
         key_matrix=key_matrix,
@@ -150,21 +151,21 @@ def _compute_check(
         reft = f'{key}-nt'
 
     # update all accordingly
-    if hastime and dind is not None:
+    if hastime and dindt is not None:
         # matrix side
         lkmat = coll.dobj['geom matrix'][key_matrix]['data']
-        c0 = any([dind.get(k0, {}).get('ind') is not None for k0 in lkmat])
+        c0 = any([dindt.get(k0, {}).get('ind') is not None for k0 in lkmat])
         if c0:
-            matrix = matrix[dind[lkmat[0]]['ind'], ...]
+            matrix = matrix[dindt[lkmat[0]]['ind'], ...]
 
         # data side
         c0 = any([
-            k0 in dind.keys() for k0 in ddata['keys']
-            if dind[k0].get('ind') is not None
+            k0 in dindt.keys() for k0 in ddata['keys']
+            if dindt[k0].get('ind') is not None
         ])
         if c0:
-            assert all([k0 in dind.keys() for k0 in ddata['keys']])
-            lind = [dind[k0]['ind'] for k0 in ddata['keys']]
+            assert all([k0 in dindt.keys() for k0 in ddata['keys']])
+            lind = [dindt[k0]['ind'] for k0 in ddata['keys']]
             assert all([iii.size == lind[0].size for iii in lind[1:]])
 
             ind0 = lind[0]
@@ -758,6 +759,7 @@ def _check_rminmax(
     else:
         lok.append('allin')
         dok = 'allin'
+
     dconst[rm]['lim'] = ds._generic_check._check_var(
         dconst[rm].get('lim'), "dconstraints['{rm}']['lim']",
         default=dok,
@@ -1254,7 +1256,7 @@ def _algo_check(
 
         # to have [x]=1
         if kwdargs.get('b0') is None:
-            kwdargs['b0'] = b0  # np.math.factorial(a0)**(1 / (a0 + 1))
+            kwdargs['b0'] = b0  # math.factorial(a0)**(1 / (a0 + 1))
 
         # (a1, b1) are the gamma distribution parameters for tau
         if kwdargs.get('a1') is None:
@@ -1263,7 +1265,7 @@ def _algo_check(
         # to have [x]=1
         if kwdargs.get('b1') is None:
             kwdargs['b1'] =(
-                np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1))
+                math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1))
             )
 
         if kwdargs.get('conv_reg') is None:

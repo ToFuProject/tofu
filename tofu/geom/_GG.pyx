@@ -3025,7 +3025,7 @@ def integrate1d(y, double dx, t=None, str method='sum'):
     if method=='sum':
         s = np.sum(y, axis=axm)*dx
     elif method=='simps':
-        s = scpintg.simps(y, x=None, dx=dx, axis=axm)
+        s = scpintg.simpson(y, x=None, dx=dx, axis=axm)
     elif method=='romb':
         s = scpintg.romb(y, dx=dx, axis=axm, show=False)
     else:
@@ -3239,7 +3239,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                 jjp1 = indbis[ii+1]
                 val_mv = val_2d[:,jj:jjp1]
                 loc_r = reseff_mv[ii]
-                sig[:,ii] = scpintg.simps(val_mv,
+                sig[:,ii] = scpintg.simpson(val_mv,
                                              x=None, dx=loc_r, axis=-1)
         else:  # Romberg integration mode
             for ii in range(nlos):
@@ -3279,7 +3279,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
-                        sig[jj, ii] = scpintg.simps(val, x=None,
+                        sig[jj, ii] = scpintg.simpson(val, x=None,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:  # romberg integration mode
                 for ii in range(nlos):
@@ -3325,7 +3325,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], **fkwdargs)
-                        sig[jj, ii] = scpintg.simps(val, x=None,
+                        sig[jj, ii] = scpintg.simpson(val, x=None,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:  # "romberg" integration mode
                 for ii in range(nlos):
@@ -3374,7 +3374,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_vdir[:, ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
                     # integration
-                    sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
+                    sig[:, ii] = scpintg.simpson(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
             elif n_imode == 2:  # romberg integration mode
                 for ii in range(nlos):
@@ -3415,7 +3415,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:, ii:ii+1],
                                                      ray_vdir[:, ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
-                    sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
+                    sig[:, ii] = scpintg.simpson(val, x=None, axis=-1,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:  # "romberg" integration mode
                 for ii in range(nlos):
@@ -6009,8 +6009,8 @@ def compute_solid_angle_noapertures(
     double[::1] pts_y,
     double[::1] pts_z,
     # detectors: polygon coordinates in 2d (common to all detectors)
-    double[::1] det_outline_x0,
-    double[::1] det_outline_x1,
+    np.ndarray[double, ndim=1] det_outline_x0,
+    np.ndarray[double, ndim=1] det_outline_x1,
     # detectors: centers coordinates as three 1d arrays
     double[::1] det_cents_x,
     double[::1] det_cents_y,
@@ -6045,7 +6045,9 @@ def compute_solid_angle_noapertures(
 
     cdef int npts = pts_x.size
     cdef int nd = det_cents_x.size
-    cdef dd, pp, tt
+    cdef int nout = det_outline_x0.size
+    cdef int dd, nn, pp, tt
+    cdef int tri0, tri1, tri2
     cdef float sca
     cdef double[::1] poly_x
     cdef double[::1] poly_y
@@ -6083,17 +6085,21 @@ def compute_solid_angle_noapertures(
             # loop on triangles
             for tt in range(tri.shape[0]):
 
+                tri0 = tri[tt, 0]
+                tri1 = tri[tt, 1]
+                tri2 = tri[tt, 2]
+
                 # computation 2: solid angle of triangle from pts
                 solid_angle[dd, pp] += _st.comp_sa_tri(
-                    poly_x[tri[tt, 0]],
-                    poly_y[tri[tt, 0]],
-                    poly_z[tri[tt, 0]],
-                    poly_x[tri[tt, 1]],
-                    poly_y[tri[tt, 1]],
-                    poly_z[tri[tt, 1]],
-                    poly_x[tri[tt, 2]],
-                    poly_y[tri[tt, 2]],
-                    poly_z[tri[tt, 2]],
+                    poly_x[tri0],
+                    poly_y[tri0],
+                    poly_z[tri0],
+                    poly_x[tri1],
+                    poly_y[tri1],
+                    poly_z[tri1],
+                    poly_x[tri2],
+                    poly_y[tri2],
+                    poly_z[tri2],
                     pts_x[pp],
                     pts_y[pp],
                     pts_z[pp],

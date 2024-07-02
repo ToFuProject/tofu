@@ -8,7 +8,7 @@ import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 
 
-_LTYPES = [int, float, np.int_, np.float_]
+_LTYPES = [int, float, np.int_, np.float64]
 _MISCUT = True
 
 

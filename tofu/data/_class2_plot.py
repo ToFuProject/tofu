@@ -115,14 +115,14 @@ def _plot_rays(
                 c='k',
                 lw=1.,
                 ls='-',
-                )
+            )
         else:
             ax.plot(
                 rays_r,
                 rays_z,
                 lw=1.,
                 ls='-',
-                )
+            )
 
     # hor
     kax = 'hor'
@@ -136,14 +136,14 @@ def _plot_rays(
                 c='k',
                 lw=1.,
                 ls='-',
-                )
+            )
         else:
             ax.plot(
                 rays_x,
                 rays_y,
                 lw=1.,
                 ls='-',
-                )
+            )
 
     # 3d
     kax = '3d'
@@ -158,7 +158,7 @@ def _plot_rays(
                 c='k',
                 lw=1.,
                 ls='-',
-                )
+            )
         else:
             for ii in range(rays_x.shape[1]):
                 ax.plot(
@@ -167,7 +167,7 @@ def _plot_rays(
                     rays_z[:, ii],
                     lw=1.,
                     ls='-',
-                    )
+                )
 
     # -------
     # config

@@ -1677,7 +1677,7 @@ class MultiIDSLoader(object):
         if t0 is None:
             t0 = _defimas2tofu._T0
         elif t0 != False:
-            if type(t0) in [int, float, np.int_, np.float_]:
+            if type(t0) in [int, float, np.int_, np.float64]:
                 t0 = float(t0)
             elif type(t0) is str:
                 t0 = t0.strip()
@@ -2317,7 +2317,7 @@ class MultiIDSLoader(object):
         """
         names, times = None, None
         c0 = (isinstance(tlim, list)
-              and all([type(tt) in [float, int, np.float_, np.int_]
+              and all([type(tt) in [float, int, np.float64, np.int_]
                        for tt in tlim]))
         if not c0 and 'pulse_schedule' in self._dids.keys():
             try:

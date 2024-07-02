@@ -2356,7 +2356,7 @@ class ToFuObject(ToFuObjectBase):
     @staticmethod
     def _checkformat_scalar(ss, name='ss', extramsg=''):
         if ss is not None:
-            if type(ss) not in [int, float, np.int_, np.float_]:
+            if type(ss) not in [int, float, np.int_, np.float64]:
                 msg = ("Please provide {} as a float:\n".format(name)
                        + "\t- provided: {} ({})\n".format(ss, type(ss))
                        + extramsg)

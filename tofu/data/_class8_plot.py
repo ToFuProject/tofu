@@ -237,6 +237,7 @@ def _plot_diagnostic(
     coll=None,
     key=None,
     key_cam=None,
+    keyZ=None,
     optics=None,
     elements=None,
     proj=None,
@@ -247,7 +248,6 @@ def _plot_diagnostic(
     cmap=None,
     vmin=None,
     vmax=None,
-    keyZ=None,
     alpha=None,
     dx0=None,
     dx1=None,
@@ -381,7 +381,7 @@ def _plot_diagnostic(
     if static is False and len(ddata) > 0:
 
         k0 = key_cam[0]
-        keyz = coll.get_ref_vector(ref=refz)[3]
+        keyz = coll.get_ref_vector(ref=refz, key0=keyZ)[3]
         nz = ddata[k0].shape[daxis[k0]]
 
         keyz, zstr, dz2, labz = ds._generic_utils_plot._get_str_datadlab(
@@ -884,6 +884,7 @@ def _prepare_los(
 
         # los
         if dlos_n[k0] is not None:
+
             los_x, los_y, los_z = coll.sample_rays(
                 key=dlos_n[k0],
                 res=los_res,

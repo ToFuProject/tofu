@@ -2609,7 +2609,7 @@ class Config(utils.ToFuObject):
     def _checkformat_inputs_extraval(
         self, extraval, key="", multi=True, size=None
     ):
-        lsimple = [bool, float, int, np.int_, np.float_]
+        lsimple = [bool, float, int, np.int_, np.float64]
         C0 = type(extraval) in lsimple
         C1 = isinstance(extraval, np.ndarray)
         C2 = isinstance(extraval, dict)

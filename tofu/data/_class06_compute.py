@@ -28,7 +28,7 @@ def _isconvex(coll=None, keys=None):
 
     keys = ds._generic_check._check_var_iter(
         keys, 'keys',
-        types=(list, tuple),
+        types=(list, tuple, np.ndarray),
         types_iter=str,
         allowed=lop,
     )

@@ -20,7 +20,7 @@ from . import _GG
 _APPROX = True
 _ANISO = False
 _BLOCK = True
-_LTYPES = [int, float, np.int_, np.float_]
+_LTYPES = [int, float, np.int_, np.float64]
 
 
 __all__ = [

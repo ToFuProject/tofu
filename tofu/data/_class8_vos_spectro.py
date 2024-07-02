@@ -269,7 +269,13 @@ def _vos(
             ipts += nz
             continue
 
-        nphi = np.ceil(x0u[i0]*(dphi_r[1, i00] - dphi_r[0, i00]) / res_phi).astype(int)
+        nphi = max(
+            np.ceil(
+                x0u[i0]*(dphi_r[1, i00] - dphi_r[0, i00]) / res_phi
+            ).astype(int),
+            3,
+        )
+
         phir = np.linspace(dphi_r[0, i00], dphi_r[1, i00], nphi)
         cosphi = np.cos(phir)
         sinphi = np.sin(phir)

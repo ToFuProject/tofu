@@ -41,7 +41,7 @@ _POS = False
 _SUBSET = False
 _VALID_NSIGMA = 6.
 _VALID_FRACTION = 0.8
-_LTYPES = [int, float, np.int_, np.float_]
+_LTYPES = [int, float, np.int_, np.float64]
 _DBOUNDS = {
     'bck_amp': (0., 3.),
     'bck_rate': (-3., 3.),
@@ -1271,7 +1271,7 @@ def _get_subset_indices(subset, indlogical):
             and 'bool' in subset.dtype.name
         )
         or (
-            type(subset) in [int, float, np.int_, np.float_]
+            type(subset) in [int, float, np.int_, np.float64]
             and subset >= 0
         )
     )

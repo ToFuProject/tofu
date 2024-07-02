@@ -427,7 +427,7 @@ def inv_linear_augTikho_sparse(
         sol, itconv = scpsp.linalg.cg(
             TTn + mu0*R, Tyn,
             x0=sol0,
-            tol=tol,
+            atol=tol,
             maxiter=maxiter,
             M=precond,
         )
@@ -834,7 +834,7 @@ def inv_linear_DisPrinc_sparse(
         sol, itconv = scpsp.linalg.cg(
             TTn + lmu[-1]*R, Tyn,
             x0=sol0,
-            tol=tol,
+            atol=tol,
             maxiter=maxiter,
             M=precond,
         )
@@ -865,7 +865,7 @@ def inv_linear_DisPrinc_sparse(
                 sol, itconv = scpsp.linalg.cg(
                     TTn + lmu[-1]*R, Tyn,
                     x0=sol0,
-                    tol=tol,
+                    atol=tol,
                     maxiter=maxiter,
                     M=precond,
                 )

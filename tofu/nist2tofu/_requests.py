@@ -48,7 +48,7 @@ _DOP = {
 }
 
 
-_LTYPES = [int, float, np.int_, np.float_]
+_LTYPES = [int, float, np.int_, np.float64]
 
 
 _DCERTIFICATES_BUNDLE = {

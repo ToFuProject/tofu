@@ -17,6 +17,7 @@ from . import _class08_get_data as _get_data
 from . import _class08_concatenate_data as _concatenate
 from . import _class8_move as _move
 from . import _class8_los_data as _los_data
+from . import _class08_interpolate_along_los as _interpolate_along_los
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_vos as _vos
@@ -30,6 +31,7 @@ from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
 from . import _class8_plot_coverage as _plot_coverage
 from . import _class08_save2stp as _save2stp
+from . import _class08_saveload_from_file as _saveload_from_file
 
 
 __all__ = ['Diagnostic']
@@ -248,6 +250,7 @@ class Diagnostic(Previous):
 
         """
 
+        # prepare computation
         dcompute, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
@@ -660,7 +663,9 @@ class Diagnostic(Previous):
         store=None,
         debug=None,
     ):
-        """"""
+        """ Get the equivalent projected aperture for each pixel
+        """
+
         return _equivalent_apertures.equivalent_apertures(
             coll=self,
             key=key,
@@ -1050,6 +1055,7 @@ class Diagnostic(Previous):
         mode=None,
         segment=None,
         radius_max=None,
+        concatenate=None,
         # interpolating
         domain=None,
         val_out=None,
@@ -1063,7 +1069,7 @@ class Diagnostic(Previous):
         """ Compute and plot interpolated data along the los of the diagnostic
 
         """
-        return _los_data._interpolate_along_los(
+        return _interpolate_along_los.main(
             coll=self,
             key_diag=key_diag,
             key_cam=key_cam,
@@ -1074,6 +1080,7 @@ class Diagnostic(Previous):
             mode=mode,
             segment=segment,
             radius_max=radius_max,
+            concatenate=concatenate,
             # interpolating
             domain=domain,
             val_out=val_out,
@@ -1186,8 +1193,11 @@ class Diagnostic(Previous):
 
     def plot_diagnostic(
         self,
+        # keys
         key=None,
         key_cam=None,
+        keyZ=None,
+        # options
         optics=None,
         elements=None,
         proj=None,
@@ -1218,8 +1228,11 @@ class Diagnostic(Previous):
 
         return _plot._plot_diagnostic(
             coll=self,
+            # keys
             key=key,
             key_cam=key_cam,
+            keyZ=keyZ,
+            # options
             optics=optics,
             elements=elements,
             proj=proj,
@@ -1381,10 +1394,10 @@ class Diagnostic(Previous):
         )
 
     # --------------------------
-    # save to stp
+    # save to file
     # --------------------------
 
-    def save_diagnostic_to_stp(
+    def save_diagnostic_to_file(
         # ---------------
         # input from tofu
         self,
@@ -1400,14 +1413,14 @@ class Diagnostic(Previous):
         pfe_save=None,
         overwrite=None,
     ):
-        """ Save a set of 'rays' to a stp file (CAD-readable)
+        """ Save desired diagnostic to a json or stp file
 
         Parameters
         ----------
         key : str, optional
             key to the existing set of rays
         pfe : str, optional
-            valid path-file-extension (file str) where to save the stp file
+            valid path-file-extension (file str) where to save the file
 
         Returns
         -------
@@ -1415,7 +1428,7 @@ class Diagnostic(Previous):
 
         """
 
-        return _save2stp.main(
+        return _saveload_from_file.save(
             # ---------------
             # input from tofu
             coll=self,
@@ -1430,4 +1443,27 @@ class Diagnostic(Previous):
             # saving
             pfe_save=pfe_save,
             overwrite=overwrite,
+        )
+
+    def add_diagnostic_from_file(
+        self,
+        pfe=None,
+    ):
+        """ Adds a diagnostic instance (and necessary optics) from json file
+
+        Parameters
+        ----------
+        pfe : str
+            path/file.ext to desired file
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+
+        return _saveload_from_file.load(
+            coll=self,
+            pfe=pfe,
         )

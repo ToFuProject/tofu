@@ -231,7 +231,7 @@ def _check_inputs(
         allowed=['specular', 'diffusive'],
     )
 
-    if reflections_nb > 0 and config is None:
+    if reflections_nb > 0 and config is None and not lc[0]:
         msg = "reflections can only be handled if config is provided"
         raise Exception(msg)
 
@@ -312,6 +312,11 @@ def _rays(
     length=None,
     config=None,
     strict=None,
+    # angles (if pre-computed)
+    alpha=None,
+    dalpha=None,
+    dbeta=None,
+    # reflections
     reflections_nb=None,
     reflections_type=None,
     key_nseg=None,
@@ -321,6 +326,7 @@ def _rays(
 
     # -------------
     # check inputs
+    # -------------
 
     (
         key,
@@ -362,10 +368,7 @@ def _rays(
 
     # ----------------
     # prepare
-
-    alpha, kalpha = None, None
-    dalpha, kdalpha = None, None
-    dbeta, kdbeta = None, None
+    # -------------
 
     # -----------------------------
     # compute from pts
@@ -376,9 +379,9 @@ def _rays(
         if pts_x.shape[0] == 1:
             pass
         else:
-            v0x = pts_x[0, ...] - start_x
-            v0y = pts_y[0, ...] - start_y
-            v0z = pts_z[0, ...] - start_z
+            v0x = pts_x[0:1, ...] - start_x
+            v0y = pts_y[0:1, ...] - start_y
+            v0z = pts_z[0:1, ...] - start_z
             vx = np.concatenate((v0x, np.diff(pts_x, axis=0)), axis=0)
             vy = np.concatenate((v0y, np.diff(pts_y, axis=0)), axis=0)
             vz = np.concatenate((v0z, np.diff(pts_z, axis=0)), axis=0)
@@ -775,7 +778,7 @@ def _make_dict(
 
     # key_nseg
     if key_nseg is None:
-        knseg = f'{key}-nseg'
+        knseg = f'{key}_nseg'
         dref = {
             knseg: {'size': nseg},
         }
@@ -795,7 +798,7 @@ def _make_dict(
     if ref is None:
         ref = []
         for ii, ss in enumerate(shaperef):
-            kr = f'{key}-n{ii}'
+            kr = f'{key}_n{ii}'
             dref.update({
                 kr: {'size': ss}
             })

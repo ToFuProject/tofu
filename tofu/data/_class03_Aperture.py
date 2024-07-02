@@ -56,6 +56,7 @@ class Aperture(Previous):
         outline_x0=None,
         outline_x1=None,
         cent=None,
+        extenthalf=None,
         # 3d outline
         poly_x=None,
         poly_y=None,
@@ -92,6 +93,7 @@ class Aperture(Previous):
             outline_x0=outline_x0,
             outline_x1=outline_x1,
             cent=cent,
+            extenthalf=extenthalf,
             # 3d outline
             poly_x=poly_x,
             poly_y=poly_y,

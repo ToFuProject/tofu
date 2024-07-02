@@ -529,25 +529,47 @@ def _harmonize_polygon_sizes(
     lp0=None,
     lp1=None,
     nmin=0,
+    shape=None,
 ):
     """ From a list of polygons return an array
 
     """
 
+    # -----------
     # prepare
+    # -----------
+
     npoly = len(lp0)
+    assert npoly == np.prod(shape), (npoly, shape)
+
     ln = [p0.size if p0 is not None else 0 for p0 in lp0]
     nmax = max(np.max(ln), nmin)
-    nan = np.full((nmax,), np.nan)
 
+    # --------------
     # prepare output
-    x0 = np.full((npoly, nmax), np.nan)
-    x1 = np.full((npoly, nmax), np.nan)
+    # --------------
 
-    for ii, p0 in enumerate(lp0):
+    sh = tuple(np.r_[shape, nmax])
+    x0 = np.full(sh, np.nan)
+    x1 = np.full(sh, np.nan)
 
-        if p0 is None:
+    # -----------
+    # loop
+    # -----------
+
+    lind = [range(ss) for ss in shape]
+    for ii, ind in enumerate(itt.product(*lind)):
+
+        sli = tuple(list(ind) + [slice(None)])
+
+        # -------
+        # trivial
+
+        if lp0[ii] is None:
             continue
+
+        # -------------
+        # less than max
 
         elif ln[ii] < nmax:
 
@@ -557,6 +579,7 @@ def _harmonize_polygon_sizes(
             # create imax
             iseg = np.arange(0, ndif) % ln[ii]
             npts = np.unique(iseg, return_counts=True)[1]
+
             if npts.size < ln[ii]:
                 npts = np.r_[
                     npts, np.zeros((ln[ii] - npts.size,))
@@ -573,20 +596,24 @@ def _harmonize_polygon_sizes(
             ]))
 
             # interpolate
-            x0[ii, :] = scpinterp.interp1d(
+            x0[sli] = scpinterp.interp1d(
                 ind0,
-                np.r_[p0, p0[0]],
+                np.r_[lp0[ii], lp0[ii][0]],
                 kind='linear',
             )(imax)
-            x1[ii, :] = scpinterp.interp1d(
+
+            x1[sli] = scpinterp.interp1d(
                 ind0,
                 np.r_[lp1[ii], lp1[ii][0]],
                 kind='linear',
             )(imax)
 
+        # -------------
+        # more than max
+
         else:
-            x0[ii, :] = p0
-            x1[ii, :] = lp1[ii]
+            x0[sli] = lp0[ii]
+            x1[sli] = lp1[ii]
 
     return x0, x1
 
