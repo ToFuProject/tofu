@@ -232,7 +232,11 @@ def _check_doptics_basics(
             and all([isinstance(k1, str) for k1 in doptics[k0]['optics']])
         )
         if not c0:
-            _err_doptics(key=key, doptics=doptics)
+            _err_doptics(
+                key=key,
+                doptics=doptics,
+                extra_msg="\n'optics' must be a list or tuple of known optics!\n",
+            )
 
     # --------------------
     # level 1: checking each optics class
