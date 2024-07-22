@@ -191,7 +191,11 @@ def _check_doptics_basics(
         doptics = {doptics[0]: type(doptics)(doptics[1:])}
 
     if not isinstance(doptics, dict):
-        _err_doptics(key=key, doptics=doptics)
+        _err_doptics(
+            key=key,
+            doptics=doptics,
+            extra_msg="\nShould be a dict!\n",
+        )
 
     # ----------
     # check keys
@@ -205,7 +209,11 @@ def _check_doptics_basics(
     ])
 
     if not c0:
-        _err_doptics(key=key, doptics=doptics)
+        _err_doptics(
+            key=key,
+            doptics=doptics,
+            extra_msg="\nSome keys (cam) are not valid!\n",
+        )
 
     # --------------------------
     # start re-arranging as dict
