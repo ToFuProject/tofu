@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import os
 import bsplines2d as bs2
 
 

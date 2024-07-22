@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-# Built-in
-import copy
-
-
 # Common
-import numpy as np
-import datastock as ds
-import bsplines2d as bs2
+import spectrally as sp
 
 
 # tofu
@@ -24,10 +18,10 @@ __all__ = ['Config']
 # #############################################################################
 
 
-class Config(bs2.BSplines2D):
+class Config(sp.Collection):
 
     _show_in_summary = 'all'
-    _dshow = dict(bs2.BSplines2D._dshow)
+    _dshow = dict(sp.Collection._dshow)
     _dshow.update({
         'structure': [
         ],
