@@ -481,8 +481,8 @@ def _check_optic(
                 f"The following points of {ocls} '{oo}' are on the wrong"
                 f"side of lastref {last_ref_cls} '{last_ref}':\n"
                 f"{iout.nonzero()[0]}\n\n"
-                f"'{oo}':\n{dgeom}\n\n"
-                f"'{last_ref}':\n{dgeom_lastref}\n\n"
+                f"last ref {last_ref_cls} '{last_ref}':\n{dgeom_lastref}\n\n"
+                f"optics {ocls} '{oo}':\n{dgeom}\n\n"
                 "Tip:\n"
                 "\tMake sure to provide optics ordered from camera to plasma"
             )
@@ -542,8 +542,8 @@ def _check_optic(
                 f"The following points of {ocls} '{oo}' are on the wrong"
                 f"side of lastref {last_ref_cls} '{last_ref}':\n"
                 f"{iout.nonzero()[0]}\n\n"
-                f"'{oo}':\n{dgeom}\n\n"
-                f"'{last_ref}':\n{dgeom_lastref}\n\n"
+                f"last ref {last_ref_cls} '{last_ref}':\n{dgeom_lastref}\n\n"
+                f"optics {ocls} '{oo}':\n{dgeom}\n\n"
                 "Tip:\n"
                 "\tMake sure to provide optics ordered from camera to plasma\n"
             )
