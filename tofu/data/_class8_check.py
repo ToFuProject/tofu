@@ -483,6 +483,8 @@ def _check_optic(
                 f"{iout.nonzero()[0]}\n\n"
                 f"'{oo}':\n{dgeom}\n\n"
                 f"'{last_ref}':\n{dgeom_lastref}\n\n"
+                "Tip:\n"
+                "\tMake sure to provide optics ordered from camera to plasma"
             )
             raise Exception(msg)
 
@@ -497,13 +499,14 @@ def _check_optic(
 
         cx, cy, cz = dgeom_cam['cents']
         if ind_pix is None:
-            cx = coll.ddata[cx]['data'][ind_pix]
-            cy = coll.ddata[cy]['data'][ind_pix]
-            cz = coll.ddata[cz]['data'][ind_pix]
-        else:
             cx = coll.ddata[cx]['data'][None, ...]
             cy = coll.ddata[cy]['data'][None, ...]
             cz = coll.ddata[cz]['data'][None, ...]
+
+        else:
+            cx = coll.ddata[cx]['data'][ind_pix]
+            cy = coll.ddata[cy]['data'][ind_pix]
+            cz = coll.ddata[cz]['data'][ind_pix]
 
         # ------------------------
         # get pixel unit vector(s)
@@ -535,9 +538,14 @@ def _check_optic(
 
         if np.any(iout):
             msg = (
+                f"diag '{key}':\n"
                 f"The following points of {ocls} '{oo}' are on the wrong"
-                f"side of camera '{cam}':\n"
-                f"{np.unique(iout.nonzero()[0])}"
+                f"side of lastref {last_ref_cls} '{last_ref}':\n"
+                f"{iout.nonzero()[0]}\n\n"
+                f"'{oo}':\n{dgeom}\n\n"
+                f"'{last_ref}':\n{dgeom_lastref}\n\n"
+                "Tip:\n"
+                "\tMake sure to provide optics ordered from camera to plasma\n"
             )
             warnings.warn(msg)
 
