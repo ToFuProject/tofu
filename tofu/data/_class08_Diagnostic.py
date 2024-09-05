@@ -163,8 +163,8 @@ class Diagnostic(Previous):
         default=None,
         print_full_doc=None,
         **kwdargs,
-        ):
-        """ Return dict of data for chosen cameras
+    ):
+        """ Return dict of built-in data for chosen cameras
 
         data can be:
             'etendue'
@@ -177,7 +177,7 @@ class Diagnostic(Previous):
             'res'
 
         """
-        return _get_data._get_data(
+        return _get_data.main(
             coll=self,
             key=key,
             key_cam=key_cam,
@@ -200,7 +200,7 @@ class Diagnostic(Previous):
 
 
         """
-        return _concatenate._concatenate_data(
+        return _concatenate.main(
             coll=self,
             key=key,
             key_data=key_data,

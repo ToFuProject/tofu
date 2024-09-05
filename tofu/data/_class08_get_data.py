@@ -23,7 +23,7 @@ from . import _class08_get_data_vos_spectro
 # ##################################################################
 
 
-def _get_data(
+def main(
     coll=None,
     key=None,
     key_cam=None,
@@ -40,12 +40,12 @@ def _get_data(
     # ----------------
 
     (
-     key, key_cam,
-     spectro, is_vos, is_3d,
-     data,
-     lok, lcam, lquant,
-     davail,
-    ) = _get_data_check(
+        key, key_cam,
+        spectro, is_vos, is_3d,
+        data,
+        lok, lcam, lquant,
+        davail,
+    ) = _check(
         coll=coll,
         key=key,
         key_cam=key_cam,
@@ -270,7 +270,7 @@ def _get_data(
 # ##################################################################
 
 
-def _get_data_check(
+def _check(
     coll=None,
     key=None,
     key_cam=None,
@@ -300,11 +300,11 @@ def _get_data_check(
     # execute
     if print_full_doc is True:
         davail = _class08_get_data_def.get_davail()
-        _get_data_print(davail)
+        _print(davail)
 
     # stop here if relevant
     if pdef is True:
-        return [None]*14
+        return [None]*10
 
     # --------------
     # key, key_cam
@@ -373,7 +373,7 @@ def _get_data_check(
 
     if all(lc) and print_full_doc is False:
 
-        _get_data_print(
+        _print(
             davail,
             key=key,
             spectro=spectro,
@@ -457,7 +457,7 @@ def _get_data_check(
         except Exception as err:
             msg = (
                 f"{err}\n"
-                + _get_data_print(
+                + _print(
                     davail,
                     key=key,
                     spectro=spectro,
@@ -469,11 +469,11 @@ def _get_data_check(
             raise Exception(msg)
 
     return (
-     key, key_cam,
-     spectro, is_vos, is_3d,
-     data,
-     lok, lcam, lquant,
-     davail,
+        key, key_cam,
+        spectro, is_vos, is_3d,
+        data,
+        lok, lcam, lquant,
+        davail,
     )
 
 
@@ -483,7 +483,7 @@ def _get_data_check(
 # ##################################################################
 
 
-def _get_data_print(
+def _print(
     davail,
     key=None,
     spectro=None,
@@ -508,7 +508,7 @@ def _get_data_print(
 
     msg = "\n\n##############################################\n"
     if key is None:
-        msg += "The following data is available in general:\n\n"
+        msg += "The following built-in data is available in general:\n\n"
     else:
         msg += (
             f"The following data is available for '{key}':\n"
