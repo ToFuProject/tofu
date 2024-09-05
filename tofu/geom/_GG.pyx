@@ -29,6 +29,7 @@ from libc.math cimport atan2 as c_atan2, pi as c_pi
 from libc.math cimport NAN as C_NAN
 from libc.math cimport INFINITY as C_INF
 from libc.stdlib cimport malloc, free
+from libc.stdint cimport int64_t
 # from libc.stdio cimport printf   # for debug
 
 # -- extra libraries imports --------------------------------------------------
@@ -2206,14 +2207,16 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                               double[:, ::1] ves_norm,
                               np.ndarray[long, ndim=1] lstruct_nlim=None,
                               # long[::1] lstruct_nlim=None, because windows sucks
+                              int64_t[::1] lstruct_nlim=None,
                               double[::1] ves_lims=None,
                               double[::1] lstruct_polyx=None,
                               double[::1] lstruct_polyy=None,
                               list lstruct_lims=None,
                               double[::1] lstruct_normx=None,
                               double[::1] lstruct_normy=None,
-                              np.ndarray[long, ndim=1] lnvert=None,
+                              # np.ndarray[long, ndim=1] lnvert=None,
                               # long[::1] lnvert=None, because windows sucks
+                              int64_t[::1] lnvert=None,
                               int nstruct_tot=0,
                               int nstruct_lim=0,
                               double rmin=-1,
