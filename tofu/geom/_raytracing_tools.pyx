@@ -13,6 +13,7 @@ from libc.math cimport atan2 as c_atan2
 from libc.math cimport NAN as C_NAN
 from libc.math cimport pi as c_pi
 from libc.math cimport isnan as c_isnan
+from libc.stdint cimport int64_t
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from cpython.array cimport array, clone
@@ -590,7 +591,8 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
                                              const double* lbounds,
                                              const double* langles,
                                              const int* lis_limited,
-                                             const long* lnvert,
+                                             # const long* lnvert,
+                                             int64_t* lnvert,
                                              const long* lsz_lim,
                                              const double* lstruct_polyx,
                                              const double* lstruct_polyy,
@@ -837,7 +839,8 @@ cdef inline void raytracing_inout_struct_tor_inomp(const int num_los,
                                                    const double* lbounds,
                                                    const double* langles,
                                                    const int* lis_limited,
-                                                   const long* lnvert,
+                                                   # const long* lnvert,
+                                                   int64_t* lnvert,
                                                    const long* lsz_lim,
                                                    const double* lstruct_polyx,
                                                    const double* lstruct_polyy,
@@ -1606,14 +1609,16 @@ cdef inline void compute_inout_tot(const int num_los,
                                    const double[:, ::1] ray_vdir,
                                    const double[:, ::1] ves_poly,
                                    const double[:, ::1] ves_norm,
-                                   const long[::1] lstruct_nlim_org,
+                                   # const long[::1] lstruct_nlim_org,
+                                   int64_t[::1] lstruct_nlim_org
                                    const double[::1] ves_lims,
                                    const double[::1] lstruct_polyx,
                                    const double[::1] lstruct_polyy,
                                    const double[::1] lstruct_lims,
                                    const double[::1] lstruct_normx,
                                    const double[::1] lstruct_normy,
-                                   const long[::1] lnvert,
+                                   # const long[::1] lnvert,
+                                   int64_t[::1] lnvert,
                                    const int nstruct_tot,
                                    const int nstruct_lim,
                                    const int sz_ves_lims,

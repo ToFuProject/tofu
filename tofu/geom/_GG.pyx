@@ -2205,7 +2205,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                               double[:, ::1] ray_vdir,
                               double[:, ::1] ves_poly,
                               double[:, ::1] ves_norm,
-                              np.ndarray[long, ndim=1] lstruct_nlim=None,
+                              # np.ndarray[long, ndim=1] lstruct_nlim=None,
                               # long[::1] lstruct_nlim=None, because windows sucks
                               int64_t[::1] lstruct_nlim=None,
                               double[::1] ves_lims=None,
