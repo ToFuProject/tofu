@@ -14,6 +14,7 @@ cimport cython
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from libc.stdlib cimport malloc, free
+from libc.stdint cimport int64_t
 from libc.math cimport sqrt as c_sqrt
 from . cimport _raytracing_tools as _rt
 from . cimport _basic_geom_tools as _bgt
@@ -472,7 +473,8 @@ cdef inline void triangulate_poly(
 
 cdef inline int triangulate_polys(
     double** vignett_poly,
-    long* lnvert,
+    # long* lnvert,
+    int64_t* lnvert,
     int nvign,
     long** ltri,
     int num_threads,
@@ -541,7 +543,8 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
 cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  double[:, ::1] ray_vdir,
                                  double** vignett,
-                                 long* lnvert,
+                                 # long* lnvert,
+                                 int64_t* lnvert,
                                  double* lbounds,
                                  long** ltri,
                                  int nvign,

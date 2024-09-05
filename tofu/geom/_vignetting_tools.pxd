@@ -11,6 +11,9 @@
 # discretized in triangles and then we check if the ray intersected each
 # triangle.
 ################################################################################
+
+from libc.stdint cimport int64_t
+
 cdef void compute_diff2d(
     double* orig,
     int nvert,
@@ -87,7 +90,8 @@ cdef void triangulate_poly(double* vignett_poly,
                           long** ltri) nogil
 
 cdef int triangulate_polys(double** vignett_poly,
-                            long* lnvert,
+                            # long* lnvert,
+                            int64_t* lnvert,
                             int nvign,
                             long** ltri,
                             int num_threads) nogil except -1
@@ -109,7 +113,8 @@ cdef bint inter_ray_poly(
 cdef void vignetting_core(double[:, ::1] ray_orig,
                           double[:, ::1] ray_vdir,
                           double** vignett,
-                          long* lnvert,
+                          # long* lnvert,
+                          int64_t* lnvert,
                           double* lbounds,
                           long** ltri,
                           int nvign,
