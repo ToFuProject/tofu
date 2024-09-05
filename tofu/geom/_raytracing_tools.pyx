@@ -1610,7 +1610,7 @@ cdef inline void compute_inout_tot(const int num_los,
                                    const double[:, ::1] ves_poly,
                                    const double[:, ::1] ves_norm,
                                    # const long[::1] lstruct_nlim_org,
-                                   int64_t[::1] lstruct_nlim_org
+                                   int64_t[::1] lstruct_nlim_org,
                                    const double[::1] ves_lims,
                                    const double[::1] lstruct_polyx,
                                    const double[::1] lstruct_polyy,
