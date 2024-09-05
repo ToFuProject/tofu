@@ -3,6 +3,8 @@
 # cython: wraparound=False
 # cython: cdivision=True
 #
+
+from libc.stdint cimport int64_t
 cimport numpy as cnp
 # ==============================================================================
 # =  LINEAR MESHING
@@ -268,7 +270,8 @@ cdef void sa_assemble_arrays(int block,
                              double[::1] lstruct_lims,
                              double[::1] lstruct_normx,
                              double[::1] lstruct_normy,
-                             long[::1] lnvert,
+                             # long[::1] lnvert,
+                             int64_t[::1] lnvert,
                              int nstruct_tot,
                              int nstruct_lim,
                              double rmin,

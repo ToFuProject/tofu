@@ -15,6 +15,7 @@ from libc.math cimport isnan as c_isnan
 from libc.math cimport NAN as C_NAN
 from libc.math cimport log2 as c_log2
 from libc.stdlib cimport malloc, free, realloc
+from libc.stdint cimport int64_t
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from cython.parallel cimport threadid
@@ -2055,7 +2056,8 @@ cdef inline void sa_assemble_arrays(int block,
                                     double[::1] lstruct_lims,
                                     double[::1] lstruct_normx,
                                     double[::1] lstruct_normy,
-                                    long[::1] lnvert,
+                                    # long[::1] lnvert,
+                                    int64_t[::1] lnvert,
                                     int nstruct_tot,
                                     int nstruct_lim,
                                     double rmin,
@@ -2214,7 +2216,8 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                        double[::1] lstruct_lims,
                                        double[::1] lstruct_normx,
                                        double[::1] lstruct_normy,
-                                       long[::1] lnvert,
+                                       # long[::1] lnvert,
+                                       int64_t[::1] lnvert,
                                        double[:, ::1] vperp_out,
                                        double[:, ::1] coeff_inter_in,
                                        double[:, ::1] coeff_inter_out,
@@ -2435,7 +2438,8 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
                                       double[::1] lstruct_lims,
                                       double[::1] lstruct_normx,
                                       double[::1] lstruct_normy,
-                                      long[::1] lnvert,
+                                      # long[::1] lnvert,
+                                      int64_t[::1] lnvert,
                                       double[:, ::1] vperp_out,
                                       double[:, ::1] coeff_inter_in,
                                       double[:, ::1] coeff_inter_out,
