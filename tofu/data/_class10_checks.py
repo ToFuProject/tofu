@@ -148,7 +148,7 @@ def _compute_check(
     )
 
     if reft is None:
-        reft = f'{key}-nt'
+        reft = f'{key}_nt'
 
     # update all accordingly
     if hastime and dindt is not None:
