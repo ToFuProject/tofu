@@ -4082,7 +4082,7 @@ class Config(utils.ToFuObject):
             # lsnvert = cumulated number of points in the poly of each Struct
             lsnvert = np.cumsum([
                 ss.Poly_closed[0].size for ss in lS],
-                dtype=int,
+                dtype=np.int64,
             )
 
         # Now setting keyword arguments:
