@@ -171,6 +171,9 @@ def _check(
 
             if lok is None:
                 lok = []
+            if lok_equi is None:
+                lok_equi = []
+
             key_data = ds._generic_check._check_var(
                 key_data, 'key_data',
                 types=str,
@@ -203,13 +206,13 @@ def _check(
 
     lcam = [coll.ddata[k0]['camera'] for k0 in key_data]
 
-    lc = [
+    lc = (
         [all([kcam in key_cam for kcam in lcam])]
         + [
             all([kcam in dcam_equi[kdiag] for kcam in lcam])
             for kdiag in ldiag_equi
         ]
-    ]
+    )
 
     if not any(lc):
         lstr = (
@@ -253,7 +256,7 @@ def _check(
         kdiag = ldiag_equi[lc.index(True) - 1]
         key_cam_equi = [k0 for k0 in dcam_equi[kdiag] if k0 in lcam]
         key_cam = [
-            k0 for k0, ii in enumerate(key_cam)
+            k0 for ii, k0 in enumerate(key_cam)
             if dcam_equi[kdiag][ii] in lcam
         ]
 
