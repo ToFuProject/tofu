@@ -643,7 +643,7 @@ def test13_LOS_PInOut():
     SP2y = [7.,7.,8.,8.,7.]
     nstruct_lim = 3
     nstruct_tot =1+2+1
-    lstruct_nlim = np.asarray([1, 2, 1])
+    lstruct_nlim = np.asarray([1, 2, 1], dtype=np.int64)
     SL0 = np.asarray([np.array([0., 1.])*2.*np.pi])
     SL1 = np.asarray([
         np.array(ss)*2.*np.pi
