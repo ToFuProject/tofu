@@ -577,13 +577,13 @@ def _Ves_get_sample_checkinputs(
     c0 = (ind is None
           or (isinstance(ind, np.ndarray)
               and ind.ndim == 1
-              and ind.dtype == np.int_
+              and 'int' in ind.dtype.name
               and np.all(ind >= 0))
           or (which == 'surface'
               and isinstance(ind, list)
               and all([isinstance(indi, np.ndarray)
                        and indi.ndim == 1
-                       and indi.dtype == np.int_
+                       and 'int' in indi.dtype.name
                        and np.all(indi >= 0) for indi in ind])))
     if not c0:
         msg = ("Arg ind must be either:\n"
@@ -594,7 +594,7 @@ def _Ves_get_sample_checkinputs(
         msg += "  You provided:\n{}".format(ind)
         raise Exception(msg)
 
-    return res, domain, resMode, ind
+    return res, domain, resMode, ind.astype(np.int64)
 
 
 def _Ves_get_sampleEdge(
