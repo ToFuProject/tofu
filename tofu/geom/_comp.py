@@ -594,7 +594,12 @@ def _Ves_get_sample_checkinputs(
         msg += "  You provided:\n{}".format(ind)
         raise Exception(msg)
 
-    return res, domain, resMode, ind.astype(np.int64)
+    if isinstance(ind, np.ndarray):
+        ind = ind.astype(np.int64)
+    elif isinstance(ind, list):
+        ind = [ii.astype(np.int64) for ii in ind]
+
+    return res, domain, resMode, ind
 
 
 def _Ves_get_sampleEdge(
