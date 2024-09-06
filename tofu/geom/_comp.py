@@ -1085,7 +1085,7 @@ def _Struct_get_phithetaproj(ax=None, poly_closed=None, lim=None, noccur=0):
         nphi = np.r_[1]
     else:
         assert lim.ndim == 2, str(lim)
-        nphi = np.ones((noccur,), dtype=int)
+        nphi = np.ones((noccur,), dtype=np.int64)
         ind = (lim[:, 0] > lim[:, 1]).nonzero()[0]
         Dphi = np.concatenate((lim, np.full((noccur, 2), np.nan)), axis=1)
         if ind.size > 0:

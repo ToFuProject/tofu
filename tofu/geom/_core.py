@@ -545,7 +545,7 @@ class Struct(utils.ToFuObject):
         if type(Types) is str:
             assert Types in self._DREFLECT_DTYPES.keys()
             Types = np.full(
-                (self.nseg + 2,), self._DREFLECT_DTYPES[Types], dtype=int
+                (self.nseg + 2,), self._DREFLECT_DTYPES[Types], dtype=np.int64
             )
         else:
             Types = Types.astype(int).ravel()
@@ -3192,14 +3192,14 @@ class Config(utils.ToFuObject):
                     + 'Created on: {}'.format(now))
 
         # Build walls
-        nwall = np.array([[self.nStruct]], dtype=int)
+        nwall = np.array([[self.nStruct]], dtype=np.int64)
 
         # typ (from extraprop if any, else from Ves / Struct)
         if type_extraprop is not None:
-            typ = np.array([self._get_extraprop(type_extraprop)], dtype=int)
+            typ = np.array([self._get_extraprop(type_extraprop)], dtype=np.int64)
         else:
             typ = np.array([[1 if ss._InOut == 'in' else -1
-                             for ss in self.lStruct]], dtype=int)
+                             for ss in self.lStruct]], dtype=np.int64)
         # Get coord
         coord = np.array([np.array([
             (ss.Poly[0:1, :].T, ss.Poly[1:2, :].T) for ss in self.lStruct],
@@ -3559,14 +3559,14 @@ class Config(utils.ToFuObject):
         # Version only usable when indout returns npts+1 and npts+2 instead of
         # -1 and -2
         # ls = [ss._dreflect['Types'].size for ss in lS]
-        # Types = np.empty((len(lS), np.max(ls)), dtype=int)
+        # Types = np.empty((len(lS), np.max(ls)), dtype=np.int64)
         # for ii,ss in enumerate(lS):
         # Types[ii,:ls[ii]] = ss._dreflect['Types']
         # # Deduce Types
         # Types = Types[indout[0,:], indout[2,:]]
 
         iu = np.unique(indout[0, :])
-        Types = np.empty((indout.shape[1],), dtype=int)
+        Types = np.empty((indout.shape[1],), dtype=np.int64)
         for ii in iu:
             ind = indout[0, :] == ii
             Types[ind] = lS[ii]._dreflect["Types"][indout[2, ind]]
@@ -3619,7 +3619,7 @@ class Config(utils.ToFuObject):
         # Get limits
         lS = self.lStruct
         dist = np.full((ntheta, nphi), np.inf)
-        indStruct = np.zeros((ntheta, nphi), dtype=int)
+        indStruct = np.zeros((ntheta, nphi), dtype=np.int64)
         for ii in range(0, self.nStruct):
             out = _comp._Struct_get_phithetaproj(
                 refpt, lS[ii].Poly_closed, lS[ii].Lim, lS[ii].noccur
@@ -3769,7 +3769,7 @@ class Config(utils.ToFuObject):
         """
         if Type is not None:
             assert Type in ["specular", "diffusive", "ccube"]
-            Types = np.full((nRays,), _DREFLECT[Type], dtype=int)
+            Types = np.full((nRays,), _DREFLECT[Type], dtype=np.int64)
         else:
             Types = self.get_reflections(indout)[0]
         return Types
@@ -5566,7 +5566,7 @@ class Rays(utils.ToFuObject):
         clas = Rays if self.__class__.__name__ == Rays else CamLOS1D
 
         # Run first iteration
-        Types = np.full((nb, self.nRays), 0, dtype=int)
+        Types = np.full((nb, self.nRays), 0, dtype=np.int64)
         Ds = self.D + (self._dgeom["kOut"][None, :] - 1.0e-12) * self.u
         us, Types[0, :] = self.config._reflect_geom(
             u=self.u,
@@ -5640,11 +5640,11 @@ class Rays(utils.ToFuObject):
 
         # Prepare output
         nRays = self.nRays
-        Types = np.full((nRays, nb), 0, dtype=int)
+        Types = np.full((nRays, nb), 0, dtype=np.int64)
         Ds = np.full((3, nRays, nb), np.nan, dtype=float)
         us = np.full((3, nRays, nb), np.nan, dtype=float)
         kouts = np.full((nRays, nb), np.nan, dtype=float)
-        indouts = np.full((3, nRays, nb), 0, dtype=int)
+        indouts = np.full((3, nRays, nb), 0, dtype=np.int64)
         vperps = np.full((3, nRays, nb), np.nan, dtype=float)
 
         # Run first iteration
@@ -6220,7 +6220,7 @@ class Rays(utils.ToFuObject):
         indIn = np.array([
             ii for ii, ss in enumerate(self.config.lStruct)
             if compute[ii] and ss._InOut == "in"
-        ], dtype=int)
+        ], dtype=np.int64)
         if unique_In is True and indIn.size > 1:
             iind = np.argmin([
                 self.config.lStruct[ii].dgeom['Surf'] for ii in indIn
@@ -6230,7 +6230,7 @@ class Rays(utils.ToFuObject):
         indOut = np.array([
             ii for ii, ss in enumerate(self.config.lStruct)
             if compute[ii] and ss._InOut == "out"
-        ], dtype=int)
+        ], dtype=np.int64)
         return indIn, indOut
 
     def _check_indch(self, ind, out=int):
@@ -8230,7 +8230,7 @@ class CamLOS2D(Rays):
                         np.digitize(self._dgeom['ddetails']['x12'][0,:], x2b)])
         if direction == 'flat2img':
             indr = np.zeros((self._dgeom['ddetails']['x1'].size,
-                             self._dgeom['ddetails']['x2'].size),dtype=int)
+                             self._dgeom['ddetails']['x2'].size),dtype=np.int64)
             indr[ind[0,:],ind[1,:]] = np.arange(0,self._dgeom['nRays'])
             ind = indr
         return ind
