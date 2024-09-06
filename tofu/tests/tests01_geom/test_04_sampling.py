@@ -174,9 +174,12 @@ def test04_ves_vmesh_lin():
     assert np.all(Pts[0, :] >= 8.) and np.all(Pts[0, :] <= 10.) and \
            np.all(Pts[1, :] >= 1.) and np.all(Pts[1, :] <= 2.) and \
            np.all(Pts[2, :] >= 0.) and np.all(Pts[2, :] <= 1.)
-    assert all([ind.shape == (Pts.shape[1],), ind.dtype == int,
-                np.unique(ind).size == ind.size,
-                np.all(ind == np.unique(ind)), np.all(ind >= 0)])
+    assert all([
+        ind.shape == (Pts.shape[1],),
+        'int' in ind.dtype.name,
+        np.unique(ind).size == ind.size,
+        np.all(ind == np.unique(ind)), np.all(ind >= 0),
+    ])
 
     out = GG._Ves_Vmesh_Lin_SubFromInd_cython(dX, dY, dZ,
                                               XMinMax, YMinMax, ZMinMax,
