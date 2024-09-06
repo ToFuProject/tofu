@@ -10,6 +10,7 @@ from libc.math cimport sqrt as c_sqrt
 from libc.math cimport NAN as CNAN
 from libc.math cimport pi as c_pi
 from libc.stdlib cimport malloc, free
+from libc.stdint cimport int64_t
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
@@ -382,9 +383,9 @@ cdef inline void sum_by_rows(double *orig, double *out,
     return
 
 
-cdef inline long sum_naive_int(long* orig, int n_cols) nogil:
+cdef inline int64_t sum_naive_int(int64_t* orig, int n_cols) nogil:
     cdef int ii
-    cdef long out
+    cdef int64_t out
 
     with nogil:
         out = 0

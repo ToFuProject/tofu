@@ -29,6 +29,7 @@ from libc.math cimport atan2 as c_atan2, pi as c_pi
 from libc.math cimport NAN as C_NAN
 from libc.math cimport INFINITY as C_INF
 from libc.stdlib cimport malloc, free
+from libc.stdint cimport int64_t
 # from libc.stdio cimport printf   # for debug
 
 # -- extra libraries imports --------------------------------------------------
@@ -107,8 +108,8 @@ def coord_shift(points, in_format='(X,Y,Z)',
     (CrossRef is an angle (Tor) or a distance (X for Lin))
     """
     cdef str str_ii
-    cdef long ncoords = points.shape[0]
-    cdef long npts
+    cdef int64_t ncoords = points.shape[0]
+    cdef int64_t npts
     assert all([type(ff) is str and ',' in ff
                 for ff in [in_format, out_format]]), (
                         "Arg In and Out (coordinate format) "
@@ -561,9 +562,9 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     cdef int mode_num
     cdef str err_mess
     cdef str mode_low = mode.lower()
-    cdef long sz_ld
-    cdef long[1] N
-    cdef long* lindex = NULL
+    cdef int64_t sz_ld
+    cdef int64_t[1] N
+    cdef int64_t* lindex = NULL
     cdef double* ldiscret = NULL
     cdef double[2] dl_array
     cdef double[1] resolution
@@ -580,7 +581,7 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
                                        &lindex, N)
     #.. converting and returning................................................
     ld_arr = np.copy(np.asarray(<double[:sz_ld]> ldiscret))
-    li_arr = np.copy(np.asarray(<long[:sz_ld]>lindex)).astype(int)
+    li_arr = np.copy(np.asarray(<int64_t[:sz_ld]>lindex)).astype(np.int64)
     free(ldiscret)
     free(lindex)
     return ld_arr, resolution[0], li_arr, N[0]
@@ -652,26 +653,26 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef int num_pts_vpoly
     cdef str err_mess
     cdef str mode_low = mode.lower()
-    cdef long nind1
-    cdef long nind2
-    cdef long[1] ncells1
-    cdef long[1] ncells2
+    cdef int64_t nind1
+    cdef int64_t nind2
+    cdef int64_t[1] ncells1
+    cdef int64_t[1] ncells2
     cdef double[2] dl1_array
     cdef double[2] dl2_array
     cdef double[2] resolutions
-    cdef long[:] lindex_view
+    cdef int64_t[:] lindex_view
     cdef double[:] lresol_view
     cdef double[:,:] ldiscr_view
     cdef int* are_in_poly = NULL
-    cdef long* lindex1_arr = NULL
-    cdef long* lindex2_arr = NULL
-    cdef long* lindex_tmp  = NULL
+    cdef int64_t* lindex1_arr = NULL
+    cdef int64_t* lindex2_arr = NULL
+    cdef int64_t* lindex_tmp  = NULL
     cdef double* ldiscr_tmp = NULL
     cdef double* ldiscret1_arr = NULL
     cdef double* ldiscret2_arr = NULL
     cdef np.ndarray[double,ndim=2] ldiscr
     cdef np.ndarray[double,ndim=1] lresol
-    cdef np.ndarray[long,ndim=1] lindex
+    cdef np.ndarray[int64_t,ndim=1] lindex
     # ...
     mode_num = _st.get_nb_dmode(mode_low)
     # .. Testing ...............................................................
@@ -694,7 +695,7 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     if VPoly is not None:
         ndisc = nind1 * nind2
         ldiscr_tmp = <double *>malloc(ndisc * 2 * sizeof(double))
-        lindex_tmp = <long *>malloc(ndisc * sizeof(long))
+        lindex_tmp = <int64_t *>malloc(ndisc * sizeof(int64_t))
         for ii in range(nind2):
             for jj in range(nind1):
                 nn = jj + nind1 * ii
@@ -710,7 +711,7 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
                                              are_in_poly)
         ldiscr = np.empty((2, tot_true), dtype=float)
         lresol = np.empty((tot_true,), dtype=float)
-        lindex = np.empty((tot_true,), dtype=int)
+        lindex = np.empty((tot_true,), dtype=np.int64)
         ldiscr_view = ldiscr
         lindex_view = lindex
         lresol_view = lresol
@@ -735,7 +736,7 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
         ndisc = nind1 * nind2
         ldiscr = np.empty((2, ndisc), dtype=float)
         lresol = np.empty((ndisc,), dtype=float)
-        lindex = np.empty((ndisc,), dtype=int)
+        lindex = np.empty((ndisc,), dtype=np.int64)
         ldiscr_view = ldiscr
         lindex_view = lindex
         lresol_view = lresol
@@ -758,7 +759,7 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1,
                            double[::1] MinMax2,
                            double d1,
                            double d2,
-                           long[::1] ind,
+                           int64_t[::1] ind,
                            str dSMode='abs',
                            double margin=_VSMALL):
 
@@ -767,8 +768,8 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1,
     cdef int ncells1
     cdef int mode_num
     cdef int num_pts = ind.size
-    cdef long[2] ncells
-    cdef long* dummy = NULL
+    cdef int64_t[2] ncells
+    cdef int64_t* dummy = NULL
     cdef double d1r, d2r
     cdef double[2] resolution
     cdef double[2] dl_array
@@ -864,13 +865,13 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     cdef double* YPolybis = NULL
     cdef double* Rref = NULL
     cdef double* resolution = NULL
-    cdef long* ind = NULL
-    cdef long* numcells = NULL
+    cdef int64_t* ind = NULL
+    cdef int64_t* numcells = NULL
     cdef np.ndarray[double,ndim=2] PtsCross, VPolybis
     cdef np.ndarray[double,ndim=1] PtsCrossX, PtsCrossY
     cdef np.ndarray[double,ndim=1] VPolybisX, VPolybisY
     cdef np.ndarray[double,ndim=1] Rref_arr, resol
-    cdef np.ndarray[long,ndim=1] ind_arr, N_arr
+    cdef np.ndarray[int64_t,ndim=1] ind_arr, N_arr
     cdef np.ndarray[np.npy_bool,ndim=1,cast=True] indin
     cdef str mode_low = mode.lower()
     cdef int mode_num = _st.get_nb_dmode(mode_low)
@@ -892,8 +893,8 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     VPolybis = np.array([VPolybisX, VPolybisY])
     resol = np.array(<double[:sz_ot[0]]> resolution)
     Rref_arr = np.array(<double[:sz_ot[0]]> Rref)
-    ind_arr = np.array(<long[:sz_ot[0]]> ind)
-    N_arr = np.array(<long[:npts_disc-1]> numcells)
+    ind_arr = np.array(<int64_t[:sz_ot[0]]> ind)
+    N_arr = np.array(<int64_t[:npts_disc-1]> numcells)
     if D1 is not None:
         indin = (PtsCross[0,:]>=D1[0]) & (PtsCross[0,:]<=D1[1])
         PtsCross = PtsCross[:,indin]
@@ -933,9 +934,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
 
     Parameters
     ----------
-        rstep (double): refinement along radius `r`
-        zstep (double): refinement along height `z`
-        phistep (double): refinement along toroidal direction `phi`
+        rstep (double): refinement aint64_t radius `r`
+        zstep (double): refinement aint64_t height `z`
+        phistep (double): refinement aint64_t toroidal direction `phi`
         RMinMax: array specifying the limits min and max in `r`
         ZMinMax: array specifying the limits min and max in `z`
         DR: array specifying the actual sub-volume limits to get in `r`
@@ -975,28 +976,28 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double abs0, abs1
     cdef double reso_r_z
     cdef double twopi_over_dphi
-    cdef long[1] ncells_r0, ncells_r, ncells_z
-    cdef long[::1] ind_mv
+    cdef int64_t[1] ncells_r0, ncells_r, ncells_z
+    cdef int64_t[::1] ind_mv
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] dv_mv
     cdef double[::1] reso_phi_mv
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
-    cdef long[:, ::1] indi_mv
-    cdef long[:, :, ::1] lnp
-    cdef long*  ncells_rphi  = NULL
-    cdef long*  tot_nc_plane = NULL
-    cdef long*  lindex   = NULL
-    cdef long*  lindex_z = NULL
-    cdef long*  sz_phi = NULL
+    cdef int64_t[:, ::1] indi_mv
+    cdef int64_t[:, :, ::1] lnp
+    cdef int64_t*  ncells_rphi  = NULL
+    cdef int64_t*  tot_nc_plane = NULL
+    cdef int64_t*  lindex   = NULL
+    cdef int64_t*  lindex_z = NULL
+    cdef int64_t*  sz_phi = NULL
     cdef double* disc_r0 = NULL
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
     cdef double* step_rphi = NULL
-    cdef long[::1] first_ind_mv
-    cdef np.ndarray[long, ndim=2] indI
-    cdef np.ndarray[long, ndim=1] ind
+    cdef int64_t[::1] first_ind_mv
+    cdef np.ndarray[int64_t, ndim=2] indI
+    cdef np.ndarray[int64_t, ndim=1] ind
     cdef np.ndarray[double,ndim=1] reso_phi
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=1] res3d
@@ -1034,9 +1035,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         max_phi = DPhi[1] # to avoid conversions
         max_phi = c_atan2(c_sin(max_phi), c_cos(max_phi))
     # .. Initialization ........................................................
-    sz_phi = <long*>malloc(sz_r*sizeof(long))
-    tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
-    ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
+    sz_phi = <int64_t*>malloc(sz_r*sizeof(int64_t))
+    tot_nc_plane = <int64_t*>malloc(sz_r*sizeof(int64_t))
+    ncells_rphi  = <int64_t*>malloc(sz_r*sizeof(int64_t))
     step_rphi    = <double*>malloc(sz_r*sizeof(double))
     reso_phi = np.empty((sz_r,)) # we create the numpy array
     reso_phi_mv = reso_phi # and its associated memoryview
@@ -1063,7 +1064,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                 ind_loc_r0 = jj
                 break
             else:
-                ncells_rphi0 += <long>c_ceil(twopi_over_dphi * disc_r0[jj])
+                ncells_rphi0 += <int64_t>c_ceil(twopi_over_dphi * disc_r0[jj])
                 tot_nc_plane[0] = ncells_rphi0 * ncells_z[0]
         # Get indices of phi
         # Get the extreme indices of the mesh elements that really need to
@@ -1078,7 +1079,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
         sz_phi[0] = nphi1 + 1 - nphi0
         max_sz_phi[0] = sz_phi[0]
-        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=np.int64)
         indi_mv = indI
         for jj in range(sz_phi[0]):
             indi_mv[0, jj] = nphi0 + jj
@@ -1097,7 +1098,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                 ind_loc_r0 = jj
                 break
             else:
-                ncells_rphi0 += <long>c_ceil(twopi_over_dphi * disc_r0[jj])
+                ncells_rphi0 += <int64_t>c_ceil(twopi_over_dphi * disc_r0[jj])
                 tot_nc_plane[0] = ncells_rphi0 * ncells_z[0]
         # Get indices of phi
         # Get the extreme indices of the mesh elements that really need to
@@ -1112,7 +1113,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
         sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
         max_sz_phi[0] = sz_phi[0]
-        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=np.int64)
         indi_mv = indI
         for jj in range(loc_nc_rphi - nphi0):
             indi_mv[0, jj] = nphi0 + jj
@@ -1128,7 +1129,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                              min_phi, max_phi, sz_phi, indi_mv,
                              margin, num_threads)
     # ... vignetting ...........................................................
-    is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
+    is_in_vignette = np.ones((sz_r, sz_z), dtype=np.int64) # by default yes
 
     if limit_vpoly is not None:
         npts_vpoly = limit_vpoly.shape[1] - 1
@@ -1148,7 +1149,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                 is_in_vignette)
 
     # Preparing an array of indices to associate (r, z, phi) => npts_disc
-    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
+    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=np.int64)
     new_np = _st.vmesh_get_index_arrays(lnp, is_in_vignette,
                                         sz_r, sz_z, sz_phi)
     if limit_vpoly == None:
@@ -1157,7 +1158,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         npts_disc = new_np
 
     pts = np.empty((3,npts_disc))
-    ind = np.empty((npts_disc,), dtype=int)
+    ind = np.empty((npts_disc,), dtype=np.int64)
     res3d  = np.empty((npts_disc,))
     pts_mv = pts
     ind_mv = ind
@@ -1166,7 +1167,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
 
     indI = np.sort(indI, axis=1)
     indi_mv = indI
-    first_ind_mv = np.argmax(indI > -1, axis=1).astype(int)
+    first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.int64)
 
     _st.vmesh_assemble_arrays(first_ind_mv, indi_mv,
                           is_in_vignette,
@@ -1190,7 +1191,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
 
 def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
                                      double[::1] RMinMax, double[::1] ZMinMax,
-                                     long[::1] ind, str Out='(X,Y,Z)',
+                                     int64_t[::1] ind, str Out='(X,Y,Z)',
                                      double margin=_VSMALL, int num_threads=48):
     """
     Return the desired submesh indicated by the (numerical) indices,
@@ -1199,18 +1200,18 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     cdef str out_low = Out.lower()
     cdef bint is_cart = out_low == '(x,y,z)'
     cdef int sz_r, sz_z
-    cdef long npts_disc=len(ind)
+    cdef int64_t npts_disc=len(ind)
     cdef double twopi_over_dphi
     cdef double[::1] dRPhirRef
     cdef int[::1] Ru
     cdef np.ndarray[double,ndim=2] pts=np.empty((3,npts_disc))
     cdef np.ndarray[double,ndim=1] res3d=np.empty((npts_disc,))
-    cdef long[1]   ncells_r, ncells_z
+    cdef int64_t[1]   ncells_r, ncells_z
     cdef double[1] reso_r, reso_z
     cdef double[2] limits_dl
     cdef int* ncells_rphi = NULL
-    cdef long* lindex = NULL
-    cdef long* tot_nc_plane = NULL
+    cdef int64_t* lindex = NULL
+    cdef int64_t* tot_nc_plane = NULL
     cdef double* disc_r = NULL
     cdef double* disc_z = NULL
     cdef double** phi_tab = NULL
@@ -1234,7 +1235,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     dRPhirRef =  np.empty((sz_r,))
     Ru = np.zeros((sz_r,), dtype=np.dtype("i"))
     dRPhir = np.nan*np.ones((sz_r,))
-    tot_nc_plane = <long*> malloc((sz_r + 1) * sizeof(long))
+    tot_nc_plane = <int64_t*> malloc((sz_r + 1) * sizeof(int64_t))
     # .. Initialization ........................................................
     ncells_rphi  = <int*>malloc(sz_r * sizeof(int))
     phi_tab = <double**>malloc(sizeof(double*))
@@ -1285,10 +1286,10 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
     """
     cdef double[::1] X, Y, Z
     cdef double dXr, dYr, reso_z, res3d
-    cdef np.ndarray[long,ndim=1] indX, indY, indZ
+    cdef np.ndarray[int64_t,ndim=1] indX, indY, indZ
     cdef int NX, NY, Xn, Yn, Zn
     cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[long,ndim=1] ind
+    cdef np.ndarray[int64_t,ndim=1] ind
 
     # Get the actual X, Y and Z resolutions and mesh elements
     X, dXr, indX, NX = discretize_line1d(XMinMax, dX, DX, Lim=True,
@@ -1313,13 +1314,13 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
                                                     radius=0.0)
         pts, ind = pts[:,indin], ind[indin]
 
-    return pts, res3d, ind.astype(int), dXr, dYr, reso_z
+    return pts, res3d, ind.astype(np.int64), dXr, dYr, reso_z
 
 
 def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
                                      double[::1] XMinMax, double[::1] YMinMax,
                                      double[::1] ZMinMax,
-                                     np.ndarray[long,ndim=1] ind,
+                                     np.ndarray[int64_t,ndim=1] ind,
                                      double margin=_VSMALL):
     """ Return the desired submesh indicated by the limits (DX,DY,DZ),
     for the desired resolution (dX,dY,dZ)
@@ -1327,7 +1328,7 @@ def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
 
     cdef np.ndarray[double,ndim=1] X, Y, Z
     cdef double dXr, dYr, reso_z, res3d
-    cdef np.ndarray[long,ndim=1] indX, indY, indZ
+    cdef np.ndarray[int64_t,ndim=1] indX, indY, indZ
     cdef int NX, NY
     cdef np.ndarray[double,ndim=2] pts
 
@@ -1342,9 +1343,9 @@ def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
     indZ = ind // (NX*NY)
     indY = (ind - NX*NY*indZ) // NX
     indX = ind - NX*NY*indZ - NX*indY
-    pts = np.array([X[indX.astype(int)],
-                    Y[indY.astype(int)],
-                    Z[indZ.astype(int)]])
+    pts = np.array([X[indX.astype(np.int64)],
+                    Y[indY.astype(np.int64)],
+                    Z[indZ.astype(np.int64)]])
     res3d = dXr*dYr*reso_z
 
     return pts, res3d, dXr, dYr, reso_z
@@ -1447,12 +1448,12 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
     cdef double[::1] dPhir, NRPhi#, dPhi, NRZPhi_cum0, indPhi, phi
     cdef double DPhi0, DPhi1, DDPhi, DPhiMinMax
     cdef double abs0, abs1, phi, indiijj
-    cdef long[::1] indR0, indR, indZ, Phin, NRPhi0, Indin
+    cdef int64_t[::1] indR0, indR, indZ, Phin, NRPhi0, Indin
     cdef int NR0, nRPhi0, indR0ii, ii, jj0=0, jj, nphi0, nphi1
     cdef int npts_disc, radius_ratio, Ln
     cdef np.ndarray[double,ndim=2] pts, indI, ptsCross, VPbis
     cdef np.ndarray[double,ndim=1] R0, dS, ind, dLr, Rref, dRPhir, iii
-    cdef np.ndarray[long,ndim=1] indL, NL, indok
+    cdef np.ndarray[int64_t,ndim=1] indL, NL, indok
 
     # To avoid warnings:
     indI = np.empty((1,1))
@@ -1516,16 +1517,16 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         Rref = Rref[indin]
 
         Ln = indin.sum()
-        Indin = indin.nonzero()[0].astype(int)
+        Indin = indin.nonzero()[0].astype(np.int64)
 
         dRPhir, dPhir = np.empty((Ln,)), np.empty((Ln,))
-        Phin = np.zeros((Ln,),dtype=int)
+        Phin = np.zeros((Ln,),dtype=np.int64)
         NRPhi = np.empty((Ln,))
-        NRPhi0 = np.zeros((Ln,),dtype=int)
+        NRPhi0 = np.zeros((Ln,),dtype=np.int64)
         nRPhi0, indR0ii = 0, 0
         npts_disc = 0
         radius_ratio = int(c_ceil(np.max(Rref)/np.min(Rref)))
-        indBounds = np.empty((2,nBounds),dtype=int)
+        indBounds = np.empty((2,nBounds),dtype=np.int64)
         for ii in range(0,Ln):
             # Get the actual RPhi resolution and Phi mesh elements
             # (! depends on R!)
@@ -1539,7 +1540,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                     indR0ii = jj0
                     break
                 else:
-                    nRPhi0 += <long>c_ceil(DPhiMinMax*R0[jj0]/dRPhi)
+                    nRPhi0 += <int64_t>c_ceil(DPhiMinMax*R0[jj0]/dRPhi)
                     NRPhi0[ii] = nRPhi0
             # Get indices of phi
             # Get the extreme indices of the mesh elements that really need to
@@ -1571,13 +1572,13 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         # Finish counting to get total number of points
         if jj0<=NR0-1:
             for jj0 in range(indR0ii,NR0):
-                nRPhi0 += <long>c_ceil(DPhiMinMax*R0[jj0]/dRPhi)
+                nRPhi0 += <int64_t>c_ceil(DPhiMinMax*R0[jj0]/dRPhi)
 
         # Compute pts, res3d and ind
         pts = np.nan*np.ones((3,npts_disc))
         ind = np.nan*np.ones((npts_disc,))
         dS = np.nan*np.ones((npts_disc,))
-        # This triple loop is the longest part, it takes ~90% of the CPU time
+        # This triple loop is the int64_test part, it takes ~90% of the CPU time
         npts_disc = 0
         if Out.lower()=='(x,y,z)':
             for ii in range(0,Ln):
@@ -1603,7 +1604,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                     ind[npts_disc] = NRPhi0[ii] + indiijj
                     dS[npts_disc] = dLr[ii]*dRPhir[ii]
                     npts_disc += 1
-        indok = (~np.isnan(ind)).nonzero()[0].astype(int)
+        indok = (~np.isnan(ind)).nonzero()[0].astype(np.int64)
         ind = ind[indok]
         dS = dS[indok]
         if len(indok)==1:
@@ -1614,24 +1615,24 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         pts, dS, ind, NL, Rref, dRPhir, nRPhi0 = np.ones((3,0)), np.ones((0,)),\
           np.ones((0,)), np.nan*np.ones((VPoly.shape[1]-1,)),\
           np.ones((0,)), np.ones((0,)), 0
-    return np.ascontiguousarray(pts), dS, ind.astype(int), NL, dLr, Rref, dRPhir, nRPhi0, VPbis
+    return np.ascontiguousarray(pts), dS, ind.astype(np.int64), NL, dLr, Rref, dRPhir, nRPhi0, VPbis
 
 
 def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
-                                     double[:,::1] VPoly, long[::1] ind,
+                                     double[:,::1] VPoly, int64_t[::1] ind,
                                      double DIn=0., VIn=None, PhiMinMax=None,
                                      str Out='(X,Y,Z)', double margin=_VSMALL):
     """ Return the desired submesh indicated by the (numerical) indices,
     for the desired resolution (dR,dZ,dRphi)
     """
     cdef double[::1] dRPhirRef, dPhir
-    cdef long[::1] indL, NRPhi0, NRPhi
-    cdef long  NP=len(ind), radius_ratio
+    cdef int64_t[::1] indL, NRPhi0, NRPhi
+    cdef int64_t  NP=len(ind), radius_ratio
     cdef int ii=0, jj=0, iiL, iiphi, Ln, nRPhi0
     cdef double[:,::1] Phi
     cdef np.ndarray[double,ndim=2] pts=np.empty((3,NP)), ptsCross, VPbis
     cdef np.ndarray[double,ndim=1] dS=np.empty((NP,)), dLr, dRPhir, Rref
-    cdef np.ndarray[long,ndim=1] NL
+    cdef np.ndarray[int64_t,ndim=1] NL
 
     # Pre-format input
     if PhiMinMax is None:
@@ -1654,10 +1655,10 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
     # Number of Phi per R
     dRPhirRef, dPhir, dRPhir = np.empty((Ln,)), np.empty((Ln,)), -np.ones((Ln,))
     dLr, Rref = -np.ones((Ln,)), -np.ones((Ln,))
-    NRPhi, NRPhi0 = np.empty((Ln,),dtype=int), np.empty((Ln,),dtype=int)
+    NRPhi, NRPhi0 = np.empty((Ln,),dtype=np.int64), np.empty((Ln,),dtype=np.int64)
     radius_ratio = int(c_ceil(np.max(RrefRef)/np.min(RrefRef)))
     for ii in range(0,Ln):
-        NRPhi[ii] = <long>(c_ceil(DPhiMinMax*RrefRef[ii]/dRPhi))
+        NRPhi[ii] = <int64_t>(c_ceil(DPhiMinMax*RrefRef[ii]/dRPhi))
         dRPhirRef[ii] = DPhiMinMax*RrefRef[ii]/<double>(NRPhi[ii])
         dPhir[ii] = DPhiMinMax/<double>(NRPhi[ii])
         if ii==0:
@@ -1701,7 +1702,7 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
                 dLr[iiL] = dLrRef[iiL]
                 Rref[iiL] = RrefRef[iiL]
     return pts, dS, NL, dLr[dLr>-0.5], Rref[Rref>-0.5], \
-      dRPhir[dRPhir>-0.5], <long>nRPhi0, VPbis
+      dRPhir[dRPhir>-0.5], <int64_t>nRPhi0, VPbis
 
 
 
@@ -1729,7 +1730,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
                                            c_atan2(c_sin(PhiMinMax[1]),
                                                   c_cos(PhiMinMax[1]))])
     cdef np.ndarray[double, ndim=1] R0, Z0, dsF, dSM, dLr, Rref, dRPhir, dS
-    cdef np.ndarray[long,ndim=1] indR0, indZ0, iind, iindF, indM, NL, ind
+    cdef np.ndarray[int64_t,ndim=1] indR0, indZ0, iind, iindF, indM, NL, ind
     cdef np.ndarray[double,ndim=2] ptsrz, pts, PtsM, VPbis, Pts
     cdef list LPts=[], LdS=[], Lind=[]
 
@@ -1846,12 +1847,12 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
             dS = LdS[0]
         else:
             Pts = np.concatenate(tuple(LPts),axis=1)
-            ind = np.concatenate(tuple(Lind)).astype(int)
+            ind = np.concatenate(tuple(Lind)).astype(np.int64)
             dS = np.concatenate(tuple(LdS))
 
     else:
         Pts, dS, ind, NL, Rref = np.ones((3,0)), np.ones((0,)),\
-          np.ones((0,),dtype=int), np.ones((0,),dtype=int),\
+          np.ones((0,),dtype=np.int64), np.ones((0,),dtype=np.int64),\
           np.nan*np.ones((VPoly.shape[1]-1,))
         dLr, dR0r, dZ0r, dRPhir, VPbis = np.ones((0,)), 0., 0.,\
           np.ones((0,)), np.asarray(VPoly)
@@ -1861,7 +1862,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
 
 def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
                                            double dRPhi, double[:,::1] VPoly,
-                                           np.ndarray[long,ndim=1] ind,
+                                           np.ndarray[int64_t,ndim=1] ind,
                                            double DIn=0., VIn=None,
                                            str Out='(X,Y,Z)',
                                            double margin=_VSMALL):
@@ -1874,7 +1875,7 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
                                            c_atan2(c_sin(PhiMinMax[1]),
                                                   c_cos(PhiMinMax[1]))])
     cdef np.ndarray[double, ndim=1] R0, Z0, dsF, dSM, dLr, Rref, dRPhir, dS
-    cdef np.ndarray[long,ndim=1] bla, indR0, indZ0, iind, iindF, indM, NL
+    cdef np.ndarray[int64_t,ndim=1] bla, indR0, indZ0, iind, iindF, indM, NL
     cdef np.ndarray[double,ndim=2] ptsrz, pts, PtsM, VPbis, Pts
     cdef list LPts=[], LdS=[], Lind=[]
 
@@ -2001,7 +2002,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
     cdef int NY0, NZ0, Y0n, Z0n, NX, Xn, Ln, NR0, inter=1
     cdef np.ndarray[double,ndim=2] Pts, PtsCross, VPbis
     cdef np.ndarray[double,ndim=1] dS, dLr, Rref
-    cdef np.ndarray[long,ndim=1] indX, indY0, indZ0, indL, NL, ind
+    cdef np.ndarray[int64_t,ndim=1] indX, indY0, indZ0, indL, NL, ind
 
     # Preformat
     # Adjust limits
@@ -2084,7 +2085,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
     else:
         Pts, dS, ind,\
           NL, dLr, Rref = np.ones((3,0)), np.ones((0,)),\
-          np.ones((0,),dtype=int), np.ones((0,),dtype=int),\
+          np.ones((0,),dtype=np.int64), np.ones((0,),dtype=np.int64),\
           np.ones((0,)), np.ones((0,))
         dXr, dY0r, dZ0r, VPbis = 0., 0., 0., np.ones((3,0))
 
@@ -2093,7 +2094,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
 
 def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
                                      double[:,::1] VPoly,
-                                     np.ndarray[long,ndim=1] ind,
+                                     np.ndarray[int64_t,ndim=1] ind,
                                      double DIn=0., VIn=None,
                                      double margin=_VSMALL):
     """ Return the desired surfacic submesh indicated by ind,
@@ -2103,7 +2104,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
     cdef list LPts, LdS
     cdef np.ndarray[double,ndim=2] Pts, PtsCross, VPbis
     cdef np.ndarray[double,ndim=1] X, Y0, Z0, dS, dLr, Rref
-    cdef np.ndarray[long,ndim=1] indX, indY0, indZ0, indL, NL, ii
+    cdef np.ndarray[int64_t,ndim=1] indX, indY0, indZ0, indL, NL, ii
 
     # Get the mesh for the faces
     Y0, dY0r, _, NY0 = discretize_line1d(np.array([np.min(VPoly[0, :]),
@@ -2124,7 +2125,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
     LPts, LdS = [], []
     # First face
-    ii = (ind<NY0*NZ0).nonzero()[0].astype(int)
+    ii = (ind<NY0*NZ0).nonzero()[0].astype(np.int64)
     nii = len(ii)
     if nii>0:
         indZ0 = ind[ii] // NY0
@@ -2138,7 +2139,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
         LdS.append( dY0r*dZ0r*np.ones((nii,)) )
 
     # Cylinder
-    ii = ((ind>=NY0*NZ0) & (ind<NY0*NZ0+NX*Ln)).nonzero()[0].astype(int)
+    ii = ((ind>=NY0*NZ0) & (ind<NY0*NZ0+NX*Ln)).nonzero()[0].astype(np.int64)
     nii = len(ii)
     if nii>0:
         indX = (ind[ii]-NY0*NZ0) // Ln
@@ -2153,7 +2154,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
             LdS.append( dXr*dLr[indL] )
 
     # End face
-    ii = (ind >= NY0*NZ0+NX*Ln).nonzero()[0].astype(int)
+    ii = (ind >= NY0*NZ0+NX*Ln).nonzero()[0].astype(np.int64)
     nii = len(ii)
     if nii>0:
         indZ0 = (ind[ii]-NY0*NZ0-NX*Ln) // NY0
@@ -2204,14 +2205,18 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                               double[:, ::1] ray_vdir,
                               double[:, ::1] ves_poly,
                               double[:, ::1] ves_norm,
-                              long[::1] lstruct_nlim=None,
+                              # np.ndarray[int64_t, ndim=1] lstruct_nlim=None,
+                              # int64_t[::1] lstruct_nlim=None, because windows sucks
+                              int64_t[::1] lstruct_nlim=None,
                               double[::1] ves_lims=None,
                               double[::1] lstruct_polyx=None,
                               double[::1] lstruct_polyy=None,
                               list lstruct_lims=None,
                               double[::1] lstruct_normx=None,
                               double[::1] lstruct_normy=None,
-                              long[::1] lnvert=None,
+                              # np.ndarray[int64_t, ndim=1] lnvert=None,
+                              # int64_t[::1] lnvert=None, because windows sucks
+                              int64_t[::1] lnvert=None,
                               int nstruct_tot=0,
                               int nstruct_lim=0,
                               double rmin=-1,
@@ -2390,7 +2395,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
            np.transpose(np.asarray(vperp_out).reshape(nlos,3)),\
            np.transpose(np.asarray(ind_inter_out,
-                                   dtype=int).reshape(nlos, 3))
+                                   dtype=np.int64).reshape(nlos, 3))
 
 
 # =============================================================================
@@ -2402,7 +2407,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                 list ves_poly,
                                 list ves_norm,
                                 int num_surf,
-                                long[::1] lnvert,
+                                int64_t[::1] lnvert,
                                 double[::1] ves_lims=None,
                                 double rmin=-1,
                                 double eps_uz=_SMALL, double eps_a=_VSMALL,
@@ -2472,7 +2477,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     cdef array coeff_inter_in  = clone(array('d'), nlos * num_surf, True)
     cdef array coeff_inter_out = clone(array('d'), nlos * num_surf, True)
     cdef int *llimits = NULL
-    cdef long *lsz_lim = NULL
+    cdef int64_t *lsz_lim = NULL
     cdef bint are_limited
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
@@ -2606,13 +2611,15 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     double[:, ::1] ves_norm=None,
                                     double[:, ::1] dist=None,
                                     double[::1] ves_lims=None,
-                                    long[::1] lstruct_nlim=None,
+                                    # int64_t[::1] lstruct_nlim=None,
+                                    int64_t[::1] lstruct_nlim=None,
                                     double[::1] lstruct_polyx=None,
                                     double[::1] lstruct_polyy=None,
                                     list lstruct_lims=None,
                                     double[::1] lstruct_normx=None,
                                     double[::1] lstruct_normy=None,
-                                    long[::1] lnvert=None,
+                                    # int64_t[::1] lnvert=None,
+                                    int64_t[::1] lnvert=None,
                                     int nstruct_tot=0,
                                     int nstruct_lim=0,
                                     double rmin=-1,
@@ -2647,8 +2654,8 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     cdef int npts1=pts1.shape[1]
     cdef int npts2=pts2.shape[1]
     cdef bint bool1, bool2
-    cdef np.ndarray[long, ndim=2, mode='c'] are_seen = np.empty((npts1, npts2),
-                                                                dtype=int)
+    cdef np.ndarray[int64_t, ndim=2, mode='c'] are_seen = np.empty((npts1, npts2),
+                                                                dtype=np.int64)
     cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
     if test:
@@ -2693,13 +2700,15 @@ def LOS_isVis_PtFromPts_VesStruct(
     double[:, ::1] ves_poly=None,
     double[:, ::1] ves_norm=None,
     double[::1] ves_lims=None,
-    long[::1] lstruct_nlim=None,
+    # int64_t[::1] lstruct_nlim=None,
+    int64_t[::1] lstruct_nlim=None,
     double[::1] lstruct_polyx=None,
     double[::1] lstruct_polyy=None,
     list lstruct_lims=None,
     double[::1] lstruct_normx=None,
     double[::1] lstruct_normy=None,
-    long[::1] lnvert=None,
+    # int64_t[::1] lnvert=None,
+    int64_t[::1] lnvert=None,
     int nstruct_tot=0,
     int nstruct_lim=0,
     double rmin=-1,
@@ -2736,7 +2745,7 @@ def LOS_isVis_PtFromPts_VesStruct(
     cdef int npts = pts.shape[1]
     cdef bint bool1, bool2
     cdef double[::1] lstruct_lims_np
-    cdef np.ndarray[long, ndim=1, mode='c'] is_seen
+    cdef np.ndarray[int64_t, ndim=1, mode='c'] is_seen
     # == Testing inputs ========================================================
     if test:
         msg = "ves_poly and ves_norm are not optional arguments"
@@ -2758,7 +2767,7 @@ def LOS_isVis_PtFromPts_VesStruct(
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
-    is_seen = np.empty((npts), dtype=int)
+    is_seen = np.empty((npts), dtype=np.int64)
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
@@ -2798,7 +2807,7 @@ def triangulate_by_earclipping_2d(
         Indices of triangles
     """
     cdef int nvert = poly.shape[1]
-    cdef np.ndarray[long, ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
+    cdef np.ndarray[int64_t, ndim=1] ltri = np.empty((nvert-2)*3, dtype=np.int64)
     cdef double* diff = NULL
     cdef bint* lref = NULL
 
@@ -2822,7 +2831,8 @@ def vignetting(
     double[:, ::1] ray_orig,
     double[:, ::1] ray_vdir,
     list vignett_poly,
-    long[::1] lnvert,
+    # int64_t[::1] lnvert,
+    int64_t[::1] lnvert,
     int num_threads=16,
 ):
     """
@@ -2833,7 +2843,7 @@ def vignetting(
     vignett_poly : (num_vign, 3, num_vertex) double list of arrays
        Coordinates of the vertices of the Polygon defining the 3D vignett.
        POLY CLOSED
-    lnvert : (num_vign) long array
+    lnvert : (num_vign) int64_t array
        Number of vertices for each vignett (without counting the rebound)
     Returns
     ======
@@ -2843,7 +2853,7 @@ def vignetting(
     cdef int ii
     cdef int nvign, nlos
     cdef np.ndarray[np.uint8_t,ndim=1,cast=True] goes_through
-    cdef long** ltri = NULL
+    cdef int64_t** ltri = NULL
     cdef double* lbounds = NULL
     cdef double** data = NULL
     cdef bint* bool_res = NULL
@@ -2861,7 +2871,7 @@ def vignetting(
     lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
     _rt.compute_3d_bboxes(data, &lnvert[0], nvign, &lbounds[0],
                           num_threads=num_threads)
-    ltri = <long**>malloc(sizeof(long*)*nvign)
+    ltri = <int64_t**>malloc(sizeof(int64_t*)*nvign)
     _vt.triangulate_polys(data, &lnvert[0], nvign, ltri,
                           num_threads)
     # -- We call core function -------------------------------------------------
@@ -2928,14 +2938,14 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     cdef double[::1] dl_view
     cdef np.ndarray[double,ndim=1] dLr
     cdef np.ndarray[double,ndim=1] coeff_arr
-    cdef np.ndarray[long,ndim=1] los_ind
-    cdef long* tmp_arr
+    cdef np.ndarray[int64_t,ndim=1] los_ind
+    cdef int64_t* tmp_arr
     cdef double* los_coeffs = NULL
     cdef double** coeff_ptr = NULL
-    cdef long* los_ind_ptr = NULL
+    cdef int64_t* los_ind_ptr = NULL
     # .. ray_orig shape needed for testing and in algo .........................
     dLr = np.zeros((nlos,), dtype=float)
-    los_ind = np.zeros((nlos,), dtype=int)
+    los_ind = np.zeros((nlos,), dtype=np.int64)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -2955,7 +2965,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
         assert imode in ['sum','simps','romb','linspace'], error_message
     # Init
     coeff_ptr = <double**> malloc(sizeof(double*))
-    los_ind_ptr = <long*> malloc(nlos*sizeof(long))
+    los_ind_ptr = <int64_t*> malloc(nlos*sizeof(int64_t))
     coeff_ptr[0] = NULL
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
@@ -2986,7 +2996,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                         num_threads)
         sz_coeff = los_ind_ptr[nlos-1]
     coeffs  = np.copy(np.asarray(<double[:sz_coeff]>coeff_ptr[0]))
-    indices = np.copy(np.asarray(<long[:nlos]>los_ind_ptr).astype(int))
+    indices = np.copy(np.asarray(<int64_t[:nlos]>los_ind_ptr).astype(np.int64))
     # -- freeing -----------------------------------------------------------
     if not los_ind_ptr == NULL:
         free(los_ind_ptr)
@@ -3047,7 +3057,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                 t: ndarray(m) - times where to compute the function
            returns: data : ndarray(nt,nraf) if nt = 1, the array must be 2D
                            values of func at pts, at given time
-           func is the function to be integrated along the LOS
+           func is the function to be integrated aint64_t the LOS
     ray_orig: ndarray (3, nlos) LOS origins
     ray_vdir: ndarray (3, nlos) LOS directional vector
     res: double or list of doubles
@@ -3088,8 +3098,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef bint C0, C1
     cdef list ltime
     cdef double loc_r
-    cdef long[1] nb_rows
-    cdef long[::1] indbis
+    cdef int64_t[1] nb_rows
+    cdef int64_t[::1] indbis
     cdef double[1] loc_eff_res
     cdef double[::1] reseff_mv
     cdef double[::1] res_mv
@@ -3103,8 +3113,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef np.ndarray[double,ndim=1] reseff
     cdef np.ndarray[double,ndim=1] k
     cdef np.ndarray[double,ndim=1] res_arr
-    cdef np.ndarray[long,ndim=1] ind
-    cdef long* ind_arr = NULL
+    cdef np.ndarray[int64_t,ndim=1] ind
+    cdef int64_t* ind_arr = NULL
     cdef double* reseff_arr = NULL
     cdef double** coeff_ptr = NULL
     # .. ray_orig shape needed for testing and in algo .........................
@@ -3186,7 +3196,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             coeff_ptr = <double**>malloc(sizeof(double*))
             coeff_ptr[0] = NULL
             reseff_arr = <double*>malloc(nlos*sizeof(double))
-            ind_arr = <long*>malloc(nlos*sizeof(long))
+            ind_arr = <int64_t*>malloc(nlos*sizeof(int64_t))
             # .. we sample lines of sight ......................................
             _st.los_get_sample_core_var_res(nlos,
                                             &lims[0, 0],
@@ -3223,7 +3233,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         if n_imode == 0:  # "sum" integration mode
             # .. integrating function ..........................................
             reseffs = np.copy(np.asarray(<double[:nlos]>reseff_arr))
-            indices = np.copy(np.asarray(<long[:nlos-1]>ind_arr).astype(int))
+            indices = np.copy(np.asarray(<int64_t[:nlos-1]>ind_arr).astype(np.int64))
             sig = np.asfortranarray(np.add.reduceat(val_2d,
                                                     np.r_[0, indices],
                                                     axis=-1)
@@ -4427,7 +4437,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
     cdef double[::1] R0, R, Z, dRPhir, dPhir, NRPhi, hypot
     cdef double reso_r0, reso_r, reso_z, DPhi0, DPhi1
     cdef double abs0, abs1, phi, indiijj
-    cdef long[::1] indR0, indR, indZ, Phin, NRPhi0
+    cdef int64_t[::1] indR0, indR, indZ, Phin, NRPhi0
     cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj, nPhi0, nPhi1, zz
     cdef int NP, NRPhi_int, radius_ratio
     cdef np.ndarray[double,ndim=2] Pts, indI
@@ -4454,9 +4464,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
         DPhi0 = c_atan2(c_sin(DPhi[0]), c_cos(DPhi[0]))
         DPhi1 = c_atan2(c_sin(DPhi[1]), c_cos(DPhi[1]))
     dRPhir, dPhir = np.empty((Rn,)), np.empty((Rn,))
-    Phin = np.empty((Rn,),dtype=int)
+    Phin = np.empty((Rn,),dtype=np.int64)
     NRPhi = np.empty((Rn,))
-    NRPhi0 = np.zeros((Rn,),dtype=int)
+    NRPhi0 = np.zeros((Rn,),dtype=np.int64)
     nRPhi0, indR0ii = 0, 0
     NP, NPhimax = 0, 0
     radius_ratio = int(c_ceil(R[Rn-1]/R[0]))
@@ -4472,7 +4482,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
                 indR0ii = jj
                 break
             else:
-                nRPhi0 += <long>c_ceil(2.*c_pi*R0[jj]/dRPhi)
+                nRPhi0 += <int64_t>c_ceil(2.*c_pi*R0[jj]/dRPhi)
                 NRPhi0[ii] = nRPhi0*NZ
         # Get indices of phi
         # Get the extreme indices of the mesh elements that really need to
@@ -4509,7 +4519,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
     ind = np.empty((NP,))
     dV = np.empty((NP,))
     # Compute Pts, dV and ind
-    # This triple loop is the longest part, it takes ~90% of the CPU time
+    # This triple loop is the int64_test part, it takes ~90% of the CPU time
     NP = 0
     if Out.lower()=='(x,y,z)':
         for ii in range(0,Rn):
@@ -4554,20 +4564,20 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
         # if not np.all(Ru==R):
         #     dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
         #                        if R[ii] in Ru])
-    return Pts, dV, ind.astype(int), reso_r, reso_z, np.asarray(dRPhir)
+    return Pts, dV, ind.astype(np.int64), reso_r, reso_z, np.asarray(dRPhir)
 
 
 def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
                                      double[::1] RMinMax, double[::1] ZMinMax,
-                                     long[::1] ind, str Out='(X,Y,Z)',
+                                     int64_t[::1] ind, str Out='(X,Y,Z)',
                                      double margin=_VSMALL):
     """ Return the desired submesh indicated by the (numerical) indices,
     for the desired resolution (dR,dZ,dRphi)
     """
     cdef double[::1] R, Z, dRPhirRef, dPhir, Ru, dRPhir
     cdef double reso_r, reso_z, phi
-    cdef long[::1] indR, indZ, NRPhi0, NRPhi
-    cdef long NR, NZ, Rn, Zn, NP=len(ind), radius_ratio
+    cdef int64_t[::1] indR, indZ, NRPhi0, NRPhi
+    cdef int64_t NR, NZ, Rn, Zn, NP=len(ind), radius_ratio
     cdef int ii=0, jj=0, iiR, iiZ, iiphi
     cdef double[:,::1] Phi
     cdef np.ndarray[double,ndim=2] Pts=np.empty((3,NP))
@@ -4586,10 +4596,10 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
     # Number of Phi per R
     dRPhirRef, dPhir = np.empty((NR,)), np.empty((NR,))
     Ru, dRPhir = np.zeros((NR,)), np.nan*np.ones((NR,))
-    NRPhi, NRPhi0 = np.empty((NR,),dtype=int), np.empty((NR+1,),dtype=int)
+    NRPhi, NRPhi0 = np.empty((NR,),dtype=np.int64), np.empty((NR+1,),dtype=np.int64)
     radius_ratio = int(c_ceil(R[NR-1]/R[0]))
     for ii in range(0,NR):
-        NRPhi[ii] = <long>(c_ceil(2.*c_pi*R[ii]/dRPhi))
+        NRPhi[ii] = <int64_t>(c_ceil(2.*c_pi*R[ii]/dRPhi))
         dRPhirRef[ii] = 2.*c_pi*R[ii]/<double>(NRPhi[ii])
         dPhir[ii] = 2.*c_pi/<double>(NRPhi[ii])
         if ii==0:
@@ -4650,13 +4660,15 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                             double[:, ::1] ves_poly=None,
                             double[:, ::1] ves_norm=None,
                             double[::1] ves_lims=None,
-                            long[::1] lstruct_nlim=None,
+                            # int64_t[::1] lstruct_nlim=None,
+                            int64_t[::1] lstruct_nlim=None,
                             double[::1] lstruct_polyx=None,
                             double[::1] lstruct_polyy=None,
                             list lstruct_lims=None,
                             double[::1] lstruct_normx=None,
                             double[::1] lstruct_normy=None,
-                            long[::1] lnvert=None,
+                            # int64_t[::1] lnvert=None,
+                            int64_t[::1] lnvert=None,
                             int nstruct_tot=0,
                             int nstruct_lim=0,
                             double rmin=-1, bint forbid=True,
@@ -4679,11 +4691,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     part_r: (sz_p) double memory-view
         the radii of the P particles
     rstep: double
-        refinement along radius `r`
+        refinement aint64_t radius `r`
     zstep: double
-        refinement along height `z`
+        refinement aint64_t height `z`
     phistep: double
-        refinement along toroidal direction `phi`
+        refinement aint64_t toroidal direction `phi`
     approx: bool
         do you want to use approximation (8th order) or exact formula ?
         default: True
@@ -4753,7 +4765,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     -------
         pts:    (2, npts) array of (R, Z) coordinates of viewing points in
                 vignette where solid angle is integrated
-        sa_map: (npts, sz_p) array approx solid angle integrated along phi
+        sa_map: (npts, sz_p) array approx solid angle integrated aint64_t phi
                 integral (sa * dphi * r)
         ind:    (npts) indices to reconstruct (R,Z) map from sa_map
         rdrdz:  (npts) volume unit: dr*dz
@@ -4773,28 +4785,28 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef double abs0, abs1
     cdef double reso_r_z
     cdef double twopi_over_dphi
-    cdef long[1] ncells_r0, ncells_r, ncells_z
-    cdef long[::1] ind_mv
-    cdef long[::1] first_ind_mv
+    cdef int64_t[1] ncells_r0, ncells_r, ncells_z
+    cdef int64_t[::1] ind_mv
+    cdef int64_t[::1] first_ind_mv
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] reso_rdrdz_mv
     cdef double[::1] lstruct_lims_np
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
-    cdef long[:, ::1] indi_mv
-    cdef long[:, ::1] ind_rz2pol
-    cdef long[:, ::1] is_in_vignette
-    cdef long*  ncells_rphi  = NULL
-    cdef long*  lindex   = NULL
-    cdef long*  lindex_z = NULL
-    cdef long*  sz_phi = NULL
+    cdef int64_t[:, ::1] indi_mv
+    cdef int64_t[:, ::1] ind_rz2pol
+    cdef int64_t[:, ::1] is_in_vignette
+    cdef int64_t*  ncells_rphi  = NULL
+    cdef int64_t*  lindex   = NULL
+    cdef int64_t*  lindex_z = NULL
+    cdef int64_t*  sz_phi = NULL
     cdef double* disc_r0 = NULL
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
     cdef double* step_rphi = NULL
-    cdef np.ndarray[long, ndim=2] indI
-    cdef np.ndarray[long, ndim=1] ind
+    cdef np.ndarray[int64_t, ndim=2] indI
+    cdef np.ndarray[int64_t, ndim=1] ind
     cdef np.ndarray[double, ndim=1] reso_rdrdz
     cdef np.ndarray[double, ndim=2] pts
     cdef np.ndarray[double, ndim=2] sa_map
@@ -4859,8 +4871,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         max_phi = DPhi[1] # to avoid conversions
         max_phi = c_atan2(c_sin(max_phi), c_cos(max_phi))
     # .. Initialization ........................................................
-    sz_phi = <long*>malloc(sz_r*sizeof(long))
-    ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
+    sz_phi = <int64_t*>malloc(sz_r*sizeof(int64_t))
+    ncells_rphi  = <int64_t*>malloc(sz_r*sizeof(int64_t))
     step_rphi    = <double*>malloc(sz_r*sizeof(double))
     r_ratio = <int>(c_ceil(disc_r[sz_r - 1] / disc_r[0]))
     twopi_over_dphi = _TWOPI / phistep
@@ -4894,7 +4906,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
         sz_phi[0] = nphi1 + 1 - nphi0
         max_sz_phi[0] = sz_phi[0]
-        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=np.int64)
         indi_mv = ind_i
         for jj in range(sz_phi[0]):
             indi_mv[0, jj] = nphi0 + jj
@@ -4923,7 +4935,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
         sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
         max_sz_phi[0] = sz_phi[0]
-        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=np.int64)
         indi_mv = ind_i
         for jj in range(loc_nc_rphi - nphi0):
             indi_mv[0, jj] = nphi0 + jj
@@ -4938,7 +4950,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                  min_phi, max_phi, sz_phi, indi_mv,
                                  margin, num_threads)
     # ... vignetting ...........................................................
-    is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
+    is_in_vignette = np.ones((sz_r, sz_z), dtype=np.int64) # by default yes
     if limit_vpoly is not None:
         npts_vpoly = limit_vpoly.shape[1] - 1
         # we make sure it is closed
@@ -4953,7 +4965,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                 disc_r, disc_z,
                                 is_in_vignette)
     # .. preparing for actual discretization ...................................
-    ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
+    ind_rz2pol = np.empty((sz_r, sz_z), dtype=np.int64)
     npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
                                      is_in_vignette,
                                      sz_r, sz_z)
@@ -4961,14 +4973,14 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     reso_rdrdz = np.empty((npts_pol, ))
     sa_map = np.zeros((npts_pol, sz_p))
     pts = np.empty((2, npts_pol))
-    ind = -np.ones((npts_pol, ), dtype=int)
+    ind = -np.ones((npts_pol, ), dtype=np.int64)
     pts_mv = pts
     ind_mv = ind
     reso_rdrdz_mv = reso_rdrdz
     reso_r_z = reso_r[0]*reso_z[0]
     ind_i = np.sort(ind_i, axis=1)
     indi_mv = ind_i
-    first_ind_mv = np.argmax(ind_i > -1, axis=1).astype(int)
+    first_ind_mv = np.argmax(ind_i > -1, axis=1).astype(np.int64)
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
@@ -5053,7 +5065,7 @@ def compute_solid_angle_apertures_unitvectors(
     np.ndarray[double, ndim=1] det_e1_y,
     np.ndarray[double, ndim=1] det_e1_z,
     # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
-    long[::1] ap_ind,
+    int64_t[::1] ap_ind,
     # apertures: polygon coordinates as three 1d arrays
     np.ndarray[double, ndim=1] ap_x,
     np.ndarray[double, ndim=1] ap_y,
@@ -5083,7 +5095,7 @@ def compute_solid_angle_apertures_unitvectors(
     cdef np.ndarray[double, ndim=1] p_a_x1
     cdef float cx0, cx1
     cdef float ux, uy, uz, inv_norm
-    cdef np.ndarray[long, ndim=2] tri
+    cdef np.ndarray[int64_t, ndim=2] tri
     cdef np.ndarray[double, ndim=1] tri_x
     cdef np.ndarray[double, ndim=1] tri_y
     cdef np.ndarray[double, ndim=1] tri_z
@@ -5282,7 +5294,7 @@ def compute_solid_angle_apertures_visibility(
     np.ndarray[double, ndim=1] det_e1_y,
     np.ndarray[double, ndim=1] det_e1_z,
     # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
-    long[::1] ap_ind,
+    int64_t[::1] ap_ind,
     # apertures: polygon coordinates as three 1d arrays
     np.ndarray[double, ndim=1] ap_x,
     np.ndarray[double, ndim=1] ap_y,
@@ -5326,7 +5338,7 @@ def compute_solid_angle_apertures_visibility(
     cdef np.ndarray[double, ndim=1] p_a_x1
     cdef float cx0, cx1
     cdef float ux, uy, uz, inv_norm
-    cdef np.ndarray[long, ndim=2] tri
+    cdef np.ndarray[int64_t, ndim=2] tri
     cdef np.ndarray[double, ndim=1] tri_x
     cdef np.ndarray[double, ndim=1] tri_y
     cdef np.ndarray[double, ndim=1] tri_z
@@ -5546,7 +5558,7 @@ def compute_solid_angle_apertures_light(
     np.ndarray[double, ndim=1] det_e1_y,
     np.ndarray[double, ndim=1] det_e1_z,
     # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
-    long[::1] ap_ind,
+    int64_t[::1] ap_ind,
     # apertures: polygon coordinates as three 1d arrays
     np.ndarray[double, ndim=1] ap_x,
     np.ndarray[double, ndim=1] ap_y,
@@ -5574,7 +5586,7 @@ def compute_solid_angle_apertures_light(
     cdef np.ndarray[double, ndim=1] ap_x1 = np.copy(ap_x)
     cdef np.ndarray[double, ndim=1] p_a_x0
     cdef np.ndarray[double, ndim=1] p_a_x1
-    cdef np.ndarray[long, ndim=2] tri
+    cdef np.ndarray[int64_t, ndim=2] tri
     cdef np.ndarray[double, ndim=1] tri_x
     cdef np.ndarray[double, ndim=1] tri_y
     cdef np.ndarray[double, ndim=1] tri_z
@@ -5786,7 +5798,7 @@ def compute_solid_angle_apertures_light_summed(
     np.ndarray[double, ndim=1] det_e1_y,
     np.ndarray[double, ndim=1] det_e1_z,
     # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
-    long[::1] ap_ind,
+    int64_t[::1] ap_ind,
     # apertures: polygon coordinates as three 1d arrays
     np.ndarray[double, ndim=1] ap_x,
     np.ndarray[double, ndim=1] ap_y,
@@ -5814,7 +5826,7 @@ def compute_solid_angle_apertures_light_summed(
     cdef np.ndarray[double, ndim=1] ap_x1 = np.copy(ap_x)
     cdef np.ndarray[double, ndim=1] p_a_x0
     cdef np.ndarray[double, ndim=1] p_a_x1
-    cdef np.ndarray[long, ndim=2] tri
+    cdef np.ndarray[int64_t, ndim=2] tri
     cdef np.ndarray[double, ndim=1] tri_x
     cdef np.ndarray[double, ndim=1] tri_y
     cdef np.ndarray[double, ndim=1] tri_z

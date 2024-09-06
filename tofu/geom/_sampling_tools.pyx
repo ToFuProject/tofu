@@ -15,6 +15,7 @@ from libc.math cimport isnan as c_isnan
 from libc.math cimport NAN as C_NAN
 from libc.math cimport log2 as c_log2
 from libc.stdlib cimport malloc, free, realloc
+from libc.stdint cimport int64_t
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from cython.parallel cimport threadid
@@ -32,12 +33,12 @@ from . cimport _raytracing_tools as _rt
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
-cdef inline long discretize_line1d_core(double* lminmax, double dstep,
+cdef inline int64_t discretize_line1d_core(double* lminmax, double dstep,
                                         double[2] dl, bint lim,
                                         int mode, double margin,
                                         double** ldiscret_arr,
                                         double[1] resolution,
-                                        long** lindex_arr, long[1] n) nogil:
+                                        int64_t** lindex_arr, int64_t[1] n) nogil:
     """Discretizes a 1D line defined over `[liminmax[0], lminmax[1]]` with
     a discretization step resolution (out value) computed from `dstep` which
     can be given in absolute or relative mode. It is possible to only get a
@@ -45,7 +46,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
     of points to take into account depending on the subdomain dl. n indicates
     the number of points on the discretized subdomain."""
     cdef int[1] nL0
-    cdef long[1] nind
+    cdef int64_t[1] nind
     # ..
     first_discretize_line1d_core(lminmax, dstep,
                                  resolution, n, &nind[0], &nL0[0],
@@ -56,9 +57,9 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
         ldiscret_arr[0] = <double *>realloc(ldiscret_arr[0],
                                             nind[0] * sizeof(double))
     if lindex_arr[0] == NULL:
-        lindex_arr[0] = <long *>malloc(nind[0] * sizeof(long))
+        lindex_arr[0] = <int64_t *>malloc(nind[0] * sizeof(int64_t))
     else:
-        lindex_arr[0] = <long *>realloc(lindex_arr[0], nind[0] * sizeof(long))
+        lindex_arr[0] = <int64_t *>realloc(lindex_arr[0], nind[0] * sizeof(int64_t))
     second_discretize_line1d_core(lminmax, ldiscret_arr[0], lindex_arr[0],
                                   nL0[0], resolution[0], nind[0])
     return nind[0]
@@ -67,8 +68,8 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
 cdef inline void first_discretize_line1d_core(double* lminmax,
                                               double dstep,
                                               double[1] resolution,
-                                              long[1] ncells,
-                                              long[1] nind,
+                                              int64_t[1] ncells,
+                                              int64_t[1] nind,
                                               int[1] nl0,
                                               double[2] dl,
                                               bint lim,
@@ -127,10 +128,10 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
 
 cdef inline void second_discretize_line1d_core(double* lminmax,
                                                double* ldiscret,
-                                               long* lindex,
+                                               int64_t* lindex,
                                                int nl0,
                                                double resolution,
-                                               long nind) nogil:
+                                               int64_t nind) nogil:
     """
     Does the actual discretization of the segment lminmax.
     Computes the coordinates of the cells on the discretized segment and the
@@ -151,7 +152,7 @@ cdef inline void simple_discretize_line1d(double[2] lminmax, double dstep,
                                           int mode, double margin,
                                           double** ldiscret_arr,
                                           double[1] resolution,
-                                          long[1] n) nogil:
+                                          int64_t[1] n) nogil:
     """
     Similar version, more simple :
     - Not possible to define a sub set
@@ -211,8 +212,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
                                        int mode, double margin, double din,
                                        double[:, ::1] ves_vin,
                                        double** xcross, double** ycross,
-                                       double** reso, long** ind,
-                                       long** ncells, double** rref,
+                                       double** reso, int64_t** ind,
+                                       int64_t** ncells, double** rref,
                                        double** xpolybis, double** ypolybis,
                                        int[1] tot_sz_vb, int[1] tot_sz_ot,
                                        int np) nogil:
@@ -229,13 +230,13 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
     cdef double[2] lminmax
     cdef double[2] dl_array
     cdef double* ldiscret = NULL
-    cdef long* lindex = NULL
+    cdef int64_t* lindex = NULL
 
     #.. initialization..........................................................
     lminmax[0] = 0.
     dl_array[0] = C_NAN
     dl_array[1] = C_NAN
-    ncells[0] = <long*>malloc((np-1)*sizeof(long))
+    ncells[0] = <int64_t*>malloc((np-1)*sizeof(int64_t))
     #.. Filling arrays..........................................................
     if c_abs(din) < _VSMALL:
         for ii in range(np-1):
@@ -260,7 +261,7 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             rref[0] = <double*>realloc(rref[0], sizeof(double)*sz_others)
             xcross[0] = <double*>realloc(xcross[0], sizeof(double)*sz_others)
             ycross[0] = <double*>realloc(ycross[0], sizeof(double)*sz_others)
-            ind[0] = <long*>realloc(ind[0], sizeof(long)*sz_others)
+            ind[0] = <int64_t*>realloc(ind[0], sizeof(int64_t)*sz_others)
             # ...
             v0 = v0 * inv_norm
             v1 = v1 * inv_norm
@@ -303,7 +304,7 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             rref[0]   = <double*>realloc(rref[0],   sizeof(double)*sz_others)
             xcross[0] = <double*>realloc(xcross[0], sizeof(double)*sz_others)
             ycross[0] = <double*>realloc(ycross[0], sizeof(double)*sz_others)
-            ind[0] = <long*>realloc(ind[0], sizeof(long)*sz_others)
+            ind[0] = <int64_t*>realloc(ind[0], sizeof(int64_t)*sz_others)
             # ...
             v0 = v0 * inv_norm
             v1 = v1 * inv_norm
@@ -349,7 +350,7 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] ves_poly,
     cdef double inv_norm
     cdef double[1] loc_resolu
     cdef double[2] lminmax
-    cdef long[1] ncells
+    cdef int64_t[1] ncells
     cdef double* ldiscret = NULL
     #.. initialization..........................................................
     lminmax[0] = 0.
@@ -399,7 +400,7 @@ cdef inline void middle_rule_rel(int nlos, int num_raf,
                                  double* los_kmax,
                                  double* eff_resolution,
                                  double* los_coeffs,
-                                 long* los_ind,
+                                 int64_t* los_ind,
                                  int num_threads) nogil:
     # Middle quadrature rule with relative resolution step
     # for MULTIPLE LOS
@@ -430,7 +431,7 @@ cdef inline void middle_rule_abs_s1_single(double inv_resol,
                                           double los_kmin,
                                           double los_kmax,
                                           double* eff_resolution,
-                                          long* ind_cum) nogil:
+                                          int64_t* ind_cum) nogil:
     # Middle quadrature rule with absolute resolution step
     # for one LOS
     # First step of the function, this function should be called
@@ -452,7 +453,7 @@ cdef inline void middle_rule_abs_s1(int nlos, double resol,
                                    double* los_kmin,
                                    double* los_kmax,
                                    double* eff_resolution,
-                                   long* ind_cum,
+                                   int64_t* ind_cum,
                                    int num_threads) nogil:
     # Middle quadrature rule with absolute resolution step
     # for SEVERAL LOS
@@ -474,7 +475,7 @@ cdef inline void middle_rule_abs_s1(int nlos, double resol,
 cdef inline void middle_rule_abs_s2(int nlos,
                                    double* los_kmin,
                                    double* eff_resolution,
-                                   long* ind_cum,
+                                   int64_t* ind_cum,
                                    double* los_coeffs,
                                    int num_threads) nogil:
     # Middle quadrature rule with absolute resolution step
@@ -482,8 +483,8 @@ cdef inline void middle_rule_abs_s2(int nlos,
     # First step of the function, this function should be called
     # before middle_rule_abs_s2, this function computes the coeffs
     cdef Py_ssize_t ii
-    cdef long num_raf
-    cdef long first_index
+    cdef int64_t num_raf
+    cdef int64_t first_index
     cdef double loc_resol
     cdef double loc_x
     # Treating the first ilos seperately
@@ -511,8 +512,8 @@ cdef inline void middle_rule_abs_var_s1(int nlos,
                                         double* los_kmax,
                                         double* resolutions,
                                         double* eff_resolution,
-                                        long* los_ind,
-                                        long* los_nraf,
+                                        int64_t* los_ind,
+                                        int64_t* los_nraf,
                                         int num_threads) nogil:
     # Middle quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
@@ -548,7 +549,7 @@ cdef inline void middle_rule_abs_var_s2(int nlos,
                                         double* los_kmax,
                                         double* eff_resolution,
                                         double** los_coeffs,
-                                        long* los_ind, long* los_nraf,
+                                        int64_t* los_ind, int64_t* los_nraf,
                                         int num_threads) nogil:
     # Middle quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
@@ -584,12 +585,12 @@ cdef inline void middle_rule_abs_var(int nlos,
                                      double* resolutions,
                                      double* eff_resolution,
                                      double** los_coeffs,
-                                     long* los_ind,
+                                     int64_t* los_ind,
                                      int num_threads) nogil:
     # Middle quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
-    cdef long* los_nraf
-    los_nraf = <long*> malloc(nlos * sizeof(long))
+    cdef int64_t* los_nraf
+    los_nraf = <int64_t*> malloc(nlos * sizeof(int64_t))
     middle_rule_abs_var_s1(nlos, los_kmin, los_kmax, resolutions,
                            eff_resolution, los_ind, &los_nraf[0],
                            num_threads)
@@ -606,8 +607,8 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
                                         double* eff_resolution,
-                                        long* los_ind,
-                                        long* los_nraf,
+                                        int64_t* los_ind,
+                                        int64_t* los_nraf,
                                         int num_threads) nogil:
     # Middle quadrature rule with relative variable resolution step
     # for SEVERAL LOS
@@ -638,7 +639,7 @@ cdef inline void middle_rule_rel_var_s2(int nlos, double* resolutions,
                                         double* los_kmax,
                                         double* eff_resolution,
                                         double** los_coeffs,
-                                        long* los_ind, long* los_nraf,
+                                        int64_t* los_ind, int64_t* los_nraf,
                                         int num_threads) nogil:
     # Middle quadrature rule with relative variable resolution step
     # for SEVERAL LOS
@@ -668,13 +669,13 @@ cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
                                      double* los_kmax,
                                      double* eff_resolution,
                                      double** los_coeffs,
-                                     long* los_ind,
+                                     int64_t* los_ind,
                                      int num_threads) nogil:
     # Middle quadrature rule with relative variable resolution step
     # for SEVERAL LOS
-    cdef long* los_nraf
+    cdef int64_t* los_nraf
     # ...
-    los_nraf = <long*> malloc(nlos * sizeof(long))
+    los_nraf = <int64_t*> malloc(nlos * sizeof(int64_t))
     middle_rule_rel_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
                            eff_resolution,
@@ -712,7 +713,7 @@ cdef inline void left_rule_rel(int nlos, int num_raf,
                                double* los_kmax,
                                double* eff_resolution,
                                double* los_coeffs,
-                               long* los_ind, int num_threads) nogil:
+                               int64_t* los_ind, int num_threads) nogil:
     # Left quadrature rule with relative resolution step
     # for SEVERAL LOS
     cdef Py_ssize_t ii
@@ -738,7 +739,7 @@ cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
                                         double* los_kmin,
                                         double* los_kmax,
                                         double* eff_resolution,
-                                        long* los_ind, long* los_nraf,
+                                        int64_t* los_ind, int64_t* los_nraf,
                                         int num_threads) nogil:
     # Simpson left quadrature rule with absolute resolution step
     # for SEVERAL LOS
@@ -776,7 +777,7 @@ cdef inline void left_rule_abs_s2(int nlos, double resol,
                                   double* los_kmax,
                                   double* eff_resolution,
                                   double** los_coeffs,
-                                  long* los_ind, long* los_nraf,
+                                  int64_t* los_ind, int64_t* los_nraf,
                                   int num_threads) nogil:
     # Simpson left quadrature rule with absolute resolution step
     # for SEVERAL LOS
@@ -806,13 +807,13 @@ cdef inline void simps_left_rule_abs(int nlos, double resol,
                                      double* los_kmax,
                                      double* eff_resolution,
                                      double** los_coeffs,
-                                     long* los_ind,
+                                     int64_t* los_ind,
                                      int num_threads) nogil:
     # Simpson left quadrature rule with absolute resolution step
     # for SEVERAL LOS
-    cdef long* los_nraf
+    cdef int64_t* los_nraf
     # ...
-    los_nraf = <long*> malloc(nlos * sizeof(long))
+    los_nraf = <int64_t*> malloc(nlos * sizeof(int64_t))
     simps_left_rule_abs_s1(nlos, resol,
                            los_kmin, los_kmax,
                            eff_resolution,
@@ -838,7 +839,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
                                     double* los_kmin,
                                     double* los_kmax,
                                     double* eff_resolution,
-                                    long* los_ind, long* los_nraf,
+                                    int64_t* los_ind, int64_t* los_nraf,
                                     int num_threads) nogil:
     # Romboid left quadrature rule with relative resolution step
     # for SEVERAL LOS
@@ -875,12 +876,12 @@ cdef inline void romb_left_rule_abs(int nlos, double resol,
                                     double* los_kmax,
                                     double* eff_resolution,
                                     double** los_coeffs,
-                                    long* los_ind, int num_threads) nogil:
+                                    int64_t* los_ind, int num_threads) nogil:
     # Romboid left quadrature rule with relative resolution step
     # for SEVERAL LOS
-    cdef long* los_nraf
+    cdef int64_t* los_nraf
     # ...
-    los_nraf = <long*> malloc(nlos * sizeof(long))
+    los_nraf = <int64_t*> malloc(nlos * sizeof(int64_t))
     romb_left_rule_abs_s1(nlos, resol,
                            los_kmin, los_kmax,
                            eff_resolution,
@@ -903,7 +904,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
                                             double* los_kmin,
                                             double* los_kmax,
                                             double* eff_resolution,
-                                            long* los_ind, long* los_nraf,
+                                            int64_t* los_ind, int64_t* los_nraf,
                                             int num_threads) nogil:
     # Simpson left quadrature rule with variable relative resolution step
     # for SEVERAL LOS
@@ -937,7 +938,7 @@ cdef inline void left_rule_rel_var_s2(int nlos, double* resolutions,
                                       double* los_kmax,
                                       double* eff_resolution,
                                       double** los_coeffs,
-                                      long* los_ind, long* los_nraf,
+                                      int64_t* los_ind, int64_t* los_nraf,
                                       int num_threads) nogil:
     # Simpson left quadrature rule with variable relative resolution step
     # for SEVERAL LOS
@@ -967,13 +968,13 @@ cdef inline void simps_left_rule_rel_var(int nlos, double* resolutions,
                                          double* los_kmax,
                                          double* eff_resolution,
                                          double** los_coeffs,
-                                         long* los_ind,
+                                         int64_t* los_ind,
                                          int num_threads) nogil:
     # Simpson left quadrature rule with variable relative resolution step
     # for SEVERAL LOS
-    cdef long* los_nraf
+    cdef int64_t* los_nraf
     # ...
-    los_nraf = <long*> malloc(nlos * sizeof(long))
+    los_nraf = <int64_t*> malloc(nlos * sizeof(int64_t))
     simps_left_rule_rel_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
                            eff_resolution,
@@ -996,7 +997,7 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
                                          double* los_kmin,
                                          double* los_kmax,
                                          double* eff_resolution,
-                                         long* los_ind, long* los_nraf,
+                                         int64_t* los_ind, int64_t* los_nraf,
                                          int num_threads) nogil:
     # Simpson left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
@@ -1033,13 +1034,13 @@ cdef inline void simps_left_rule_abs_var(int nlos, double* resolutions,
                                          double* los_kmax,
                                          double* eff_resolution,
                                          double** los_coeffs,
-                                         long* los_ind,
+                                         int64_t* los_ind,
                                          int num_threads) nogil:
     # Simpson left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
-    cdef long* los_nraf
+    cdef int64_t* los_nraf
     # ...
-    los_nraf = <long*> malloc(nlos * sizeof(long))
+    los_nraf = <int64_t*> malloc(nlos * sizeof(int64_t))
     simps_left_rule_abs_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
                            eff_resolution,
@@ -1062,7 +1063,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
                                         double* eff_resolution,
-                                        long* los_ind, long* los_nraf,
+                                        int64_t* los_ind, int64_t* los_nraf,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with relative variable resolution step
     # for SEVERAL LOS
@@ -1094,13 +1095,13 @@ cdef inline void romb_left_rule_rel_var(int nlos, double* resolutions,
                                         double* los_kmax,
                                         double* eff_resolution,
                                         double** los_coeffs,
-                                        long* los_ind,
+                                        int64_t* los_ind,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with relative variable resolution step
     # for SEVERAL LOS
-    cdef long* los_nraf
+    cdef int64_t* los_nraf
     # ...
-    los_nraf = <long*> malloc(nlos * sizeof(long))
+    los_nraf = <int64_t*> malloc(nlos * sizeof(int64_t))
     romb_left_rule_rel_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
                            eff_resolution,
@@ -1123,7 +1124,7 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
                                         double* eff_resolution,
-                                        long* los_ind, long* los_nraf,
+                                        int64_t* los_ind, int64_t* los_nraf,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
@@ -1158,13 +1159,13 @@ cdef inline void romb_left_rule_abs_var(int nlos, double* resolutions,
                                         double* los_kmax,
                                         double* eff_resolution,
                                         double** los_coeffs,
-                                        long* los_ind,
+                                        int64_t* los_ind,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
-    cdef long* los_nraf
+    cdef int64_t* los_nraf
     # ...
-    los_nraf = <long*> malloc(nlos * sizeof(long))
+    los_nraf = <int64_t*> malloc(nlos * sizeof(int64_t))
     romb_left_rule_abs_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
                            eff_resolution,
@@ -1234,7 +1235,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
       - 2 : 'romb' return n+1 edges, n+1 = 2**k+1 (for scipy.integrate.romb)
     """
     cdef int nraf
-    cdef long[1] ind_cum
+    cdef int64_t[1] ind_cum
     cdef double invnraf
     cdef double invresol
     cdef double seg_length
@@ -1311,7 +1312,7 @@ cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
                                        double resol,
                                        int n_dmode, int n_imode,
                                        double[1] eff_res,
-                                       long[1] nb_rows,
+                                       int64_t[1] nb_rows,
                                        double[:, ::1] ray_orig,
                                        double[:, ::1] ray_vdir):
     # This function doesn't compute anything new.
@@ -1353,7 +1354,7 @@ cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(
     double resol,
     int n_dmode, int n_imode,
     double[1] eff_res,
-    long[1] nb_rows,
+    int64_t[1] nb_rows,
     double[:, ::1] ray_orig,
     double[:, ::1] ray_vdir):
     # This function doesn't compute anything new.
@@ -1392,7 +1393,7 @@ cdef inline int los_get_sample_core_const_res(int nlos,
                                               double val_resol,
                                               double** coeff_ptr,
                                               double* dl_r,
-                                              long* los_ind,
+                                              int64_t* los_ind,
                                               int num_threads) nogil:
     # ...
     cdef int num_cells
@@ -1455,7 +1456,7 @@ cdef inline void los_get_sample_core_var_res(int nlos,
                                             double* resol,
                                             double** coeff_ptr,
                                             double* eff_res,
-                                            long* los_ind,
+                                            int64_t* los_ind,
                                             int num_threads) nogil:
     if n_dmode==0: #absolute
         if n_imode==0: # sum
@@ -1504,7 +1505,7 @@ cdef inline void los_get_sample_pts(int nlos,
                                     double[:, ::1] ray_orig,
                                     double[:, ::1] ray_vdir,
                                     double* coeff_ptr,
-                                    long* los_ind,
+                                    int64_t* los_ind,
                                     int num_threads) nogil:
     cdef double loc_ox, loc_oy, loc_oz
     cdef double loc_vx, loc_vy, loc_vz
@@ -1542,22 +1543,22 @@ cdef inline void los_get_sample_pts(int nlos,
 
 # -- utility for vmesh sub from D ----------------------------------------------
 cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
-                                long* ncells_rphi,
+                                int64_t* ncells_rphi,
                                 double phistep,
                                 int ncells_rphi0,
                                 double* disc_r,
                                 double* disc_r0,
                                 double* step_rphi,
                                 double[::1] reso_phi_mv,
-                                long* tot_nc_plane,
+                                int64_t* tot_nc_plane,
                                 int ind_loc_r0,
                                 int ncells_r0,
                                 int ncells_z,
                                 int* max_sz_phi,
                                 double min_phi,
                                 double max_phi,
-                                long* sz_phi,
-                                long[:, ::1] indi_mv,
+                                int64_t* sz_phi,
+                                int64_t[:, ::1] indi_mv,
                                 double margin,
                                 int num_threads) nogil:
     cdef int ii, jj
@@ -1592,7 +1593,7 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
                     ind_loc_r0 = jj
                     break
                 else:
-                    ncells_rphi0 += <long>c_ceil(twopi_over_dphi * disc_r0[jj])
+                    ncells_rphi0 += <int64_t>c_ceil(twopi_over_dphi * disc_r0[jj])
                     tot_nc_plane[ii] = ncells_rphi0 * ncells_z
 
             # Get indices of phi
@@ -1629,7 +1630,7 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
                     ind_loc_r0 = jj
                     break
                 else:
-                    ncells_rphi0 += <long>c_ceil(twopi_over_dphi * disc_r0[jj])
+                    ncells_rphi0 += <int64_t>c_ceil(twopi_over_dphi * disc_r0[jj])
                     tot_nc_plane[ii] = ncells_rphi0 * ncells_z
             # Get indices of phi
             # Get the extreme indices of the mesh elements that really need to
@@ -1656,11 +1657,11 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     return npts_disc
 
 
-cdef inline int vmesh_get_index_arrays(long[:, :, ::1] ind_rzphi2dic,
-                                       long[:, ::1] is_in_vignette,
+cdef inline int vmesh_get_index_arrays(int64_t[:, :, ::1] ind_rzphi2dic,
+                                       int64_t[:, ::1] is_in_vignette,
                                        int sz_r,
                                        int sz_z,
-                                       long* sz_phi) nogil:
+                                       int64_t* sz_phi) nogil:
     cdef int rr, zz, pp
     cdef int npts_disc = 0
     cdef int loc_sz_phi
@@ -1677,27 +1678,27 @@ cdef inline int vmesh_get_index_arrays(long[:, :, ::1] ind_rzphi2dic,
 
 cdef inline void vmesh_assemble_arrays_cart(int rr,
                                             int sz_z,
-                                            long* lindex_z,
-                                            long[::1] is_in_vignette,
-                                            long* ncells_rphi,
-                                            long* tot_nc_plane,
+                                            int64_t* lindex_z,
+                                            int64_t[::1] is_in_vignette,
+                                            int64_t* ncells_rphi,
+                                            int64_t* tot_nc_plane,
                                             double reso_r_z,
                                             double* step_rphi,
                                             double* disc_r,
                                             double* disc_z,
-                                            long[:, :, ::1] ind_rzphi2dic,
-                                            long* sz_phi,
-                                            long[::1] iii,
+                                            int64_t[:, :, ::1] ind_rzphi2dic,
+                                            int64_t* sz_phi,
+                                            int64_t[::1] iii,
                                             double[::1] dv_mv,
                                             double[::1] reso_phi_mv,
                                             double[:, ::1] pts_mv,
-                                            long[::1] ind_mv) nogil:
+                                            int64_t[::1] ind_mv) nogil:
     cdef int zz
     cdef int jj
-    cdef long zrphi
-    cdef long indiijj
+    cdef int64_t zrphi
+    cdef int64_t indiijj
     cdef double phi
-    cdef long npts_disc
+    cdef int64_t npts_disc
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[rr]
@@ -1716,26 +1717,26 @@ cdef inline void vmesh_assemble_arrays_cart(int rr,
 
 cdef inline void vmesh_assemble_arrays_polr(int rr,
                                             int sz_z,
-                                            long* lindex_z,
-                                            long[::1] is_in_vignette,
-                                            long* ncells_rphi,
-                                            long* tot_nc_plane,
+                                            int64_t* lindex_z,
+                                            int64_t[::1] is_in_vignette,
+                                            int64_t* ncells_rphi,
+                                            int64_t* tot_nc_plane,
                                             double reso_r_z,
                                             double* step_rphi,
                                             double* disc_r,
                                             double* disc_z,
-                                            long[:, :, ::1] ind_rzphi2dic,
-                                            long* sz_phi,
-                                            long[::1] iii,
+                                            int64_t[:, :, ::1] ind_rzphi2dic,
+                                            int64_t* sz_phi,
+                                            int64_t[::1] iii,
                                             double[::1] dv_mv,
                                             double[::1] reso_phi_mv,
                                             double[:, ::1] pts_mv,
-                                            long[::1] ind_mv) nogil:
+                                            int64_t[::1] ind_mv) nogil:
     cdef int zz
     cdef int jj
-    cdef long npts_disc
-    cdef long zrphi
-    cdef long indiijj
+    cdef int64_t npts_disc
+    cdef int64_t zrphi
+    cdef int64_t indiijj
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[rr]
@@ -1752,25 +1753,25 @@ cdef inline void vmesh_assemble_arrays_polr(int rr,
 
 
 
-cdef inline void vmesh_assemble_arrays(long[::1] first_ind_mv,
-                                       long[:, ::1] indi_mv,
-                                       long[:, ::1] is_in_vignette,
+cdef inline void vmesh_assemble_arrays(int64_t[::1] first_ind_mv,
+                                       int64_t[:, ::1] indi_mv,
+                                       int64_t[:, ::1] is_in_vignette,
                                        bint is_cart,
                                        int sz_r,
                                        int sz_z,
-                                       long* lindex_z,
-                                       long* ncells_rphi,
-                                       long* tot_nc_plane,
+                                       int64_t* lindex_z,
+                                       int64_t* ncells_rphi,
+                                       int64_t* tot_nc_plane,
                                        double reso_r_z,
                                        double* step_rphi,
                                        double* disc_r,
                                        double* disc_z,
-                                       long[:, :, ::1] ind_rzphi2dic,
-                                       long* sz_phi,
+                                       int64_t[:, :, ::1] ind_rzphi2dic,
+                                       int64_t* sz_phi,
                                        double[::1] dv_mv,
                                        double[::1] reso_phi_mv,
                                        double[:, ::1] pts_mv,
-                                       long[::1] ind_mv,
+                                       int64_t[::1] ind_mv,
                                        int num_threads) nogil:
     cdef int rr
     # ...
@@ -1805,7 +1806,7 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
                                      int sz_r, int sz_z,
                                      double twopi_over_dphi,
                                      double[::1] d_r_phir_ref,
-                                     long* tot_nc_plane,
+                                     int64_t* tot_nc_plane,
                                      double** phi_tab,
                                      int num_threads) nogil:
     cdef int rr
@@ -1845,8 +1846,8 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
 
 cdef inline void vmesh_ind_cart_loop(int np,
                                      int sz_r,
-                                     long[::1] ind,
-                                     long* tot_nc_plane,
+                                     int64_t[::1] ind,
+                                     int64_t* tot_nc_plane,
                                      int* ncells_rphi,
                                      double* phi_tab,
                                      double* disc_r,
@@ -1885,8 +1886,8 @@ cdef inline void vmesh_ind_cart_loop(int np,
 
 cdef inline void vmesh_ind_polr_loop(int np,
                                      int sz_r,
-                                     long[::1] ind,
-                                     long* tot_nc_plane,
+                                     int64_t[::1] ind,
+                                     int64_t* tot_nc_plane,
                                      int* ncells_rphi,
                                      double* phi_tab,
                                      double* disc_r,
@@ -1923,8 +1924,8 @@ cdef inline void vmesh_ind_polr_loop(int np,
 # ==============================================================================
 # == Solid Angle Computation
 # ==============================================================================
-cdef inline int sa_get_index_arrays(long[:, ::1] ind_rz2pol,
-                                    long[:, ::1] is_in_vignette,
+cdef inline int sa_get_index_arrays(int64_t[:, ::1] ind_rz2pol,
+                                    int64_t[:, ::1] is_in_vignette,
                                     int sz_r,
                                     int sz_z) nogil:
     cdef int rr, zz
@@ -1940,7 +1941,7 @@ cdef inline int sa_get_index_arrays(long[:, ::1] ind_rz2pol,
 
 # -- utility for discretizing phi ----------------------------------------------
 cdef inline int  sa_disc_phi(int sz_r, int sz_z,
-                             long* ncells_rphi,
+                             int64_t* ncells_rphi,
                              double phistep,
                              double* disc_r,
                              double* disc_r0,
@@ -1951,8 +1952,8 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
                              int* max_sz_phi,
                              double min_phi,
                              double max_phi,
-                             long* sz_phi,
-                             long[:, ::1] indi_mv,
+                             int64_t* sz_phi,
+                             int64_t[:, ::1] indi_mv,
                              double margin,
                              int num_threads) nogil:
     cdef int rr, jj
@@ -2044,18 +2045,20 @@ cdef inline void sa_assemble_arrays(int block,
                                     int use_approx,
                                     double[:, ::1] part_coords,
                                     double[::1] part_rad,
-                                    long[:, ::1] is_in_vignette,
+                                    int64_t[:, ::1] is_in_vignette,
                                     double[:, ::1] sa_map,
                                     double[:, ::1] ves_poly,
                                     double[:, ::1] ves_norm,
                                     double[::1] ves_lims,
-                                    long[::1] lstruct_nlim,
+                                    # int64_t[::1] lstruct_nlim,
+                                    int64_t[::1] lstruct_nlim,
                                     double[::1] lstruct_polyx,
                                     double[::1] lstruct_polyy,
                                     double[::1] lstruct_lims,
                                     double[::1] lstruct_normx,
                                     double[::1] lstruct_normy,
-                                    long[::1] lnvert,
+                                    # int64_t[::1] lnvert,
+                                    int64_t[::1] lnvert,
                                     int nstruct_tot,
                                     int nstruct_lim,
                                     double rmin,
@@ -2063,20 +2066,20 @@ cdef inline void sa_assemble_arrays(int block,
                                     double eps_vz, double eps_b,
                                     double eps_plane,
                                     bint forbid,
-                                    long[::1] first_ind,
-                                    long[:, ::1] indi_mv,
+                                    int64_t[::1] first_ind,
+                                    int64_t[:, ::1] indi_mv,
                                     int sz_p,
                                     int sz_r, int sz_z,
-                                    long* ncells_rphi,
+                                    int64_t* ncells_rphi,
                                     double reso_r_z,
                                     double* disc_r,
                                     double* step_rphi,
                                     double* disc_z,
-                                    long[:, ::1] ind_rz2pol,
-                                    long* sz_phi,
+                                    int64_t[:, ::1] ind_rz2pol,
+                                    int64_t* sz_phi,
                                     double[::1] reso_rdrdz,
                                     double[:, ::1] pts_mv,
-                                    long[::1] ind_mv,
+                                    int64_t[::1] ind_mv,
                                     int num_threads):
     cdef int rr
     cdef int zz
@@ -2208,13 +2211,15 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                        double[:, ::1] ves_poly,
                                        double[:, ::1] ves_norm,
                                        double[::1] ves_lims,
-                                       long[::1] lstruct_nlim,
+                                       # int64_t[::1] lstruct_nlim,
+                                       int64_t[::1] lstruct_nlim,
                                        double[::1] lstruct_polyx,
                                        double[::1] lstruct_polyy,
                                        double[::1] lstruct_lims,
                                        double[::1] lstruct_normx,
                                        double[::1] lstruct_normy,
-                                       long[::1] lnvert,
+                                       # int64_t[::1] lnvert,
+                                       int64_t[::1] lnvert,
                                        double[:, ::1] vperp_out,
                                        double[:, ::1] coeff_inter_in,
                                        double[:, ::1] coeff_inter_out,
@@ -2230,17 +2235,17 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                        double eps_vz, double eps_b,
                                        double eps_plane,
                                        bint forbid,
-                                       long[::1] first_ind_mv,
-                                       long[:, ::1] indi_mv,
+                                       int64_t[::1] first_ind_mv,
+                                       int64_t[:, ::1] indi_mv,
                                        int sz_p,
                                        int sz_pol,
-                                       long* ncells_rphi,
+                                       int64_t* ncells_rphi,
                                        double* disc_r,
                                        double* step_rphi,
                                        double* disc_z,
                                        int[::1] ind_pol2r,
                                        int[::1] ind_pol2z,
-                                       long* sz_phi,
+                                       int64_t* sz_phi,
                                        int num_threads) nogil:
     cdef int rr
     cdef int zz
@@ -2249,7 +2254,7 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
     cdef int ind_pol
     cdef int loc_first_ind
     cdef int loc_size_phi
-    cdef long indiijj
+    cdef int64_t indiijj
     cdef double vol_pi
     cdef double loc_x
     cdef double loc_y
@@ -2257,14 +2262,14 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
     cdef double loc_z
     cdef double loc_phi
     cdef double loc_step_rphi
-    cdef long* is_vis
+    cdef int64_t* is_vis
     cdef double* dist = NULL
 
-    cdef long thid
+    cdef int64_t thid
 
     with nogil, parallel(num_threads=num_threads):
         dist = <double*> malloc(sz_p * sizeof(double))
-        is_vis = <long*> malloc(sz_p * sizeof(long))
+        is_vis = <int64_t*> malloc(sz_p * sizeof(int64_t))
 
         thid = threadid()
 
@@ -2329,17 +2334,17 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
 cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
                                          double[::1] part_rad,
                                          double[:, ::1] sa_map,
-                                         long[::1] first_ind_mv,
-                                         long[:, ::1] indi_mv,
+                                         int64_t[::1] first_ind_mv,
+                                         int64_t[:, ::1] indi_mv,
                                          int sz_p,
                                          int sz_pol,
-                                         long* ncells_rphi,
+                                         int64_t* ncells_rphi,
                                          double* disc_r,
                                          double* step_rphi,
                                          double* disc_z,
                                          int[::1] ind_pol2r,
                                          int[::1] ind_pol2z,
-                                         long* sz_phi,
+                                         int64_t* sz_phi,
                                          int num_threads) nogil:
     cdef int rr
     cdef int zz
@@ -2348,7 +2353,7 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
     cdef int ind_pol
     cdef int loc_first_ind
     cdef int loc_size_phi
-    cdef long indiijj
+    cdef int64_t indiijj
     cdef double vol_pi
     cdef double loc_x
     cdef double loc_y
@@ -2429,13 +2434,15 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
                                       double[:, ::1] ves_poly,
                                       double[:, ::1] ves_norm,
                                       double[::1] ves_lims,
-                                      long[::1] lstruct_nlim,
+                                      # int64_t[::1] lstruct_nlim,
+                                      int64_t[::1] lstruct_nlim,
                                       double[::1] lstruct_polyx,
                                       double[::1] lstruct_polyy,
                                       double[::1] lstruct_lims,
                                       double[::1] lstruct_normx,
                                       double[::1] lstruct_normy,
-                                      long[::1] lnvert,
+                                      # int64_t[::1] lnvert,
+                                      int64_t[::1] lnvert,
                                       double[:, ::1] vperp_out,
                                       double[:, ::1] coeff_inter_in,
                                       double[:, ::1] coeff_inter_out,
@@ -2451,17 +2458,17 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
                                       double eps_vz, double eps_b,
                                       double eps_plane,
                                       bint forbid,
-                                      long[::1] first_ind_mv,
-                                      long[:, ::1] indi_mv,
+                                      int64_t[::1] first_ind_mv,
+                                      int64_t[:, ::1] indi_mv,
                                       int sz_p,
                                       int sz_pol,
-                                      long* ncells_rphi,
+                                      int64_t* ncells_rphi,
                                       double* disc_r,
                                       double* step_rphi,
                                       double* disc_z,
                                       int[::1] ind_pol2r,
                                       int[::1] ind_pol2z,
-                                      long* sz_phi,
+                                      int64_t* sz_phi,
                                       int num_threads) nogil:
     cdef int rr
     cdef int zz
@@ -2470,7 +2477,7 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
     cdef int ind_pol
     cdef int loc_first_ind
     cdef int loc_size_phi
-    cdef long indiijj
+    cdef int64_t indiijj
     cdef double vol_pi
     cdef double loc_r
     cdef double loc_z
@@ -2478,14 +2485,14 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
     cdef double loc_y
     cdef double loc_phi
     cdef double loc_step_rphi
-    cdef long* is_vis
+    cdef int64_t* is_vis
     cdef double* dist = NULL
 
-    cdef long thid
+    cdef int64_t thid
 
     with nogil, parallel(num_threads=num_threads):
         dist = <double*> malloc(sz_p * sizeof(double))
-        is_vis = <long*> malloc(sz_p * sizeof(long))
+        is_vis = <int64_t*> malloc(sz_p * sizeof(int64_t))
 
         thid = threadid()
 
@@ -2550,17 +2557,17 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
 cdef inline void assemble_unblock_exact(double[:, ::1] part_coords,
                                         double[::1] part_rad,
                                         double[:, ::1] sa_map,
-                                        long[::1] first_ind_mv,
-                                        long[:, ::1] indi_mv,
+                                        int64_t[::1] first_ind_mv,
+                                        int64_t[:, ::1] indi_mv,
                                         int sz_p,
                                         int sz_pol,
-                                        long* ncells_rphi,
+                                        int64_t* ncells_rphi,
                                         double* disc_r,
                                         double* step_rphi,
                                         double* disc_z,
                                         int[::1] ind_pol2r,
                                         int[::1] ind_pol2z,
-                                        long* sz_phi,
+                                        int64_t* sz_phi,
                                         int num_threads) nogil:
     cdef int rr
     cdef int zz
@@ -2569,7 +2576,7 @@ cdef inline void assemble_unblock_exact(double[:, ::1] part_coords,
     cdef int ind_pol
     cdef int loc_first_ind
     cdef int loc_size_phi
-    cdef long indiijj
+    cdef int64_t indiijj
     cdef double vol_pi
     cdef double loc_r
     cdef double loc_x

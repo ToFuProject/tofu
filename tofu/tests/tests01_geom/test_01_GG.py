@@ -257,22 +257,29 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
                                        in_format='(R,Z,Phi)',
                                        ves_lims=None, nlim=0, test=True))
         assert dS.shape == (Pts.shape[1],)
-        assert all([
+        lc = [
             ind.shape == (Pts.shape[1],),
-            ind.dtype == int,
+            ind.dtype == np.int64,
             np.unique(ind).size == ind.size,
             np.all(ind == np.unique(ind)),
             np.all(ind >= 0),
-        ])
-        assert (
-            ind.shape == (Pts.shape[1],) and ind.dtype == int
-            and np.all(ind == np.unique(ind)) and np.all(ind >= 0)
-        )
+        ]
+        if not all(lc):
+            msg = (
+                "\n"
+                f"lc = {lc}\n"
+                f"ind.shape = {ind.shape} vs {(Pts.shape[1],)} = (Pts.shape[1],)\n"
+                f"ind.dtype = {ind.dtype} vs int\n"
+                f"np.unique(ind).size = {np.unique(ind).size} vs {ind.size} = ind.size\n"
+                f"ind = {ind}\n"
+            )
+            raise Exception(msg)
+
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
         assert dRPhir.ndim == 1 and dRPhir.size == Rref.size
-        assert type(nRPhi0) is int
+        assert type(nRPhi0) == int
 
         Ptsi, dSi, NLi, \
             dLri, Rrefi, dRPhiri, \
@@ -345,14 +352,14 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
                                        nlim=0, in_format='(R,Z,Phi)',
                                        test=True))
         assert dS.shape == (Pts.shape[1],)
-        assert np.all([ind.shape == (Pts.shape[1],), ind.dtype == int,
+        assert np.all([ind.shape == (Pts.shape[1],), ind.dtype == np.int64,
                        ind.size == np.unique(ind).size,
                        np.all(ind == np.unique(ind)), np.all(ind >= 0)])
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
         assert dRPhir.ndim == 1 and dRPhir.size == Rref.size
-        assert type(nRPhi0) is int
+        assert type(nRPhi0) == int
 
         lrphi_arr = np.array(LPhi[ii][0])
         out = GG._Ves_Smesh_Tor_SubFromInd_cython(dL, dRPhi,
@@ -394,7 +401,6 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
 
 def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
 
-    PhiMinMax = np.array([3.*np.pi/4.,5.*np.pi/4.])
     dL, dRPhi = 0.02, 0.05
     VIn = compute_ves_norm(VPoly)
     DIn = -0.001
@@ -452,7 +458,7 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
                                                test=True))
         assert dS.shape == (Pts.shape[1],)
         assert np.all([ind.shape == (Pts.shape[1],),
-                       ind.dtype == int,
+                       ind.dtype == np.int64,
                        ind.size == np.unique(ind).size,
                        np.all(ind == np.unique(ind)),
                        np.all(ind>=0)])
@@ -569,7 +575,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         assert dS.shape == (Pts.shape[1],)
 
         # Check indices
-        if ind.dtype != int:
+        if ind.dtype != np.int64:
             msg = str(ind.dtype)
             raise Exception(msg)
 
@@ -586,7 +592,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
                     np.all(ind == np.unique(ind)),
                     np.all(ind>=0)])
         assert (
-            ind.shape == (Pts.shape[1],) and ind.dtype == int
+            ind.shape == (Pts.shape[1],) and ind.dtype == np.int64
             and np.all(ind == np.unique(ind)) and np.all(ind >= 0)
         )
 
@@ -637,7 +643,7 @@ def test13_LOS_PInOut():
     SP2y = [7.,7.,8.,8.,7.]
     nstruct_lim = 3
     nstruct_tot =1+2+1
-    lstruct_nlim = np.asarray([1, 2, 1])
+    lstruct_nlim = np.asarray([1, 2, 1], dtype=np.int64)
     SL0 = np.asarray([np.array([0., 1.])*2.*np.pi])
     SL1 = np.asarray([
         np.array(ss)*2.*np.pi
@@ -646,7 +652,7 @@ def test13_LOS_PInOut():
     SL2 = np.asarray([np.array([2./3., 1.])*2.*np.pi])
     lspolyx = np.asarray(SP0x + SP1x + SP2x)
     lspolyy = np.asarray(SP0y + SP1y + SP2y)
-    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=int)*5)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
     lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
     lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
     # Linear without Struct
@@ -700,11 +706,11 @@ def test13_LOS_PInOut():
     Iin = np.array([3, 3, 0, 0, 1, 1, 2, 2,
                     3, 3, 0, 0, 1, 1, 2, 2,
                     3, 3, 0, 0, 1, 1, 2, 2,
-                    -1, -1, -1, -1, -2, -2, -2, -2], dtype=int)
+                    -1, -1, -1, -1, -2, -2, -2, -2], dtype=np.int64)
     Iout = np.array([1, 1, 2, 2, 3, 3, 0, 0,
                      1, 1, 2, 2, 3, 3, 0, 0,
                      1, 1, 2, 2, 3, 3, 0, 0,
-                     -2, -2, -2, -2, -1, -1, -1, -1], dtype=int)
+                     -2, -2, -2, -2, -1, -1, -1, -1], dtype=np.int64)
     ndim, nlos = np.shape(Ds)
     kPIn, kPOut,\
         VperpOut, IOut= GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn,
@@ -736,11 +742,11 @@ def test13_LOS_PInOut():
     Iin = np.array([3, 3, 0, 0, 1, 1, 2, 2,
                     3, 3, 0, 0, 1, 1, 2, 2,
                     3, 3, 0, 0, 1, 1, 2, 2,
-                    -1, -1, -1, -1, -2, -2, -2, -2], dtype=int)
+                    -1, -1, -1, -1, -2, -2, -2, -2], dtype=np.int64)
     Iout = np.array([3, 3, 0, 0, 1, 1, 2, 2,
                      1, 3, 0, 2, 1, 3, 0, 2,
                      3, 3, 0, 0, 1, 1, 2, 2,
-                     -1, -2, -1, -1, -2, -1, -2, -2], dtype=int)
+                     -1, -2, -1, -1, -2, -1, -2, -2], dtype=np.int64)
     indS = np.array([[2, 1, 1, 2, 1, 2, 2, 1,
                       0, 1, 1, 0, 1, 0, 0, 1,
                       3, 1, 1, 2, 1, 2, 2, 3,
@@ -748,7 +754,7 @@ def test13_LOS_PInOut():
                      [0, 0, 0, 0, 0, 0, 0, 0,
                       0, 0, 0, 0, 0, 0, 0, 0,
                       0, 0, 0, 1, 0, 1, 1, 0,
-                      0, 0, 0, 0, 0, 0, 1, 0]], dtype=int)
+                      0, 0, 0, 0, 0, 0, 1, 0]], dtype=np.int64)
     kPIn, kPOut, \
         VperpOut, \
         IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=VL,
@@ -874,9 +880,13 @@ def test13_LOS_PInOut():
     )
     assert np.allclose(IOut[2, :], Iout)
     npts_vp = VP.shape[1]
-    out = GG.LOS_Calc_kMinkMax_VesStruct(Ds, us,
-                                         [VP, VP, VP], [VIn, VIn, VIn], 3,
-                                         np.r_[npts_vp, npts_vp, npts_vp])
+    out = GG.LOS_Calc_kMinkMax_VesStruct(
+        Ds, us,
+        [VP, VP, VP], [VIn, VIn, VIn],
+        3,
+        np.array([npts_vp, npts_vp, npts_vp], dtype=np.int64),
+    )
+
     kmin_res = out[0]
     kmax_res = out[1]
     assert np.allclose(kmin_res[:nlos],    kPIn)
@@ -893,10 +903,10 @@ def test13_LOS_PInOut():
     SL0 = np.asarray([None])
     SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0., 0.5], [1., 3./2.]]])
     SL2 = np.asarray([np.array([0.5, 3./2.])*np.pi])
-    lstruct_nlim = np.array([0, 2, 1])
+
     nstruct_lim = 3
     nstruct_tot =1+2+1
-    lstruct_nlim=np.asarray([0, 2, 1])
+    lstruct_nlim=np.asarray([0, 2, 1], dtype=np.int64)
     #....
     Sols_In, Sols_Out = [], []
     rsol_In = [[6.,6.,6.5,7.5,8.,8.,7.5,6.5],
@@ -945,7 +955,7 @@ def test13_LOS_PInOut():
             0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 1,
         ]],
-        dtype=int,
+        dtype=np.int64,
     )
 
     kPIn, kPOut,\
@@ -1738,7 +1748,7 @@ def test23_vignetting():
     ves_poly2[2] = z2
     #  === Creating configurations tabs ===
     vignetts = [ves_poly1, ves_poly2]
-    lnvert = np.r_[9, npts]
+    lnvert = np.array([9, npts], dtype=np.int64)
     # === Ray tabs ====
     rays_origin = np.zeros((3, 5))
     rays_direct = np.zeros((3, 5))
@@ -1796,7 +1806,7 @@ def test24_is_visible(debug=0):
     nstruct_tot = 1 + 2 + 1  # structs: limitless, 2 limits, 1 limit
     lspolyx = np.asarray(SP0x + SP1x + SP2x)
     lspolyy = np.asarray(SP0y + SP1y + SP2y)
-    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=int)*5)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
     lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
     lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
     # ...
@@ -1804,7 +1814,7 @@ def test24_is_visible(debug=0):
     SL0 = np.asarray([None])
     SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0., 0.5], [1., 3./2.]]])
     SL2 = np.asarray([np.array([0.5, 3./2.])*np.pi])
-    lstruct_nlim = np.array([0, 2, 1])
+    lstruct_nlim = np.array([0, 2, 1], dtype=np.int64)
     # -- Points ---------------------------------------------------------------
     # First point (in the center of poloidal plane
     pt0 = 8.
