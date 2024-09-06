@@ -26,6 +26,10 @@ def _get_ref_vector_common(
     dconstraints=None,
     strategy=None,
     strategy_bounds=None,
+    # exclude from search
+    key_exclude=None,
+    ref_exclude=None,
+    # others
     dref_vector=None,
 ):
 
@@ -88,7 +92,12 @@ def _get_ref_vector_common(
 
     refc1 = None
     if ddata is not None:
-        key_cam = ddata['keys_cam']
+
+        # handle equivalent diag / cameras
+        kcameq = 'keys_cam' if ddata['keys_cam_equi'] is None else 'keys_cam_equi'
+        key_cam = ddata[kcameq]
+
+        # loop
         for ii, k0 in enumerate(ddata['keys']):
             refi = [
                 rr for rr in coll.ddata[k0]['ref']
@@ -100,6 +109,7 @@ def _get_ref_vector_common(
                     "Multiple possible non-camera refs for ddata[k0]:\n"
                     f"\t- k0: {k0}\n"
                     f"\t- ii: {ii}\n"
+                    f"\t- key_cam_equi: {ddata['keys_cam'] is not None}\n"
                     f"\t- key_cam[ii]: {key_cam[ii]}\n"
                     f"\t- coll.dobj['camera']['{key_cam[ii]}']['dgeom']['ref']: {coll.dobj['camera'][key_cam[ii]]['dgeom']['ref']}\n"
                     f"\t- coll.ddata['{k0}']['ref']: {coll.ddata[k0]['ref']}\n"
@@ -194,5 +204,9 @@ def _get_ref_vector_common(
             ref=refc,
             strategy=strategy,
             strategy_bounds=strategy_bounds,
+            # exclude from search
+            key_exclude=key_exclude,
+            ref_exclude=ref_exclude,
+            # others
             **dref_vector,
         )

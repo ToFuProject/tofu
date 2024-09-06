@@ -10,6 +10,7 @@
 #   - cythonization of matplotlib path functions (is point in a path?)
 #   - cythonization of some numpy functions (hypotenus, tile, sum)
 ################################################################################
+from libc.stdint cimport int64_t
 cimport cython
 from cpython.array cimport array, clone
 
@@ -102,4 +103,4 @@ cdef void compute_diff_div(const double[:, ::1] vec1,
 # ==============================================================================
 # == Matrix sum (np.sum)
 # ==============================================================================
-cdef long sum_naive_int(long* orig, int n_cols) nogil
+cdef int64_t sum_naive_int(int64_t* orig, int n_cols) nogil

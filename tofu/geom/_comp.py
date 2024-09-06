@@ -577,13 +577,13 @@ def _Ves_get_sample_checkinputs(
     c0 = (ind is None
           or (isinstance(ind, np.ndarray)
               and ind.ndim == 1
-              and ind.dtype == np.int_
+              and 'int' in ind.dtype.name
               and np.all(ind >= 0))
           or (which == 'surface'
               and isinstance(ind, list)
               and all([isinstance(indi, np.ndarray)
                        and indi.ndim == 1
-                       and indi.dtype == np.int_
+                       and 'int' in indi.dtype.name
                        and np.all(indi >= 0) for indi in ind])))
     if not c0:
         msg = ("Arg ind must be either:\n"
@@ -593,6 +593,11 @@ def _Ves_get_sample_checkinputs(
             msg += "\t- list of 1d np.ndarray of positive indices\n"
         msg += "  You provided:\n{}".format(ind)
         raise Exception(msg)
+
+    if isinstance(ind, np.ndarray):
+        ind = ind.astype(np.int64)
+    elif isinstance(ind, list):
+        ind = [ii.astype(np.int64) for ii in ind]
 
     return res, domain, resMode, ind
 
@@ -1085,7 +1090,7 @@ def _Struct_get_phithetaproj(ax=None, poly_closed=None, lim=None, noccur=0):
         nphi = np.r_[1]
     else:
         assert lim.ndim == 2, str(lim)
-        nphi = np.ones((noccur,), dtype=int)
+        nphi = np.ones((noccur,), dtype=np.int64)
         ind = (lim[:, 0] > lim[:, 1]).nonzero()[0]
         Dphi = np.concatenate((lim, np.full((noccur, 2), np.nan)), axis=1)
         if ind.size > 0:

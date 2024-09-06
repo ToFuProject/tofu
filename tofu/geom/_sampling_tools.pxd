@@ -3,22 +3,24 @@
 # cython: wraparound=False
 # cython: cdivision=True
 #
+
+from libc.stdint cimport int64_t
 cimport numpy as cnp
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
-cdef long discretize_line1d_core(double* LMinMax, double dstep,
+cdef int64_t discretize_line1d_core(double* LMinMax, double dstep,
                                  double[2] DL, bint Lim,
                                  int mode, double margin,
                                  double** ldiscret_arr,
                                  double[1] resolution,
-                                 long** lindex_arr, long[1] N) nogil
+                                 int64_t** lindex_arr, int64_t[1] N) nogil
 
 cdef void first_discretize_line1d_core(double* LMinMax,
                                        double dstep,
                                        double[1] resolution,
-                                       long[1] num_cells,
-                                       long[1] Nind,
+                                       int64_t[1] num_cells,
+                                       int64_t[1] Nind,
                                        int[1] nL0,
                                        double[2] DL,
                                        bint Lim,
@@ -27,16 +29,16 @@ cdef void first_discretize_line1d_core(double* LMinMax,
 
 cdef void second_discretize_line1d_core(double* LMinMax,
                                         double* ldiscret,
-                                        long* lindex,
+                                        int64_t* lindex,
                                         int nL0,
                                         double resolution,
-                                        long Nind) nogil
+                                        int64_t Nind) nogil
 
 cdef void simple_discretize_line1d(double[2] LMinMax, double dstep,
                                    int mode, double margin,
                                    double** ldiscret_arr,
                                    double[1] resolution,
-                                   long[1] N) nogil
+                                   int64_t[1] N) nogil
 
 cdef void cythonize_subdomain_dl(DL, double[2] dl_array) # uses gil
 
@@ -48,8 +50,8 @@ cdef void discretize_vpoly_core(double[:, ::1] VPoly, double dstep,
                                 int mode, double margin, double DIn,
                                 double[:, ::1] VIn,
                                 double** XCross, double** YCross,
-                                double** reso, long** ind,
-                                long** numcells, double** Rref,
+                                double** reso, int64_t** ind,
+                                int64_t** numcells, double** Rref,
                                 double** XPolybis, double** YPolybis,
                                 int[1] tot_sz_vb, int[1] tot_sz_ot,
                                 int NP) nogil
@@ -84,7 +86,7 @@ cdef call_get_sample_single_ani(double los_kmin, double los_kmax,
                                 double resol,
                                 int n_dmode, int n_imode,
                                 double[1] eff_res,
-                                long[1] nb_rows,
+                                int64_t[1] nb_rows,
                                 double[:, ::1] ray_orig,
                                 double[:, ::1] ray_vdir)
 
@@ -96,7 +98,7 @@ cdef cnp.ndarray[double,
                                                   int n_dmode,
                                                   int n_imode,
                                                   double[1] eff_res,
-                                                  long[1] nb_rows,
+                                                  int64_t[1] nb_rows,
                                                   double[:, ::1] ray_orig,
                                                   double[:, ::1] ray_vdir)
 
@@ -107,7 +109,7 @@ cdef int los_get_sample_core_const_res(int nlos,
                                        double val_resol,
                                        double** coeff_ptr,
                                        double* dLr,
-                                       long* los_ind,
+                                       int64_t* los_ind,
                                        int num_threads) nogil
 
 cdef void los_get_sample_core_var_res(int nlos,
@@ -117,7 +119,7 @@ cdef void los_get_sample_core_var_res(int nlos,
                                      double* resol,
                                      double** coeff_ptr,
                                      double* dLr,
-                                     long* los_ind,
+                                     int64_t* los_ind,
                                      int num_threads) nogil
 
 cdef void los_get_sample_pts(int nlos,
@@ -130,7 +132,7 @@ cdef void los_get_sample_pts(int nlos,
                              double[:,::1] ray_orig,
                              double[:,::1] ray_vdir,
                              double* coeff_ptr,
-                             long* los_ind,
+                             int64_t* los_ind,
                              int num_threads) nogil
 
 # ==============================================================================
@@ -139,50 +141,50 @@ cdef void los_get_sample_pts(int nlos,
 
 # -- Vmesh utility functions --------------------------------------------------
 cdef int  vmesh_disc_phi(int sz_r, int sz_z,
-                         long* ncells_rphi,
+                         int64_t* ncells_rphi,
                          double phistep,
                          int ncells_rphi0,
                          double* disc_r,
                          double* disc_r0,
                          double* step_rphi,
                          double[::1] reso_phi_mv,
-                         long* tot_nc_plane,
+                         int64_t* tot_nc_plane,
                          int ind_loc_r0,
                          int ncells_r0,
                          int ncells_z,
                          int* max_sz_phi,
                          double min_phi,
                          double max_phi,
-                         long* sz_phi,
-                         long[:,::1] indi_mv,
+                         int64_t* sz_phi,
+                         int64_t[:,::1] indi_mv,
                          double margin,
                          int num_threads) nogil
 
-cdef int vmesh_get_index_arrays(long[:, :, ::1] lnp,
-                                long[:, ::1] is_in_vignette,
+cdef int vmesh_get_index_arrays(int64_t[:, :, ::1] lnp,
+                                int64_t[:, ::1] is_in_vignette,
                                 int sz_r,
                                 int sz_z,
-                                long* sz_phi) nogil
+                                int64_t* sz_phi) nogil
 
-cdef void vmesh_assemble_arrays(long[::1] first_ind_mv,
-                                long[:, ::1] indi_mv,
-                                long[:, ::1] is_in_vignette,
+cdef void vmesh_assemble_arrays(int64_t[::1] first_ind_mv,
+                                int64_t[:, ::1] indi_mv,
+                                int64_t[:, ::1] is_in_vignette,
                                 bint is_cart,
                                 int sz_r,
                                 int sz_z,
-                                long* lindex_z,
-                                long* ncells_rphi,
-                                long* tot_nc_plane,
+                                int64_t* lindex_z,
+                                int64_t* ncells_rphi,
+                                int64_t* tot_nc_plane,
                                 double reso_r_z,
                                 double* step_rphi,
                                 double* disc_r,
                                 double* disc_z,
-                                long[:,:,::1] lnp,
-                                long* phin,
+                                int64_t[:,:,::1] lnp,
+                                int64_t* phin,
                                 double[::1] dv_mv,
                                 double[::1] r_on_phi_mv,
                                 double[:, ::1] pts_mv,
-                                long[::1] ind_mv,
+                                int64_t[::1] ind_mv,
                                 int num_threads) nogil
 
 cdef void vmesh_ind_init_tabs(int* ncells_rphi,
@@ -190,14 +192,14 @@ cdef void vmesh_ind_init_tabs(int* ncells_rphi,
                               int sz_r, int sz_z,
                               double twopi_over_dphi,
                               double[::1] dRPhirRef,
-                              long* tot_nc_plane,
+                              int64_t* tot_nc_plane,
                               double** phi_mv,
                               int num_threads) nogil
 
 cdef void vmesh_ind_cart_loop(int np,
                               int sz_r,
-                              long[::1] ind,
-                              long* tot_nc_plane,
+                              int64_t[::1] ind,
+                              int64_t* tot_nc_plane,
                               int* ncells_rphi,
                               double* phi_tab,
                               double* disc_r,
@@ -212,8 +214,8 @@ cdef void vmesh_ind_cart_loop(int np,
 
 cdef void vmesh_ind_polr_loop(int np,
                               int sz_r,
-                              long[::1] ind,
-                              long* tot_nc_plane,
+                              int64_t[::1] ind,
+                              int64_t* tot_nc_plane,
                               int* ncells_rphi,
                               double* phi_tab,
                               double* disc_r,
@@ -231,7 +233,7 @@ cdef void vmesh_ind_polr_loop(int np,
 # == Solid Angles
 # ==============================================================================
 cdef int  sa_disc_phi(int sz_r, int sz_z,
-                      long* ncells_rphi,
+                      int64_t* ncells_rphi,
                       double phistep,
                       double* disc_r,
                       double* disc_r0,
@@ -242,14 +244,14 @@ cdef int  sa_disc_phi(int sz_r, int sz_z,
                       int* max_sz_phi,
                       double min_phi,
                       double max_phi,
-                      long* sz_phi,
-                      long[:, ::1] indi_mv,
+                      int64_t* sz_phi,
+                      int64_t[:, ::1] indi_mv,
                       double margin,
                       int num_threads) nogil
 
 
-cdef int sa_get_index_arrays(long[:, ::1] lnp,
-                             long[:, ::1] is_in_vignette,
+cdef int sa_get_index_arrays(int64_t[:, ::1] lnp,
+                             int64_t[:, ::1] is_in_vignette,
                              int sz_r,
                              int sz_z) nogil
 
@@ -257,18 +259,20 @@ cdef void sa_assemble_arrays(int block,
                              int use_approx,
                              double[:, ::1] part_coords,
                              double[::1] part_rad,
-                             long[:, ::1] is_in_vignette,
+                             int64_t[:, ::1] is_in_vignette,
                              double[:, ::1] sa_map,
                              double[:, ::1] ves_poly,
                              double[:, ::1] ves_norm,
                              double[::1] ves_lims,
-                             long[::1] lstruct_nlim,
+                             # int64_t[::1] lstruct_nlim,
+                             int64_t[::1] lstruct_nlim,
                              double[::1] lstruct_polyx,
                              double[::1] lstruct_polyy,
                              double[::1] lstruct_lims,
                              double[::1] lstruct_normx,
                              double[::1] lstruct_normy,
-                             long[::1] lnvert,
+                             # int64_t[::1] lnvert,
+                             int64_t[::1] lnvert,
                              int nstruct_tot,
                              int nstruct_lim,
                              double rmin,
@@ -276,20 +280,20 @@ cdef void sa_assemble_arrays(int block,
                              double eps_vz, double eps_b,
                              double eps_plane,
                              bint forbid,
-                             long[::1] first_ind_mv,
-                             long[:, ::1] indi_mv,
+                             int64_t[::1] first_ind_mv,
+                             int64_t[:, ::1] indi_mv,
                              int sz_p,
                              int sz_r, int sz_z,
-                             long* ncells_rphi,
+                             int64_t* ncells_rphi,
                              double reso_r_z,
                              double* disc_r,
                              double* step_rphi,
                              double* disc_z,
-                             long[:, ::1] ind_rz2pol,
-                             long* sz_phi,
+                             int64_t[:, ::1] ind_rz2pol,
+                             int64_t* sz_phi,
                              double[::1] reso_rdrdz,
                              double[:, ::1] pts_mv,
-                             long[::1] ind_mv,
+                             int64_t[::1] ind_mv,
                              int num_threads)
 
 

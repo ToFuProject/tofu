@@ -1041,8 +1041,10 @@ def _calc_solidangle_apertures_prepare(
     else:
         lka = list(apertures.keys())
         ap_ind = np.r_[
-            0, np.cumsum([apertures[k0]['poly_x'].size for k0 in lka])
-        ]
+            0,
+            np.cumsum([apertures[k0]['poly_x'].size for k0 in lka]),
+        ].astype(np.int64)
+
         ap_x = np.concatenate([apertures[k0]['poly_x'] for k0 in lka])
         ap_y = np.concatenate([apertures[k0]['poly_y'] for k0 in lka])
         ap_z = np.concatenate([apertures[k0]['poly_z'] for k0 in lka])

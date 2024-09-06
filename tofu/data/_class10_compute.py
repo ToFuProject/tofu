@@ -3,6 +3,7 @@
 
 # Built-in
 import time
+import itertools as itt
 
 
 # Common
@@ -1312,8 +1313,11 @@ def _compute_retrofit_data_check(
 
     # ----------
     # keys
+    # ----------
 
+    # --------
     # key_diag
+
     lok = list(coll.dobj.get('diagnostic', {}).keys())
     key_diag = ds._generic_check._check_var(
         key_diag, 'key_diag',
@@ -1322,7 +1326,9 @@ def _compute_retrofit_data_check(
     )
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
 
+    # ----
     # key
+
     key = ds._generic_check._obj_key(
         coll.dobj.get('synth sig', {}),
         short='synth',
@@ -1330,7 +1336,9 @@ def _compute_retrofit_data_check(
         ndigits=2,
     )
 
+    # ------------
     # key_matrix
+
     lok = coll.dobj.get('geom matrix', {}).keys()
     key_matrix = ds._generic_check._check_var(
         key_matrix, 'key_matrix',
@@ -1347,7 +1355,9 @@ def _compute_retrofit_data_check(
     nchan, nbs = matrix.shape[-2:]
     # refbs = ref[-1]
 
+    # -------------
     # key_pofile2d
+
     lok = [
         k0 for k0, v0 in coll.ddata.items()
         if v0['bsplines'] is not None
@@ -1359,14 +1369,31 @@ def _compute_retrofit_data_check(
         allowed=lok,
     )
 
+    # ---------------
     # time management
+    # ---------------
+
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
 
+    # ref to exclude from vector search
+    refbs_mat = coll.dobj['bsplines'][keybs]['ref']
+    keybs_prof = coll.ddata[key_profile2d]['bsplines']
+    refbs_prof = coll.dobj['bsplines'][keybs_prof[0]]['ref']
+    ref_cam = tuple(itt.chain.from_iterable([
+        coll.dobj['camera'][kcam]['dgeom']['ref'] for kcam in key_cam
+    ]))
+    ref_exclude = tuple(set(refbs_mat + refbs_prof + ref_cam))
+
+    # common vector search
     hastime, reft, keyt, t_out, dind = _refs._get_ref_vector_common(
         coll=coll,
         key_matrix=key_matrix,
         key_profile2d=key_profile2d,
         strategy=ref_vector_strategy,
+        # exclude from search
+        key_exclude=None,
+        ref_exclude=ref_exclude,
+        # others
         dref_vector=dref_vector,
     )
 
@@ -1377,26 +1404,37 @@ def _compute_retrofit_data_check(
         reft = f'{key}_nt'
         keyt = f'{key}_t'
 
+    # --------------------------------------
+    # look for time vector from geom matrix
+
     ist_mat = coll.get_ref_vector(
         key0=lkmat[0],
+        ref_exclude=ref_exclude,
+        warn=False,
         **{
             k0: v0 for k0,v0 in dref_vector.items()
             if k0 != 'ref'
             or (k0 == 'ref' and v0 in coll.ddata[lkmat[0]]['ref'])
         },
-        # **dref_vector,
-    )[0]
-    ist_prof = coll.get_ref_vector(
-        key0=key_profile2d,
-        **{
-            k0: v0 for k0,v0 in dref_vector.items()
-            if k0 != 'ref'
-            or (k0 == 'ref' and v0 in coll.ddata[lkmat[0]]['ref'])
-        },
-        # **dref_vector,
     )[0]
 
+    # -----------------------------------
+    # look for time vector from profile2d
+
+    ist_prof = coll.get_ref_vector(
+        key0=key_profile2d,
+        ref_exclude=ref_exclude,
+        warn=False,
+        **{
+            k0: v0 for k0,v0 in dref_vector.items()
+            if k0 != 'ref'
+            or (k0 == 'ref' and v0 in coll.ddata[lkmat[0]]['ref'])
+        },
+    )[0]
+
+    # -------------------
     # reft, keyt and refs
+
     if hastime and t_out is not None:
         nt = t_out.size
         ref = (reft, None)
@@ -1406,7 +1444,9 @@ def _compute_retrofit_data_check(
         keyt = None
         ref = (None,)
 
+    # ------------
     # safety check
+
     if hastime and (not ist_mat) and (not ist_prof):
         msg = (
             "Common (time) vector between matrix and profile2d "
@@ -1418,14 +1458,20 @@ def _compute_retrofit_data_check(
         )
         raise Exception(msg)
 
+    # -----
     # store
+    # -----
+
     store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
         default=True,
     )
 
+    # --------
     # returnas
+    # --------
+
     returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         default=False if store else dict,

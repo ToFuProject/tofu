@@ -184,7 +184,7 @@ def get_X12fromflat(X12, x12u=None, nx12=None):
         nx1, nx2 = nx12
 
     Dx12 = (x1u[1]-x1u[0], x2u[1]-x2u[0])
-    ind = np.zeros((nx1,nx2),dtype=int)
+    ind = np.zeros((nx1,nx2),dtype=np.int64)
 
     indr = np.array([np.digitize(X12[0,:], 0.5*(x1u[1:]+x1u[:-1])),
                      np.digitize(X12[1,:], 0.5*(x2u[1:]+x2u[:-1]))])
@@ -409,7 +409,7 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
         assert hasattr(D12,'__iter__') and len(D12)==2
         D12 = np.asarray(D12).astype(float)
     if type(N12) in [int, float, np.int64, np.float64]:
-        N12 = np.array([N12,N12],dtype=int)
+        N12 = np.array([N12,N12],dtype=np.int64)
     else:
         assert hasattr(N12,'__iter__') and len(N12)==2
         N12 = np.asarray(N12).astype(int)

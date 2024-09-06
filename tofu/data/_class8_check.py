@@ -191,7 +191,11 @@ def _check_doptics_basics(
         doptics = {doptics[0]: type(doptics)(doptics[1:])}
 
     if not isinstance(doptics, dict):
-        _err_doptics(key=key, doptics=doptics)
+        _err_doptics(
+            key=key,
+            doptics=doptics,
+            extra_msg="\nShould be a dict!\n",
+        )
 
     # ----------
     # check keys
@@ -205,7 +209,11 @@ def _check_doptics_basics(
     ])
 
     if not c0:
-        _err_doptics(key=key, doptics=doptics)
+        _err_doptics(
+            key=key,
+            doptics=doptics,
+            extra_msg="\nSome keys (cam) are not valid!\n",
+        )
 
     # --------------------------
     # start re-arranging as dict
@@ -224,7 +232,11 @@ def _check_doptics_basics(
             and all([isinstance(k1, str) for k1 in doptics[k0]['optics']])
         )
         if not c0:
-            _err_doptics(key=key, doptics=doptics)
+            _err_doptics(
+                key=key,
+                doptics=doptics,
+                extra_msg="\n'optics' must be a list or tuple of known optics!\n",
+            )
 
     # --------------------
     # level 1: checking each optics class
@@ -276,7 +288,7 @@ def _check_doptics_basics(
                 pinhole = True
                 doptics[k0]['paths'] = None
 
-            # pur collimator camera
+            # pure collimator camera
             elif isinstance(v0['optics'], tuple) and len(shape_cam) == 1:
 
                 mod = noptics % shape_cam[0]
@@ -301,7 +313,12 @@ def _check_doptics_basics(
                 doptics[k0]['optics'] = list(v0['optics'])
 
             else:
-                _err_doptics(key=key, doptics=doptics)
+                emsg = "\nNeither list nor tuple (shape_cam = {shape_cam})!\n"
+                _err_doptics(
+                    key=key,
+                    doptics=doptics,
+                    extra_msg=emsg,
+                )
 
         # ------------------------
         # matrix user-provided
@@ -314,9 +331,17 @@ def _check_doptics_basics(
                 assert doptics[k0]['paths'].shape == shape
 
             except Exception as err:
-                err0 = _err_doptics(key=key, doptics=doptics, returnas=True)
+                emsg = (
+                    f"\n doptics['{k0}']['paths'].shape = "
+                    f"{doptics[k0]['paths'].shape} vs {shape}\n"
+                )
+                err0 = _err_doptics(
+                    key=key,
+                    doptics=doptics,
+                    returnas=True,
+                    shape_cam=emsg,
+                )
                 raise err0 from err
-
 
         # -------------------------------------------
         # check if pinhole (all apertures are common)
@@ -360,7 +385,13 @@ def _check_doptics_basics(
 # -----------
 
 
-def _err_doptics(key=None, dkout=None, doptics=None, returnas=None):
+def _err_doptics(
+    key=None,
+    dkout=None,
+    doptics=None,
+    returnas=None,
+    extra_msg=None,
+):
 
     # ---------------
     # msg
@@ -368,15 +399,27 @@ def _err_doptics(key=None, dkout=None, doptics=None, returnas=None):
     msg = (
         f"diag '{key}': arg doptics must be a dict with:\n"
         "\t- keys: key to existing camera\n"
-        "\t- values: existing optics (aperture, filter, crystal)\n"
-        "\t\t- as a list of str for regular cameras\n"
-        "\t\t- as a list of (tuples of str) for collimator cameras\n"
+        "\t- values: one of the following:\n\n"
+        "\t\t- list of keys to apertures\n"
+        "\t\t\tIn this case tofu will assume pinhole camera\n"
+        "\t\t\tMeaning all apertures are common to all pixels\n"
+        "\t\t- tuple of keys to aperures\n"
+        "\t\t\tIn this case tofu will assume collimator camera\n"
+        "\t\t\tMeaning each pixel is associated to N apertures\n"
+        "\t\t\tWhere N is an integer napertures = N x ncam\n"
+        "\t\t\t(the first N apertures go to the first pixel...)\n"
+        "\t\t- (most general) a dict of the form:\n"
+        "\t\t\t'optics': list of apertures\n"
+        "\t\t\t'paths': (shape_cam, noptics) bool array\n"
     )
     if dkout is not None and len(dkout) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dkout.items()]
         msg += "Wrong key / value pairs:\n" + "\n".join(lstr)
-    else:
-        msg += f"\nProvided:\n{doptics}"
+
+    if extra_msg is not None:
+        msg += extra_msg
+
+    msg += f"\nProvided:\n{doptics}"
 
     # ---------------
     # raise vs return
@@ -438,8 +481,10 @@ def _check_optic(
                 f"The following points of {ocls} '{oo}' are on the wrong"
                 f"side of lastref {last_ref_cls} '{last_ref}':\n"
                 f"{iout.nonzero()[0]}\n\n"
-                f"'{oo}':\n{dgeom}\n\n"
-                f"'{last_ref}':\n{dgeom_lastref}\n\n"
+                f"last ref {last_ref_cls} '{last_ref}':\n{dgeom_lastref}\n\n"
+                f"optics {ocls} '{oo}':\n{dgeom}\n\n"
+                "Tip:\n"
+                "\tMake sure to provide optics ordered from camera to plasma"
             )
             raise Exception(msg)
 
@@ -454,13 +499,14 @@ def _check_optic(
 
         cx, cy, cz = dgeom_cam['cents']
         if ind_pix is None:
-            cx = coll.ddata[cx]['data'][ind_pix]
-            cy = coll.ddata[cy]['data'][ind_pix]
-            cz = coll.ddata[cz]['data'][ind_pix]
-        else:
             cx = coll.ddata[cx]['data'][None, ...]
             cy = coll.ddata[cy]['data'][None, ...]
             cz = coll.ddata[cz]['data'][None, ...]
+
+        else:
+            cx = coll.ddata[cx]['data'][ind_pix]
+            cy = coll.ddata[cy]['data'][ind_pix]
+            cz = coll.ddata[cz]['data'][ind_pix]
 
         # ------------------------
         # get pixel unit vector(s)
@@ -492,9 +538,14 @@ def _check_optic(
 
         if np.any(iout):
             msg = (
+                f"diag '{key}':\n"
                 f"The following points of {ocls} '{oo}' are on the wrong"
-                f"side of camera '{cam}':\n"
-                f"{np.unique(iout.nonzero()[0])}"
+                f"side of lastref {last_ref_cls} '{last_ref}':\n"
+                f"{iout.nonzero()[0]}\n\n"
+                f"last ref {last_ref_cls} '{last_ref}':\n{dgeom_lastref}\n\n"
+                f"optics {ocls} '{oo}':\n{dgeom}\n\n"
+                "Tip:\n"
+                "\tMake sure to provide optics ordered from camera to plasma\n"
             )
             warnings.warn(msg)
 
