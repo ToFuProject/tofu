@@ -1748,7 +1748,7 @@ def test23_vignetting():
     ves_poly2[2] = z2
     #  === Creating configurations tabs ===
     vignetts = [ves_poly1, ves_poly2]
-    lnvert = np.r_[9, npts]
+    lnvert = np.array([9, npts], dtype=np.int64)
     # === Ray tabs ====
     rays_origin = np.zeros((3, 5))
     rays_direct = np.zeros((3, 5))
