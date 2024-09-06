@@ -382,9 +382,9 @@ cdef inline void sum_by_rows(double *orig, double *out,
     return
 
 
-cdef inline long sum_naive_int(long* orig, int n_cols) nogil:
+cdef inline int64_t sum_naive_int(int64_t* orig, int n_cols) nogil:
     cdef int ii
-    cdef long out
+    cdef int64_t out
 
     with nogil:
         out = 0
