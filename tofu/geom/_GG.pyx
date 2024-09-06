@@ -711,7 +711,7 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
                                              are_in_poly)
         ldiscr = np.empty((2, tot_true), dtype=float)
         lresol = np.empty((tot_true,), dtype=float)
-        lindex = np.empty((tot_true,), dtype=int)
+        lindex = np.empty((tot_true,), dtype=np.int64)
         ldiscr_view = ldiscr
         lindex_view = lindex
         lresol_view = lresol
@@ -736,7 +736,7 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
         ndisc = nind1 * nind2
         ldiscr = np.empty((2, ndisc), dtype=float)
         lresol = np.empty((ndisc,), dtype=float)
-        lindex = np.empty((ndisc,), dtype=int)
+        lindex = np.empty((ndisc,), dtype=np.int64)
         ldiscr_view = ldiscr
         lindex_view = lindex
         lresol_view = lresol
@@ -1079,7 +1079,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
         sz_phi[0] = nphi1 + 1 - nphi0
         max_sz_phi[0] = sz_phi[0]
-        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=np.int64)
         indi_mv = indI
         for jj in range(sz_phi[0]):
             indi_mv[0, jj] = nphi0 + jj
@@ -1113,7 +1113,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
         sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
         max_sz_phi[0] = sz_phi[0]
-        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=np.int64)
         indi_mv = indI
         for jj in range(loc_nc_rphi - nphi0):
             indi_mv[0, jj] = nphi0 + jj
@@ -1129,7 +1129,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                              min_phi, max_phi, sz_phi, indi_mv,
                              margin, num_threads)
     # ... vignetting ...........................................................
-    is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
+    is_in_vignette = np.ones((sz_r, sz_z), dtype=np.int64) # by default yes
 
     if limit_vpoly is not None:
         npts_vpoly = limit_vpoly.shape[1] - 1
@@ -1149,7 +1149,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                 is_in_vignette)
 
     # Preparing an array of indices to associate (r, z, phi) => npts_disc
-    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
+    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=np.int64)
     new_np = _st.vmesh_get_index_arrays(lnp, is_in_vignette,
                                         sz_r, sz_z, sz_phi)
     if limit_vpoly == None:
@@ -1158,7 +1158,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         npts_disc = new_np
 
     pts = np.empty((3,npts_disc))
-    ind = np.empty((npts_disc,), dtype=int)
+    ind = np.empty((npts_disc,), dtype=np.int64)
     res3d  = np.empty((npts_disc,))
     pts_mv = pts
     ind_mv = ind
@@ -1520,13 +1520,13 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         Indin = indin.nonzero()[0].astype(int)
 
         dRPhir, dPhir = np.empty((Ln,)), np.empty((Ln,))
-        Phin = np.zeros((Ln,),dtype=int)
+        Phin = np.zeros((Ln,),dtype=np.int64)
         NRPhi = np.empty((Ln,))
-        NRPhi0 = np.zeros((Ln,),dtype=int)
+        NRPhi0 = np.zeros((Ln,),dtype=np.int64)
         nRPhi0, indR0ii = 0, 0
         npts_disc = 0
         radius_ratio = int(c_ceil(np.max(Rref)/np.min(Rref)))
-        indBounds = np.empty((2,nBounds),dtype=int)
+        indBounds = np.empty((2,nBounds),dtype=np.int64)
         for ii in range(0,Ln):
             # Get the actual RPhi resolution and Phi mesh elements
             # (! depends on R!)
@@ -1655,7 +1655,7 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
     # Number of Phi per R
     dRPhirRef, dPhir, dRPhir = np.empty((Ln,)), np.empty((Ln,)), -np.ones((Ln,))
     dLr, Rref = -np.ones((Ln,)), -np.ones((Ln,))
-    NRPhi, NRPhi0 = np.empty((Ln,),dtype=int), np.empty((Ln,),dtype=int)
+    NRPhi, NRPhi0 = np.empty((Ln,),dtype=np.int64), np.empty((Ln,),dtype=np.int64)
     radius_ratio = int(c_ceil(np.max(RrefRef)/np.min(RrefRef)))
     for ii in range(0,Ln):
         NRPhi[ii] = <int64_t>(c_ceil(DPhiMinMax*RrefRef[ii]/dRPhi))
@@ -1852,7 +1852,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
 
     else:
         Pts, dS, ind, NL, Rref = np.ones((3,0)), np.ones((0,)),\
-          np.ones((0,),dtype=int), np.ones((0,),dtype=int),\
+          np.ones((0,),dtype=np.int64), np.ones((0,),dtype=np.int64),\
           np.nan*np.ones((VPoly.shape[1]-1,))
         dLr, dR0r, dZ0r, dRPhir, VPbis = np.ones((0,)), 0., 0.,\
           np.ones((0,)), np.asarray(VPoly)
@@ -2085,7 +2085,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
     else:
         Pts, dS, ind,\
           NL, dLr, Rref = np.ones((3,0)), np.ones((0,)),\
-          np.ones((0,),dtype=int), np.ones((0,),dtype=int),\
+          np.ones((0,),dtype=np.int64), np.ones((0,),dtype=np.int64),\
           np.ones((0,)), np.ones((0,))
         dXr, dY0r, dZ0r, VPbis = 0., 0., 0., np.ones((3,0))
 
@@ -2395,7 +2395,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
            np.transpose(np.asarray(vperp_out).reshape(nlos,3)),\
            np.transpose(np.asarray(ind_inter_out,
-                                   dtype=int).reshape(nlos, 3))
+                                   dtype=np.int64).reshape(nlos, 3))
 
 
 # =============================================================================
@@ -2655,7 +2655,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     cdef int npts2=pts2.shape[1]
     cdef bint bool1, bool2
     cdef np.ndarray[int64_t, ndim=2, mode='c'] are_seen = np.empty((npts1, npts2),
-                                                                dtype=int)
+                                                                dtype=np.int64)
     cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
     if test:
@@ -2767,7 +2767,7 @@ def LOS_isVis_PtFromPts_VesStruct(
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
-    is_seen = np.empty((npts), dtype=int)
+    is_seen = np.empty((npts), dtype=np.int64)
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
@@ -2807,7 +2807,7 @@ def triangulate_by_earclipping_2d(
         Indices of triangles
     """
     cdef int nvert = poly.shape[1]
-    cdef np.ndarray[int64_t, ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
+    cdef np.ndarray[int64_t, ndim=1] ltri = np.empty((nvert-2)*3, dtype=np.int64)
     cdef double* diff = NULL
     cdef bint* lref = NULL
 
@@ -2945,7 +2945,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     cdef int64_t* los_ind_ptr = NULL
     # .. ray_orig shape needed for testing and in algo .........................
     dLr = np.zeros((nlos,), dtype=float)
-    los_ind = np.zeros((nlos,), dtype=int)
+    los_ind = np.zeros((nlos,), dtype=np.int64)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -4464,9 +4464,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
         DPhi0 = c_atan2(c_sin(DPhi[0]), c_cos(DPhi[0]))
         DPhi1 = c_atan2(c_sin(DPhi[1]), c_cos(DPhi[1]))
     dRPhir, dPhir = np.empty((Rn,)), np.empty((Rn,))
-    Phin = np.empty((Rn,),dtype=int)
+    Phin = np.empty((Rn,),dtype=np.int64)
     NRPhi = np.empty((Rn,))
-    NRPhi0 = np.zeros((Rn,),dtype=int)
+    NRPhi0 = np.zeros((Rn,),dtype=np.int64)
     nRPhi0, indR0ii = 0, 0
     NP, NPhimax = 0, 0
     radius_ratio = int(c_ceil(R[Rn-1]/R[0]))
@@ -4596,7 +4596,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
     # Number of Phi per R
     dRPhirRef, dPhir = np.empty((NR,)), np.empty((NR,))
     Ru, dRPhir = np.zeros((NR,)), np.nan*np.ones((NR,))
-    NRPhi, NRPhi0 = np.empty((NR,),dtype=int), np.empty((NR+1,),dtype=int)
+    NRPhi, NRPhi0 = np.empty((NR,),dtype=np.int64), np.empty((NR+1,),dtype=np.int64)
     radius_ratio = int(c_ceil(R[NR-1]/R[0]))
     for ii in range(0,NR):
         NRPhi[ii] = <int64_t>(c_ceil(2.*c_pi*R[ii]/dRPhi))
@@ -4906,7 +4906,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
         sz_phi[0] = nphi1 + 1 - nphi0
         max_sz_phi[0] = sz_phi[0]
-        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=np.int64)
         indi_mv = ind_i
         for jj in range(sz_phi[0]):
             indi_mv[0, jj] = nphi0 + jj
@@ -4935,7 +4935,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
         sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
         max_sz_phi[0] = sz_phi[0]
-        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=np.int64)
         indi_mv = ind_i
         for jj in range(loc_nc_rphi - nphi0):
             indi_mv[0, jj] = nphi0 + jj
@@ -4950,7 +4950,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                  min_phi, max_phi, sz_phi, indi_mv,
                                  margin, num_threads)
     # ... vignetting ...........................................................
-    is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
+    is_in_vignette = np.ones((sz_r, sz_z), dtype=np.int64) # by default yes
     if limit_vpoly is not None:
         npts_vpoly = limit_vpoly.shape[1] - 1
         # we make sure it is closed
@@ -4965,7 +4965,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                 disc_r, disc_z,
                                 is_in_vignette)
     # .. preparing for actual discretization ...................................
-    ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
+    ind_rz2pol = np.empty((sz_r, sz_z), dtype=np.int64)
     npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
                                      is_in_vignette,
                                      sz_r, sz_z)
@@ -4973,7 +4973,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     reso_rdrdz = np.empty((npts_pol, ))
     sa_map = np.zeros((npts_pol, sz_p))
     pts = np.empty((2, npts_pol))
-    ind = -np.ones((npts_pol, ), dtype=int)
+    ind = -np.ones((npts_pol, ), dtype=np.int64)
     pts_mv = pts
     ind_mv = ind
     reso_rdrdz_mv = reso_rdrdz

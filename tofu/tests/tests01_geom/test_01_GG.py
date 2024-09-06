@@ -394,7 +394,6 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
 
 def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
 
-    PhiMinMax = np.array([3.*np.pi/4.,5.*np.pi/4.])
     dL, dRPhi = 0.02, 0.05
     VIn = compute_ves_norm(VPoly)
     DIn = -0.001
