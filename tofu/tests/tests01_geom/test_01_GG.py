@@ -1814,7 +1814,7 @@ def test24_is_visible(debug=0):
     SL0 = np.asarray([None])
     SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0., 0.5], [1., 3./2.]]])
     SL2 = np.asarray([np.array([0.5, 3./2.])*np.pi])
-    lstruct_nlim = np.array([0, 2, 1])
+    lstruct_nlim = np.array([0, 2, 1], dtype=np.int64)
     # -- Points ---------------------------------------------------------------
     # First point (in the center of poloidal plane
     pt0 = 8.
