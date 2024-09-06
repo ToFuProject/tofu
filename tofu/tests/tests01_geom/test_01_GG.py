@@ -352,7 +352,7 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
                                        nlim=0, in_format='(R,Z,Phi)',
                                        test=True))
         assert dS.shape == (Pts.shape[1],)
-        assert np.all([ind.shape == (Pts.shape[1],), ind.dtype == int,
+        assert np.all([ind.shape == (Pts.shape[1],), ind.dtype == np.int64,
                        ind.size == np.unique(ind).size,
                        np.all(ind == np.unique(ind)), np.all(ind >= 0)])
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
@@ -458,7 +458,7 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
                                                test=True))
         assert dS.shape == (Pts.shape[1],)
         assert np.all([ind.shape == (Pts.shape[1],),
-                       ind.dtype == int,
+                       ind.dtype == np.int64,
                        ind.size == np.unique(ind).size,
                        np.all(ind == np.unique(ind)),
                        np.all(ind>=0)])
