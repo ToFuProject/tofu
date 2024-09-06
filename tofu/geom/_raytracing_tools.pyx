@@ -581,7 +581,8 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
                                              double[::1] coeff_inter_out,
                                              double[::1] coeff_inter_in,
                                              double[::1] vperp_out,
-                                             const long* lstruct_nlim,
+                                             # const long* lstruct_nlim,
+                                             int64_t* lstruct_nlim,
                                              int[::1] ind_inter_out,
                                              const bint forbid0,
                                              const bint forbidbis_org,
@@ -829,7 +830,8 @@ cdef inline void raytracing_inout_struct_tor_inomp(const int num_los,
                                                    double[::1] coeff_inter_out,
                                                    double[::1] coeff_inter_in,
                                                    double[::1] vperp_out,
-                                                   const long* lstruct_nlim,
+                                                   # const long* lstruct_nlim,
+                                                   int64_t* lstruct_nlim,
                                                    int[::1] ind_inter_out,
                                                    const bint forbid0,
                                                    const bint forbidbis_org,
@@ -1649,7 +1651,8 @@ cdef inline void compute_inout_tot(const int num_los,
     cdef double *langles = <double *>malloc(nstruct_tot * 2 * sizeof(double))
     cdef int *llimits = NULL
     cdef long *lsz_lim = NULL
-    cdef long* lstruct_nlim = NULL
+    # cdef long* lstruct_nlim = NULL
+    cdef int64_t* lstruct_nlim = NULL
     cdef int[1] llim_ves
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
@@ -1698,7 +1701,8 @@ cdef inline void compute_inout_tot(const int num_los,
             ind_struct = 0
             llimits = <int *>malloc(nstruct_tot * sizeof(int))
             lsz_lim = <long *>malloc(nstruct_lim * sizeof(long))
-            lstruct_nlim = <long *>malloc(nstruct_lim * sizeof(long))
+            # lstruct_nlim = <long *>malloc(nstruct_lim * sizeof(long))
+            lstruct_nlim = <int64_t *>malloc(nstruct_lim * sizeof(int64_t))
             for ii in range(nstruct_lim):
                 # We get the number of vertices and limits of the struct's poly
                 if ii == 0:
@@ -2152,7 +2156,8 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                    long* is_vis,
                                    double[::1] dist,
                                    double[::1] ves_lims,
-                                   long[::1] lstruct_nlim,
+                                   # long[::1] lstruct_nlim,
+                                   int64_t[::1] lstruct_nlim,
                                    double[::1] lstruct_polyx,
                                    double[::1] lstruct_polyy,
                                    double[::1] lstruct_lims,
@@ -2226,7 +2231,8 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                                         long* is_vis,
                                         double* dist,
                                         double[::1] ves_lims,
-                                        long[::1] lstruct_nlim,
+                                        # long[::1] lstruct_nlim,
+                                        int64_t[::1] lstruct_nlim,
                                         double[::1] lstruct_polyx,
                                         double[::1] lstruct_polyy,
                                         double[::1] lstruct_lims,
@@ -2286,7 +2292,8 @@ cdef inline void is_visible_pt_vec_core_nd(double pt0, double pt1, double pt2,
                                            double[:, ::1] ves_norm,
                                            long* is_vis,
                                            double[::1] ves_lims,
-                                           long[::1] lstruct_nlim,
+                                           # long[::1] lstruct_nlim,
+                                           int64_t[::1] lstruct_nlim,
                                            double[::1] lstruct_polyx,
                                            double[::1] lstruct_polyy,
                                            double[::1] lstruct_lims,
@@ -2365,7 +2372,8 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      long[:, ::1] is_vis,
                                      double[:, ::1] dist,
                                      double[::1] ves_lims,
-                                     long[::1] lstruct_nlim,
+                                     # long[::1] lstruct_nlim,
+                                     int64_t[::1] lstruct_nlim,
                                      double[::1] lstruct_polyx,
                                      double[::1] lstruct_polyy,
                                      double[::1] lstruct_lims,
