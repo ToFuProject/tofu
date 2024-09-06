@@ -315,7 +315,7 @@ cdef void is_visible_pt_vec_core_nd(double pt0, double pt1, double pt2,
                                     long* is_vis,
                                     double[::1] ves_lims,
                                     # long[::1] lstruct_nlim
-                                    int64_t[::1] lstruct_nlim,,
+                                    int64_t[::1] lstruct_nlim,
                                     double[::1] lstruct_polyx,
                                     double[::1] lstruct_polyy,
                                     double[::1] lstruct_lims,
