@@ -334,7 +334,7 @@ cdef inline int get_one_ear(
 
 cdef inline void earclipping_poly_2d(
     double* vignett,        # 2d polygon coordinates
-    long* ltri,             # pre-allocated array of bool (bint)
+    int64_t* ltri,             # pre-allocated array of bool (bint)
     double* diff,           # 2d vectors of poolygon edges
     bint* lref,             # array of bool indicating which points are reflex
     int nvert,             # nb of vertices
@@ -433,8 +433,8 @@ cdef inline void earclipping_poly_2d(
 
 cdef inline void triangulate_poly(
     double* vignett_poly,
-    long nvert,
-    long** ltri,
+    int64_t nvert,
+    int64_t** ltri,
 ) nogil:
     """
     Triangulates a single 3d polygon using the earclipping technique
@@ -454,7 +454,7 @@ cdef inline void triangulate_poly(
 
     diff = <double*>malloc(3*nvert*sizeof(double))
     lref = <bint*>malloc(nvert*sizeof(bint))
-    ltri[0] = <long*>malloc((nvert-2)*3*sizeof(long))
+    ltri[0] = <int64_t*>malloc((nvert-2)*3*sizeof(int64_t))
 
     # diff + reflex
     compute_diff3d(vignett_poly, nvert, &diff[0])
@@ -473,10 +473,10 @@ cdef inline void triangulate_poly(
 
 cdef inline int triangulate_polys(
     double** vignett_poly,
-    # long* lnvert,
+    # int64_t* lnvert,
     int64_t* lnvert,
     int nvign,
-    long** ltri,
+    int64_t** ltri,
     int num_threads,
 ) nogil except -1:
     """
@@ -499,7 +499,7 @@ cdef inline int triangulate_polys(
             nvert = lnvert[ivign]
             diff = <double*>malloc(3*nvert*sizeof(double))
             lref = <bint*>malloc(nvert*sizeof(bint))
-            ltri[ivign] = <long*>malloc((nvert-2)*3*sizeof(long))
+            ltri[ivign] = <int64_t*>malloc((nvert-2)*3*sizeof(int64_t))
             if not diff or not lref or not ltri[ivign]:
                 with gil:
                     raise MemoryError()
@@ -524,7 +524,7 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,
                                 double* vignett,
                                 int nvert,
-                                long* ltri) nogil:
+                                int64_t* ltri) nogil:
     cdef int ii, jj
     cdef double[3] pt1
     cdef double[3] pt2
@@ -543,10 +543,10 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
 cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  double[:, ::1] ray_vdir,
                                  double** vignett,
-                                 # long* lnvert,
+                                 # int64_t* lnvert,
                                  int64_t* lnvert,
                                  double* lbounds,
-                                 long** ltri,
+                                 int64_t** ltri,
                                  int nvign,
                                  int nlos,
                                  bint* goes_through,
@@ -613,14 +613,14 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                                        double[::1] vol_resol,
                                        double[::1] r_on_phi,
                                        double* disc_r,
-                                       long[::1] lind,
+                                       int64_t[::1] lind,
                                        double** res_x,
                                        double** res_y,
                                        double** res_z,
                                        double** res_vres,
                                        double** res_rphi,
-                                       long** res_lind,
-                                       long* sz_rphi,
+                                       int64_t** res_lind,
+                                       int64_t* sz_rphi,
                                        int num_threads) nogil:
     # we keep only the points in vpoly
     cdef int ii, jj
@@ -655,7 +655,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_z[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
-        res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
+        res_lind[0] = <int64_t*> malloc(nb_in_poly * sizeof(int64_t))
         with nogil, parallel(num_threads=num_threads):
             for ii in prange(nb_in_poly):
                 res_x[0][ii] = _cl.get_at_pos(vec_x, ii)
@@ -690,7 +690,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_z[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
-        res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
+        res_lind[0] = <int64_t*> malloc(nb_in_poly * sizeof(int64_t))
         with nogil, parallel(num_threads=num_threads):
             for ii in prange(nb_in_poly):
                 res_x[0][ii] = _cl.get_at_pos(vec_x, ii)
@@ -728,7 +728,7 @@ cdef inline int are_in_vignette(int sz_r, int sz_z,
                                 int npts_vpoly,
                                 double* disc_r,
                                 double* disc_z,
-                                long[:, ::1] is_in_vignette) nogil:
+                                int64_t[:, ::1] is_in_vignette) nogil:
     # we keep only the points in vpoly
     cdef int ii, jj
     cdef int nb_in_poly = 0

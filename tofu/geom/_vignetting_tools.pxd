@@ -79,21 +79,21 @@ cdef bint is_pt_in_tri_3d(
 
 cdef void earclipping_poly_2d(
     double* vignett,
-    long* ltri,
+    int64_t* ltri,
     double* diff,
     bint* lref,
     int nvert,
 ) nogil
 
 cdef void triangulate_poly(double* vignett_poly,
-                          long nvert,
-                          long** ltri) nogil
+                          int64_t nvert,
+                          int64_t** ltri) nogil
 
 cdef int triangulate_polys(double** vignett_poly,
-                            # long* lnvert,
+                            # int64_t* lnvert,
                             int64_t* lnvert,
                             int nvign,
-                            long** ltri,
+                            int64_t** ltri,
                             int num_threads) nogil except -1
 
 
@@ -107,16 +107,16 @@ cdef bint inter_ray_poly(
     const double[3] ray_vdir,
     double* vignett,
     int nvert,
-    long* ltri,
+    int64_t* ltri,
 ) nogil
 
 cdef void vignetting_core(double[:, ::1] ray_orig,
                           double[:, ::1] ray_vdir,
                           double** vignett,
-                          # long* lnvert,
+                          # int64_t* lnvert,
                           int64_t* lnvert,
                           double* lbounds,
-                          long** ltri,
+                          int64_t** ltri,
                           int nvign,
                           int nlos,
                           bint* goes_through,
@@ -129,14 +129,14 @@ cdef int vignetting_vmesh_vpoly(int npts, int sz_r,
                                 double[::1] vol_resol,
                                 double[::1] r_on_phi,
                                 double* disc_r,
-                                long[::1] lind,
+                                int64_t[::1] lind,
                                 double** res_x,
                                 double** res_y,
                                 double** res_z,
                                 double** res_vres,
                                 double** res_rphi,
-                                long** res_lind,
-                                long* sz_rphi,
+                                int64_t** res_lind,
+                                int64_t* sz_rphi,
                                 int num_threads) nogil
 
 cdef int are_in_vignette(int sz_r, int sz_z,
@@ -144,4 +144,4 @@ cdef int are_in_vignette(int sz_r, int sz_z,
                          int npts_vpoly,
                          double* disc_r,
                          double* disc_z,
-                         long[:, ::1] is_in_vignette) nogil
+                         int64_t[:, ::1] is_in_vignette) nogil
