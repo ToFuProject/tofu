@@ -10,6 +10,7 @@
 #   - cythonization of matplotlib path functions (is point in a path?)
 #   - cythonization of some numpy functions (hypotenus, tile, sum)
 ################################################################################
+from libc.stdint cimport int64_t
 cimport cython
 from cpython.array cimport array, clone
 
