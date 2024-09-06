@@ -257,22 +257,29 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
                                        in_format='(R,Z,Phi)',
                                        ves_lims=None, nlim=0, test=True))
         assert dS.shape == (Pts.shape[1],)
-        assert all([
+        lc = [
             ind.shape == (Pts.shape[1],),
-            ind.dtype == int,
+            ind.dtype == np.int64,
             np.unique(ind).size == ind.size,
             np.all(ind == np.unique(ind)),
             np.all(ind >= 0),
-        ])
-        assert (
-            ind.shape == (Pts.shape[1],) and ind.dtype == int
-            and np.all(ind == np.unique(ind)) and np.all(ind >= 0)
-        )
+        ]
+        if not all(lc):
+            msg = (
+                "\n"
+                f"lc = {lc}\n"
+                f"ind.shape = {ind.shape} vs {(Pts.shape[1],)} = (Pts.shape[1],)\n"
+                f"ind.dtype = {ind.dtype} vs int\n"
+                f"np.unique(ind).size = {np.unique(ind).size} vs {ind.size} = ind.size\n"
+                f"ind = {ind}\n"
+            )
+            raise Exception(msg)
+
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
         assert dRPhir.ndim == 1 and dRPhir.size == Rref.size
-        assert type(nRPhi0) is int
+        assert type(nRPhi0) == np.int64
 
         Ptsi, dSi, NLi, \
             dLri, Rrefi, dRPhiri, \
@@ -352,7 +359,7 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
         assert dRPhir.ndim == 1 and dRPhir.size == Rref.size
-        assert type(nRPhi0) is int
+        assert type(nRPhi0) == np.int64
 
         lrphi_arr = np.array(LPhi[ii][0])
         out = GG._Ves_Smesh_Tor_SubFromInd_cython(dL, dRPhi,
@@ -568,7 +575,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         assert dS.shape == (Pts.shape[1],)
 
         # Check indices
-        if ind.dtype != int:
+        if ind.dtype != np.int64:
             msg = str(ind.dtype)
             raise Exception(msg)
 
@@ -585,7 +592,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
                     np.all(ind == np.unique(ind)),
                     np.all(ind>=0)])
         assert (
-            ind.shape == (Pts.shape[1],) and ind.dtype == int
+            ind.shape == (Pts.shape[1],) and ind.dtype == np.int64
             and np.all(ind == np.unique(ind)) and np.all(ind >= 0)
         )
 
