@@ -133,11 +133,16 @@ def test03_Ves_Vmesh_Tor():
                 assert np.all((pts[2, :] >= LDPhi[ii][0] - marg) |
                               (pts[2, :] <= LDPhi[ii][1] + marg))
         assert vol_res.shape == (pts.shape[1],)
-        assert all([ind.shape == (pts.shape[1],),
-                    ind.dtype == int,
-                    np.unique(ind).size == ind.size,
-                    np.all(ind == np.unique(ind)),
-                    np.all(ind >= 0)])
+        lc = [
+            ind.shape == (pts.shape[1],),
+            'int' in ind.dtype.name,
+            np.unique(ind).size == ind.size,
+            np.all(ind == np.unique(ind)),
+            np.all(ind >= 0),
+        ]
+        if not all(lc):
+            msg = str(lc)
+            raise Exception(msg)
         assert vec_phi_res.ndim == 1
 
         out = GG._Ves_Vmesh_Tor_SubFromInd_cython(dR, dZ, dRPhi,
