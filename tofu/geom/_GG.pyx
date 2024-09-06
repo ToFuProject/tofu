@@ -581,7 +581,7 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
                                        &lindex, N)
     #.. converting and returning................................................
     ld_arr = np.copy(np.asarray(<double[:sz_ld]> ldiscret))
-    li_arr = np.copy(np.asarray(<int64_t[:sz_ld]>lindex)).astype(int)
+    li_arr = np.copy(np.asarray(<int64_t[:sz_ld]>lindex)).astype(np.int64)
     free(ldiscret)
     free(lindex)
     return ld_arr, resolution[0], li_arr, N[0]
@@ -1167,7 +1167,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
 
     indI = np.sort(indI, axis=1)
     indi_mv = indI
-    first_ind_mv = np.argmax(indI > -1, axis=1).astype(int)
+    first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.int64)
 
     _st.vmesh_assemble_arrays(first_ind_mv, indi_mv,
                           is_in_vignette,
@@ -1314,7 +1314,7 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
                                                     radius=0.0)
         pts, ind = pts[:,indin], ind[indin]
 
-    return pts, res3d, ind.astype(int), dXr, dYr, reso_z
+    return pts, res3d, ind.astype(np.int64), dXr, dYr, reso_z
 
 
 def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
@@ -1343,9 +1343,9 @@ def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
     indZ = ind // (NX*NY)
     indY = (ind - NX*NY*indZ) // NX
     indX = ind - NX*NY*indZ - NX*indY
-    pts = np.array([X[indX.astype(int)],
-                    Y[indY.astype(int)],
-                    Z[indZ.astype(int)]])
+    pts = np.array([X[indX.astype(np.int64)],
+                    Y[indY.astype(np.int64)],
+                    Z[indZ.astype(np.int64)]])
     res3d = dXr*dYr*reso_z
 
     return pts, res3d, dXr, dYr, reso_z
@@ -1517,7 +1517,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         Rref = Rref[indin]
 
         Ln = indin.sum()
-        Indin = indin.nonzero()[0].astype(int)
+        Indin = indin.nonzero()[0].astype(np.int64)
 
         dRPhir, dPhir = np.empty((Ln,)), np.empty((Ln,))
         Phin = np.zeros((Ln,),dtype=np.int64)
@@ -1604,7 +1604,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                     ind[npts_disc] = NRPhi0[ii] + indiijj
                     dS[npts_disc] = dLr[ii]*dRPhir[ii]
                     npts_disc += 1
-        indok = (~np.isnan(ind)).nonzero()[0].astype(int)
+        indok = (~np.isnan(ind)).nonzero()[0].astype(np.int64)
         ind = ind[indok]
         dS = dS[indok]
         if len(indok)==1:
@@ -1615,7 +1615,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         pts, dS, ind, NL, Rref, dRPhir, nRPhi0 = np.ones((3,0)), np.ones((0,)),\
           np.ones((0,)), np.nan*np.ones((VPoly.shape[1]-1,)),\
           np.ones((0,)), np.ones((0,)), 0
-    return np.ascontiguousarray(pts), dS, ind.astype(int), NL, dLr, Rref, dRPhir, nRPhi0, VPbis
+    return np.ascontiguousarray(pts), dS, ind.astype(np.int64), NL, dLr, Rref, dRPhir, nRPhi0, VPbis
 
 
 def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
@@ -1847,7 +1847,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
             dS = LdS[0]
         else:
             Pts = np.concatenate(tuple(LPts),axis=1)
-            ind = np.concatenate(tuple(Lind)).astype(int)
+            ind = np.concatenate(tuple(Lind)).astype(np.int64)
             dS = np.concatenate(tuple(LdS))
 
     else:
@@ -2125,7 +2125,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
     LPts, LdS = [], []
     # First face
-    ii = (ind<NY0*NZ0).nonzero()[0].astype(int)
+    ii = (ind<NY0*NZ0).nonzero()[0].astype(np.int64)
     nii = len(ii)
     if nii>0:
         indZ0 = ind[ii] // NY0
@@ -2139,7 +2139,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
         LdS.append( dY0r*dZ0r*np.ones((nii,)) )
 
     # Cylinder
-    ii = ((ind>=NY0*NZ0) & (ind<NY0*NZ0+NX*Ln)).nonzero()[0].astype(int)
+    ii = ((ind>=NY0*NZ0) & (ind<NY0*NZ0+NX*Ln)).nonzero()[0].astype(np.int64)
     nii = len(ii)
     if nii>0:
         indX = (ind[ii]-NY0*NZ0) // Ln
@@ -2154,7 +2154,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
             LdS.append( dXr*dLr[indL] )
 
     # End face
-    ii = (ind >= NY0*NZ0+NX*Ln).nonzero()[0].astype(int)
+    ii = (ind >= NY0*NZ0+NX*Ln).nonzero()[0].astype(np.int64)
     nii = len(ii)
     if nii>0:
         indZ0 = (ind[ii]-NY0*NZ0-NX*Ln) // NY0
@@ -2996,7 +2996,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                         num_threads)
         sz_coeff = los_ind_ptr[nlos-1]
     coeffs  = np.copy(np.asarray(<double[:sz_coeff]>coeff_ptr[0]))
-    indices = np.copy(np.asarray(<int64_t[:nlos]>los_ind_ptr).astype(int))
+    indices = np.copy(np.asarray(<int64_t[:nlos]>los_ind_ptr).astype(np.int64))
     # -- freeing -----------------------------------------------------------
     if not los_ind_ptr == NULL:
         free(los_ind_ptr)
@@ -3233,7 +3233,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         if n_imode == 0:  # "sum" integration mode
             # .. integrating function ..........................................
             reseffs = np.copy(np.asarray(<double[:nlos]>reseff_arr))
-            indices = np.copy(np.asarray(<int64_t[:nlos-1]>ind_arr).astype(int))
+            indices = np.copy(np.asarray(<int64_t[:nlos-1]>ind_arr).astype(np.int64))
             sig = np.asfortranarray(np.add.reduceat(val_2d,
                                                     np.r_[0, indices],
                                                     axis=-1)
@@ -4564,7 +4564,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
         # if not np.all(Ru==R):
         #     dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
         #                        if R[ii] in Ru])
-    return Pts, dV, ind.astype(int), reso_r, reso_z, np.asarray(dRPhir)
+    return Pts, dV, ind.astype(np.int64), reso_r, reso_z, np.asarray(dRPhir)
 
 
 def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
@@ -4980,7 +4980,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     reso_r_z = reso_r[0]*reso_z[0]
     ind_i = np.sort(ind_i, axis=1)
     indi_mv = ind_i
-    first_ind_mv = np.argmax(ind_i > -1, axis=1).astype(int)
+    first_ind_mv = np.argmax(ind_i > -1, axis=1).astype(np.int64)
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
