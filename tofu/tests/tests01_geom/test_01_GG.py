@@ -903,10 +903,10 @@ def test13_LOS_PInOut():
     SL0 = np.asarray([None])
     SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0., 0.5], [1., 3./2.]]])
     SL2 = np.asarray([np.array([0.5, 3./2.])*np.pi])
-    lstruct_nlim = np.array([0, 2, 1])
+
     nstruct_lim = 3
     nstruct_tot =1+2+1
-    lstruct_nlim=np.asarray([0, 2, 1])
+    lstruct_nlim=np.asarray([0, 2, 1], dtype=np.int64)
     #....
     Sols_In, Sols_Out = [], []
     rsol_In = [[6.,6.,6.5,7.5,8.,8.,7.5,6.5],
