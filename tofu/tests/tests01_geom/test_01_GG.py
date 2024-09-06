@@ -279,7 +279,7 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
         assert dRPhir.ndim == 1 and dRPhir.size == Rref.size
-        assert type(nRPhi0) == np.int64
+        assert type(nRPhi0) == int
 
         Ptsi, dSi, NLi, \
             dLri, Rrefi, dRPhiri, \
@@ -359,7 +359,7 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
         assert dRPhir.ndim == 1 and dRPhir.size == Rref.size
-        assert type(nRPhi0) == np.int64
+        assert type(nRPhi0) == int
 
         lrphi_arr = np.array(LPhi[ii][0])
         out = GG._Ves_Smesh_Tor_SubFromInd_cython(dL, dRPhi,
