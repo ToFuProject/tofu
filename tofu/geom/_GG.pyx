@@ -2701,7 +2701,7 @@ def LOS_isVis_PtFromPts_VesStruct(
     double[:, ::1] ves_norm=None,
     double[::1] ves_lims=None,
     # long[::1] lstruct_nlim=None,
-    int64_t[::1] lstruct_nlim=None,,
+    int64_t[::1] lstruct_nlim=None,
     double[::1] lstruct_polyx=None,
     double[::1] lstruct_polyy=None,
     list lstruct_lims=None,
