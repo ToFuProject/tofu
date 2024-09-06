@@ -880,10 +880,13 @@ def test13_LOS_PInOut():
     )
     assert np.allclose(IOut[2, :], Iout)
     npts_vp = VP.shape[1]
-    out = GG.LOS_Calc_kMinkMax_VesStruct(Ds, us,
-                                         [VP, VP, VP], [VIn, VIn, VIn],
-                                         np.int64(3),
-                                         np.r_[npts_vp, npts_vp, npts_vp])
+    out = GG.LOS_Calc_kMinkMax_VesStruct(
+        Ds, us,
+        [VP, VP, VP], [VIn, VIn, VIn],
+        3,
+        np.array([npts_vp, npts_vp, npts_vp], dtype=np.int64),
+    )
+
     kmin_res = out[0]
     kmax_res = out[1]
     assert np.allclose(kmin_res[:nlos],    kPIn)
