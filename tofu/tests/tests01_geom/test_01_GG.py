@@ -646,7 +646,7 @@ def test13_LOS_PInOut():
     SL2 = np.asarray([np.array([2./3., 1.])*2.*np.pi])
     lspolyx = np.asarray(SP0x + SP1x + SP2x)
     lspolyy = np.asarray(SP0y + SP1y + SP2y)
-    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=int)*5)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
     lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
     lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
     # Linear without Struct
@@ -700,11 +700,11 @@ def test13_LOS_PInOut():
     Iin = np.array([3, 3, 0, 0, 1, 1, 2, 2,
                     3, 3, 0, 0, 1, 1, 2, 2,
                     3, 3, 0, 0, 1, 1, 2, 2,
-                    -1, -1, -1, -1, -2, -2, -2, -2], dtype=int)
+                    -1, -1, -1, -1, -2, -2, -2, -2], dtype=np.int64)
     Iout = np.array([1, 1, 2, 2, 3, 3, 0, 0,
                      1, 1, 2, 2, 3, 3, 0, 0,
                      1, 1, 2, 2, 3, 3, 0, 0,
-                     -2, -2, -2, -2, -1, -1, -1, -1], dtype=int)
+                     -2, -2, -2, -2, -1, -1, -1, -1], dtype=np.int64)
     ndim, nlos = np.shape(Ds)
     kPIn, kPOut,\
         VperpOut, IOut= GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn,
@@ -736,11 +736,11 @@ def test13_LOS_PInOut():
     Iin = np.array([3, 3, 0, 0, 1, 1, 2, 2,
                     3, 3, 0, 0, 1, 1, 2, 2,
                     3, 3, 0, 0, 1, 1, 2, 2,
-                    -1, -1, -1, -1, -2, -2, -2, -2], dtype=int)
+                    -1, -1, -1, -1, -2, -2, -2, -2], dtype=np.int64)
     Iout = np.array([3, 3, 0, 0, 1, 1, 2, 2,
                      1, 3, 0, 2, 1, 3, 0, 2,
                      3, 3, 0, 0, 1, 1, 2, 2,
-                     -1, -2, -1, -1, -2, -1, -2, -2], dtype=int)
+                     -1, -2, -1, -1, -2, -1, -2, -2], dtype=np.int64)
     indS = np.array([[2, 1, 1, 2, 1, 2, 2, 1,
                       0, 1, 1, 0, 1, 0, 0, 1,
                       3, 1, 1, 2, 1, 2, 2, 3,
@@ -748,7 +748,7 @@ def test13_LOS_PInOut():
                      [0, 0, 0, 0, 0, 0, 0, 0,
                       0, 0, 0, 0, 0, 0, 0, 0,
                       0, 0, 0, 1, 0, 1, 1, 0,
-                      0, 0, 0, 0, 0, 0, 1, 0]], dtype=int)
+                      0, 0, 0, 0, 0, 0, 1, 0]], dtype=np.int64)
     kPIn, kPOut, \
         VperpOut, \
         IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=VL,
@@ -945,7 +945,7 @@ def test13_LOS_PInOut():
             0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 1,
         ]],
-        dtype=int,
+        dtype=np.int64,
     )
 
     kPIn, kPOut,\
@@ -1796,7 +1796,7 @@ def test24_is_visible(debug=0):
     nstruct_tot = 1 + 2 + 1  # structs: limitless, 2 limits, 1 limit
     lspolyx = np.asarray(SP0x + SP1x + SP2x)
     lspolyy = np.asarray(SP0y + SP1y + SP2y)
-    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=int)*5)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
     lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
     lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
     # ...
