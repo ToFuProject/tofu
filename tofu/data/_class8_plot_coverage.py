@@ -129,7 +129,10 @@ def _check(
 
     lok_vos = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if all([v1.get('dvos') is not None for v1 in v0['doptics'].values()])
+        if all([
+            v1.get('dvos', {}).get('keym') is not None
+            for v1 in v0['doptics'].values()
+        ])
     ]
     lok = [
         k0 for k0 in coll.dobj.get('diagnostic', {}).keys()
