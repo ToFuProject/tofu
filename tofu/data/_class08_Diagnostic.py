@@ -23,6 +23,7 @@ from . import _class8_etendue_los as _etendue_los
 from . import _class8_vos as _vos
 from . import _class8_vos_spectro_nobin_at_lamb as _vos_nobin_at_lamb
 from . import _class8_los_angles as _los_angles
+from . import _class08_generate_rays as _generate_rays
 from . import _class8_plane_perp_to_los as _planeperp
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_compute_signal_moments as _signal_moments
@@ -366,6 +367,27 @@ class Diagnostic(Previous):
             vmin_plane=vmin_plane,
             vmax_plane=vmax_plane,
         )
+
+    # -----------------
+    # add rays from diag
+    # -----------------
+
+    def add_rays_from_diagnostic(
+        self,
+        key=None,
+        strategy=None,
+        nrays=None,
+    ):
+        return _generate_rays.main(
+            coll=self,
+            key=key,
+            strategy=strategy,
+            nrays=nrays,
+        )
+
+    # -----------------
+    # solid angle from plane
+    # -----------------
 
     def plot_diagnostic_solidangle_from_plane(
         self,
