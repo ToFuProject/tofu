@@ -314,7 +314,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        "setuptools==70.0.0",
+        "setuptools!=65.*,!=74.*",
         "numpy",
         "scipy",
         # "scikit-sparse",
