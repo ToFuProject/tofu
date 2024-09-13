@@ -478,7 +478,7 @@ cdef inline int triangulate_polys(
     int nvign,
     int64_t** ltri,
     int num_threads,
-) nogil except -1:
+) except -1 nogil:
     """
     Triangulates a list 3d polygon using the earclipping techinque
     https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
