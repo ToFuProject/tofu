@@ -27,19 +27,22 @@ def main(
     nrays=None,
     # storing
     store=None,
+    config=None,
+    overwrite=None,
 ):
 
     # -------------
     # check
     # -------------
 
-    key, strategy, nrays, store = _check(
+    key, strategy, nrays, store, overwrite = _check(
         coll=coll,
         key=key,
         strategy=strategy,
         nrays=nrays,
         # storing
         store=store,
+        overwrite=overwrite,
     )
 
     # ---------------
@@ -92,6 +95,7 @@ def main(
                 doptics=doptics[kcam],
                 out_arr=out_arr,
                 nrays=nrays,
+                strategy=strategy,
             )
 
         elif strategy == 'outline':
@@ -110,6 +114,8 @@ def main(
         _store(
             coll=coll,
             dout=dout,
+            config=config,
+            overwrite=overwrite,
         )
 
     else:
@@ -129,7 +135,7 @@ def _check(
     nrays=None,
     # storing
     store=None,
-    store_key=None,
+    overwrite=None,
 ):
 
     # ------------
@@ -184,10 +190,20 @@ def _check(
     store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
+        default=True,
+    )
+
+    # ------------
+    # overwrite
+    # ------------
+
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
         default=False,
     )
 
-    return key, strategy, nrays, store
+    return key, strategy, nrays, store, overwrite
 
 
 # ###############################################################
@@ -202,6 +218,7 @@ def _random(
     doptics=None,
     out_arr=None,
     nrays=None,
+    strategy=None,
 ):
 
     # ---------------
@@ -245,6 +262,22 @@ def _random(
         e1i_x, e1i_y, e1i_z = [dvect[f"e1_{kk}"] for kk in lc]
 
     # -----------------------------------
+    # prepare output
+    # -----------------------------------
+
+    shape_out = shape_cam + (nrays*nrays,)
+
+    dout = {
+        'key': f'{kcam}_rays_{strategy}',
+        'start_x': np.full(shape_out, np.nan),
+        'start_y': np.full(shape_out, np.nan),
+        'start_z': np.full(shape_out, np.nan),
+        'vect_x': np.full(shape_out, np.nan),
+        'vect_y': np.full(shape_out, np.nan),
+        'vect_z': np.full(shape_out, np.nan),
+    }
+
+    # -----------------------------------
     # pinhole camera (shared apertures)
     # -----------------------------------
 
@@ -282,6 +315,8 @@ def _random(
         ray_vdir = np.full((3, nrays*end0.size), np.nan)
         for ind in np.ndindex(shape_cam):
 
+            sli_out = ind + (slice(None),)
+
             # unit vectors
             if parallel is not True:
                 e0i_x, e0i_y, e0i_z = [dvect[f"e0_{kk}"][ind] for kk in lc]
@@ -292,24 +327,37 @@ def _random(
             ray_orig[1, :] = cy[ind] + start0f * e0i_y + start1f * e1i_y
             ray_orig[2, :] = cz[ind] + start0f * e0i_z + start1f * e1i_z
 
-            # ray_vdir, normalized
+            # end points
             ray_vdir[0, :] = op_cent[0] + end0f * op_e0[0] + end1f * op_e1[0]
             ray_vdir[1, :] = op_cent[1] + end0f * op_e0[1] + end1f * op_e1[1]
             ray_vdir[2, :] = op_cent[2] + end0f * op_e0[2] + end1f * op_e1[2]
+
+            # ray_vdir, normalized
+            ray_vdir[0, :] = ray_vdir[0, :] - ray_orig[0, :]
+            ray_vdir[1, :] = ray_vdir[1, :] - ray_orig[1, :]
+            ray_vdir[2, :] = ray_vdir[2, :] - ray_orig[2, :]
+
             ray_norm = np.sqrt(np.sum(ray_vdir**2, axis=0))
             ray_vdir[:] = ray_vdir / ray_norm
 
-            # vignetting (npoly, nrays)
-            iok = _GG.vignetting(
-                ray_orig,
-                ray_vdir,
-                vignett_poly,
-                lnvert,
-                num_threads=16,
-            )
+            # vignetting (npoly, nrays) is wrong !!!
+            # iok = _GG.vignetting(
+            #     ray_orig,
+            #     ray_vdir,
+            #     vignett_poly,
+            #     lnvert,
+            #     num_threads=16,
+            # )
+            # print(ind, iok.sum(), iok.size)
 
-            print(ind, iok.sum(), iok.size)
+            indrand = (np.random.randint(0, ray_orig.shape[1], nrays*nrays),)
 
+            dout['start_x'][sli_out] = ray_orig[(0,) + indrand]
+            dout['start_y'][sli_out] = ray_orig[(1,) + indrand]
+            dout['start_z'][sli_out] = ray_orig[(2,) + indrand]
+            dout['vect_x'][sli_out] = ray_vdir[(0,) + indrand]
+            dout['vect_y'][sli_out] = ray_vdir[(1,) + indrand]
+            dout['vect_z'][sli_out] = ray_vdir[(2,) + indrand]
 
     # ---------------
     # mesh pixels
@@ -322,7 +370,7 @@ def _random(
             print(ind)
 
 
-    return
+    return dout
 
 
 # #########################
@@ -449,7 +497,34 @@ def _mesh():
 # ###############################################################
 
 
-def _store():
+def _store(
+    coll=None,
+    kdiag=None,
+    dout=None,
+    config=None,
+    overwrite=None,
+):
 
+    # -----------------
+    # add ref
+    # -----------------
+
+    nrays = list(dout.values())[0]['start_x'].shape[-1]
+
+    kref = f"{kdiag}_nrays"
+    coll.add_ref(key=kref, size=nrays)
+
+    # --------------
+    # add rays
+    # --------------
+
+    for kcam, v0 in dout.items():
+
+        ref = coll.dobj['camera'][kcam]['dgeom']['ref'] + (kref,)
+        coll.add_rays(
+            ref=ref,
+            config=config,
+            **v0
+        )
 
     return

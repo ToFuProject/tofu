@@ -377,12 +377,20 @@ class Diagnostic(Previous):
         key=None,
         strategy=None,
         nrays=None,
+        # storing
+        store=None,
+        config=None,
+        overwrite=None,
     ):
         return _generate_rays.main(
             coll=self,
             key=key,
             strategy=strategy,
             nrays=nrays,
+            # storing
+            store=store,
+            config=config,
+            overwrite=overwrite,
         )
 
     # -----------------
