@@ -94,7 +94,7 @@ cdef int triangulate_polys(double** vignett_poly,
                             int64_t* lnvert,
                             int nvign,
                             int64_t** ltri,
-                            int num_threads) nogil except -1
+                            int num_threads) except -1 nogil
 
 
 # ===============================================================

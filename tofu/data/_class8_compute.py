@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+import warnings
 import itertools as itt
 
 
@@ -51,7 +52,23 @@ def get_optics_outline(
     # compute
 
     if dgeom['type'] == '3d':
-        return None, None
+
+        msg = (
+            "Approximate outline for {cls} '{key}' due to 3d polygon!"
+        )
+        warnings.warn(msg)
+
+        px, py, pz = coll.dobj[cls][key]['dgeom']['poly']
+        px = coll.ddata[px]['data']
+        py = coll.ddata[py]['data']
+        pz = coll.ddata[pz]['data']
+
+        cx, cy, cz = np.mean([px, py, pz], axis=1)
+        e0 = coll.dobj[cls][key]['dgeom']['e0']
+        e1 = coll.dobj[cls][key]['dgeom']['e1']
+
+        p0 = (px - cx) * e0[0] + (py - cy) * e0[1] + (pz - cz) * e0[2]
+        p1 = (px - cx) * e1[0] + (py - cy) * e1[1] + (pz - cz) * e1[2]
 
     if cls == 'camera' and total:
         # get centers
