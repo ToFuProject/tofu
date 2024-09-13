@@ -139,8 +139,8 @@ cdef inline void are_points_reflex_2d(
 
     # do first point:
     are_reflex[0] = is_reflex_2d(
-        &diff[0*nvert + 9],         # u0
-        &diff[1*nvert + 9],         # u1
+        &diff[0*nvert + nvert - 1],         # u0
+        &diff[1*nvert + nvert - 1],         # u1
         &diff[0*nvert + 0],     # v0
         &diff[1*nvert + 0],     # v1
     )
@@ -478,7 +478,7 @@ cdef inline int triangulate_polys(
     int nvign,
     int64_t** ltri,
     int num_threads,
-) nogil except -1:
+) except -1 nogil:
     """
     Triangulates a list 3d polygon using the earclipping techinque
     https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf

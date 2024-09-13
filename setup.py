@@ -314,6 +314,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
+        "setuptools!=65.*,!=74.*",
         "numpy",
         "scipy",
         # "scikit-sparse",
@@ -324,7 +325,7 @@ setup(
         "svg.path",
         "Polygon3",
         "cython>=0.26",
-        "spectrally>=0.0.4",
+        "spectrally>=0.0.6",
     ],
     python_requires=">=3.6",
 
