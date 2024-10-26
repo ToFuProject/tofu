@@ -84,7 +84,10 @@ def _plot_diagnostic_check(
     )
 
     # extract
-    ddata, dref, units, static, daxis = out
+    if out is None:
+        ddata, dref, units, static, daxis = {}, {}, None, True, None
+    else:
+        ddata, dref, units, static, daxis = out
 
     refz = None
     if static is False:
