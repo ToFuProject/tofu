@@ -10,6 +10,7 @@ import json
 
 
 import numpy as np
+import datastock as ds
 
 
 # #################################################################
@@ -24,15 +25,17 @@ def main(
     pfe=None,
     coll=None,
     fname=None,
+    returnas=None,
 ):
 
     # ----------------
     # check inputs
     # --------------
 
-    dout = _check(
+    dout, returnas = _check(
         coll=coll,
         pfe=pfe,
+        returnas=returnas,
     )
 
     # ----------------
@@ -63,7 +66,8 @@ def main(
         din=dout['diagnostic'],
     )
 
-    return coll
+    if returnas is True:
+        return coll
 
 
 # #################################################################
@@ -75,6 +79,7 @@ def main(
 def _check(
     coll=None,
     pfe=None,
+    returnas=None,
 ):
 
     # --------------------
@@ -99,7 +104,17 @@ def _check(
         )
         raise Exception(msg)
 
-    return dout
+    # -------------
+    # returnas
+    # -------------
+
+    returnas = ds._generic_check._check_var(
+        returnas, 'returnas',
+        types=bool,
+        default=True,
+    )
+
+    return dout, returnas
 
 
 # #################################################################

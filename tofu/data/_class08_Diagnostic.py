@@ -1478,22 +1478,26 @@ class Diagnostic(Previous):
     def add_diagnostic_from_file(
         self,
         pfe=None,
+        returnas=False,
     ):
         """ Adds a diagnostic instance (and necessary optics) from json file
 
         Parameters
         ----------
-        pfe : str
+        pfe :     str
             path/file.ext to desired file
+        returnas: bool
+            whether to return the Collection instance
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        coll:    Collection instance
+            optional
 
         """
 
         return _saveload_from_file.load(
             coll=self,
             pfe=pfe,
+            returnas=returnas,
         )
