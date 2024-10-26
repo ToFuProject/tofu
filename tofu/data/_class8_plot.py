@@ -63,6 +63,7 @@ def _plot_diagnostic_check(
     # -------
     # data
 
+    # default
     defdata = 'etendue'
     c0 = (
         data is None
@@ -74,15 +75,15 @@ def _plot_diagnostic_check(
     if c0:
         data = defdata
 
+    # get data dict
     out = coll.get_diagnostic_data(
         key=key,
         key_cam=key_cam,
         data=data,
         units=units,
     )
-    if out is None:
-        return
 
+    # extract
     ddata, dref, units, static, daxis = out
 
     refz = None
