@@ -220,7 +220,7 @@ def _extract_diagnostic(
 
         for k0 in ['etendue', 'amin', 'amax']:
 
-            kd = doptics[kcam][k0]
+            kd = doptics[kcam].get(k0)
             if kd is None:
                 continue
             dout['diagnostic']['doptics'][kcam][k0] = {
@@ -236,98 +236,102 @@ def _extract_diagnostic(
         # ---------
         # los
 
-        klos = doptics[kcam]['los']
-        ptsx, ptsy, ptsz = coll.get_rays_pts(klos)
+        klos = doptics[kcam].get('los')
+        if klos is not None:
+            ptsx, ptsy, ptsz = coll.get_rays_pts(klos)
 
-        klos = doptics[kcam]['los']
+            klos = doptics[kcam]['los']
 
-        dout['diagnostic']['doptics'][kcam].update({
-            'los_x_start': {
-                'data': ptsx[0, ...],
-                'units': 'm',
-            },
-            'los_y_start': {
-                'data': ptsy[0, ...],
-                'units': 'm',
-            },
-            'los_z_start': {
-                'data': ptsz[0, ...],
-                'units': 'm',
-            },
-            'los_x_end': {
-                'data': ptsx[1:, ...],
-                'units': 'm',
-            },
-            'los_y_end': {
-                'data': ptsy[1:, ...],
-                'units': 'm',
-            },
-            'los_z_end': {
-                'data': ptsz[1:, ...],
-                'units': 'm',
-            },
-            'los_key': klos,
-            'los_alpha': {
-                'data': coll.ddata[coll.dobj['rays'][klos]['alpha']]['data'],
-                'units': 'rad'
-            },
-            'los_dalpha': {
-                'data': coll.ddata[coll.dobj['rays'][klos]['reflect_dalpha']]['data'],
-                'units': 'rad'
-            },
-            'los_dbeta': {
-                'data': coll.ddata[coll.dobj['rays'][klos]['reflect_dbeta']]['data'],
-                'units': 'rad'
-            },
-        })
+            dout['diagnostic']['doptics'][kcam].update({
+                'los_x_start': {
+                    'data': ptsx[0, ...],
+                    'units': 'm',
+                },
+                'los_y_start': {
+                    'data': ptsy[0, ...],
+                    'units': 'm',
+                },
+                'los_z_start': {
+                    'data': ptsz[0, ...],
+                    'units': 'm',
+                },
+                'los_x_end': {
+                    'data': ptsx[1:, ...],
+                    'units': 'm',
+                },
+                'los_y_end': {
+                    'data': ptsy[1:, ...],
+                    'units': 'm',
+                },
+                'los_z_end': {
+                    'data': ptsz[1:, ...],
+                    'units': 'm',
+                },
+                'los_key': klos,
+                'los_alpha': {
+                    'data': coll.ddata[coll.dobj['rays'][klos]['alpha']]['data'],
+                    'units': 'rad'
+                },
+                'los_dalpha': {
+                    'data': coll.ddata[coll.dobj['rays'][klos]['reflect_dalpha']]['data'],
+                    'units': 'rad'
+                },
+                'los_dbeta': {
+                    'data': coll.ddata[coll.dobj['rays'][klos]['reflect_dbeta']]['data'],
+                    'units': 'rad'
+                },
+            })
 
         # ------------
         # vos - pcross
 
-        pc0, pc1 = doptics[kcam]['dvos']['pcross']
-        dout['diagnostic']['doptics'][kcam].update({
-            'pcross_x0': {
-                'key': pc0,
-                'data': coll.ddata[pc0]['data'],
-                'units': coll.ddata[pc0]['units'],
-                'ref': coll.ddata[pc0]['ref'],
-            },
-            'pcross_x1': {
-                'key': pc1,
-                'data': coll.ddata[pc1]['data'],
-                'units': coll.ddata[pc1]['units'],
-                'ref': coll.ddata[pc1]['ref'],
-            },
-        })
+        if doptics[kcam].get('dvos', {}).get('pcross') is not None:
+            pc0, pc1 = doptics[kcam]['dvos']['pcross']
+            dout['diagnostic']['doptics'][kcam].update({
+                'pcross_x0': {
+                    'key': pc0,
+                    'data': coll.ddata[pc0]['data'],
+                    'units': coll.ddata[pc0]['units'],
+                    'ref': coll.ddata[pc0]['ref'],
+                },
+                'pcross_x1': {
+                    'key': pc1,
+                    'data': coll.ddata[pc1]['data'],
+                    'units': coll.ddata[pc1]['units'],
+                    'ref': coll.ddata[pc1]['ref'],
+                },
+            })
 
         # ------------
         # vos - phor
 
-        ph0, ph1 = doptics[kcam]['dvos']['phor']
-        dout['diagnostic']['doptics'][kcam].update({
-            'phor_x0': {
-                'key': ph0,
-                'data': coll.ddata[ph0]['data'],
-                'units': coll.ddata[ph0]['units'],
-                'ref': coll.ddata[ph0]['ref'],
-            },
-            'phor_x1': {
-                'key': ph1,
-                'data': coll.ddata[ph1]['data'],
-                'units': coll.ddata[ph1]['units'],
-                'ref': coll.ddata[ph1]['ref'],
-            },
-        })
+        if doptics[kcam].get('dvos', {}).get('phor') is not None:
+            ph0, ph1 = doptics[kcam]['dvos']['phor']
+            dout['diagnostic']['doptics'][kcam].update({
+                'phor_x0': {
+                    'key': ph0,
+                    'data': coll.ddata[ph0]['data'],
+                    'units': coll.ddata[ph0]['units'],
+                    'ref': coll.ddata[ph0]['ref'],
+                },
+                'phor_x1': {
+                    'key': ph1,
+                    'data': coll.ddata[ph1]['data'],
+                    'units': coll.ddata[ph1]['units'],
+                    'ref': coll.ddata[ph1]['ref'],
+                },
+            })
 
         # ------------
         # vos - dphi
 
-        dout['diagnostic']['doptics'][kcam].update({
-            'dphi': {
-                'data': doptics[kcam]['dvos']['dphi'],
-                'units': 'rad',
-            },
-        })
+        if doptics[kcam].get('dvos', {}).get('dphi') is not None:
+            dout['diagnostic']['doptics'][kcam].update({
+                'dphi': {
+                    'data': doptics[kcam]['dvos']['dphi'],
+                    'units': 'rad',
+                },
+            })
 
     return dout, dcls
 

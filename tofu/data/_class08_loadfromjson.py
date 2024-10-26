@@ -10,6 +10,7 @@ import json
 
 
 import numpy as np
+import datastock as ds
 
 
 # #################################################################
@@ -24,15 +25,17 @@ def main(
     pfe=None,
     coll=None,
     fname=None,
+    returnas=None,
 ):
 
     # ----------------
     # check inputs
     # --------------
 
-    dout = _check(
+    dout, returnas = _check(
         coll=coll,
         pfe=pfe,
+        returnas=returnas,
     )
 
     # ----------------
@@ -63,7 +66,8 @@ def main(
         din=dout['diagnostic'],
     )
 
-    return coll
+    if returnas is True:
+        return coll
 
 
 # #################################################################
@@ -75,6 +79,7 @@ def main(
 def _check(
     coll=None,
     pfe=None,
+    returnas=None,
 ):
 
     # --------------------
@@ -99,7 +104,17 @@ def _check(
         )
         raise Exception(msg)
 
-    return dout
+    # -------------
+    # returnas
+    # -------------
+
+    returnas = ds._generic_check._check_var(
+        returnas, 'returnas',
+        types=bool,
+        default=True,
+    )
+
+    return dout, returnas
 
 
 # #################################################################
@@ -266,29 +281,30 @@ def _add_diagnostic(
     for kcam in lcam:
 
         # add ray
-        klos = doptics[kcam]['los_key']
-        coll.add_rays(
-            key=klos,
-            # start
-            start_x=doptics[kcam]['los_x_start']['data'],
-            start_y=doptics[kcam]['los_y_start']['data'],
-            start_z=doptics[kcam]['los_z_start']['data'],
-            # pts
-            pts_x=doptics[kcam]['los_x_end']['data'],
-            pts_y=doptics[kcam]['los_y_end']['data'],
-            pts_z=doptics[kcam]['los_z_end']['data'],
-            # angles
-            alpha=doptics[kcam]['los_alpha']['data'],
-            dalpha=doptics[kcam]['los_dalpha']['data'],
-            dbeta=doptics[kcam]['los_dbeta']['data'],
-        )
+        klos = doptics[kcam].get('los_key')
+        if klos is not None:
+            coll.add_rays(
+                key=klos,
+                # start
+                start_x=doptics[kcam]['los_x_start']['data'],
+                start_y=doptics[kcam]['los_y_start']['data'],
+                start_z=doptics[kcam]['los_z_start']['data'],
+                # pts
+                pts_x=doptics[kcam]['los_x_end']['data'],
+                pts_y=doptics[kcam]['los_y_end']['data'],
+                pts_z=doptics[kcam]['los_z_end']['data'],
+                # angles
+                alpha=doptics[kcam]['los_alpha']['data'],
+                dalpha=doptics[kcam]['los_dalpha']['data'],
+                dbeta=doptics[kcam]['los_dbeta']['data'],
+            )
 
-        # adjust ref to match camera
-        ref = tuple(
-            [coll.dobj['rays'][klos]['ref'][0]]
-            + list(coll.dobj['camera'][kcam]['dgeom']['ref'])
-        )
-        coll._dobj['rays'][klos]['ref'] = ref
+            # adjust ref to match camera
+            ref = tuple(
+                [coll.dobj['rays'][klos]['ref'][0]]
+                + list(coll.dobj['camera'][kcam]['dgeom']['ref'])
+            )
+            coll._dobj['rays'][klos]['ref'] = ref
 
         # store in diag
         coll._dobj['diagnostic'][din['key']]['doptics'][kcam]['los'] = klos
@@ -299,24 +315,28 @@ def _add_diagnostic(
     for kcam in lcam:
 
         # add data
-        ketend = doptics[kcam]['etendue_key']
-        ref = coll.dobj['camera'][kcam]['dgeom']['ref']
-        coll.add_data(
-            key=ketend,
-            data=doptics[kcam]['etendue']['data'],
-            units=doptics[kcam]['etendue']['units'],
-            ref=ref,
-        )
+        ketend = doptics[kcam].get('etendue_key')
+        etend_type = doptics[kcam].get('etend_type')
+        if ketend is not None:
+            ref = coll.dobj['camera'][kcam]['dgeom']['ref']
+            coll.add_data(
+                key=ketend,
+                data=doptics[kcam]['etendue']['data'],
+                units=doptics[kcam]['etendue']['units'],
+                ref=ref,
+            )
 
         # store in diag
         coll._dobj['diagnostic'][din['key']]['doptics'][kcam]['etendue'] = ketend
-        coll._dobj['diagnostic'][din['key']]['doptics'][kcam]['etend_type'] = doptics[kcam]['etend_type']
+        coll._dobj['diagnostic'][din['key']]['doptics'][kcam]['etend_type'] = etend_type
 
     # -----------
     # vos
+    # -----------
 
     for kcam in lcam:
 
+        # --------
         # add data
 
         for kp in ['pcross_x0', 'pcross_x1', 'phor_x0', 'phor_x1']:
@@ -325,27 +345,49 @@ def _add_diagnostic(
             ref = doptics[kcam][kp]['ref']
 
             # add ref if needed
-            lr = [rr for rr in ref if rr not in coll.dref.keys()]
-            for rr in lr:
-                ii = ref.index(rr)
-                coll.add_ref(
-                    key=rr,
-                    size=np.array(doptics[kcam][kp]['data']).shape[ii],
-                )
+            if ref is not None:
+                lr = [rr for rr in ref if rr not in coll.dref.keys()]
+                for rr in lr:
+                    ii = ref.index(rr)
+                    coll.add_ref(
+                        key=rr,
+                        size=np.array(doptics[kcam][kp]['data']).shape[ii],
+                    )
 
             # add data
-            coll.add_data(
-                key=kpi,
-                data=doptics[kcam][kp]['data'],
-                units=doptics[kcam][kp]['units'],
-                ref=tuple(ref),
-            )
+            if kpi is not None:
+                coll.add_data(
+                    key=kpi,
+                    data=doptics[kcam][kp]['data'],
+                    units=doptics[kcam][kp]['units'],
+                    ref=tuple(ref),
+                )
 
-        # store in diag
+        # -----------------
+        # store vos in diag
+
+        pcross0 = doptics[kcam].get('pcross_x0', {}).get('key')
+        pcross1 = doptics[kcam].get('pcross_x1', {}).get('key')
+        phor0 = doptics[kcam].get('phor_x0', {}).get('key')
+        phor1 = doptics[kcam].get('phor_x1', {}).get('key')
+        dphi = doptics[kcam].get('dphi', {}).get('data')
+
+        if pcross0 is not None:
+            pcross = (pcross0, pcross1)
+            phor = (phor0, phor1)
+            dphi = np.array(dphi)
+        else:
+            pcross = None
+            phor = None
+            dphi = None
+
+        # -----------------
+        # store phor in diag
+
         coll._dobj['diagnostic'][din['key']]['doptics'][kcam]['dvos'] = {
-            'pcross': (doptics[kcam]['pcross_x0']['key'], doptics[kcam]['pcross_x1']['key']),
-            'phor': (doptics[kcam]['phor_x0']['key'], doptics[kcam]['phor_x1']['key']),
-            'dphi': np.array(doptics[kcam]['dphi']['data']),
+            'pcross': pcross,
+            'phor': phor,
+            'dphi': dphi,
         }
 
     return
