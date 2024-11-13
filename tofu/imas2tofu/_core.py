@@ -7,6 +7,7 @@ Default parameters and input checking
 
 """
 
+
 # Built-ins
 import sys
 import os
@@ -18,10 +19,12 @@ import inspect
 import warnings
 import traceback
 
+
 # Standard
 import numpy as np
 import matplotlib as mpl
 import datetime as dtm
+
 
 # tofu
 pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_imas2tofu_def.py')
@@ -50,12 +53,14 @@ except Exception as err:
     from . import _comp_toobjects as _comp_toobjects
     from . import _comp_mesh as _comp_mesh
 
+
 # imas
 try:
     import imas
     from imas import imasdef
 except Exception as err:
     raise Exception('imas not available')
+
 
 __all__ = [
     'check_units_IMASvsDSHORT',
@@ -68,6 +73,14 @@ __all__ = [
 # Root tofu path (for saving repo in IDS)
 _ROOT = os.path.abspath(os.path.dirname(__file__))
 _ROOT = _ROOT[:_ROOT.index('tofu')+len('tofu')]
+
+
+# Useful scalar types
+_NINT = (np.int32, np.int64)
+_INT = (int,) + _NINT
+_NFLOAT = (np.float32, np.float64)
+_FLOAT = (float,) + _NFLOAT
+_NUMB = _INT + _FLOAT
 
 
 #############################################################
@@ -360,7 +373,7 @@ class MultiIDSLoader(object):
             v = dids[k]
 
             # Check / format occ and deduce nocc
-            assert type(dids[k]['occ']) in [int, list]
+            assert isinstance(dids[k]['occ'], _INT + (list,)), type(dids[k]['occ'])
             dids[k]['occ'] = np.r_[dids[k]['occ']].astype(int)
             dids[k]['nocc'] = dids[k]['occ'].size
             v = dids[k]
@@ -936,7 +949,7 @@ class MultiIDSLoader(object):
 
         if lc[0]:
             # check type is int or numpy int
-            assert type(shot) == int, type(shot)
+            assert isinstance(shot, _INT), type(shot)
 
             params = dict(
                 shot=int(shot), run=run, refshot=refshot, refrun=refrun,
@@ -1203,7 +1216,7 @@ class MultiIDSLoader(object):
 
         if occ is None:
             occ = 0
-        lc = [type(occ) == int, hasattr(occ, '__iter__')]
+        lc = [isinstance(occ, _INT), hasattr(occ, '__iter__')]
         assert any(lc), occ
 
         if lc[0]:
@@ -1484,13 +1497,12 @@ class MultiIDSLoader(object):
         msg += "    - None: all channels used\n"
         msg += "    - int: times to use (index)\n"
         msg += "    - array of int: times to use (indices)"
-        lc = [type(indt) is None, type(indt) is int, hasattr(indt,'__iter__')]
+        lc = [type(indt) is None, isinstance(indt, _INT), hasattr(indt,'__iter__')]
         if not any(lc):
             raise Exception(msg)
         if lc[1] or lc[2]:
             indt = np.r_[indt].rave()
-            lc = [indt.dtype == int]
-            if not any(lc):
+            if indt.dtype not in _NINT:
                 raise Exception(msg)
             assert np.all(indt>=0)
         return indt
@@ -1673,18 +1685,26 @@ class MultiIDSLoader(object):
             dids=self._dids, didd=self._didd)
 
     def _get_t0(self, t0=None, ind=None):
+
         if ind is None:
             ind = False
-        assert ind is False or isinstance(ind, int)
+        assert ind is False or isinstance(ind, _INT)
+
         if t0 is None:
             t0 = _defimas2tofu._T0
+
         elif t0 != False:
-            if type(t0) in [int, float, np.float64]:
+
+            if isinstance(t0, _NUMB):
                 t0 = float(t0)
+
             elif type(t0) is str:
                 t0 = t0.strip()
-                c0 = (len(t0.split('.')) <= 2
-                      and all([ss.isdecimal() for ss in t0.split('.')]))
+                c0 = (
+                    len(t0.split('.')) <= 2
+                    and all([ss.isdecimal() for ss in t0.split('.')])
+                )
+
                 if 'pulse_schedule' in self._dids.keys():
                     events = self.get_data(
                         dsig={'pulse_schedule': ['events_names',
@@ -1714,6 +1734,7 @@ class MultiIDSLoader(object):
                     t0 = False
             else:
                 t0 = False
+
             if t0 is False:
                 msg = "t0 set to False because could not be interpreted !"
                 warnings.warn(msg)
@@ -2318,9 +2339,10 @@ class MultiIDSLoader(object):
 
         """
         names, times = None, None
-        c0 = (isinstance(tlim, list)
-              and all([type(tt) in [float, int, np.float64]
-                       for tt in tlim]))
+        c0 = (
+            isinstance(tlim, list)
+            and all([isinstance(tt, _NUMB) for tt in tlim])
+        )
         if not c0 and 'pulse_schedule' in self._dids.keys():
             try:
                 names, times = self.get_events(verb=False, returnas=tuple)
@@ -2328,11 +2350,13 @@ class MultiIDSLoader(object):
                 msg = (str(err)
                        + "\nEvents not loaded from ids pulse_schedule!")
                 warnings.warn(msg)
+
         if 'pulse_schedule' in self._dids.keys():
             idd = self._dids['pulse_schedule']['idd']
             Exp = self._didd[idd]['params']['database']
         else:
             Exp = None
+
         return _comp_toobjects.data_checkformat_tlim(t, tlim=tlim,
                                                      names=names, times=times,
                                                      indevent=indevent,

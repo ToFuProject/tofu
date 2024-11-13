@@ -48,7 +48,7 @@ _DOP = {
 }
 
 
-_LTYPES = [int, float, np.float64]
+_LTYPES = (int, float, np.integer, np.float64)
 
 
 _DCERTIFICATES_BUNDLE = {
@@ -221,7 +221,7 @@ def _get_totalurl(
         if v0 is None:
             dlamb[k0] = ''
         else:
-            c0 = type(v0) in _LTYPES
+            c0 = isinstance(v0, _LTYPES)
             if not c0:
                 msg = (
                     "Arg {} must be a float!\n".format(k0)

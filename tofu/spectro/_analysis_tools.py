@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 
-_LTYPES = [int, float, np.int_, np.float64]
+_LTYPES = (int, float, np.integer, np.float64)
 
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
 _WINTIT = f'tofu-{__version__}\treport issues / requests at {_GITHUB}'
@@ -127,7 +127,7 @@ def _get_localextrema_1d_check(
             width = 0.
         else:
             width = False
-    c0 = width is False or (type(width) in _LTYPES and width >= 0.)
+    c0 = width is False or (isinstance(width, _LTYPES) and width >= 0.)
     if not c0:
         msg = (
             "Arg width must be a float\n"
@@ -146,7 +146,7 @@ def _get_localextrema_1d_check(
 
     if rel_height is None:
         rel_height = 0.8
-    if not (type(rel_height) in _LTYPES and 0 <= rel_height <= 1.):
+    if not (isinstance(rel_height, _LTYPES) and 0 <= rel_height <= 1.):
         msg = (
             "Arg rel_height must be positive float in [0, 1]!\n"
             + "Provided: {}".format(rel_height)

@@ -33,6 +33,14 @@ except Exception as err:
     raise Exception('imas not available')
 
 
+# Useful scalar types
+_NINT = (np.int32, np.int64)
+_INT = (int,) + _NINT
+_NFLOAT = (np.float32, np.float64)
+_FLOAT = (float,) + _NFLOAT
+_NUMB = _INT + _FLOAT
+
+
 _DSHORT = _defimas2tofu._dshort
 _DCOMP = _defimas2tofu._dcomp
 _DDUNITS = imas.dd_units.DataDictionaryUnits()
@@ -255,7 +263,7 @@ def get_fsig(sig):
             ),
             (
                 stack and nsig > 1
-                and type(sig[0]) in [int, float, np.int_, np.float64, str]
+                and isinstance(sig[0], _NUMB + (str,))
             ),
             (
                 stack and nsig == 1
@@ -494,7 +502,7 @@ def _checkformat_getdata_indch(indch, nch):
 
     lc0 = [
         indch is None,
-        isinstance(indch, int),
+        isinstance(indch, _INT),
         hasattr(indch, '__iter__') and not isinstance(indch, str),
     ]
 
@@ -588,7 +596,7 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
         for ii in range(0, len(data)):
             c0 = (
                 isinstance(data[ii], np.ndarray)
-                and any([ss in data[ii].dtype.name for ss in ['int', 'float']])
+                and data.dtype in _NUMB
             )
             if c0 is True:
                 # Make sure to test only non-nan to avoid warning
