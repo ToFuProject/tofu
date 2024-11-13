@@ -935,7 +935,9 @@ class MultiIDSLoader(object):
             defidd = cls._defidd
 
         if lc[0]:
-            assert type(shot) in [int,np.int_]
+            # check type is int or numpy int
+            assert type(shot) == int, type(shot)
+
             params = dict(
                 shot=int(shot), run=run, refshot=refshot, refrun=refrun,
                 user=user, database=database, version=version,
@@ -1201,8 +1203,8 @@ class MultiIDSLoader(object):
 
         if occ is None:
             occ = 0
-        lc = [type(occ) in [int, np.int], hasattr(occ, '__iter__')]
-        assert any(lc)
+        lc = [type(occ) == int, hasattr(occ, '__iter__')]
+        assert any(lc), occ
 
         if lc[0]:
             occ = [np.r_[occ].astype(int) for _ in range(nids)]
@@ -1487,7 +1489,7 @@ class MultiIDSLoader(object):
             raise Exception(msg)
         if lc[1] or lc[2]:
             indt = np.r_[indt].rave()
-            lc = [indt.dtype == np.int]
+            lc = [indt.dtype == int]
             if not any(lc):
                 raise Exception(msg)
             assert np.all(indt>=0)
@@ -1677,7 +1679,7 @@ class MultiIDSLoader(object):
         if t0 is None:
             t0 = _defimas2tofu._T0
         elif t0 != False:
-            if type(t0) in [int, float, np.int_, np.float64]:
+            if type(t0) in [int, float, np.float64]:
                 t0 = float(t0)
             elif type(t0) is str:
                 t0 = t0.strip()
@@ -2317,7 +2319,7 @@ class MultiIDSLoader(object):
         """
         names, times = None, None
         c0 = (isinstance(tlim, list)
-              and all([type(tt) in [float, int, np.float64, np.int_]
+              and all([type(tt) in [float, int, np.float64]
                        for tt in tlim]))
         if not c0 and 'pulse_schedule' in self._dids.keys():
             try:
