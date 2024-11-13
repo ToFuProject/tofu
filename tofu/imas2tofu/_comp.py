@@ -248,12 +248,20 @@ def get_fsig(sig):
                     sig[jj] = sig[jj][ind[0]]
 
         # Conditions for stacking / sqeezing sig
-        lc = [(stack and nsig > 1 and isinstance(sig[0], np.ndarray)
-               and all([ss.shape == sig[0].shape for ss in sig[1:]])),
-              (stack and nsig > 1
-               and type(sig[0]) in [int, float, np.int_, np.float64, str]),
-              (stack and nsig == 1
-               and type(sig) in [np.ndarray, list, tuple])]
+        lc = [
+            (
+                stack and nsig > 1 and isinstance(sig[0], np.ndarray)
+                and all([ss.shape == sig[0].shape for ss in sig[1:]])
+            ),
+            (
+                stack and nsig > 1
+                and type(sig[0]) in [int, float, np.int_, np.float64, str]
+            ),
+            (
+                stack and nsig == 1
+                and type(sig) in [np.ndarray, list, tuple]
+            ),
+        ]
 
         if lc[0]:
             sig = np.atleast_1d(np.squeeze(np.stack(sig)))
@@ -447,30 +455,95 @@ def _checkformat_getdata_occ(occ, ids, dids=None):
 
 
 def _checkformat_getdata_indch(indch, nch):
-    msg = ("Arg indch must be a either:\n"
-           + "    - None: all channels used\n"
-           + "    - int: channel to use (index)\n"
-           + "    - array of int: channels to use (indices)\n"
-           + "    - array of bool: channels to use (indices)\n")
-    lc = [indch is None,
-          isinstance(indch, int),
-          hasattr(indch, '__iter__') and not isinstance(indch, str)]
-    if not any(lc):
+    """ Check index of channels, returns array of int indices
+
+    Parameters
+    ----------
+    indch : None / int / aiterable of int or bool
+        Input index of channels
+    nch : int
+        Max number of channels
+
+    Raises
+    ------
+    Exception
+        DESCRIPTION.
+
+    Returns
+    -------
+    indch : np.ndarray of int
+        Output indices
+
+    """
+
+    # -----------------------------
+    # Initialize error msg
+    # -----------------------------
+
+    msg = (
+        "Arg indch must be a either:\n"
+        "\t- None: all channels used\n"
+        "\t- int: channel to use (index)\n"
+        "\t- array of int: channels to use (indices)\n"
+        "\t- array of bool: channels to use (indices)\n"
+    )
+
+    # -----------------------------
+    # List of acceptable conditions
+    # -----------------------------
+
+    lc0 = [
+        indch is None,
+        isinstance(indch, int),
+        hasattr(indch, '__iter__') and not isinstance(indch, str),
+    ]
+
+    if not any(lc0):
         raise Exception(msg)
-    if lc[0]:
+
+    # ------------------------
+    # None
+    # ------------------------
+
+    if lc0[0]:
+        # defaul to all indices
         indch = np.arange(0, nch)
-    elif lc[1] or lc[2]:
+
+    # ------------------------
+    # integer
+    # ------------------------
+
+    elif lc0[1]:
+        # make numpy int array
         indch = np.r_[indch].ravel()
-        lc = [indch.dtype == np.int, indch.dtype == np.bool]
-        if not any(lc):
+
+    # ------------------------
+    # iterable: int or bool
+    # ------------------------
+
+    elif lc0[2]:
+        # make numpy array
+        indch = np.r_[indch].ravel()
+
+        # get dtype
+        lc1 = ['int' in indch.dtype.name, 'bool' in indch.dtype.name]
+
+        if not any(lc1):
             raise Exception(msg)
-        if lc[1]:
+
+        if lc1[1]:
+            # convert from bool to int
             indch = np.nonzero(indch)[0]
+
+        # safety check
         if not np.all((indch >= 0) & (indch < nch)):
-            msg = ("Some channel indices are out of scope!\n"
-                   + "\t- nch: {}\n".format(nch)
-                   + "\t- indch: {}".format(indch))
+            msg = (
+                "Some channel indices are out of scope!\n"
+                f"\t- nch: {nch}\n"
+                f"\t- indch: {indch}"
+            )
             raise Exception(msg)
+
     return indch
 
 
@@ -513,8 +586,10 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     # All values larger than 1e30 are default imas values => nan
     if nan is True:
         for ii in range(0, len(data)):
-            c0 = (isinstance(data[ii], np.ndarray)
-                  and data[ii].dtype in [np.float64, np.int_])
+            c0 = (
+                isinstance(data[ii], np.ndarray)
+                and any([ss in data[ii].dtype.name for ss in ['int', 'float']])
+            )
             if c0 is True:
                 # Make sure to test only non-nan to avoid warning
                 ind = (~np.isnan(data[ii])).nonzero()
