@@ -76,7 +76,7 @@ def compute_los_angles(
         cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=key_cam)
 
         # check overwrite
-        if klos in coll.dobj['rays'].keys():
+        if klos in coll.dobj.get('rays', {}).keys():
             if overwrite is True:
                 coll.remove_rays(klos)
             else:
