@@ -19,6 +19,9 @@ _MSG0 = ("The input file structure is not as expected !\n"
          + "  => Maybe corrupted data ?\n")
 
 
+_LTYPES = (int, float, np.integer, np.float64)
+
+
 # ####################################################
 #               Utility
 # ####################################################
@@ -34,8 +37,7 @@ def _get_indtlim(t, tlim=None, shot=None, out=bool):
         tlim = [-np.inf, np.inf]
     else:
         assert len(tlim) == 2
-        ls = [int, float, np.int64, np.float64]     # , str
-        assert all([tt is None or type(tt) in ls for tt in tlim])
+        assert all([tt is None or isinstance(tt, _LTYPES) for tt in tlim])
         tlim = list(tlim)
         for (ii, sgn) in [(0, -1.), (1, 1.)]:
             if tlim[ii] is None:
