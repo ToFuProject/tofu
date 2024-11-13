@@ -39,6 +39,8 @@ def compute_los_angles(
     # for vos based on los
     res=None,
     compute_vos_from_los=None,
+    # overwrite
+    overwrite=None,
     **kwdargs,
 ):
 
@@ -71,8 +73,18 @@ def compute_los_angles(
         # ------------
         # add los
 
-
         cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=key_cam)
+
+        # check overwrite
+        if klos in coll.dobj['rays'].keys():
+            if overwrite is True:
+                coll.remove_rays(klos)
+            else:
+                msg = (
+                    f"Rays '{klos}' already exists!\n"
+                    "Use overwrite=True to force overwrite!\n"
+                )
+                raise Exception(msg)
 
         coll.add_rays(
             key=klos,
@@ -110,6 +122,7 @@ def compute_los_angles(
                 v0=v0,
                 config=config,
                 res=res,
+                overwrite=overwrite,
             )
 
         # ----------------------------------------
@@ -125,6 +138,7 @@ def compute_los_angles(
                 is2d=is2d,
                 ref=ref,
                 i0=ii,
+                overwrite=overwrite,
             )
 
 
@@ -177,6 +191,7 @@ def _vos_from_los(
     v0=None,
     config=None,
     res=None,
+    overwrite=None,
 ):
 
     # --------------
@@ -242,7 +257,7 @@ def _vos_from_los(
             lpoly_hor.append(None)
             continue
 
-        sli = tuple(list(ind) + [slice(None)])
+        sli = ind + (slice(None),)
         if pinhole is False:
             iref = v0['iref'][ind]
 
@@ -319,8 +334,8 @@ def _vos_from_los(
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
         if phimax - phimin > np.pi:
             phimin, phimax = phimax, phimin + 2.*np.pi
-        dphi[0, ind] = phimin
-        dphi[1, ind] = phimax
+        dphi[(0,) + ind] = phimin
+        dphi[(1,) + ind] = phimax
 
         # -----------
         # poly_cross
@@ -366,7 +381,7 @@ def _vos_from_los(
         if not v0['iok'][ind]:
             continue
 
-        sli = tuple([slice(None)] + list(ind))
+        sli = (slice(None),) + ind
 
         # --------
         # cross
@@ -431,6 +446,7 @@ def _vos_from_los(
         phor0=phor0,
         phor1=phor1,
         dphi=dphi,
+        overwrite=overwrite,
     )
 
 
@@ -443,6 +459,7 @@ def _vos_from_los_store(
     phor0=None,
     phor1=None,
     dphi=None,
+    overwrite=None,
 ):
 
     # --------
@@ -529,6 +546,30 @@ def _vos_from_los_store(
     # store
 
     # update
+    for k0 in dref.keys():
+        if k0 in coll.dref.keys():
+            if overwrite is True:
+                coll.remove_ref(k0, propagate=False)
+            else:
+                msg = (
+                    "Storing vos from los for diag '{key}', camera '{keycam}':\n"
+                    f"\t- ref '{k0}' already exists!\n"
+                    "\t- Use overwrite=True to force overwriting\n"
+                )
+                raise Exception(msg)
+
+    for k0 in ddata.keys():
+        if k0 in coll.ddata.keys():
+            if overwrite is True:
+                coll.remove_data(k0, propagate=False)
+            else:
+                msg = (
+                    "Storing vos from los for diag '{key}', camera '{keycam}':\n"
+                    f"\t- data '{k0}' already exists!\n"
+                    "\t- Use overwrite=True to force overwriting\n"
+                )
+                raise Exception(msg)
+
     coll.update(dref=dref, ddata=ddata)
 
     # add pcross
@@ -665,6 +706,7 @@ def _angle_spectro(
     is2d=None,
     ref=None,
     i0=None,
+    overwrite=None,
 ):
 
     # ------------
@@ -767,6 +809,20 @@ def _angle_spectro(
             'units': 'rad',
         },
     }
+
+    # update
+    for k0 in ddata.keys():
+        if k0 in coll.ddata.keys():
+            if overwrite is True:
+                coll.remove_data(k0, propagate=False)
+            else:
+                msg = (
+                    "Storing vos from los for diag '{key}', camera '{keycam}':\n"
+                    f"\t- data '{k0}' already exists!\n"
+                    "\t- Use overwrite=True to force overwriting\n"
+                )
+                raise Exception(msg)
+
     coll.update(ddata=ddata)
 
     coll._dobj['diagnostic'][key]['doptics'][key_cam]['amin'] = kamin
