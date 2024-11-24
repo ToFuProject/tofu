@@ -17,12 +17,17 @@ from ..geom import _comp
 
 def _start_vect(ax=None, ay=None, az=None, name=None):
     dk = {
-        f'x': ax,
-        f'y': ay,
-        f'z': az,
+        'x': ax,
+        'y': ay,
+        'z': az,
     }
     sh = None
     for k0, v0 in dk.items():
+
+        if v0 is None:
+            msg = f"Arg '{name}_{k0}' cannot be None!"
+            raise Exception(msg)
+
         dk[k0] = np.atleast_1d(v0).astype(float)
         if sh is None:
             sh = dk[k0].shape
@@ -93,7 +98,7 @@ def _check_inputs(
             raise Exception(msg)
 
         if np.any(lamb <= 0.):
-            msg = "ARg lamb must be all positive!"
+            msg = "Arg lamb must be all positive!"
             raise Exception(msg)
 
         shapes.append(lamb.shape)
@@ -161,6 +166,7 @@ def _check_inputs(
                 pts_z = pts_z.reshape(sh)
             else:
                 shref = pts_x.shape[1:]
+                reflections_nb = pts_x.shape[0] - 1
 
         else:
             sh = tuple(np.r_[1, shref])
@@ -774,6 +780,18 @@ def _make_dict(
     shape = pts_x.shape
     nseg = shape[0]
     nextra = len(lspectro) if diag is not None else 0
+    ntot = reflections_nb + 1 + nextra
+
+    if nseg != ntot:
+        msg = (
+            f"Trying to add_rays('{key}')\n"
+            "Mismatch between number of segments and pts_x.shape!\n"
+            f"\t- pts_x.shape[0] = {pts_x.shape[0]}\n"
+            f"\t- reflections_nb + 1 + len(lspectro) = {ntot}\n"
+        )
+        raise Exception(msg)
+
+
     assert nseg == reflections_nb + 1 + nextra
 
     # key_nseg
@@ -887,6 +905,7 @@ def _make_dict(
         })
 
     # alpha
+    kalpha = None
     if alpha is not None:
         kalpha = f'{key}_alpha'
         ddata.update({
@@ -901,6 +920,7 @@ def _make_dict(
         })
 
     # dalpha
+    kdalpha = None
     if dalpha is not None:
         kdalpha = f'{key}_dalpha'
         ddata.update({
@@ -915,6 +935,7 @@ def _make_dict(
         })
 
     # dbeta
+    kdbeta = None
     if dbeta is not None:
         kdbeta = f'{key}_dbeta'
         ddata.update({
