@@ -6,7 +6,6 @@ import datastock as ds
 
 
 from ..geom import CamLOS1D
-from ..geom import _comp
 
 
 # ################################################################
