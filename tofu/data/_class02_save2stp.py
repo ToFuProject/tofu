@@ -380,6 +380,8 @@ def _check(
     if not pfe_save.endswith('.stp'):
         pfe_save = f"{pfe_save}.stp"
 
+    pfe_save = os.path.abspath(pfe_save)
+
     # ----------------
     # overwrite
     # ----------------
