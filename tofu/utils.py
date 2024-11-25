@@ -32,6 +32,14 @@ _NSAVETYP = len(_SAVETYP)
 _LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts', 'config']
 
 
+# Useful scalar types
+_NINT = (np.int32, np.int64)
+_INT = (int,) + _NINT
+_NFLOAT = (np.float32, np.float64)
+_FLOAT = (float,) + _NFLOAT
+_NUMB = _INT + _FLOAT
+
+
 ###############################################
 #           File searching
 ###############################################
@@ -1596,8 +1604,8 @@ def _check_InputsGeneric(ld, tab=0):
     bstr1 = "\n"+"    "*(tab+1) + "Expected: "
     bstr2 = "\n"+"    "*(tab+1) + "Provided: "
 
-    ltypes_f2i = [int, float, np.integer, np.floating]
-    ltypes_i2f = [int, float, np.integer, np.floating]
+    ltypes_f2i = _NUMB
+    ltypes_i2f = _NUMB
 
     # Check
     err, msg = False, ''
@@ -2137,7 +2145,7 @@ class ToFuObjectBase(object):
                         if not eqk:
                             m0 = str(d0[k])
                             m1 = str(d1[k])
-                    elif type(d0[k]) in [int,float,np.int64,np.float64]:
+                    elif isinstance(d0[k], _NUMB):
                         eqk = np.allclose([d0[k]],[d1[k]], equal_nan=True)
                         if not eqk:
                             m0 = str(d0[k])
@@ -2356,7 +2364,7 @@ class ToFuObject(ToFuObjectBase):
     @staticmethod
     def _checkformat_scalar(ss, name='ss', extramsg=''):
         if ss is not None:
-            if type(ss) not in [int, float, np.int_, np.float64]:
+            if not isinstance(ss, _NUMB):
                 msg = ("Please provide {} as a float:\n".format(name)
                        + "\t- provided: {} ({})\n".format(ss, type(ss))
                        + extramsg)
@@ -3146,7 +3154,7 @@ class DChans(object):
             return ind
 
         lt0 = [list, tuple, np.ndarray]
-        lt1 = [str, int, float, np.int64, np.float64, bool]
+        lt1 = _NUMB + (bool,)
         C0 = log in ['any', 'all']
         C1 = type(log) in lt0 and all([ll in ['any', 'all'] for ll in log])
         assert C0 or C1, "Arg out is not valid ('any','all' or an iterable) !"
@@ -3510,7 +3518,7 @@ class KeyHandler_mpl(object):
             c2 = all([s in v.keys() for s in ls])
             if not (c0 and c1 and c2):
                 raise Exception(cls._msgdobj)
-            assert type(v['nMax']) in [int,np.int64]
+            assert type(v['nMax']) in _INT
             assert type(v['key']) is str
             assert v['defax'] in dax.keys()
         lg = sorted(list(dgroup.keys()))

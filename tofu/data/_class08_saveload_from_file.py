@@ -118,6 +118,7 @@ def save(
 def load(
     pfe=None,
     coll=None,
+    returnas=None,
 ):
 
     # ----------------
@@ -138,6 +139,7 @@ def load(
             coll=coll,
             pfe=pfe,
             fname=fname,
+            returnas=returnas,
         )
 
 

@@ -47,6 +47,7 @@ def compute_etendue_los(
     verb=None,
     plot=None,
     store=None,
+    overwrite=None,
     debug=None,
 ):
 
@@ -69,6 +70,7 @@ def compute_etendue_los(
         verb,
         plot,
         store,
+        overwrite,
     ) = _check(
         coll=coll,
         key=key,
@@ -81,6 +83,7 @@ def compute_etendue_los(
         verb=verb,
         plot=plot,
         store=store,
+        overwrite=overwrite,
     )
 
     # -----------
@@ -313,8 +316,18 @@ def compute_etendue_los(
                 },
             }
 
-            coll.update(ddata=ddata)
+            # check vs overwrite
+            if ketendue in coll.ddata.keys():
+                if overwrite is True:
+                    coll.remove_data(ketendue, propagate=False)
+                else:
+                    msg = (
+                        "data '{ketendue}' already exists!\n"
+                        "Use overwrite=True to force overwriting\n"
+                    )
+                    raise Exception(msg)
 
+            coll.update(ddata=ddata)
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue'] = ketendue
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etend_type'] = etend_type
 
@@ -336,10 +349,21 @@ def compute_etendue_los(
                     },
                 }
 
+                # check vs overwrite
+                if ketendue in coll.ddata.keys():
+                    if overwrite is True:
+                        coll.remove_data(ketendue, propagate=False)
+                    else:
+                        msg = (
+                            f"data '{ketendue}' already exists!\n"
+                            "Use overwrite=True to force overwriting\n"
+                        )
+                        raise Exception(msg)
+
                 coll.update(ddata=ddata)
                 coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue0'] = ketendue
 
-    return dcompute, store
+    return dcompute, store, overwrite
 
 
 # ################################################################
@@ -360,6 +384,7 @@ def _check(
     verb=None,
     plot=None,
     store=None,
+    overwrite=None,
 ):
 
     # --------
@@ -528,6 +553,16 @@ def _check(
         allowed=lok,
     )
 
+    # -----------
+    # overwrite
+    # -----------
+
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
+        default=False,
+    )
+
     return (
         key,
         spectro,
@@ -543,6 +578,7 @@ def _check(
         verb,
         plot,
         store,
+        overwrite,
     )
 
 

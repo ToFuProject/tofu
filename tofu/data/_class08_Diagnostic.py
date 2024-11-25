@@ -241,6 +241,7 @@ class Diagnostic(Previous):
         verb=None,
         plot=None,
         store=None,
+        overwrite=None,
         debug=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
@@ -252,7 +253,7 @@ class Diagnostic(Previous):
         """
 
         # prepare computation
-        dcompute, store = _etendue_los.compute_etendue_los(
+        dcompute, store, overwrite = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
             # etendue
@@ -273,6 +274,7 @@ class Diagnostic(Previous):
             verb=verb,
             plot=plot,
             store=store,
+            overwrite=overwrite,
             debug=debug,
         )
 
@@ -293,6 +295,7 @@ class Diagnostic(Previous):
                 key_nseg=key_nseg,
                 dcompute=dcompute,
                 compute_vos_from_los=compute_vos_from_los,
+                overwrite=overwrite,
             )
 
     def compute_diagnostic_solidangle_from_plane(
@@ -1478,22 +1481,26 @@ class Diagnostic(Previous):
     def add_diagnostic_from_file(
         self,
         pfe=None,
+        returnas=False,
     ):
         """ Adds a diagnostic instance (and necessary optics) from json file
 
         Parameters
         ----------
-        pfe : str
+        pfe :     str
             path/file.ext to desired file
+        returnas: bool
+            whether to return the Collection instance
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        coll:    Collection instance
+            optional
 
         """
 
         return _saveload_from_file.load(
             coll=self,
             pfe=pfe,
+            returnas=returnas,
         )

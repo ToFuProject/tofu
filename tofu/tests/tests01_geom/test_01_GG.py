@@ -13,6 +13,14 @@ from .testing_tools import compute_ves_norm
 VerbHead = 'tofu.geom.test_01_GG'
 
 
+# Useful scalar types
+_NINT = (np.int32, np.int64)
+_INT = (int,) + _NINT
+_NFLOAT = (np.float32, np.float64)
+_FLOAT = (float,) + _NFLOAT
+_NUMB = _INT + _FLOAT
+
+
 #######################################################
 #
 #     Setup and Teardown
