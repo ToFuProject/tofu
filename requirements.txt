@@ -11,5 +11,5 @@ svg.path
 Polygon3
 
 ######## Requirements with Version Specifier ########
-spectrally>=0.0.6
+spectrally>=0.0.7
 Cython>=0.26
