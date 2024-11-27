@@ -322,7 +322,7 @@ def compute_etendue_los(
                     coll.remove_data(ketendue, propagate=False)
                 else:
                     msg = (
-                        "data '{ketendue}' already exists!\n"
+                        f"data '{ketendue}' already exists!\n"
                         "Use overwrite=True to force overwriting\n"
                     )
                     raise Exception(msg)
