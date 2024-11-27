@@ -80,29 +80,43 @@ def _vos(
     # ----------------
 
     if user_limits is not None:
-        xx, yy, zz, dind, ir, iz, iphi, dV = _vos_points(
-            # polygons
-            pcross0=user_limits['pcross_user'][0, :],
-            pcross1=user_limits['pcross_user'][1, :],
-            phor0=user_limits['phor_user'][0, :],
-            phor1=user_limits['phor_user'][1, :],
-            margin_poly=margin_poly,
-            dphi=np.r_[-np.pi, np.pi],
-            # sampling
-            dsamp=dsamp,
-            x0f=x0f,
-            x1f=x1f,
-            x0u=x0u,
-            x1u=x1u,
-            res=res_phi,
-            dx0=dx0,
-            dx1=dx1,
-            # shape
-            sh=sh,
-        )
 
-        shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
-        shape = np.r_[0, shape]
+        if user_limits.get('pcross_user') is not None:
+            xx, yy, zz, dind, ir, iz, iphi, dV = _vos_points(
+                # polygons
+                pcross0=user_limits['pcross_user'][0, :],
+                pcross1=user_limits['pcross_user'][1, :],
+                phor0=user_limits['phor_user'][0, :],
+                phor1=user_limits['phor_user'][1, :],
+                margin_poly=margin_poly,
+                dphi=np.r_[-np.pi, np.pi],
+                # sampling
+                dsamp=dsamp,
+                x0f=x0f,
+                x1f=x1f,
+                x0u=x0u,
+                x1u=x1u,
+                res=res_phi,
+                dx0=dx0,
+                dx1=dx1,
+                # shape
+                sh=sh,
+            )
+
+            shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
+            shape = np.r_[0, shape]
+
+        elif user_limits.get('Dphi') is not None:
+            # get temporary vos
+            kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
+            shape = coll.ddata[kpc0]['data'].shape
+            pcross0 = coll.ddata[kpc0]['data']
+            pcross1 = coll.ddata[kpc1]['data']
+
+            # phor
+            phor0 = user_limits['phor0']
+            phor1 = user_limits['phor1']
+            dphi = user_limits['dphi']
 
     else:
 
@@ -111,6 +125,8 @@ def _vos(
         shape = coll.ddata[kpc0]['data'].shape
         pcross0 = coll.ddata[kpc0]['data']
         pcross1 = coll.ddata[kpc1]['data']
+
+        # phor
         kph0, kph1 = doptics[key_cam]['dvos']['phor']
         phor0 = coll.ddata[kph0]['data']
         phor1 = coll.ddata[kph1]['data']
@@ -185,7 +201,7 @@ def _vos(
             t000 = dtm.datetime.now()     # DB
 
         # get points
-        if user_limits is None:
+        if user_limits is None or user_limits.get('pcross_user') is None:
 
             if np.isnan(pcross0[sli_poly0]):
                 pts_cross = np.zeros((0,), dtype=float)
