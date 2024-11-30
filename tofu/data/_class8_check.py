@@ -370,7 +370,6 @@ def _check_doptics_basics(
             'pinhole': bool(pinhole),
             'paths': doptics[k0]['paths'],
             'los': None,
-            'vos': None,
             'etendue': None,
             'etend_type': None,
             'amin': None,
