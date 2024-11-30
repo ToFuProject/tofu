@@ -9,6 +9,7 @@ import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
 from matplotlib.path import Path
+import matplotlib.pyplot as plt
 # import datastock as ds
 
 
@@ -52,7 +53,7 @@ def _vos(
     visibility=None,
     verb=None,
     # debug
-    debug=False,
+    debug=None,
     # timing
     timing=None,
     dt11=None,
@@ -114,9 +115,9 @@ def _vos(
             pcross1 = coll.ddata[kpc1]['data']
 
             # phor
-            phor0 = user_limits['phor0']
-            phor1 = user_limits['phor1']
-            dphi = user_limits['dphi']
+            phor0 = user_limits['phor0'][key_cam]
+            phor1 = user_limits['phor1'][key_cam]
+            dphi = user_limits['dphi'][key_cam]
 
     else:
 
@@ -188,6 +189,8 @@ def _vos(
     linds = [range(ss) for ss in shape_cam]
     for ii, ind in enumerate(itt.product(*linds)):
 
+        debugi = debug if isinstance(debug, bool) else debug(ind)
+
         # -----------------
         # slices
 
@@ -234,6 +237,10 @@ def _vos(
                 dx1=dx1,
                 # shape
                 sh=sh,
+                # debug
+                debug=debugi,
+                ii=ii,
+                ind=ind,
             )
 
         if xx is None:
@@ -381,17 +388,27 @@ def _vos(
                 vz = vectz[0, indsa]
 
         # ----- DEBUG --------
-        if debug:
+        if debugi:
             import matplotlib.pyplot as plt
             fig = plt.figure()
+            fig.suptitle(f"pixel ind = {ind}", size=14, fontweight='bold')
             ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+            ax.set_xlabel("phi (deg)", size=12)
+            ax.set_ylabel("solid angle (sr)", size=12)
             # ipos = out[0, :] > 0
             # ax.scatter(
             #     xx[ipos], yy[ipos],
             #     c=out[0, ipos], s=6, marker='o', vmin=0,
             # )
             # ax.plot(xx[~ipos], yy[~ipos], c='r', marker='x')
-            ax.scatter(np.arctan2(yy, xx), out[0, :], c=np.hypot(xx, yy), s=6, marker='.')
+            ax.scatter(
+                np.arctan2(yy, xx) * 180/np.pi,
+                out[0, :],
+                c=np.hypot(xx, yy),
+                s=6,
+                marker='.',
+            )
+            raise Exception()
         # ----- END DEBUG ----
 
         # timing
@@ -792,6 +809,10 @@ def _vos_points(
     dx1=None,
     # shape
     sh=None,
+    # debug
+    debug=None,
+    ii=None,
+    ind=None,
 ):
 
     # ---------------------
@@ -816,13 +837,13 @@ def _vos_points(
     # ------------
 
     # indices
-    ind = (
+    index = (
         dsamp['ind']['data']
         & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
     )
 
     # R and Z indices
-    ir, iz = ind.nonzero()
+    ir, iz = index.nonzero()
     iru = np.unique(ir)
 
     # ---------------------------
@@ -926,6 +947,29 @@ def _vos_points(
         }
         for ii, i0 in enumerate(iru)
     }
+
+    # ----------------
+    # debug
+    # ----------------
+
+    if debug is True:
+
+        fig = plt.figure(figsize=(14, 8))
+        fig.suptitle(f"pixel ind = {ind}", size=14, fontweight='bold')
+
+        ax0 = fig.add_subplot(1, 2, 1, aspect='equal')
+        ax0.set_xlabel("R (m)", size=12, fontweight='bold')
+        ax0.set_ylabel("Z (m)", size=12, fontweight='bold')
+
+        ax1 = fig.add_subplot(1, 2, 2, aspect='equal')
+        ax1.set_xlabel("X (m)", size=12, fontweight='bold')
+        ax1.set_ylabel("Y (m)", size=12, fontweight='bold')
+
+        ax0.fill(pc0, pc1, fc=(0.5, 0.5, 0.5, 0.5))
+        ax1.fill(ph0, ph1, fc=(0.5, 0.5, 0.5, 0.5))
+
+        ax0.plot(np.hypot(xx, yy), zz, '.')
+        ax1.plot(xx, yy, '.')
 
     return xx, yy, zz, dind, ir[indrz], iz[indrz], iphi, dV
 
