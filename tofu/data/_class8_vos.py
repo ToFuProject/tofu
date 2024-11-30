@@ -493,11 +493,17 @@ def _check(
     # -----------
     # debug
 
-    debug = ds._generic_check._check_var(
-        debug, 'debug',
-        types=bool,
-        default=False,
-    )
+    if debug is None:
+        debug = False
+
+    if callable(debug):
+        pass
+    else:
+        debug = ds._generic_check._check_var(
+            debug, 'debug',
+            types=bool,
+            default=False,
+        )
 
     # -----------
     # store
@@ -685,14 +691,46 @@ def _get_user_limits(
     elif user_limits.get('Dphi') is not None:
 
         # Give phor_user the proper shape like phor TBF
-        kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
-        shape = coll.ddata[kpc0]['data'].shape
-        pcross0 = coll.ddata[kpc0]['data']
-        pcross1 = coll.ddata[kpc1]['data']
-        dphi = np.array([
-            np.full(shape, user_limits['Dphi'][0]),
-            np.full(shape, user_limits['Dphi'][1]),
-        ])
+        user_limits['phor0'] = {}
+        user_limits['phor1'] = {}
+        user_limits['dphi'] = {}
+
+        for kcam in key_cam:
+            kpc0, kpc1 = doptics[kcam]['dvos']['pcross']
+
+            shape = coll.ddata[kpc0]['data'].shape
+            pcross0 = coll.ddata[kpc0]['data']
+            pcross1 = coll.ddata[kpc1]['data']
+
+            R = np.hypot(pcross0, pcross1)
+            Rmin = np.min(R, axis=0)
+            Rmax = np.max(R, axis=0)
+
+            phi = phi.reshape(tuple([phi.size] + [1]*Rmin.ndim))
+            phor0 = np.concatenate(
+                (
+                    Rmin[None, ...] * np.cos(phi),
+                    Rmax[None, ...] * np.cos(phi[::-1]),
+                ),
+                axis=0,
+            )
+
+            phor1 = np.concatenate(
+                (
+                    Rmin[None, ...] * np.sin(phi),
+                    Rmax[None, ...] * np.sin(phi[::-1]),
+                ),
+                axis=0,
+            )
+
+            user_limits['phor0'][kcam] = phor0
+            user_limits['phor1'][kcam] = phor1
+
+            shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+            user_limits['dphi'][kcam] = np.array([
+                np.full(shape_cam, user_limits['Dphi'][0]),
+                np.full(shape_cam, user_limits['Dphi'][1]),
+            ])
 
     return user_limits
 
