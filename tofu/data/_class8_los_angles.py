@@ -247,7 +247,7 @@ def _vos_from_los(
     lpoly_hor = []
 
     shape0 = v0['cx'].shape
-    dphi = np.full(tuple([2] + list(shape0)), np.nan)
+    dphi = np.full(((2,) + shape0), np.nan)
     linds = [range(ss) for ss in shape0]
 
     for ii, ind in enumerate(itt.product(*linds)):
@@ -261,12 +261,12 @@ def _vos_from_los(
         if pinhole is False:
             iref = v0['iref'][ind]
 
-        # if not par:
-        #     e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
-        #     e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
-        #     dx = out0 * e0[0] + out1 * e1[0]
-        #     dy = out0 * e0[1] + out1 * e1[1]
-        #     dz = out0 * e0[2] + out1 * e1[2]
+        if not par:
+            e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
+            e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
+            dx = out0 * e0[0] + out1 * e1[0]
+            dy = out0 * e0[1] + out1 * e1[1]
+            dz = out0 * e0[2] + out1 * e1[2]
 
         # -----------------------
         # get start / end points
@@ -277,9 +277,9 @@ def _vos_from_los(
             cx=v0['cx'][ind],
             cy=v0['cy'][ind],
             cz=v0['cz'][ind],
-            dx=np.r_[0],
-            dy=np.r_[0],
-            dz=np.r_[0],
+            dx=dx,  # np.r_[0],
+            dy=dy,  # np.r_[0],
+            dz=dz,  # np.r_[0],
             # end points
             x0=np.r_[v0['x0'][sli], v0['cents0'][ind]],
             x1=np.r_[v0['x1'][sli], v0['cents1'][ind]],

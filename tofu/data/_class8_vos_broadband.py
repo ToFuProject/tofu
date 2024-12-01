@@ -9,6 +9,7 @@ import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
 from matplotlib.path import Path
+import matplotlib.pyplot as plt
 # import datastock as ds
 
 
@@ -52,7 +53,7 @@ def _vos(
     visibility=None,
     verb=None,
     # debug
-    debug=False,
+    debug=None,
     # timing
     timing=None,
     dt11=None,
@@ -80,29 +81,43 @@ def _vos(
     # ----------------
 
     if user_limits is not None:
-        xx, yy, zz, dind, ir, iz, iphi, dV = _vos_points(
-            # polygons
-            pcross0=user_limits['pcross_user'][0, :],
-            pcross1=user_limits['pcross_user'][1, :],
-            phor0=user_limits['phor_user'][0, :],
-            phor1=user_limits['phor_user'][1, :],
-            margin_poly=margin_poly,
-            dphi=np.r_[-np.pi, np.pi],
-            # sampling
-            dsamp=dsamp,
-            x0f=x0f,
-            x1f=x1f,
-            x0u=x0u,
-            x1u=x1u,
-            res=res_phi,
-            dx0=dx0,
-            dx1=dx1,
-            # shape
-            sh=sh,
-        )
 
-        shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
-        shape = np.r_[0, shape]
+        if user_limits.get('pcross_user') is not None:
+            xx, yy, zz, dind, ir, iz, iphi, dV = _vos_points(
+                # polygons
+                pcross0=user_limits['pcross_user'][0, :],
+                pcross1=user_limits['pcross_user'][1, :],
+                phor0=user_limits['phor_user'][0, :],
+                phor1=user_limits['phor_user'][1, :],
+                margin_poly=margin_poly,
+                dphi=np.r_[-np.pi, np.pi],
+                # sampling
+                dsamp=dsamp,
+                x0f=x0f,
+                x1f=x1f,
+                x0u=x0u,
+                x1u=x1u,
+                res=res_phi,
+                dx0=dx0,
+                dx1=dx1,
+                # shape
+                sh=sh,
+            )
+
+            shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
+            shape = np.r_[0, shape]
+
+        elif user_limits.get('Dphi') is not None:
+            # get temporary vos
+            kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
+            shape = coll.ddata[kpc0]['data'].shape
+            pcross0 = coll.ddata[kpc0]['data']
+            pcross1 = coll.ddata[kpc1]['data']
+
+            # phor
+            phor0 = user_limits['phor0'][key_cam]
+            phor1 = user_limits['phor1'][key_cam]
+            dphi = user_limits['dphi'][key_cam]
 
     else:
 
@@ -111,6 +126,8 @@ def _vos(
         shape = coll.ddata[kpc0]['data'].shape
         pcross0 = coll.ddata[kpc0]['data']
         pcross1 = coll.ddata[kpc1]['data']
+
+        # phor
         kph0, kph1 = doptics[key_cam]['dvos']['phor']
         phor0 = coll.ddata[kph0]['data']
         phor1 = coll.ddata[kph1]['data']
@@ -172,6 +189,8 @@ def _vos(
     linds = [range(ss) for ss in shape_cam]
     for ii, ind in enumerate(itt.product(*linds)):
 
+        debugi = debug if isinstance(debug, bool) else debug(ind)
+
         # -----------------
         # slices
 
@@ -185,7 +204,7 @@ def _vos(
             t000 = dtm.datetime.now()     # DB
 
         # get points
-        if user_limits is None:
+        if user_limits is None or user_limits.get('pcross_user') is None:
 
             if np.isnan(pcross0[sli_poly0]):
                 pts_cross = np.zeros((0,), dtype=float)
@@ -218,6 +237,10 @@ def _vos(
                 dx1=dx1,
                 # shape
                 sh=sh,
+                # debug
+                debug=debugi,
+                ii=ii,
+                ind=ind,
             )
 
         if xx is None:
@@ -365,17 +388,27 @@ def _vos(
                 vz = vectz[0, indsa]
 
         # ----- DEBUG --------
-        if debug:
+        if debugi:
             import matplotlib.pyplot as plt
             fig = plt.figure()
+            fig.suptitle(f"pixel ind = {ind}", size=14, fontweight='bold')
             ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+            ax.set_xlabel("phi (deg)", size=12)
+            ax.set_ylabel("solid angle (sr)", size=12)
             # ipos = out[0, :] > 0
             # ax.scatter(
             #     xx[ipos], yy[ipos],
             #     c=out[0, ipos], s=6, marker='o', vmin=0,
             # )
             # ax.plot(xx[~ipos], yy[~ipos], c='r', marker='x')
-            ax.scatter(np.arctan2(yy, xx), out[0, :], c=np.hypot(xx, yy), s=6, marker='.')
+            ax.scatter(
+                np.arctan2(yy, xx) * 180/np.pi,
+                out[0, :],
+                c=np.hypot(xx, yy),
+                s=6,
+                marker='.',
+            )
+            raise Exception()
         # ----- END DEBUG ----
 
         # timing
@@ -776,6 +809,10 @@ def _vos_points(
     dx1=None,
     # shape
     sh=None,
+    # debug
+    debug=None,
+    ii=None,
+    ind=None,
 ):
 
     # ---------------------
@@ -800,13 +837,13 @@ def _vos_points(
     # ------------
 
     # indices
-    ind = (
+    index = (
         dsamp['ind']['data']
         & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
     )
 
     # R and Z indices
-    ir, iz = ind.nonzero()
+    ir, iz = index.nonzero()
     iru = np.unique(ir)
 
     # ---------------------------
@@ -910,6 +947,29 @@ def _vos_points(
         }
         for ii, i0 in enumerate(iru)
     }
+
+    # ----------------
+    # debug
+    # ----------------
+
+    if debug is True:
+
+        fig = plt.figure(figsize=(14, 8))
+        fig.suptitle(f"pixel ind = {ind}", size=14, fontweight='bold')
+
+        ax0 = fig.add_subplot(1, 2, 1, aspect='equal')
+        ax0.set_xlabel("R (m)", size=12, fontweight='bold')
+        ax0.set_ylabel("Z (m)", size=12, fontweight='bold')
+
+        ax1 = fig.add_subplot(1, 2, 2, aspect='equal')
+        ax1.set_xlabel("X (m)", size=12, fontweight='bold')
+        ax1.set_ylabel("Y (m)", size=12, fontweight='bold')
+
+        ax0.fill(pc0, pc1, fc=(0.5, 0.5, 0.5, 0.5))
+        ax1.fill(ph0, ph1, fc=(0.5, 0.5, 0.5, 0.5))
+
+        ax0.plot(np.hypot(xx, yy), zz, '.')
+        ax1.plot(xx, yy, '.')
 
     return xx, yy, zz, dind, ir[indrz], iz[indrz], iphi, dV
 

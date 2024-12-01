@@ -238,6 +238,7 @@ class Diagnostic(Previous):
         key_nseg=None,
         # bool
         compute_vos_from_los=None,
+        return_dcompute=None,
         verb=None,
         plot=None,
         store=None,
@@ -297,6 +298,9 @@ class Diagnostic(Previous):
                 compute_vos_from_los=compute_vos_from_los,
                 overwrite=overwrite,
             )
+
+        if return_dcompute is True:
+            return dcompute
 
     def compute_diagnostic_solidangle_from_plane(
         self,

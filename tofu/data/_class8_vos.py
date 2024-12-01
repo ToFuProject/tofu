@@ -172,6 +172,7 @@ def compute_vos(
     # user-defined
 
     user_limits = _get_user_limits(
+        coll=coll,
         user_limits=user_limits,
         doptics=doptics,
         key_cam=list(dcompute.keys()),
@@ -492,11 +493,17 @@ def _check(
     # -----------
     # debug
 
-    debug = ds._generic_check._check_var(
-        debug, 'debug',
-        types=bool,
-        default=False,
-    )
+    if debug is None:
+        debug = False
+
+    if callable(debug):
+        pass
+    else:
+        debug = ds._generic_check._check_var(
+            debug, 'debug',
+            types=bool,
+            default=False,
+        )
 
     # -----------
     # store
@@ -547,7 +554,24 @@ def _check(
     )
 
 
+def _user_limits_err(user_limits, lc=None):
+    msg = (
+        "user_limits must be either:\n"
+        "\t- None: not used\n"
+        "\t- True: remove all limits\n"
+        "\t- dict: specify limits with at least one of the keys:\n"
+        "\t\t- 'DR': list of 2 scalars or None\n"
+        "\t\t- 'DZ': list of 2 scalars or None\n"
+        "\t\t- 'Dphi': list of 2 scalars or None\n"
+        + ("" if lc is None else f"lc = {lc}\n")
+        + f"Provided:\n{user_limits}\n"
+    )
+    raise Exception(msg)
+
+
+
 def _get_user_limits(
+    coll=None,
     user_limits=None,
     doptics=None,
     key_cam=None,
@@ -567,26 +591,17 @@ def _get_user_limits(
     # dict
     if user_limits not in [None, True]:
 
-        c0 = (
-            isinstance(user_limits, dict)
-            and any([
-                user_limits.get(ss) is not None
-                and user_limits[ss]
-                for ss in ['DR', 'DZ', 'Dphi']
-            ])
-        )
+        if not isinstance(user_limits, dict):
+            _user_limits_err(user_limits)
 
-        if not c0:
-            msg = (
-                "user_limits must be either:\n"
-                "\t- None: not used\n"
-                "\t- True: remove all limits\n"
-                "\t- dict: specify limits with at least one of the keys:\n"
-                "\t\t- 'DR': list of 2 scalars or None\n"
-                "\t\t- 'DZ': list of 2 scalars or None\n"
-                "\t\t- 'Dphi': list of 2 scalars or None\n"
-            )
-            raise Exception(msg)
+        lc = [
+            user_limits.get(ss) is not None
+            and len(user_limits[ss]) == 2
+            for ss in ['DR', 'DZ', 'Dphi']
+        ]
+
+        if not any(lc):
+            _user_limits_err(user_limits, lc)
 
     # --------------
     # trivial
@@ -597,58 +612,125 @@ def _get_user_limits(
     elif user_limits is True:
         user_limits = {}
 
-    # ---------------
-    # user-defined limits
+    # --------------------
+    # Preliminary check on Dphi
+    # --------------------
 
-    # DR
-    if user_limits.get('DR') is None:
-        user_limits['DR'] = [x0u[0]-1e-9, x0u[-1]+1e-9]
-    user_limits['DR'] = ds._generic_check._check_flat1darray(
-        user_limits['DR'], "user_limits.get('DR')",
-        dtype=float,
-        size=2,
-        unique=True,
-        sign='>=0',
-    )
-
-    # DZ
-    if user_limits.get('DZ') is None:
-        user_limits['DZ'] = [x1u[0]-1e-9, x1u[-1]+1e-9]
-    user_limits['DZ'] = ds._generic_check._check_flat1darray(
-        user_limits['DZ'], "user_limits['DZ']",
-        dtype=float,
-        size=2,
-        unique=True,
-    )
-
-    # pcross_user
-    DR = user_limits['DR']
-    DZ = user_limits['DZ']
-    user_limits['pcross_user'] = np.array([
-        np.r_[DR[0], DR[1], DR[1], DR[0]],
-        np.r_[DZ[0], DZ[0], DZ[1], DZ[1]],
-    ])
-
-    # Dphi
-    # phor_user
-    if user_limits.get('Dphi') is None:
-        user_limits['phor_user'] = np.array([
-            DR[1] * np.r_[-1, 1, 1, -1],
-            DR[1] * np.r_[-1, -1, 1, 1],
-        ])
-
-    else:
+    if user_limits.get('Dphi') is not None:
+        user_limits['Dphi'] = ds._generic_check._check_flat1darray(
+            user_limits['Dphi'], "user_limits.get('Dphi')",
+            dtype=float,
+            size=2,
+            unique=True,
+        )
         phi = np.linspace(user_limits['Dphi'][0], user_limits['Dphi'][1], 50)
-        user_limits['phor_user'] = np.array([
-            np.r_[
-                DR[0]*np.cos(phi),
-                DR[1]*np.cos(phi[::-1]),
-            ],
-            np.r_[
-                DR[0]*np.sin(phi),
-                DR[1]*np.sin(phi[::-1]),
-            ],
+
+    # --------------------
+    # user-defined pcross
+    # --------------------
+
+    if user_limits.get('DR') is not None or user_limits.get('DZ') is not None:
+
+        # DR
+        if user_limits.get('DR') is None:
+            user_limits['DR'] = [x0u[0]-1e-9, x0u[-1]+1e-9]
+        user_limits['DR'] = ds._generic_check._check_flat1darray(
+            user_limits['DR'], "user_limits.get('DR')",
+            dtype=float,
+            size=2,
+            unique=True,
+            sign='>=0',
+        )
+
+        # DZ
+        if user_limits.get('DZ') is None:
+            user_limits['DZ'] = [x1u[0]-1e-9, x1u[-1]+1e-9]
+        user_limits['DZ'] = ds._generic_check._check_flat1darray(
+            user_limits['DZ'], "user_limits['DZ']",
+            dtype=float,
+            size=2,
+            unique=True,
+        )
+
+        # pcross_user
+        DR = user_limits['DR']
+        DZ = user_limits['DZ']
+        user_limits['pcross_user'] = np.array([
+            np.r_[DR[0], DR[1], DR[1], DR[0]],
+            np.r_[DZ[0], DZ[0], DZ[1], DZ[1]],
         ])
+
+        # --------------------
+        # user-defined phor
+        # --------------------
+
+        # Dphi
+        # phor_user
+        if user_limits.get('Dphi') is not None:
+            user_limits['phor_user'] = np.array([
+                DR[1] * np.r_[-1, 1, 1, -1],
+                DR[1] * np.r_[-1, -1, 1, 1],
+            ])
+        else:
+
+            user_limits['phor_user'] = np.array([
+                np.r_[
+                    DR[0]*np.cos(phi),
+                    DR[1]*np.cos(phi[::-1]),
+                ],
+                np.r_[
+                    DR[0]*np.sin(phi),
+                    DR[1]*np.sin(phi[::-1]),
+                ],
+            ])
+
+    # -------------------
+    # case with only Dphi => use each pixel's pcross
+    # -------------------
+
+    elif user_limits.get('Dphi') is not None:
+
+        # Give phor_user the proper shape like phor TBF
+        user_limits['phor0'] = {}
+        user_limits['phor1'] = {}
+        user_limits['dphi'] = {}
+
+        for kcam in key_cam:
+            kpc0, kpc1 = doptics[kcam]['dvos']['pcross']
+
+            shape = coll.ddata[kpc0]['data'].shape
+            pcross0 = coll.ddata[kpc0]['data']
+            pcross1 = coll.ddata[kpc1]['data']
+
+            R = np.hypot(pcross0, pcross1)
+            Rmin = np.min(R, axis=0)
+            Rmax = np.max(R, axis=0)
+
+            phi = phi.reshape(tuple([phi.size] + [1]*Rmin.ndim))
+            phor0 = np.concatenate(
+                (
+                    Rmin[None, ...] * np.cos(phi),
+                    Rmax[None, ...] * np.cos(phi[::-1]),
+                ),
+                axis=0,
+            )
+
+            phor1 = np.concatenate(
+                (
+                    Rmin[None, ...] * np.sin(phi),
+                    Rmax[None, ...] * np.sin(phi[::-1]),
+                ),
+                axis=0,
+            )
+
+            user_limits['phor0'][kcam] = phor0
+            user_limits['phor1'][kcam] = phor1
+
+            shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+            user_limits['dphi'][kcam] = np.array([
+                np.full(shape_cam, user_limits['Dphi'][0]),
+                np.full(shape_cam, user_limits['Dphi'][1]),
+            ])
 
     return user_limits
 
