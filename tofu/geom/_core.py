@@ -32,12 +32,15 @@ try:
     import tofu.geom._comp as _comp
     import tofu.geom._comp_solidangles as _comp_solidangles
     import tofu.geom._plot as _plot
-except Exception:
-    from . import _def as _def
-    from . import _GG as _GG
-    from . import _comp as _comp
-    from . import _comp_solidangles
-    from . import _plot as _plot
+except Exception as err0:
+    try:
+        from . import _def as _def
+        from . import _GG as _GG
+        from . import _comp as _comp
+        from . import _comp_solidangles
+        from . import _plot as _plot
+    except Exception as err1:
+        raise err1 from err0
 
 
 __all__ = [

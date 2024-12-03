@@ -42,6 +42,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
+        python -c "import setuptools; print(f'\nsetuptools version = {setuptools.__version__}\n')"
         pip install -e ".[dev]" --no-build-isolation
     - name: Test with pytest and coverage
       run: |
