@@ -8,12 +8,6 @@ This module contains tests for tofu.geom in its structured version
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import warnings as warn
-
-
-# Importing package tofu.geom
-import tofu as tf
-from tofu import __version__
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
@@ -29,6 +23,7 @@ _Exp = 'WEST'
 #######################################################
 
 def setup_module(module):
+    from tofu import __version__
     print("") # this is to get a newline after the dots
     lf = os.listdir(_here)
     lf = [f for f in lf
@@ -53,6 +48,7 @@ def setup_module(module):
         #print("setup_module before anything in this file")
 
 def teardown_module(module):
+    from tofu import __version__
     #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
     #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
     #print("teardown_module after everything in this file")
@@ -95,6 +91,7 @@ class Test01_plot_shotovervew(object):
         #print("---- "+cls.__name__)
 
         # conf
+        import tofu as tf
         cls.conf = tf.geom.utils.create_config('B3')
 
         # time vectors
@@ -139,17 +136,18 @@ class Test01_plot_shotovervew(object):
 
     def test01_plot_shotoverview(self):
         # One by one, without conf
+        import tofu as tf
         for shot, dextra in self.dobj.items():
-            kh = tf._plot.plot_shotoverview({shot:dextra})
+            _ = tf._plot.plot_shotoverview({shot:dextra})
 
         # All together, without conf
-        kh = tf._plot.plot_shotoverview(self.dobj)
+        _ = tf._plot.plot_shotoverview(self.dobj)
         plt.close('all')
 
         # One by one, with conf
         for shot, dextra in self.dobj.items():
-            kh = tf._plot.plot_shotoverview({shot:dextra}, config=self.conf)
+            _ = tf._plot.plot_shotoverview({shot:dextra}, config=self.conf)
 
         # All together, with conf
-        kh = tf._plot.plot_shotoverview(self.dobj, config=self.conf)
+        _ = tf._plot.plot_shotoverview(self.dobj, config=self.conf)
         plt.close('all')
