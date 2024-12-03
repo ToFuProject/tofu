@@ -3,7 +3,7 @@ scipy
 numpy
 # scikit-sparse    # does not work on windows, and requires "apt/brew install libsuitesparse-dev/suite-sparse" on linux / MacOs
 # scikit-umfpack   # similar issue
-setuptools!=65.*,!=74.*
+setuptools>=40.8.0, <65.*
 matplotlib
 contourpy
 requests
