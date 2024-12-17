@@ -10,6 +10,10 @@ Polygons are assumed to be:
 
 
 import numpy as np
+import datastock as ds
+
+
+from . import _class00_poly2d_check as _poly2d_check
 
 
 # ###########################################################
@@ -21,6 +25,8 @@ import numpy as np
 def edges(
     x0=None,
     x1=None,
+    key=None,
+    # options
     res=None,
     factor=None,
 ):
@@ -29,16 +35,34 @@ def edges(
     # check inputs
     # ----------------
 
-    # get x0 and x1 closed
-    x0, x1, res
+    # polygon formatting
+    dout0 = _poly2d_check.check(
+        x0=x0,
+        x1=x1,
+        key=key,
+        # options
+        closed=True,
+        clockwise=True,
+    )
+
+    # extract x0, x1
+    x0_closed = dout0['x0_closed']
+    x1_closed = dout0['x1_closed']
+    key = dout0['key']
+
+    # options
+    res, factor = _check(
+        res=res,
+        factor=factor,
+    )
 
     # ----------------
     # prepare
     # ----------------
 
     # get all lengths
-    dx0 = np.r_[x0[1:], x0[0]] - x0
-    dx1 = np.r_[x1[1:], x1[0]] - x1
+    dx0 = x0_closed[1:] - x0_closed[:-1]
+    dx1 = x1_closed[1:] - x1_closed[:-1]
     dist = np.hypot(dx0, dx1)
 
     # ----------------
@@ -47,6 +71,7 @@ def edges(
 
     if isinstance(res, str):
 
+        # get res
         if res == 'min':
             res = np.min(dist)
         elif res == 'max':
@@ -90,12 +115,14 @@ def edges(
     ])
 
     # ----------------
-    # store
+    # return
     # ----------------
 
     dout = {
         'x0': out0,
         'x1': out1,
+        'res': res,
+        'factor': factor,
     }
 
     return dout
@@ -107,12 +134,46 @@ def edges(
 # ###########################################################
 
 
-def _check_edges(
-    x0=None,
-    x1=None,
+def _check(
     res=None,
     factor=None,
 ):
 
+    # -------------
+    # res
+    # -------------
 
-    return x0, x1, res, factor
+    res = ds._generic_check._check_var(
+        res, 'res',
+        types=(str, float),
+    )
+
+    if isinstance(res, str):
+        res = ds._generic_check._check_var(
+            res, 'res',
+            types=str,
+            default='min',
+            allowed=['min', 'max'],
+        )
+
+    else:
+        res = ds._generic_check._check_var(
+            res, 'res',
+            types=float,
+            sign='>0',
+        )
+
+    # -------------
+    # factor
+    # -------------
+
+    if isinstance(res, str):
+        factor = ds._generic_check._check_var(
+            factor, 'factor',
+            types=float,
+            sign='>0',
+        )
+    else:
+        factor = None
+
+    return res, factor
