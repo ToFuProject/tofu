@@ -332,8 +332,13 @@ def _vos_from_los(
 
         phi = np.arctan2(ptsy, ptsx)
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
+
+        # across pi?
         if phimax - phimin > np.pi:
-            phimin, phimax = phimax, phimin + 2.*np.pi
+            phimin = np.min(phi[phi > 0])
+            phimax = np.max(phi[phi < 0])
+            phimax = phimax + 2*np.pi
+
         dphi[(0,) + ind] = phimin
         dphi[(1,) + ind] = phimax
 
