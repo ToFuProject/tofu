@@ -16,6 +16,9 @@ import datastock as ds
 from . import _class00_poly2d_check as _poly2d_check
 
 
+__all__ = ['edges', 'surface']
+
+
 # ###########################################################
 # ###########################################################
 #              Sample edges
@@ -46,8 +49,8 @@ def edges(
     )
 
     # extract x0, x1
-    x0_closed = dout0['x0_closed']
-    x1_closed = dout0['x1_closed']
+    x0_closed = dout0['x0']
+    x1_closed = dout0['x1']
     key = dout0['key']
 
     # options
@@ -87,31 +90,22 @@ def edges(
     # ----------------
 
     # nb of points to be inserted in each segment
-    npts_insert = np.round(dist / res, decimals=0).astype(int)
-    npts_insert[npts_insert >= 1] -= 1
+    npts = np.round(dist / res, decimals=0).astype(int)
 
     # interpolation for x0
     out0 = np.ravel([
-        np.r_[x0[ii]]
-        if npts_insert[ii] == 0 else
-        np.interp(
-            np.linspace(0, 1, npts_insert[ii]+1, endpoint=False),
-            [0, 1],
-            x0[ii:ii+1],
-        )
-        for ii in range(x0.size)
+        np.r_[x0_closed[ii]]
+        if npts[ii] <= 1 else
+        x0_closed[ii] + dx0[ii] * np.linspace(0, 1, npts[ii], endpoint=False)
+        for ii in range(x0_closed.size-1)
     ])
 
     # interpolation for x1
     out1 = np.ravel([
-        np.r_[x1[ii]]
-        if npts_insert[ii] == 0 else
-        np.interp(
-            np.linspace(0, 1, npts_insert[ii]+1, endpoint=False),
-            [0, 1],
-            x1[ii:ii+1],
-        )
-        for ii in range(x1.size)
+        np.r_[x1_closed[ii]]
+        if npts[ii] <= 1 else
+        x1_closed[ii] + dx1[ii] * np.linspace(0, 1, npts[ii], endpoint=False)
+        for ii in range(x1_closed.size-1)
     ])
 
     # ----------------
@@ -168,12 +162,72 @@ def _check(
     # -------------
 
     if isinstance(res, str):
-        factor = ds._generic_check._check_var(
+        factor = float(ds._generic_check._check_var(
             factor, 'factor',
-            types=float,
+            types=(int, float),
             sign='>0',
-        )
+        ))
+
     else:
         factor = None
 
     return res, factor
+
+
+# ###########################################################
+# ###########################################################
+#              Sample surface
+# ###########################################################
+
+
+def surface(
+    x0=None,
+    x1=None,
+    key=None,
+    # options
+    res=None,
+    factor=None,
+):
+
+    # ----------------
+    # check inputs
+    # ----------------
+
+    # polygon formatting
+    dout0 = _poly2d_check.check(
+        x0=x0,
+        x1=x1,
+        key=key,
+        # options
+        closed=True,
+        clockwise=True,
+    )
+
+    # extract x0, x1
+    x0_closed = dout0['x0']
+    x1_closed = dout0['x1']
+    key = dout0['key']
+
+    # options
+    res, factor = _check(
+        res=res,
+        factor=factor,
+    )
+
+    # ----------------
+    # prepare
+    # ----------------
+
+
+    # ----------------
+    # return
+    # ----------------
+
+    dout = {
+        'x0': x0,
+        'x1': x1,
+        'res': res,
+        'factor': factor,
+    }
+
+    return dout
