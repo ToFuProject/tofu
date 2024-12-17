@@ -67,6 +67,7 @@ class Diagnostic(Previous):
         etendue=None,
         # config for los
         config=None,
+        strict=None,
         length=None,
         # reflections
         reflections_nb=None,
@@ -112,6 +113,7 @@ class Diagnostic(Previous):
                 check=False,
                 # los
                 config=config,
+                strict=strict,
                 length=length,
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
@@ -232,6 +234,7 @@ class Diagnostic(Previous):
         convex=None,
         # for storing los
         config=None,
+        strict=None,
         length=None,
         reflections_nb=None,
         reflections_type=None,
@@ -290,6 +293,7 @@ class Diagnostic(Previous):
                 key=key,
                 # los
                 config=config,
+                strict=strict,
                 length=length,
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
