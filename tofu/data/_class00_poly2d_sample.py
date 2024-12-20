@@ -10,6 +10,7 @@ Polygons are assumed to be:
 
 
 import numpy as np
+from matplotlib.path import Path
 import datastock as ds
 
 
@@ -54,7 +55,7 @@ def edges(
     key = dout0['key']
 
     # options
-    res, factor = _check(
+    res, factor = _check_edges(
         res=res,
         factor=factor,
     )
@@ -128,7 +129,7 @@ def edges(
 # ###########################################################
 
 
-def _check(
+def _check_edges(
     res=None,
     factor=None,
 ):
@@ -165,6 +166,7 @@ def _check(
         factor = float(ds._generic_check._check_var(
             factor, 'factor',
             types=(int, float),
+            default=1,
             sign='>0',
         ))
 
@@ -186,7 +188,7 @@ def surface(
     key=None,
     # options
     res=None,
-    factor=None,
+    nb=None,
 ):
 
     # ----------------
@@ -208,26 +210,124 @@ def surface(
     x1_closed = dout0['x1']
     key = dout0['key']
 
+    # Dx0
+    x0_min = x0_closed.min()
+    x0_max = x0_closed.max()
+    Dx0 = (x0_max - x0_min)
+
+    # Dx1
+    x1_min = x1_closed.min()
+    x1_max = x1_closed.max()
+    Dx1 = (x1_max - x1_min)
+
     # options
-    res, factor = _check(
+    nb = _check_surfaces(
         res=res,
-        factor=factor,
+        nb=nb,
+        key=key,
+        Dx0=Dx0,
+        Dx1=Dx1,
     )
 
     # ----------------
     # prepare
     # ----------------
 
+    # out0
+    dx0 = Dx0 / nb[0]
+    out0 = np.linspace(x0_min + dx0/2, x0_max - dx0/2, nb[0])
+
+    # out1
+    dx1 = Dx1 / nb[1]
+    out1 = np.linspace(x1_min + dx1/2, x1_max - dx1/2, nb[1])
+
+    # ----------------
+    # Check in polygon
+    # ----------------
+
+    pts0 = np.repeat(out0[:, None], out1.size, axis=1).ravel()
+    pts1 = np.repeat(out1[None, :], out1.size, axis=0).ravel()
+
+    pp = Path(np.array([x0_closed, x1_closed]).T)
+    ind = pp.contains_points(np.array([pts0, pts1]).T)
 
     # ----------------
     # return
     # ----------------
 
     dout = {
-        'x0': x0,
-        'x1': x1,
-        'res': res,
-        'factor': factor,
+        'x0': pts0[ind],
+        'x1': pts1[ind],
+        'nb': nb,
     }
 
     return dout
+
+
+# ###########################################################
+# ###########################################################
+#              check surfaces
+# ###########################################################
+
+
+def _check_surfaces(
+    res=None,
+    nb=None,
+    key=None,
+    Dx0=None,
+    Dx1=None,
+):
+
+    # -------------
+    # res vs nb
+    # -------------
+
+    lc = [
+        nb is not None and res is not None,
+        nb is None and res is None,
+    ]
+    if any(lc):
+        msg = (
+            "Polygon '{key}' surface sampling, please provide res xor nb!\n"
+            f"\t- res = {res} \n"
+            f"\t- nb = {nb}\n"
+        )
+        raise Exception(msg)
+
+    # -------------
+    # res
+    # -------------
+
+    if res is not None:
+
+        if np.isscalar(res):
+            res = [res, res]
+
+        res = ds._generic_check._check_var_iter(
+            res, 'res',
+            types=(list, tuple),
+            types_iter=(int, float),
+            size=2,
+        )
+
+        res = tuple([float(rr) for rr in res])
+
+        nb = [np.ceil(Dx0/res[0]), np.ceil(Dx1/res[1])]
+
+    # -------------
+    # nb
+    # -------------
+
+    if np.isscalar(nb):
+        nb = [nb, nb]
+
+    nb = ds._generic_check._check_var_iter(
+        nb, 'nb',
+        types=(list, tuple),
+        types_iter=(int, float),
+        size=2,
+    )
+
+    nb = tuple([int(nn) for nn in nb])
+
+    return nb
