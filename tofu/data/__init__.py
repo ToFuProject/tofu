@@ -7,8 +7,7 @@ from ._DataCollection_class1_interactivity import *
 from ._class01_eqdsk import *
 from ._spectrallines_class import *
 from ._class00_poly2d_check import check as poly2d_check
-from ._class00_poly2d_sample import edges as poly2d_sample_edges
-from ._class00_poly2d_sample import surface as poly2d_sample_surface
+from ._class00_poly2d_sample import main as poly2d_sample
 from ._class10_algos import get_available_inversions_algo
 from ._class10_Inversion import Inversion as Collection
 from ._spectralunits import *
