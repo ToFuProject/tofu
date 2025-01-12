@@ -17,7 +17,146 @@ import datastock as ds
 from . import _class00_poly2d_check as _poly2d_check
 
 
-__all__ = ['edges', 'surface']
+__all__ = ['main']
+
+
+# ###########################################################
+# ###########################################################
+#              main
+# ###########################################################
+
+
+def main(
+    x0=None,
+    x1=None,
+    key=None,
+    # options for edges
+    dedge=None,
+    dsurface=None,
+):
+
+    # ----------------
+    # check inputs
+    # ----------------
+
+    # polygon formatting
+    din = _poly2d_check.check(
+        x0=x0,
+        x1=x1,
+        key=key,
+        # options
+        closed=True,
+        clockwise=True,
+    )
+
+    # dedge, dsurface
+    dedge, dsurface = _check(
+        dedge=dedge,
+        dsurface=dsurface,
+    )
+
+    # ----------------
+    # sample edges
+    # ----------------
+
+    if dedge is not None:
+        dout_edge = _edges(
+            x0_closed=din['x0'],
+            x1_closed=din['x1'],
+            key=din['key'],
+            # options
+            **{k0: dedge.get(k0) for k0 in ['res', 'factor']},
+        )
+    else:
+        dout_edge = {
+            'x0': [],
+            'x1': [],
+        }
+
+    # ----------------
+    # sample surface
+    # ----------------
+
+    if dsurface is not None:
+        dout_surf = _surface(
+            x0_closed=din['x0'],
+            x1_closed=din['x1'],
+            key=din['key'],
+            # options
+            **dsurface,
+        )
+    else:
+        dout_surf = {
+            'x0': [],
+            'x1': [],
+        }
+
+    # ----------------
+    # combine
+    # ----------------
+
+    dout = {
+        'x0': np.r_[dout_edge['x0'], dout_surf['x0']],
+        'x1': np.r_[dout_edge['x1'], dout_surf['x1']],
+        'edge_res': dout_edge.get('res'),
+        'edge_factor': dout_edge.get('factor'),
+        'surface_nb': dout_surf.get('nb'),
+        'key': din['key'],
+    }
+
+    return dout
+
+
+# ###########################################################
+# ###########################################################
+#              check main
+# ###########################################################
+
+
+def _check(
+    dedge=None,
+    dsurface=None,
+):
+
+    # --------------
+    # dedge
+    # --------------
+
+    if dedge is not None:
+        lk = ['res', 'factor']
+        c0 = (
+            isinstance(dedge, dict)
+            and all([kk in lk for kk in dedge.keys()])
+        )
+
+        if not c0:
+            lstr = [f"\t- {kk}" for kk in lk]
+            msg = (
+                "Arg dedge must be None or a dict with keys:\n"
+                + "\n".join(lstr)
+            )
+        raise Exception(msg)
+
+    # --------------
+    # dsurface
+    # --------------
+
+    if dsurface is not None:
+        lk = ['res', 'nb']
+        c0 = (
+            isinstance(dsurface, dict)
+            and all([kk in lk for kk in dsurface.keys()])
+        )
+
+        if not c0:
+            lstr = [f"\t- {kk}" for kk in lk]
+            msg = (
+                "Arg dsurface must be None or a dict with keys:\n"
+                + "\n".join(lstr)
+            )
+        raise Exception(msg)
+
+    return dedge, dsurface
 
 
 # ###########################################################
@@ -26,9 +165,9 @@ __all__ = ['edges', 'surface']
 # ###########################################################
 
 
-def edges(
-    x0=None,
-    x1=None,
+def _edges(
+    x0_closed=None,
+    x1_closed=None,
     key=None,
     # options
     res=None,
@@ -38,21 +177,6 @@ def edges(
     # ----------------
     # check inputs
     # ----------------
-
-    # polygon formatting
-    dout0 = _poly2d_check.check(
-        x0=x0,
-        x1=x1,
-        key=key,
-        # options
-        closed=True,
-        clockwise=True,
-    )
-
-    # extract x0, x1
-    x0_closed = dout0['x0']
-    x1_closed = dout0['x1']
-    key = dout0['key']
 
     # options
     res, factor = _check_edges(
@@ -182,9 +306,9 @@ def _check_edges(
 # ###########################################################
 
 
-def surface(
-    x0=None,
-    x1=None,
+def _surface(
+    x0_closed=None,
+    x1_closed=None,
     key=None,
     # options
     res=None,
@@ -194,21 +318,6 @@ def surface(
     # ----------------
     # check inputs
     # ----------------
-
-    # polygon formatting
-    dout0 = _poly2d_check.check(
-        x0=x0,
-        x1=x1,
-        key=key,
-        # options
-        closed=True,
-        clockwise=True,
-    )
-
-    # extract x0, x1
-    x0_closed = dout0['x0']
-    x1_closed = dout0['x1']
-    key = dout0['key']
 
     # Dx0
     x0_min = x0_closed.min()
