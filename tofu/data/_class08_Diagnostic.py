@@ -386,21 +386,25 @@ class Diagnostic(Previous):
     def add_rays_from_diagnostic(
         self,
         key=None,
-        strategy=None,
-        nrays=None,
+        # sampling
+        dsampling_pixel=None,
+        dsampling_optics=None,
+        # computing
+        config=None,
         # storing
         store=None,
-        config=None,
         overwrite=None,
     ):
         return _generate_rays.main(
             coll=self,
             key=key,
-            strategy=strategy,
-            nrays=nrays,
+            # sampling
+            dsampling_pixel=dsampling_pixel,
+            dsampling_optics=dsampling_optics,
+            # computing
+            config=config,
             # storing
             store=store,
-            config=config,
             overwrite=overwrite,
         )
 

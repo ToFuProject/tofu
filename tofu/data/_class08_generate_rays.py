@@ -12,6 +12,7 @@ import datastock as ds
 
 
 from ..geom import _GG
+from ._class00_poly2d_sample import main as poly2d_sample
 
 
 # ###############################################################
@@ -23,23 +24,60 @@ from ..geom import _GG
 def main(
     coll=None,
     key=None,
-    strategy=None,
-    nrays=None,
+    # to sample on a single optics
+    key_optics=None,
+    # sampling
+    dsampling_pixel=None,
+    dsampling_optics=None,
+    # computing
+    config=None,
     # storing
     store=None,
-    config=None,
     overwrite=None,
 ):
+    """
+
+    Parameters
+    ----------
+    coll : TYPE, optional
+        DESCRIPTION. The default is None.
+    key : TYPE, optional
+        DESCRIPTION. The default is None.
+    # to sample on a single optics    key_optics : TYPE, optional
+        DESCRIPTION. The default is None.
+    # sampling    dsampling_pixel : TYPE, optional
+        DESCRIPTION. The default is None.
+    dsampling_optics : TYPE, optional
+        DESCRIPTION. The default is None.
+    # computing    config : TYPE, optional
+        DESCRIPTION. The default is None.
+    # storing    store : TYPE, optional
+        DESCRIPTION. The default is None.
+    overwrite : TYPE, optional
+        DESCRIPTION. The default is None.
+
+    Returns
+    -------
+    dout : TYPE
+        DESCRIPTION.
+
+    """
 
     # -------------
     # check
     # -------------
 
-    key, strategy, nrays, store, overwrite = _check(
+    (
+     key,
+     dsampling_pixel,
+     dsampling_optics,
+     store, overwrite,
+    ) = _check(
         coll=coll,
         key=key,
-        strategy=strategy,
-        nrays=nrays,
+        # sampling
+        dsampling_pixel=dsampling_pixel,
+        dsampling_optics=dsampling_optics,
         # storing
         store=store,
         overwrite=overwrite,
@@ -52,19 +90,6 @@ def main(
     wdiag = 'diagnostic'
     key_cam = coll.dobj[wdiag][key]['camera']
     doptics = coll.dobj[wdiag][key]['doptics']
-
-    # -------------------------
-    # trivial: nrays=1 => LOS
-    # -------------------------
-
-    if nrays == 1:
-
-        dout = {
-            kcam: {}
-            for kcam in key_cam
-        }
-
-        store = False
 
     # ---------------
     #  compute
@@ -87,24 +112,41 @@ def main(
         # ---------------
         # call routine
 
-        if strategy == 'random':
+        # if strategy == 'random':
 
-            dout[kcam] = _random(
-                coll=coll,
-                kcam=kcam,
-                doptics=doptics[kcam],
-                out_arr=out_arr,
-                nrays=nrays,
-                strategy=strategy,
-            )
+        #     dout[kcam] = _random(
+        #         coll=coll,
+        #         kcam=kcam,
+        #         doptics=doptics[kcam],
+        #         out_arr=out_arr,
+        #         nrays=nrays,
+        #         strategy=strategy,
+        #     )
 
-        elif strategy == 'outline':
+        # elif strategy == 'outline':
 
-            dout[kcam] = _outline()
+        #     dout[kcam] = _outline()
 
-        elif strategy == 'mesh':
+        # elif strategy == 'mesh':
 
-            dout[kcam] = _mesh()
+        #     dout[kcam] = _mesh()
+
+        # --------------------
+        # sample generic pixel
+
+        dout[kcam] = _generic(
+            coll=coll,
+            kcam=kcam,
+            doptics=doptics[kcam],
+            # sampling
+            dsampling_pixel=dsampling_pixel,
+            dsampling_optics=dsampling_optics,
+        )
+
+
+
+
+
 
     # ---------------
     #  store
@@ -131,8 +173,9 @@ def main(
 def _check(
     coll=None,
     key=None,
-    strategy=None,
-    nrays=None,
+    # sampling
+    dsampling_pixel=None,
+    dsampling_optics=None,
     # storing
     store=None,
     overwrite=None,
@@ -156,32 +199,33 @@ def _check(
         raise NotImplementedError()
 
     # ------------
-    # strategy
+    # dsampling_pixel
     # ------------
 
-    strategy = ds._generic_check._check_var(
-        strategy, 'strategy',
-        types=str,
-        default='random',
-        allowed=['random', 'mesh', 'outline'],
+    lk = ['dedge', 'dsurface']
+    c0 = (
+        isinstance(dsampling_pixel, dict)
+        and any([ss in dsampling_pixel.keys() for ss in lk])
     )
+    if not c0:
+        lstr = [f"\t- {kk}: dict fed to tf.data.poly2d_sample()" for kk in lk]
+        msg = (
+            "Arg dsampling_pixel must be a dict with at least one of:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
 
-    # ------------
-    # nrays
-    # ------------
-
-    if strategy == 'custom':
-        nrdef = 10
-    else:
-        nrdef = 10
-
-
-    nrays = int(ds._generic_check._check_var(
-        nrays, 'nrays',
-        types=(int, float),
-        default=nrdef,
-        sign='>0',
-    ))
+    c0 = (
+        isinstance(dsampling_optics, dict)
+        and any([ss in dsampling_optics.keys() for ss in lk])
+    )
+    if not c0:
+        lstr = [f"\t- {kk}: dict fed to tf.data.poly2d_sample()" for kk in lk]
+        msg = (
+            "Arg dsampling_optics must be a dict with at least one of:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
 
     # ------------
     # store
@@ -203,7 +247,7 @@ def _check(
         default=False,
     )
 
-    return key, strategy, nrays, store, overwrite
+    return key, dsampling_pixel, dsampling_optics, store, overwrite
 
 
 # ###############################################################
@@ -469,14 +513,163 @@ def _seed_optics(
 
 # ###############################################################
 # ###############################################################
-#                      outline
+#                      generic
 # ###############################################################
 
 
-def _outline():
+def _generic(
+    coll=None,
+    kcam=None,
+    doptics=None,
+    # sampling options
+    dsampling_pixel=None,
+    dsampling_optics=None,
+):
+
+    # ---------------------
+    # generic pixel outline
+    # ---------------------
+
+    # get pixel outline
+    kout0, kout1 = coll.dobj['camera'][kcam]['outline']
+
+    # sample pixel
+    dout_pixel = poly2d_sample(
+        coll.ddata[kout0]['data'],
+        coll.ddata[kout1]['data'],
+        dedge=dsampling_pixel.get('dedge'),
+        dsurface=dsampling_pixel.get('dsurface'),
+    )
+
+    nstart = dout_pixel['x0'].size
+
+    # ---------------------
+    # number of pts on optics
+    # ---------------------
+
+    nvect = optics_nb[0] * optics_nb[1]
+
+    # ---------------------
+    # prepare
+    # ---------------------
+
+    # shared apertures ?
+    pinhole = doptics['pinhole']
+    parallel = coll.dobj['camera'][kcam]['dgeom']['parallel']
+
+    # shape camera
+    shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+
+    # camera vector
+    # get camera vectors
+    dvect = coll.get_camera_unit_vectors(kcam)
+    lc = ['x', 'y', 'z']
+    if parallel is True:
+        e0i_x, e0i_y, e0i_z = [dvect[f"e0_{kk}"] for kk in lc]
+        e1i_x, e1i_y, e1i_z = [dvect[f"e1_{kk}"] for kk in lc]
+
+    cents_x, cents_y, cents_z = coll.get_camera_cents_xyz(kcam)
+
+    # -----------------------------------
+    # prepare output
+    # -----------------------------------
+
+    shape_out = shape_cam + (nrays,)
+
+    dout = {
+        'key': f'{kcam}_rays',
+        'start_x': np.full(shape_out, np.nan),
+        'start_y': np.full(shape_out, np.nan),
+        'start_z': np.full(shape_out, np.nan),
+        'vect_x': np.full(shape_out, np.nan),
+        'vect_y': np.full(shape_out, np.nan),
+        'vect_z': np.full(shape_out, np.nan),
+        # 'dsang': np.full(shape_out, np.nan),
+    }
+
+    # ---------------------
+    # pinhole with 1 optic
+    # ---------------------
+
+    if len(doptics['optics']) == 1:
+
+        kop = doptics['optics'][0]
+        clsop = coll.get_optics_cls(kop)
+        out0, out1 = coll.dobj[clsop][kop]['outline']
+        out0 = coll.ddata[out0]['data']
+        out1 = coll.ddata[out1]['data']
+
+        dout_pin_edge = poly2d_sample_edge(out0, out1, nb=optics_nb)
+        dout_pin_surf = poly2d_sample_surface(out0, out1, nb=optics_nb)
+
+    # ---------------------
+    # loop on pixels
+    # ---------------------
+
+    for ii, ind in enumerate():
+
+        if parallel is False:
+            nin = None
+
+        start_x = cents_x[ind] + pts0 * e0[0] + pts1 * e1[0]
+        start_y = cents_y[ind] + pts0 * e0[1] + pts1 * e1[1]
+        start_z = cents_z[ind] + pts0 * e0[2] + pts1 * e1[2]
+
+        for jj in range(pts0.size):
+
+            # get projected polygon
+            continue
 
 
-    return
+
+
+            # ------------
+            # solid angles
+
+            # solid_angles[ind] = _comp_solidangles.calc_solidangle_apertures(
+            #     # observation points
+            #     pts_x=centsx[ind],
+            #     pts_y=centsy[ind],
+            #     pts_z=centsz[ind],
+            #     # polygons
+            #     apertures=None,
+            #     detectors=ldet[ii],
+            #     # possible obstacles
+            #     config=None,
+            #     # parameters
+            #     visibility=False,
+            #     return_vector=False,
+            #     # timing
+            #     timing=False,
+            # )[0, 0]
+
+    # ---------------
+    # optics
+    # ---------------
+
+    # -------------
+    # adjust
+    # -------------
+
+    nok = np.sum(np.isfinite(start_x), axis=-1)
+    if nok < nrays:
+        pass
+
+    # ---------------
+    # return
+    # ---------------
+
+    # dout = {
+    #     'key': f'{kcam}_rays_generic',
+    #     'start_x': np.full(shape_out, np.nan),
+    #     'start_y': np.full(shape_out, np.nan),
+    #     'start_z': np.full(shape_out, np.nan),
+    #     'vect_x': np.full(shape_out, np.nan),
+    #     'vect_y': np.full(shape_out, np.nan),
+    #     'vect_z': np.full(shape_out, np.nan),
+    # }
+
+    return # dout
 
 
 # ###############################################################
