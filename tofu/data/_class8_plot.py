@@ -1314,6 +1314,8 @@ def _add_camera_vlines_marker(
     suffix=None,
 ):
 
+    ncolx = len(color_dict['x'])
+    ncoly = len(color_dict['y'])
     if suffix is None:
         suffix = ''
 
@@ -1324,7 +1326,7 @@ def _add_camera_vlines_marker(
                 ddatay[k0][0:1],
                 marker='s',
                 ms=6,
-                markeredgecolor=color_dict['x'][ii%len(color_dict['x'])],
+                markeredgecolor=color_dict['x'][ii%ncolx],
                 markerfacecolor='None',
             )
 
@@ -1350,7 +1352,7 @@ def _add_camera_vlines_marker(
 
         for ii in range(nlos):
             lv = ax.axvline(
-                ddatax[k0][0], c=color_dict['y'][ii], lw=1., ls='-',
+                ddatax[k0][0], c=color_dict['y'][ii%ncoly], lw=1., ls='-',
             )
             kv = f'{k0}_v{ii:02.0f}{suffix}'
             coll2.add_mobile(
