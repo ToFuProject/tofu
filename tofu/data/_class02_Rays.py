@@ -465,6 +465,7 @@ class Rays(Previous):
         include_centroid=None,
         factor=None,
         color=None,
+        chain=None,
         # ---------------
         # saving
         pfe_save=None,
@@ -503,6 +504,7 @@ class Rays(Previous):
             include_centroid=include_centroid,
             factor=factor,
             color=color,
+            chain=chain,
             # ---------------
             # saving
             pfe_save=pfe_save,

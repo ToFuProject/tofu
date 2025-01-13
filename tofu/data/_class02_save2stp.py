@@ -51,6 +51,7 @@ def main(
     include_centroid=None,
     factor=None,
     color=None,
+    chain=None,
     # ---------------
     # saving
     pfe_save=None,
@@ -70,7 +71,9 @@ def main(
     coll : tf.data.Collection, optional
         DESCRIPTION. The default is None.
     key : str, optional
-        DESCRIPTION. The default is None.
+        Diagnostic
+    key_cam: str, optional
+        Camera
     pfe_in : str, optional
         DESCRIPTION. The default is None.
     outline_only: bool, optional
@@ -79,6 +82,8 @@ def main(
         scaling factor on coordinates (default: 1)
     color : str / tuple, optional
         DESCRIPTION. The default is None.
+    chain : bool
+        Flag to chain all pixels, for each camera
     pfe_save : str, optional
         DESCRIPTION. The default is None.
     overwrite : bool, optional
@@ -95,12 +100,13 @@ def main(
     # --------------
 
     (
-        key, key_cam,
+        key, key_cam, key_rays,
         ptsx, ptsy, ptsz,
         pfe_in,
         outline_only,
         include_centroid,
         factor, color,
+        chain,
         iso,
         pfe_save, overwrite,
     ) = _check(
@@ -116,6 +122,7 @@ def main(
         include_centroid=include_centroid,
         factor=factor,
         color=color,
+        chain=chain,
         # saving
         pfe_save=pfe_save,
         overwrite=overwrite,
@@ -131,11 +138,13 @@ def main(
         coll=coll,
         key=key,
         key_cam=key_cam,
+        key_rays=key_rays,
         ptsx=ptsx,
         ptsy=ptsy,
         ptsz=ptsz,
         outline_only=outline_only,
         include_centroid=include_centroid,
+        chain=chain,
         pfe_in=pfe_in,
         fname=fname,
     )
@@ -206,6 +215,7 @@ def _check(
     include_centroid=None,
     factor=None,
     color=None,
+    chain=None,
     # saving
     pfe_save=None,
     overwrite=None,
@@ -231,11 +241,10 @@ def _check(
 
     if lc[0]:
 
-
         # ------------
         # coll
 
-        if not issubclass(coll.__class__, ds.DataStock):
+        if 'tofu'not in str(coll.__class__):
             msg = (
                 "Arg coll must be a subclass of datastock.Datastock!\n"
                 f"\t- type(coll) = {type(coll)}"
@@ -265,9 +274,11 @@ def _check(
                 allowed=lok,
                 default=lok,
             )
+            key_rays = None
 
         else:
             key_cam = None
+            key_rays = key
 
     # ---------------
     # array
@@ -326,14 +337,36 @@ def _check(
     outline_only = ds._generic_check._check_var(
         outline_only, 'outline_only',
         types=bool,
-        default=True,
+        default=key_cam is not None,
     )
+
+    if outline_only is True and not (key_cam is not None or key_rays is not None):
+        msg = (
+            "Arg outline_only can only be True if key_cam or key_rays is known!"
+        )
+        raise Exception(msg)
 
     include_centroid = ds._generic_check._check_var(
         include_centroid, 'include_centroid',
         types=bool,
         default=True,
     )
+
+    # ---------------
+    # chain
+    # ---------------
+
+    chain = ds._generic_check._check_var(
+        chain, 'chain',
+        types=bool,
+        default=False,
+    )
+
+    if chain is True and not (key_cam is not None or key_rays is not None):
+        msg = (
+            "Arg chain can only be True if key_cam or key_rays is known!"
+        )
+        raise Exception(msg)
 
     # ---------------
     # factor
@@ -393,12 +426,13 @@ def _check(
     )
 
     return (
-        key, key_cam,
+        key, key_cam, key_rays,
         ptsx, ptsy, ptsz,
         pfe_in,
         outline_only,
         include_centroid,
         factor, color,
+        chain,
         iso,
         pfe_save, overwrite,
     )
@@ -414,11 +448,13 @@ def _extract(
     coll=None,
     key=None,
     key_cam=None,
+    key_rays=None,
     ptsx=None,
     ptsy=None,
     ptsz=None,
     outline_only=None,
     include_centroid=None,
+    chain=None,
     pfe_in=None,
     fname=None,
 ):
@@ -431,9 +467,9 @@ def _extract(
     dptsy = {}
     dptsz = {}
 
-    # ----------------------
+    # -----------------------
     # extract points from csv
-    # ----------------------
+    # -----------------------
 
     if pfe_in is not None:
 
@@ -471,9 +507,9 @@ def _extract(
         dptsy[fname] = np.array([out[ii::npts, 1] for ii in range(npts)])
         dptsz[fname] = np.array([out[ii::npts, 2] for ii in range(npts)])
 
-    # ----------------------
+    # -------------------------
     # extract points from array
-    # ----------------------
+    # -------------------------
 
     elif ptsx is not None:
 
@@ -481,34 +517,139 @@ def _extract(
         dptsy[fname] = ptsy
         dptsz[fname] = ptsz
 
-    # ----------------------
+    # --------------------------
     # extract points from coll
-    # ----------------------
+    # --------------------------
 
     else:
 
         if key_cam is None:
-            dptsx[fname], dptsy[fname], dptsz[fname] = coll.get_rays_pts(key=key)
+            dptsx[fname], dptsy[fname], dptsz[fname] = coll.get_rays_pts(
+                key=key,
+            )
 
         else:
             for kcam in key_cam:
-                dptsx[kcam], dptsy[kcam], dptsz[kcam] = coll.get_rays_pts(key=key, key_cam=kcam)
+                dptsx[kcam], dptsy[kcam], dptsz[kcam] = coll.get_rays_pts(
+                    key=key,
+                    key_cam=kcam,
+                )
 
-        # ----------
+        # ------------
         # outline_only
 
         if outline_only is True:
-            for kcam, v0 in dptsx.items():
-                if v0.ndim == 3:
+
+            for k0, v0 in dptsx.items():
+
+                # get kcam
+                kcam, axis = _get_kcam(
+                    coll=coll,
+                    k0=k0,
+                    key=key,
+                    key_cam=key_cam,
+                    key_rays=key_rays,
+                )
+
+                shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+                if shape_cam == 2:
+
+                    # get index of non-outline
+                    sli = [0 for ii in v0.shape]
+                    sli[axis[0]] = slice(None)
+                    sli[axis[1]] = slice(None)
+                    sli = tuple(sli)
                     iout = ~_get_outline2d(
-                        dptsx[kcam][1, ...],
+                        dptsx[kcam][sli],
                         include_centroid=include_centroid,
                     )
-                    dptsx[kcam][:, iout] = np.nan
-                    dptsy[kcam][:, iout] = np.nan
-                    dptsz[kcam][:, iout] = np.nan
+
+                    # set non-aligned to nan
+                    sli = [slice(None) for ii in range(v0.size-1)]
+                    sli[axis[0]] = iout
+                    sli = tuple(sli)
+                    dptsx[kcam][sli] = np.nan
+                    dptsy[kcam][sli] = np.nan
+                    dptsz[kcam][sli] = np.nan
+
+        # --------------
+        # chain
+
+        if chain is True:
+
+            for k0, v0 in dptsx.items():
+
+                # get kcam
+                kcam, axis = _get_kcam(
+                    coll=coll,
+                    k0=k0,
+                    key=key,
+                    key_cam=key_cam,
+                    key_rays=key_rays,
+                )
+
+                shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+
+                # both ways
+                npts = dptsx[k0].shape[0]
+                sli = tuple(
+                    [np.arange(0, npts-1)[::-1]]
+                    + [slice(None) for ii in dptsx[k0].shape[1:]]
+                )
+
+                ptsx = np.concatenate(
+                    (dptsx[k0], dptsx[k0][sli]),
+                    axis=0,
+                )
+                ptsy = np.concatenate(
+                    (dptsy[k0], dptsy[k0][sli]),
+                    axis=0,
+                )
+                ptsz = np.concatenate(
+                    (dptsz[k0], dptsz[k0][sli]),
+                    axis=0,
+                )
+
+                # chain and store
+                dptsx[k0] = np.ravel(ptsx, order='F')
+                dptsy[k0] = np.ravel(ptsy, order='F')
+                dptsz[k0] = np.ravel(ptsz, order='F')
 
     return dptsx, dptsy, dptsz
+
+
+def _get_kcam(coll=None, k0=None, key=None, key_cam=None, key_rays=None):
+
+    # ---------------
+    # key_cam already
+
+    if key_cam is not None and k0 in key_cam:
+        kcam = k0
+        ref_cam = coll.dobj['camera'][kcam]['dgeom']['ref']
+        axis = 1 + np.arange(len(ref_cam))
+
+    # ----------
+    # key_rays
+
+    else:
+        ref = coll.dobj['rays'][key]['ref']
+        lkcam = [
+            kcam for kcam, vcam in coll.dobj['camera'].items()
+            if tuple([rr for rr in ref if rr in vcam['dgeom']['ref']]) == vcam['dgeom']['ref']
+        ]
+        if len(lkcam) != 1:
+            msg = ("Multiple possible cameras ")
+            raise Exception(msg)
+
+        kcam = lkcam[0]
+
+        # ---------
+        # get axis
+
+        ref_cam = coll.dobj['camera'][kcam]['dgeom']['ref']
+        axis = [ii for ii, rr in enumerate(ref) if rr in ref_cam]
+
+    return kcam, axis
 
 
 def _get_outline2d(pts, include_centroid=None):
