@@ -389,10 +389,13 @@ class Diagnostic(Previous):
         # sampling
         dsampling_pixel=None,
         dsampling_optics=None,
+        # optics (to restrain to certain optics only for faster)
+        optics=None,
         # computing
         config=None,
         # storing
         store=None,
+        key_rays=None,
         overwrite=None,
     ):
         return _generate_rays.main(
@@ -401,10 +404,13 @@ class Diagnostic(Previous):
             # sampling
             dsampling_pixel=dsampling_pixel,
             dsampling_optics=dsampling_optics,
+            # optics (to restrain to certain optics only for faster)
+            optics=optics,
             # computing
             config=config,
             # storing
             store=store,
+            key_rays=key_rays,
             overwrite=overwrite,
         )
 
