@@ -819,7 +819,21 @@ class Test01_Diagnostic():
 
         plt.close('all')
 
-    def test07_reverse_ray_tracing(self):
+    def test07_add_rays_from_diagnostic(self):
+        for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
+            noptics = any([len(v1['optics']) == 0 for v1 in v0['doptics'].values()])
+            if v0['is2d'] or v0['spectro'] or noptics:
+                continue
+            dout = self.coll.add_rays_from_diagnostic(
+                key=k0,
+                dsampling_pixel={'dedge': {'res': 'max'}, 'dsurface': {'nb': 3}},
+                dsampling_optics={'dedge': {'res': 'max'}, 'dsurface': {'nb': 3}},
+                optics=-1,
+                config=self.conf,
+                store=ii%2 == 0,
+            )
+
+    def test08_reverse_ray_tracing(self):
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
             lcam = self.coll.dobj['diagnostic'][k0]['camera']
             doptics = self.coll.dobj['diagnostic'][k0]['doptics']
@@ -866,7 +880,7 @@ class Test01_Diagnostic():
                 colorbar=None,
             )
 
-    def test08_save_to_json(self):
+    def test09_save_to_json(self):
 
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
 
