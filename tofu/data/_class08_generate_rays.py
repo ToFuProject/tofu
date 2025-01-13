@@ -710,6 +710,10 @@ def _generic(
 
         for ii, ind in enumerate(np.ndindex(shape_cam)):
 
+            if not parallel:
+                e0i_x, e0i_y, e0i_z = [dvect[f"e0_{kk}"][ind] for kk in lc]
+                e1i_x, e1i_y, e1i_z = [dvect[f"e1_{kk}"][ind] for kk in lc]
+
             # update cx, cy, cz
             _update_cxyz(
                 parallel,
@@ -791,6 +795,10 @@ def _generic(
             # ------------------
             # update pixel cx, cy, cz
 
+            if not parallel:
+                e0i_x, e0i_y, e0i_z = [dvect[f"e0_{kk}"][ind] for kk in lc]
+                e1i_x, e1i_y, e1i_z = [dvect[f"e1_{kk}"][ind] for kk in lc]
+
             _update_cxyz(
                 parallel,
                 e0i_x, e0i_y, e0i_z,
@@ -837,11 +845,6 @@ def _generic(
             for ii, ind in enumerate(np.ndindex(shape_cam)):
                 sli = ind + (slice(None), np.arange(0, dnrays[ind]))
                 oo[sli] = dout[kk][ind]
-
-                if kk == 'start_z':
-                    print()
-                    print(ii, ind)
-                    print(dout[kk][ind])
 
             dout[kk] = oo
 
