@@ -83,7 +83,7 @@ def main(
             x1_closed=din['x1'],
             key=din['key'],
             # options
-            **dsurface,
+            **{k0: dsurface.get(k0) for k0 in ['res', 'nb']},
         )
     else:
         dout_surf = {
@@ -135,7 +135,7 @@ def _check(
                 "Arg dedge must be None or a dict with keys:\n"
                 + "\n".join(lstr)
             )
-        raise Exception(msg)
+            raise Exception(msg)
 
     # --------------
     # dsurface
@@ -154,7 +154,7 @@ def _check(
                 "Arg dsurface must be None or a dict with keys:\n"
                 + "\n".join(lstr)
             )
-        raise Exception(msg)
+            raise Exception(msg)
 
     return dedge, dsurface
 
