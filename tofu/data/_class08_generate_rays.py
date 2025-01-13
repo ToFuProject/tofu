@@ -29,10 +29,13 @@ def main(
     # sampling
     dsampling_pixel=None,
     dsampling_optics=None,
+    # optics (to restrain to certain optics only for faster)
+    optics=None,
     # computing
     config=None,
     # storing
     store=None,
+    key_rays=None,
     overwrite=None,
 ):
     """
@@ -71,15 +74,19 @@ def main(
      key,
      dsampling_pixel,
      dsampling_optics,
-     store, overwrite,
+     optics,
+     store, key_rays, overwrite,
     ) = _check(
         coll=coll,
         key=key,
         # sampling
         dsampling_pixel=dsampling_pixel,
         dsampling_optics=dsampling_optics,
+        # optics
+        optics=optics,
         # storing
         store=store,
+        key_rays=key_rays,
         overwrite=overwrite,
     )
 
@@ -101,52 +108,20 @@ def main(
     # loop on cameras
     for kcam in key_cam:
 
-        # --------------
-        # prepare pixel outline
-
-        out0, out1 = coll.dobj['camera'][kcam]['dgeom']['outline']
-        out0 = coll.ddata[out0]['data']
-        out1 = coll.ddata[out1]['data']
-        out_arr = np.array([out0, out1]).T
-
-        # ---------------
-        # call routine
-
-        # if strategy == 'random':
-
-        #     dout[kcam] = _random(
-        #         coll=coll,
-        #         kcam=kcam,
-        #         doptics=doptics[kcam],
-        #         out_arr=out_arr,
-        #         nrays=nrays,
-        #         strategy=strategy,
-        #     )
-
-        # elif strategy == 'outline':
-
-        #     dout[kcam] = _outline()
-
-        # elif strategy == 'mesh':
-
-        #     dout[kcam] = _mesh()
-
         # --------------------
         # sample generic pixel
 
         dout[kcam] = _generic(
             coll=coll,
+            key=key,
             kcam=kcam,
             doptics=doptics[kcam],
             # sampling
             dsampling_pixel=dsampling_pixel,
             dsampling_optics=dsampling_optics,
+            # optics
+            optics=optics.get(kcam),
         )
-
-
-
-
-
 
     # ---------------
     #  store
@@ -156,6 +131,7 @@ def main(
         _store(
             coll=coll,
             dout=dout,
+            key_rays=key_rays,
             config=config,
             overwrite=overwrite,
         )
@@ -176,8 +152,11 @@ def _check(
     # sampling
     dsampling_pixel=None,
     dsampling_optics=None,
+    # optics
+    optics=None,
     # storing
     store=None,
+    key_rays=None,
     overwrite=None,
 ):
 
@@ -193,6 +172,8 @@ def _check(
         allowed=lok,
     )
 
+    key_cam = coll.dobj[wdiag][key]['camera']
+
     # spectro ?
     spectro = coll.dobj[wdiag][key]['spectro']
     if spectro is True:
@@ -202,30 +183,44 @@ def _check(
     # dsampling_pixel
     # ------------
 
-    lk = ['dedge', 'dsurface']
-    c0 = (
-        isinstance(dsampling_pixel, dict)
-        and any([ss in dsampling_pixel.keys() for ss in lk])
-    )
-    if not c0:
-        lstr = [f"\t- {kk}: dict fed to tf.data.poly2d_sample()" for kk in lk]
-        msg = (
-            "Arg dsampling_pixel must be a dict with at least one of:\n"
-            + "\n".join(lstr)
+    ldict = [
+        ('dsampling_pixel', dsampling_pixel),
+        ('dsampling_optics', dsampling_optics),
+    ]
+    lk = [('dedge', ['res', 'factor']), ('dsurface', ['res', 'nb'])]
+    kfunc = 'tf.data.poly2d_sample()'
+    for ii, (kdict, vdict) in enumerate(ldict):
+        c0 = (
+            isinstance(vdict, dict)
+            and any([kk in vdict.keys() for (kk, largs) in lk])
         )
-        raise Exception(msg)
+        if not c0:
+            lstr = [f"\t- {kk}: dict of {largs}" for (kk, largs) in lk]
+            msg = (
+                f"Arg '{kdict}' must be a dict with at least one of:\n"
+                + "\n".join(lstr)
+                + f"\nFed to {kfunc}\n"
+            )
+            raise Exception(msg)
 
-    c0 = (
-        isinstance(dsampling_optics, dict)
-        and any([ss in dsampling_optics.keys() for ss in lk])
-    )
-    if not c0:
-        lstr = [f"\t- {kk}: dict fed to tf.data.poly2d_sample()" for kk in lk]
-        msg = (
-            "Arg dsampling_optics must be a dict with at least one of:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
+    # ------------
+    # optics
+    # ------------
+
+    if optics is not None:
+
+        # index => position in optics list
+        optics0 = {
+            kc: _check_optics_for_kcam(
+                doptics=coll.dobj[wdiag][key]['doptics'][kc],
+                optics=optics.get(kc) if isinstance(optics, dict) else optics,
+                shape_cam=coll.dobj['camera'][kc]['dgeom']['shape'],
+            )
+            for kc in key_cam
+        }
+
+    else:
+        optics0 = {}
 
     # ------------
     # store
@@ -238,6 +233,41 @@ def _check(
     )
 
     # ------------
+    # key_rays
+    # ------------
+
+    if store is True:
+
+        if key_rays is None:
+            key_rays = {kcam: f"{kcam}_rays" for kcam in key_cam}
+
+        else:
+            if len(key_cam) == 1 and isinstance(key_rays, str):
+                key_rays[key_cam[0]] = key_rays
+
+        ncam = len(key_cam)
+        c0 = (
+            isinstance(key_rays, dict)
+            and all([
+                isinstance(key_rays.get(kcam), str)
+                and len(set([key_rays[kcam] for kcam in key_cam])) == ncam
+                and all([key_rays[kcam] not in coll.dobj['camera'].keys()])
+                for kcam in key_cam
+            ])
+        )
+        if not c0:
+            msg = (
+                "Arg key_rays must be a dict of key_ray for each camera:\n"
+                f"\t- key_diag = '{key}'\n"
+                f"\t- key_cam = {key_cam}\n"
+                f"\t- key_rays = {key_rays}\n"
+            )
+            raise Exception(msg)
+
+    else:
+        key_rays = None
+
+    # ------------
     # overwrite
     # ------------
 
@@ -247,7 +277,61 @@ def _check(
         default=False,
     )
 
-    return key, dsampling_pixel, dsampling_optics, store, overwrite
+    return (
+        key,
+        dsampling_pixel, dsampling_optics,
+        optics0,
+        store, key_rays, overwrite,
+    )
+
+
+def _check_optics_for_kcam(
+    doptics=None,
+    optics=None,
+    shape_cam=None,
+):
+
+    if isinstance(optics, int):
+
+        ind0 = np.arange(0, len(doptics['optics']))
+        if doptics['pinhole'] is True:
+            lok = np.r_[ind0, -1]
+        else:
+            nop = doptics['paths'].sum(axis=1)
+            lok = np.r_[np.arange(0, np.min(nop)), -np.arange(1, np.min(nop)+1)]
+
+        optics = ds._generic_check._check_var(
+            optics, 'optics',
+            types=int,
+            allowed=lok,
+        )
+
+        if doptics['pinhole'] is True:
+            optics = [doptics['optics'][optics]]
+        else:
+            assert doptics.get('paths') is not None
+            paths = doptics['paths']
+
+            optics = [
+                doptics['optics'][ind0[paths[ii, :]][optics]]
+                for ii in range(shape_cam[0])
+            ]
+
+    # -------------------
+    # key or list of keys
+
+    if isinstance(optics, str):
+        optics = [optics]
+
+    optics = ds._generic_check._check_var_iter(
+        optics, 'optics',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=doptics['optics'],
+    )
+
+    # eliminate redundants (ex. collimator with 1 common optic)
+    return list(set(optics))
 
 
 # ###############################################################
@@ -519,19 +603,29 @@ def _seed_optics(
 
 def _generic(
     coll=None,
+    key=None,
     kcam=None,
     doptics=None,
     # sampling options
     dsampling_pixel=None,
     dsampling_optics=None,
+    # optics
+    optics=None,
 ):
+
+    # -------------------
+    # optics
+    # -------------------
+
+    if optics is None:
+        optics = doptics['optics']
 
     # ---------------------
     # generic pixel outline
     # ---------------------
 
     # get pixel outline
-    kout0, kout1 = coll.dobj['camera'][kcam]['outline']
+    kout0, kout1 = coll.dobj['camera'][kcam]['dgeom']['outline']
 
     # sample pixel
     dout_pixel = poly2d_sample(
@@ -544,21 +638,15 @@ def _generic(
     nstart = dout_pixel['x0'].size
 
     # ---------------------
-    # number of pts on optics
-    # ---------------------
-
-    nvect = optics_nb[0] * optics_nb[1]
-
-    # ---------------------
     # prepare
     # ---------------------
 
     # shared apertures ?
-    pinhole = doptics['pinhole']
     parallel = coll.dobj['camera'][kcam]['dgeom']['parallel']
 
     # shape camera
     shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+    shape_start = shape_cam + (nstart,)
 
     # camera vector
     # get camera vectors
@@ -570,106 +658,255 @@ def _generic(
 
     cents_x, cents_y, cents_z = coll.get_camera_cents_xyz(kcam)
 
-    # -----------------------------------
-    # prepare output
-    # -----------------------------------
+    # -----------------------
+    # prepare buffer for cx, cy, cz
+    # -----------------------
 
-    shape_out = shape_cam + (nrays,)
-
-    dout = {
-        'key': f'{kcam}_rays',
-        'start_x': np.full(shape_out, np.nan),
-        'start_y': np.full(shape_out, np.nan),
-        'start_z': np.full(shape_out, np.nan),
-        'vect_x': np.full(shape_out, np.nan),
-        'vect_y': np.full(shape_out, np.nan),
-        'vect_z': np.full(shape_out, np.nan),
-        # 'dsang': np.full(shape_out, np.nan),
-    }
+    # cx, cy, cz (3d poitns for each pixel)
+    cx = np.full((nstart,), np.nan)
+    cy = np.full((nstart,), np.nan)
+    cz = np.full((nstart,), np.nan)
 
     # ---------------------
-    # pinhole with 1 optic
+    # Only 1 optic (pinhole or collimator with 1 common optics)
     # ---------------------
 
-    if len(doptics['optics']) == 1:
+    if len(optics) == 1:
 
-        kop = doptics['optics'][0]
-        clsop = coll.get_optics_cls(kop)
-        out0, out1 = coll.dobj[clsop][kop]['outline']
-        out0 = coll.ddata[out0]['data']
-        out1 = coll.ddata[out1]['data']
+        # ------------------------
+        # get end points on optics
 
-        dout_pin_edge = poly2d_sample_edge(out0, out1, nb=optics_nb)
-        dout_pin_surf = poly2d_sample_surface(out0, out1, nb=optics_nb)
+        endx, endy, endz = _get_end_optics(
+            coll=coll,
+            kop=optics[0],
+            dsampling_optics=dsampling_optics,
+        )
+        nend = endx.size
+
+        # --------------
+        # prepare output
+
+        # rays shape for each pixel
+        shape_each = (nstart, nend)
+        vx = np.full(shape_each, np.nan)
+        vy = np.full(shape_each, np.nan)
+        vz = np.full(shape_each, np.nan)
+
+        # oreall
+        shape_out = shape_start + (nend,)
+
+        dout = {
+            'start_x': np.full(shape_out, np.nan),
+            'start_y': np.full(shape_out, np.nan),
+            'start_z': np.full(shape_out, np.nan),
+            'vect_x': np.full(shape_out, np.nan),
+            'vect_y': np.full(shape_out, np.nan),
+            'vect_z': np.full(shape_out, np.nan),
+            # 'dsang': np.full(shape_out, np.nan),
+        }
+
+        # -------------------
+        # assign output
+
+        for ii, ind in enumerate(np.ndindex(shape_cam)):
+
+            # update cx, cy, cz
+            _update_cxyz(
+                parallel,
+                e0i_x, e0i_y, e0i_z,
+                e1i_x, e1i_y, e1i_z,
+                cents_x, cents_y, cents_z,
+                ind, lc,
+                dout_pixel,
+                cx, cy, cz,
+                dvect,
+            )
+
+            # vect
+            vx[...] = endx[None, :] - cx[:, None]
+            vy[...] = endy[None, :] - cy[:, None]
+            vz[...] = endz[None, :] - cz[:, None]
+
+            vnorm_inv = 1./np.sqrt(vx**2 + vy**2 + vz**2)
+
+            # slicing
+            sli = ind + (slice(None), slice(None))
+
+            # assigning
+            dout['start_x'][sli] = np.copy(cx)[:, None]
+            dout['start_y'][sli] = np.copy(cy)[:, None]
+            dout['start_z'][sli] = np.copy(cz)[:, None]
+
+            dout['vect_x'][sli] = vx * vnorm_inv
+            dout['vect_y'][sli] = vy * vnorm_inv
+            dout['vect_z'][sli] = vz * vnorm_inv
 
     # ---------------------
     # loop on pixels
     # ---------------------
 
-    for ii, ind in enumerate():
+    else:
 
-        if parallel is False:
-            nin = None
+        dout = {
+            'start_x': {},
+            'start_y': {},
+            'start_z': {},
+            'vect_x': {},
+            'vect_y': {},
+            'vect_z': {},
+            # 'dsang': np.full(shape_out, np.nan),
+        }
 
-        start_x = cents_x[ind] + pts0 * e0[0] + pts1 * e1[0]
-        start_y = cents_y[ind] + pts0 * e0[1] + pts1 * e1[1]
-        start_z = cents_z[ind] + pts0 * e0[2] + pts1 * e1[2]
+        for ii, ind in enumerate(np.ndindex(shape_cam)):
 
-        for jj in range(pts0.size):
+            # check optics per pixel
+            lop = np.array(doptics['optics'])[doptics['paths'][ii, :]]
+            lop = [
+                kop for kop in lop
+                if (kop in optics or optics is None)
+            ]
 
-            # get projected polygon
-            continue
+            # check number of optics
+            if len(lop) > 1:
+                msg = (
+                    "Multiple optics not handled yet!\n"
+                    f"\t- key_diag = '{key}'\n"
+                    f"\t- kcam = '{kcam}'\n"
+                    f"\t- ii, ind = {ii}, {ind}\n"
+                    f"\t- optics = {optics}\n"
+                    f"\t- lop = {lop}\n"
+                )
+                raise NotImplementedError(msg)
 
+            # ------------------------
+            # get end points on optics
 
+            endx, endy, endz = _get_end_optics(
+                coll=coll,
+                kop=lop[0],
+                dsampling_optics=dsampling_optics,
+            )
+            nend = endx.size
 
+            # ------------------
+            # update pixel cx, cy, cz
 
-            # ------------
-            # solid angles
+            _update_cxyz(
+                parallel,
+                e0i_x, e0i_y, e0i_z,
+                e1i_x, e1i_y, e1i_z,
+                cents_x, cents_y, cents_z,
+                ind, lc,
+                dout_pixel,
+                cx, cy, cz,
+                dvect,
+            )
 
-            # solid_angles[ind] = _comp_solidangles.calc_solidangle_apertures(
-            #     # observation points
-            #     pts_x=centsx[ind],
-            #     pts_y=centsy[ind],
-            #     pts_z=centsz[ind],
-            #     # polygons
-            #     apertures=None,
-            #     detectors=ldet[ii],
-            #     # possible obstacles
-            #     config=None,
-            #     # parameters
-            #     visibility=False,
-            #     return_vector=False,
-            #     # timing
-            #     timing=False,
-            # )[0, 0]
+            # vector
+            vx = endx[None, :] - cx[:, None]
+            vy = endy[None, :] - cy[:, None]
+            vz = endz[None, :] - cz[:, None]
 
-    # ---------------
-    # optics
-    # ---------------
+            vnorm_inv = 1./np.sqrt(vx**2 + vy**2 + vz**2)
+
+            # assigning
+            dout['start_x'][ind] = np.copy(cx)[:, None]
+            dout['start_y'][ind] = np.copy(cy)[:, None]
+            dout['start_z'][ind] = np.copy(cz)[:, None]
+
+            dout['vect_x'][ind] = vx * vnorm_inv
+            dout['vect_y'][ind] = vy * vnorm_inv
+            dout['vect_z'][ind] = vz * vnorm_inv
 
     # -------------
     # adjust
     # -------------
 
-    nok = np.sum(np.isfinite(start_x), axis=-1)
-    if nok < nrays:
-        pass
+    if isinstance(dout['start_x'], dict):
+
+        dnrays = {k0: v0.shape[1] for k0, v0 in dout['vect_x'].items()}
+        nraysu = np.unique([v0 for v0 in dnrays.values()])
+
+        lkstart = [f'start_{cc}' for cc in lc]
+        lkvect = [f'vect_{cc}' for cc in lc]
+
+        # initialize
+        for kk in lkstart + lkvect:
+            oo = np.full(shape_cam + (nstart, nraysu.max()), np.nan)
+
+            for ii, ind in enumerate(np.ndindex(shape_cam)):
+                sli = ind + (slice(None), np.arange(0, dnrays[ind]))
+                oo[sli] = dout[kk][ind]
+
+                if kk == 'start_z':
+                    print()
+                    print(ii, ind)
+                    print(dout[kk][ind])
+
+            dout[kk] = oo
 
     # ---------------
     # return
     # ---------------
 
-    # dout = {
-    #     'key': f'{kcam}_rays_generic',
-    #     'start_x': np.full(shape_out, np.nan),
-    #     'start_y': np.full(shape_out, np.nan),
-    #     'start_z': np.full(shape_out, np.nan),
-    #     'vect_x': np.full(shape_out, np.nan),
-    #     'vect_y': np.full(shape_out, np.nan),
-    #     'vect_z': np.full(shape_out, np.nan),
-    # }
+    return dout
 
-    return # dout
+
+def _get_end_optics(
+    coll=None,
+    kop=None,
+    dsampling_optics=None,
+):
+
+    kop, clsop = coll.get_optics_cls(kop)
+    clsop, kop = clsop[0], kop[0]
+    kout0, kout1 = coll.dobj[clsop][kop]['dgeom']['outline']
+
+    dout_optics = poly2d_sample(
+        coll.ddata[kout0]['data'],
+        coll.ddata[kout1]['data'],
+        dedge=dsampling_optics.get('dedge'),
+        dsurface=dsampling_optics.get('dsurface'),
+    )
+
+    # get 3d optics end points coordinates
+    func = coll.get_optics_x01toxyz(key=kop, asplane=False)
+    return func(dout_optics['x0'], dout_optics['x1'])
+
+
+def _update_cxyz(
+    parallel,
+    e0i_x, e0i_y, e0i_z,
+    e1i_x, e1i_y, e1i_z,
+    cents_x, cents_y, cents_z,
+    ind, lc,
+    dout_pixel,
+    cx, cy, cz,
+    dvect,
+):
+
+    if parallel is not True:
+        e0i_x, e0i_y, e0i_z = [dvect[f"e0_{kk}"][ind] for kk in lc]
+        e1i_x, e1i_y, e1i_z = [dvect[f"e1_{kk}"][ind] for kk in lc]
+
+    # start
+    cx[...] = (
+        cents_x[ind]
+        + dout_pixel['x0'] * e0i_x
+        + dout_pixel['x1'] * e1i_x
+    )
+    cy[...] = (
+        cents_y[ind]
+        + dout_pixel['x0'] * e0i_y
+        + dout_pixel['x1'] * e1i_y
+    )
+    cz[...] = (
+        cents_z[ind]
+        + dout_pixel['x0'] * e0i_z
+        + dout_pixel['x1'] * e1i_z
+    )
+
+    return
 
 
 # ###############################################################
@@ -694,27 +931,38 @@ def _store(
     coll=None,
     kdiag=None,
     dout=None,
+    key_rays=None,
     config=None,
     overwrite=None,
 ):
 
-    # -----------------
-    # add ref
-    # -----------------
-
-    nrays = list(dout.values())[0]['start_x'].shape[-1]
-
-    kref = f"{kdiag}_nrays"
-    coll.add_ref(key=kref, size=nrays)
 
     # --------------
-    # add rays
+    # store
     # --------------
 
     for kcam, v0 in dout.items():
 
-        ref = coll.dobj['camera'][kcam]['dgeom']['ref'] + (kref,)
+        key = key_rays[kcam]
+
+        # -----------------
+        # add ref
+
+        nstart, nends = v0['vect_x'].shape[-2:]
+
+        krstart = f"{key}_nstart"
+        coll.add_ref(key=krstart, size=nstart)
+
+        krend = f"{key}_nend"
+        coll.add_ref(key=krend, size=nends)
+
+        # -----------------
+        # add rays
+
+        ref = coll.dobj['camera'][kcam]['dgeom']['ref'] + (krstart, krend)
+
         coll.add_rays(
+            key=key,
             ref=ref,
             config=config,
             **v0
