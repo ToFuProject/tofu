@@ -32,6 +32,7 @@ def compute_los_angles(
     dcompute=None,
     # for storing los
     config=None,
+    strict=None,
     length=None,
     reflections_nb=None,
     reflections_type=None,
@@ -121,6 +122,7 @@ def compute_los_angles(
                 key_cam=key_cam,
                 v0=v0,
                 config=config,
+                strict=strict,
                 res=res,
                 overwrite=overwrite,
             )
@@ -190,6 +192,7 @@ def _vos_from_los(
     key_cam=None,
     v0=None,
     config=None,
+    strict=None,
     res=None,
     overwrite=None,
 ):
@@ -286,6 +289,7 @@ def _vos_from_los(
             coords=coll.get_optics_x01toxyz(key=optics[iref]),
             lspectro=lspectro,
             config=config,
+            strict=strict,
             # debug
             key=key,
         )
@@ -608,6 +612,7 @@ def _get_rays_from_pix(
     coords=None,
     lspectro=None,
     config=None,
+    strict=None,
     # debug
     key=None,
 ):
@@ -677,7 +682,7 @@ def _get_rays_from_pix(
         Name='',
         Diag='',
         Exp='',
-        strict=True,
+        strict=strict,
     )
 
     # pin

@@ -96,7 +96,7 @@ def _surface3d(
         outline_x0, outline_x1, area = _check_polygon_2d(
             poly_x=outline_x0,
             poly_y=outline_x1,
-            poly_name=f'{key}-outline',
+            poly_name=f'{key}_outline',
             can_be_None=False,
             closed=False,
             counter_clockwise=True,

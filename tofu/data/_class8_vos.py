@@ -732,6 +732,13 @@ def _get_user_limits(
                 np.full(shape_cam, user_limits['Dphi'][1]),
             ])
 
+    # -----------
+    # clean-up
+    # ----------
+
+    if len(user_limits) == 0:
+        user_limits = None
+
     return user_limits
 
 

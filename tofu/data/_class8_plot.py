@@ -620,7 +620,7 @@ def _plot_diagnostic(
                     nan_los,
                     nan_los,
                     nan_los,
-                    c=color_dict['x'][ii],
+                    c=color_dict['x'][ii%len(color_dict['x'])],
                     ls='-',
                     lw=1.,
                 )
@@ -775,7 +775,7 @@ def _plot_diagnostic(
                     l0, = ax.plot(
                         dataz,
                         ddata[k0][sli],
-                        c=color_dict['x'][ii],
+                        c=color_dict['x'][ii%len(color_dict['x'])],
                         lw=1.,
                         ls='-',
                     )
@@ -1185,7 +1185,7 @@ def _add_camera_los_cross(
             l0, = ax.plot(
                 nan_los,
                 nan_los,
-                c=color_dict['x'][ii],
+                c=color_dict['x'][ii%len(color_dict['x'])],
                 ls='-',
                 lw=1.,
             )
@@ -1209,7 +1209,7 @@ def _add_camera_los_cross(
             l0, = ax.fill(
                 nan_vos,
                 nan_vos,
-                fc=color_dict['x'][ii],
+                fc=color_dict['x'][ii%len(color_dict['x'])],
                 alpha=alpha,
                 ls='None',
                 lw=0.,
@@ -1251,7 +1251,7 @@ def _add_camera_los_hor(
             l0, = ax.plot(
                 nan_los,
                 nan_los,
-                c=color_dict['x'][ii],
+                c=color_dict['x'][ii%len(color_dict['x'])],
                 ls='-',
                 lw=1.,
             )
@@ -1277,7 +1277,7 @@ def _add_camera_los_hor(
                 l0, = ax.fill(
                     nan_vos,
                     nan_vos,
-                    fc=color_dict['x'][ii],
+                    fc=color_dict['x'][ii%len(color_dict['x'])],
                     alpha=alpha,
                     ls='None',
                     lw=0.,
@@ -1314,6 +1314,8 @@ def _add_camera_vlines_marker(
     suffix=None,
 ):
 
+    ncolx = len(color_dict['x'])
+    ncoly = len(color_dict['y'])
     if suffix is None:
         suffix = ''
 
@@ -1324,7 +1326,7 @@ def _add_camera_vlines_marker(
                 ddatay[k0][0:1],
                 marker='s',
                 ms=6,
-                markeredgecolor=color_dict['x'][ii],
+                markeredgecolor=color_dict['x'][ii%ncolx],
                 markerfacecolor='None',
             )
 
@@ -1350,7 +1352,7 @@ def _add_camera_vlines_marker(
 
         for ii in range(nlos):
             lv = ax.axvline(
-                ddatax[k0][0], c=color_dict['y'][ii], lw=1., ls='-',
+                ddatax[k0][0], c=color_dict['y'][ii%ncoly], lw=1., ls='-',
             )
             kv = f'{k0}_v{ii:02.0f}{suffix}'
             coll2.add_mobile(
