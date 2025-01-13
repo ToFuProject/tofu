@@ -52,6 +52,7 @@ def main(
     factor=None,
     color=None,
     chain=None,
+    curve=None,
     # ---------------
     # saving
     pfe_save=None,
@@ -84,6 +85,8 @@ def main(
         DESCRIPTION. The default is None.
     chain : bool
         Flag to chain all pixels, for each camera
+    curve:  str
+        Flag to use either 'LINE' or 'POLYLINE'
     pfe_save : str, optional
         DESCRIPTION. The default is None.
     overwrite : bool, optional
@@ -107,6 +110,7 @@ def main(
         include_centroid,
         factor, color,
         chain,
+        curve,
         iso,
         pfe_save, overwrite,
     ) = _check(
@@ -123,6 +127,7 @@ def main(
         factor=factor,
         color=color,
         chain=chain,
+        curve=curve,
         # saving
         pfe_save=pfe_save,
         overwrite=overwrite,
@@ -172,16 +177,32 @@ def main(
     )
 
     # DATA
-    msg_data = _get_data(
-        dptsx=dptsx,
-        dptsy=dptsy,
-        dptsz=dptsz,
-        fname=fname,
-        # options
-        dcolor=dcolor,
-        # norm
-        iso=iso,
-    )
+    if curve == 'LINE':
+        msg_data = _get_data_line(
+            dptsx=dptsx,
+            dptsy=dptsy,
+            dptsz=dptsz,
+            fname=fname,
+            # options
+            dcolor=dcolor,
+            # norm
+            iso=iso,
+        )
+
+    elif curve == 'POLYLINE':
+        msg_data = _get_data_polyline(
+            dptsx=dptsx,
+            dptsy=dptsy,
+            dptsz=dptsz,
+            fname=fname,
+            # options
+            dcolor=dcolor,
+            # norm
+            iso=iso,
+        )
+
+    else:
+        raise NotImplementedError()
 
     # -------------
     # save to stp
@@ -216,6 +237,7 @@ def _check(
     factor=None,
     color=None,
     chain=None,
+    curve=None,
     # saving
     pfe_save=None,
     overwrite=None,
@@ -358,15 +380,29 @@ def _check(
 
     chain = ds._generic_check._check_var(
         chain, 'chain',
-        types=bool,
+        types=(bool, str),
         default=False,
+        allowed=[True, False, 'pixel'],
     )
 
-    if chain is True and not (key_cam is not None or key_rays is not None):
+    if chain is not False and not (key_cam is not None or key_rays is not None):
         msg = (
-            "Arg chain can only be True if key_cam or key_rays is known!"
+            "Arg chain can only used if key_cam or key_rays is known!\n"
+            f"\t- chain: {chain}\n"
         )
         raise Exception(msg)
+
+    # ---------------
+    # curve
+    # ---------------
+
+    lok = ['LINE', 'POLYLINE']
+    curve = ds._generic_check._check_var(
+        curve, 'curve',
+        types=str,
+        default=lok[0],
+        allowed=lok,
+    )
 
     # ---------------
     # factor
@@ -433,6 +469,7 @@ def _check(
         include_centroid,
         factor, color,
         chain,
+        curve,
         iso,
         pfe_save, overwrite,
     )
@@ -575,7 +612,7 @@ def _extract(
         # --------------
         # chain
 
-        if chain is True:
+        if chain is not False:
 
             for k0, v0 in dptsx.items():
 
@@ -611,9 +648,31 @@ def _extract(
                 )
 
                 # chain and store
-                dptsx[k0] = np.ravel(ptsx, order='F')
-                dptsy[k0] = np.ravel(ptsy, order='F')
-                dptsz[k0] = np.ravel(ptsz, order='F')
+                if chain is True:
+                    dptsx[k0] = np.ravel(ptsx, order='F')
+                    dptsy[k0] = np.ravel(ptsy, order='F')
+                    dptsz[k0] = np.ravel(ptsz, order='F')
+
+                elif chain == 'pixel':
+                    shape = shape_cam + (-1,)
+                    dptsx[k0] = np.moveaxis(
+                        np.moveaxis(ptsx, 0, -1).reshape(shape),
+                        -1,
+                        0,
+                    )
+                    dptsy[k0] = np.moveaxis(
+                        np.moveaxis(ptsy, 0, -1).reshape(shape),
+                        -1,
+                        0,
+                    )
+                    dptsz[k0] = np.moveaxis(
+                        np.moveaxis(ptsz, 0, -1).reshape(shape),
+                        -1,
+                        0,
+                    )
+
+                else:
+                    raise NotImplementedError(f"{chain}")
 
     return dptsx, dptsy, dptsz
 
@@ -901,11 +960,11 @@ def _get_k0ind(dind_ok=None, ncum=None, lkcam=None):
 
 # #################################################################
 # #################################################################
-#          DATA
+#          DATA - LINE
 # #################################################################
 
 
-def _get_data(
+def _get_data_line(
     dptsx=None,
     dptsy=None,
     dptsz=None,
@@ -1102,6 +1161,363 @@ def _get_data(
     # -----------------
 
     k0 = 'LINE'
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        kcam, ind = k0ind(ii)
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    # -----------------
+    # TRIMMED_CURVE
+    # -----------------
+
+    k0 = 'TRIMMED_CURVE'
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        kcam, ind = k0ind(ii)
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['LINE']['ind'][ii]},(PARAMETER_VALUE(0.)),(PARAMETER_VALUE(1.)),.T.,.PARAMETER.);")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    # ----------------
+    # DRAUGHTING_PRE_DEFINED_CURVE_FONT
+    # ----------------
+
+    k0 = 'DRAUGHTING_PRE_DEFINED_CURVE_FONT'
+    ni = dind[k0]['ind'][0]
+    dind[k0]['msg'] = f"#{ni}={k0}('continuous');"
+
+    # ------------------
+    # CURVE_STYLE
+    # ------------------
+
+    k0 = 'CURVE_STYLE'
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        lines.append(f"#{ni}={k0}('style {ii}',#{dind['DRAUGHTING_PRE_DEFINED_CURVE_FONT']['ind'][0]},POSITIVE_LENGTH_MEASURE(0.7),#{dind['COLOUR_RGB']['ind'][ii]});")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    # -----------------
+    # PRESENTATION_STYLE_ASSIGNMENT
+    # ------------------
+
+    k0 = 'PRESENTATION_STYLE_ASSIGNMENT'
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        lines.append(f"#{ni}={k0}((#{dind['CURVE_STYLE']['ind'][ii]}));")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    #1605=PRESENTATION_STYLE_ASSIGNMENT((#2488));
+
+    # -----------------
+    # STYLED_ITEM
+    # -----------------
+
+    k0 = 'STYLED_ITEM'
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        kcam, ind = k0ind(ii)
+        jj = colors.index(dcolor[kcam])
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['TRIMMED_CURVE']['ind'][ii]});")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    # -----------------
+    # GEOMETRIC_CURVE_SET
+    # -----------------
+
+    k0 = 'GEOMETRIC_CURVE_SET'
+    ni = dind[k0]['ind'][0]
+    lstr = ','.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('None',({lstr}));"
+
+    # ----------------------
+    # PRESENTATION_LAYER_ASSIGNMENT
+    # ----------------------
+
+    k0 = 'PRESENTATION_LAYER_ASSIGNMENT'
+    ni = dind[k0]['ind'][0]
+    lstr = ','.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('1','Layer 1',({lstr}));"
+
+    # ----------------------------------
+    # MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION
+    # ----------------------------------
+
+    k0 = 'MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION'
+    ni = dind[k0]['ind'][0]
+    lstr = ','.join([f"#{ii}" for ii in dind['STYLED_ITEM']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('',({lstr}),#{i0});"
+
+    # ------------
+    # LEFTOVERS
+    # ------------
+
+    for k0, v0 in dind.items():
+        if v0.get('msg') is None:
+            if v0.get('str') is None:
+                msg = f"Looks like '{k0}' is missing!"
+                raise Exception(msg)
+            else:
+                ni = dind[k0]['ind'][0]
+                dind[k0]['msg'] = f"#{ni}={v0['str']}"
+
+
+    # --------------------
+    # msg_pre
+    # --------------------
+
+    msg_pre = (
+f"""
+DATA;
+#10=PROPERTY_DEFINITION_REPRESENTATION(#14,#12);
+#11=PROPERTY_DEFINITION_REPRESENTATION(#15,#13);
+#12=REPRESENTATION('',(#16),#{i0});
+#13=REPRESENTATION('',(#17),#{i0});
+#14=PROPERTY_DEFINITION('pmi validation property','',#21);
+#15=PROPERTY_DEFINITION('pmi validation property','',#21);
+#16=VALUE_REPRESENTATION_ITEM('number of annotations',COUNT_MEASURE(0.));
+#17=VALUE_REPRESENTATION_ITEM('number of views',COUNT_MEASURE(0.));
+#18=SHAPE_REPRESENTATION_RELATIONSHIP('None', 'relationship between {fname}-None and {fname}-None',#30,#19);
+#19=GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION('{fname}-None',(#31),#{i0});
+#20=SHAPE_DEFINITION_REPRESENTATION(#21,#30);
+#21=PRODUCT_DEFINITION_SHAPE('','',#22);
+#22=PRODUCT_DEFINITION(' ','',#24,#23);
+#23=PRODUCT_DEFINITION_CONTEXT('part definition',#29,'design');
+#24=PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE(' ',' ',#26,.NOT_KNOWN.);
+#25=PRODUCT_RELATED_PRODUCT_CATEGORY('part','',(#26));
+#26=PRODUCT('{fname}','{fname}',' ', (#27));
+#27=PRODUCT_CONTEXT(' ',#29,'mechanical');
+#28=APPLICATION_PROTOCOL_DEFINITION('international standard','automotive_design',2010,#29);
+#29=APPLICATION_CONTEXT('core data for automotive mechanical design processes');
+#30=SHAPE_REPRESENTATION('{fname}-None',(#6215),#{i0});
+"""
+    )
+
+    # --------------------
+    # msg_post
+    # --------------------
+
+    # 5->91
+    ind = i0 + np.arange(0, 8)
+    msg_post = (
+f"""
+#{ind[0]}=(
+GEOMETRIC_REPRESENTATION_CONTEXT(3)
+GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#{ind[1]}))
+GLOBAL_UNIT_ASSIGNED_CONTEXT((#{ind[7]},#{ind[3]},#{ind[2]}))
+REPRESENTATION_CONTEXT('{fname}','TOP_LEVEL_ASSEMBLY_PART')
+);
+#{ind[1]}=UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(2.E-5),#{ind[7]}, 'DISTANCE_ACCURACY_VALUE','Maximum Tolerance applied to model');
+#{ind[2]}=(
+NAMED_UNIT(*)
+SI_UNIT($,.STERADIAN.)
+SOLID_ANGLE_UNIT()
+);
+#{ind[3]}=(
+CONVERSION_BASED_UNIT('DEGREE',#{ind[5]})
+NAMED_UNIT(#{ind[4]})
+PLANE_ANGLE_UNIT()
+);
+#{ind[4]}=DIMENSIONAL_EXPONENTS(0.,0.,0.,0.,0.,0.,0.);
+#{ind[5]}=PLANE_ANGLE_MEASURE_WITH_UNIT(PLANE_ANGLE_MEASURE(0.0174532925), #{ind[6]});
+#{ind[6]}=(
+NAMED_UNIT(*)
+PLANE_ANGLE_UNIT()
+SI_UNIT($,.RADIAN.)
+);
+#{ind[7]}=(
+LENGTH_UNIT()
+NAMED_UNIT(*)
+SI_UNIT(.MILLI.,.METRE.)
+);
+ENDSEC;
+END-{iso};"""
+    )
+
+    # --------------------
+    # assemble
+    # --------------------
+
+    msg = msg_pre + "\n".join([dind[k0]['msg'] for k0 in lkey]) + msg_post
+
+    return msg
+
+
+# #################################################################
+# #################################################################
+#          DATA - POLYLINE
+# #################################################################
+
+
+def _get_data_polyline(
+    dptsx=None,
+    dptsy=None,
+    dptsz=None,
+    fname=None,
+    # options
+    dcolor=None,
+    # norm
+    iso=None,
+):
+
+
+    # ----------------
+    # prepare
+    # ----------------
+
+    dok = {k0: np.isfinite(v0) for k0, v0 in dptsx.items()}
+
+    dpts_ind = {}
+    for k0, v0 in dptsx.items():
+
+        dpts_ind[k0] = {}
+        for ind in np.ndindex(v0.shape[1:]):
+            sli = (slice(None),) + ind
+
+            iok = np.isfinite(v0[sli])
+            if np.any(iok):
+                dpts_ind[k0][ind] = {
+                    'ind': iok.nonzero()[0],
+                    'nn': iok.sum(),
+                    'color': None,
+                }
+
+    # nb of polylines
+    dnpoly = {k0: len(v0) for k0, v0 in dpts_ind.items()}
+    npoly = np.sum([v0 for v0 in dnpoly.values()])
+
+    dnpts = {k0: np.sum([v1['nn'] for v1 in v0.values()])}
+    npts = np.sum([v0 for v0 in dnpts.values()])
+
+    # -----------
+    # nrays
+    # -----------
+
+    # --------------
+    # order of kcam
+
+    # TO BE UPDATED FOR PTS and POLYLINE
+    lkcam = sorted(dptsx.keys())
+    k0ind = _get_k0ind(
+        dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
+        ncum=np.cumsum([dnrays[kcam] for kcam in lkcam]),
+        lkcam=lkcam,
+    )
+
+    # -----------
+    # colors
+    # -----------
+
+    colors = sorted(set([v0 for v0 in dcolor.values()]))
+    ncol = len(colors)
+
+    # -----------------
+    # get index in file
+    # ------------------
+
+    i0 = 31
+    dind = {
+        'GEOMETRIC_CURVE_SET': {'order': 0},
+        'PRESENTATION_LAYER_ASSIGNMENT': {'order': 1},
+        'STYLED_ITEM': {
+            'order': 2,
+            'nn': npoly,
+        },
+        'PRESENTATION_STYLE_ASSIGNMENT': {
+            'order': 3,
+            'nn': ncol,
+        },
+        'CURVE_STYLE': {
+            'order': 4,
+            'nn': ncol,
+        },
+        'COLOUR_RGB': {
+            'order': 5,
+            'nn': ncol,
+        },
+        'DRAUGHTING_PRE_DEFINED_CURVE_FONT': {
+            'order': 6,
+            # 'nn': nrays,
+        },
+        'TRIMMED_CURVE': {
+            'order': 7,
+            'nn': npoly,
+        },
+        'POLYLINE': {
+            'order': 8,
+            'nn': npoly,
+        },
+        'AXIS2_PLACEMENT_3D': {'order': 10},
+        'DIRECTION0': {
+            'order': 9,
+            'str': "DIRECTION('',(0.,0.,1.));",
+        },
+        'DIRECTION1': {
+            'order': 10,
+            'str': "DIRECTION('',(1.,0.,0.));",
+        },
+        'CARTESIAN_POINT0': {
+            'order': 11,
+            'str': "CARTESIAN_POINT('',(0.,0.,0.));",
+        },
+        'CARTESIAN_POINT': {
+            'order': 12,
+            'nn': npts,
+        },
+        'MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION': {
+            'order': 13,
+        },
+    }
+
+    # complement
+    lkey = [k0 for k0 in dind.keys()]
+    lorder = [dind[k0]['order'] for k0 in lkey]
+
+    # safety check
+    assert np.unique(lorder).size == len(lorder)
+    inds = np.argsort(lorder)
+    lkey = [lkey[ii] for ii in inds]
+
+    # derive indices
+    for k0 in lkey:
+        nn = dind[k0].get('nn', 1)
+        dind[k0]['ind'] = i0 + np.arange(0, nn)
+        i0 += nn
+
+    # -----------------
+    # COLOUR_RGB
+    # -----------------
+
+    k0 = 'COLOUR_RGB'
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        lines.append(f"#{ni}={k0}('color {ii}',{colors[ii][0]},{colors[ii][1]},{colors[ii][2]});")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    # -----------------
+    # CARTESIAN_POINT
+    # -----------------
+
+    k0 = 'CARTESIAN_POINT'
+    lines = []
+    for ii, ni in enumerate(dind[k0]['ind']):
+        kcam, ind = k0ind(ii)
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({dptsx[kcam][ind]},{dptsy[kcam][ind]},{dptsz[kcam][ind]}));")
+    dind[k0]['msg'] = "\n".join(lines)
+
+    # -----------------
+    # AXIS2_PLACEMENT_3D
+    # -----------------
+
+    k0 = 'AXIS2_PLACEMENT_3D'
+    ni = dind[k0]['ind'][0]
+    lstr = ', '.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    dind[k0]['msg'] = f"#{ni}={k0}('',#{dind['CARTESIAN_POINT0']['ind'][0]},#{dind['DIRECTION0']['ind'][0]},#{dind['DIRECTION1']['ind'][0]});"
+
+    # -----------------
+    # LINE
+    # -----------------
+
+    k0 = 'POLYLINE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
         kcam, ind = k0ind(ii)
