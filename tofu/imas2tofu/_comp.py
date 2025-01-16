@@ -222,7 +222,7 @@ def get_fsig(sig):
                             msg = (
                                 f"dcond[{ii}]['ind'] = {dcond[ii]['ind']} "
                                 f"so ind = {ind} "
-                                "but len(sig[{jj}]) = {len(sig[jj])}"
+                                f"but len(sig[{jj}]) = {len(sig[jj])}"
                             )
                             raise Exception(msg)
                         else:
