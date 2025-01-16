@@ -694,13 +694,13 @@ def _get_data_units(ids=None, sig=None, occ=None,
                 if pos is None:
                     pos = dcomp[ids][sig].get('pos', False)
             except Exception as err:
-                errdata = str(err)
+                errdata = err
 
         if units is True:
             try:
                 unit = dcomp[ids][sig].get('units', None)
             except Exception as err:
-                errunits = str(err)
+                errunits = err
 
     # Data available from ids
     else:
@@ -713,13 +713,13 @@ def _get_data_units(ids=None, sig=None, occ=None,
                 if pos is None:
                     pos = dshort[ids][sig].get('pos', False)
             except Exception as err:
-                errdata = str(err)
+                errdata = err
 
         if units is True:
             try:
                 unit = get_units(ids, sig)
             except Exception as err:
-                errunits = str(err)
+                errunits = err
 
     # Check data
     isempty = None
@@ -729,7 +729,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
                                    isclose=isclose, empty=empty)
         if np.all(isempty):
             msg = ("empty data in {}.{}".format(ids, sig))
-            errdata = msg
+            errdata = Exception(msg)
         elif nocc == 1 and flatocc is True:
             out = out[0]
             isempty = isempty[0]
@@ -819,19 +819,29 @@ def get_data_units(dsig=None, occ=None,
                         dfail[ids][sigi+' units'] = dout[ids][sigi]['errunits']
 
             except Exception as err:
-                dfail[ids][sigi] = str(err)
+                dfail[ids][sigi] = err
                 anyfail = True
 
         if len(dfail[ids]) == 0:
             del dfail[ids]
 
+    # ---------------------
     # Print if any failure
+
     if anyfail:
+
+        if strict is True:
+            for ids, vids in dfail.items():
+                for sigi, vsigi in dout[ids].items():
+                    for kerr, verr in vsigi.items():
+                        raise verr
+
         if data is True:
             for ids in dfail.keys():
                 for sigi in list(dout[ids].keys()):
                     if dout[ids][sigi]['errdata'] is not None:
                         del dout[ids][sigi]
+
         if warn:
             msg = "The following data could not be retrieved:"
             for ids in dfail.keys():
