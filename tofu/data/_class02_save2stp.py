@@ -941,21 +941,43 @@ FILE_NAME(
 # #################################################################
 
 
-def _get_k0ind(dind_ok=None, ncum=None, lkcam=None):
+def _get_ind_global_to_local(dind_ok=None, din=None, ncum=None, lkcam=None):
 
-    def k0ind(
+    def func(
             ii,
             dind_ok=dind_ok,
+            din=din,
             ncum=ncum,
             lkcam=lkcam,
         ):
 
         icam = np.searchsorted(ncum-1, ii)
-        inew = ii - ncum[icam-1] if icam>0 else ii
+        inew = ii - ncum[icam]
 
-        return lkcam[icam], tuple([tt[inew] for tt in dind_ok[lkcam[icam]]])
+        kcam = lkcam[icam]
+        if dind_ok is None:
+            return kcam, din[kcam][inew]['ind']
+        else:
+            return kcam, tuple([tt[inew] for tt in dind_ok[kcam]])
 
-    return k0ind
+    return func
+
+
+def _get_ind_local_to_global(ncum=None, dshape=None, lkcam=None):
+
+    def func(
+            kcam,
+            ind,
+            ncum=ncum,
+            dshape=dshape,
+            lkcam=lkcam,
+        ):
+
+        icam = lkcam.index(kcam)
+        iflat = np.array(dind_ok[kcam]).T.tolist().index(ind)
+        return iflat + (ncum[icam] if icam > 0 else 0)
+
+    return func
 
 
 # #################################################################
@@ -1008,9 +1030,9 @@ def _get_data_line(
     # order of kcam
 
     lkcam = sorted(dptsx.keys())
-    k0ind = _get_k0ind(
+    k0ind = _get_ind_global_to_local(
         dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
-        ncum=np.cumsum([dnrays[kcam] for kcam in lkcam]),
+        ncum=np.r_[0, np.cumsum([dnrays[kcam] for kcam in lkcam])],
         lkcam=lkcam,
     )
 
@@ -1364,44 +1386,69 @@ def _get_data_polyline(
     # prepare
     # ----------------
 
-    dok = {k0: np.isfinite(v0) for k0, v0 in dptsx.items()}
+    lkcam = sorted(dptsx.keys())
 
-    dpts_ind = {}
+    # --------
+    # pts
+
+    dok = {k0: np.isfinite(v0) for k0, v0 in dptsx.items()}
+    dnpts = {k0: v0.sum() for k0, v0 in dok.items()}
+    npts = np.sum([v0 for v0 in dnpts.values()])
+
+    # -----------
+    # polylines
+
+    dpoly = {}
     for k0, v0 in dptsx.items():
 
-        dpts_ind[k0] = {}
-        for ind in np.ndindex(v0.shape[1:]):
+        dpoly[k0] = {}
+        for ii, ind in enumerate(np.ndindex(v0.shape[1:])):
             sli = (slice(None),) + ind
 
             iok = np.isfinite(v0[sli])
             if np.any(iok):
-                dpts_ind[k0][ind] = {
-                    'ind': iok.nonzero()[0],
+                dpoly[k0][ii] = {
+                    'ind': ind,
+                    'ind_pts': iok.nonzero()[0],
                     'nn': iok.sum(),
                     'color': None,
                 }
 
     # nb of polylines
-    dnpoly = {k0: len(v0) for k0, v0 in dpts_ind.items()}
+    dnpoly = {k0: len(v0) for k0, v0 in dpoly.items()}
     npoly = np.sum([v0 for v0 in dnpoly.values()])
+    dpoly_npts = {
+        k0: np.sum([v1['nn'] for v1 in v0.values()])
+        for k0, v0 in dpoly.items()
+    }
 
-    dnpts = {k0: np.sum([v1['nn'] for v1 in v0.values()])}
-    npts = np.sum([v0 for v0 in dnpts.values()])
+    assert np.all([np.allclose(dnpts[k0], dpoly_npts[k0]) for k0 in lkcam])
 
     # -----------
-    # nrays
+    # index key dict
     # -----------
 
-    # --------------
-    # order of kcam
-
-    # TO BE UPDATED FOR PTS and POLYLINE
-    lkcam = sorted(dptsx.keys())
-    k0ind = _get_k0ind(
-        dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
-        ncum=np.cumsum([dnrays[kcam] for kcam in lkcam]),
-        lkcam=lkcam,
-    )
+    dk0ind = {
+        'pts': {
+            'global_to_local': _get_ind_local_to_global(
+                dshape={k0: v0.shape for k0, v0 in dptsx.items()},
+                ncum=np.r_[0, np.cumsum([dnpts[kcam] for kcam in lkcam])],
+                lkcam=lkcam,
+            ),
+            'local_to_global': _get_ind_global_to_local(
+                dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
+                ncum=np.r_[0, np.cumsum([dnpts[kcam] for kcam in lkcam])],
+                lkcam=lkcam,
+            ),
+        },
+        'poly': {
+            'local_to_global': _get_ind_global_to_local(
+                din=dpoly,
+                ncum=np.r_[0, np.cumsum([dnpoly[kcam] for kcam in lkcam])],
+                lkcam=lkcam,
+            ),
+        },
+    }
 
     # -----------
     # colors
@@ -1500,7 +1547,7 @@ def _get_data_polyline(
     k0 = 'CARTESIAN_POINT'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
+        kcam, ind = dk0ind['pts']['global_to_local'](ii)
         lines.append(f"#{ni}={k0}('{kcam}_{ind}',({dptsx[kcam][ind]},{dptsy[kcam][ind]},{dptsz[kcam][ind]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
@@ -1510,7 +1557,6 @@ def _get_data_polyline(
 
     k0 = 'AXIS2_PLACEMENT_3D'
     ni = dind[k0]['ind'][0]
-    lstr = ', '.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
     dind[k0]['msg'] = f"#{ni}={k0}('',#{dind['CARTESIAN_POINT0']['ind'][0]},#{dind['DIRECTION0']['ind'][0]},#{dind['DIRECTION1']['ind'][0]});"
 
     # -----------------
@@ -1520,19 +1566,12 @@ def _get_data_polyline(
     k0 = 'POLYLINE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
-    dind[k0]['msg'] = "\n".join(lines)
-
-    # -----------------
-    # TRIMMED_CURVE
-    # -----------------
-
-    k0 = 'TRIMMED_CURVE'
-    lines = []
-    for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['LINE']['ind'][ii]},(PARAMETER_VALUE(0.)),(PARAMETER_VALUE(1.)),.T.,.PARAMETER.);")
+        kcam, ind = dk0ind['poly']['global_to_local'](ii)
+        ipts_local = dnpoly[kcam][ii]['ind_pts']
+        ipts_global = dk0ind['pts']['local_to_global'](kcam, ipts_local)
+        ipts = dind['CARTESIAN_POINT']['ind'][ipts_global]
+        lstr = ','.join([f"#{jj}" for jj in ipts])
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({lstr}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # ----------------
@@ -1572,9 +1611,9 @@ def _get_data_polyline(
     k0 = 'STYLED_ITEM'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
+        kcam, ind = dk0ind['poly'](ii)
         jj = colors.index(dcolor[kcam])
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['TRIMMED_CURVE']['ind'][ii]});")
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['POLYLINE']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -1583,7 +1622,7 @@ def _get_data_polyline(
 
     k0 = 'GEOMETRIC_CURVE_SET'
     ni = dind[k0]['ind'][0]
-    lstr = ','.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    lstr = ','.join([f"#{ii}" for ii in dind['POLYLINE']['ind']])
     dind[k0]['msg'] = f"#{ni}={k0}('None',({lstr}));"
 
     # ----------------------
@@ -1592,7 +1631,7 @@ def _get_data_polyline(
 
     k0 = 'PRESENTATION_LAYER_ASSIGNMENT'
     ni = dind[k0]['ind'][0]
-    lstr = ','.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    lstr = ','.join([f"#{ii}" for ii in dind['POLYLINE']['ind']])
     dind[k0]['msg'] = f"#{ni}={k0}('1','Layer 1',({lstr}));"
 
     # ----------------------------------
