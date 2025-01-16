@@ -217,7 +217,15 @@ def get_fsig(sig):
                             raise Exception(msg)
 
                     if len(ind) == 1:
-                        sig[jj] = sig[jj][ind[0]]
+                        # DB
+                        try:
+                            sig[jj] = sig[jj][ind[0]]
+                        except Exception as err:
+                            print()
+                            print(ii, jj)
+                            print(ind)
+                            print(sig[jj])
+                            raise err
                     else:
                         if nsig != 1:
                             msg = ("nsig should be 1!\n"
