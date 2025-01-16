@@ -606,8 +606,11 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
                 # Make sure to test only non-nan to avoid warning
                 ind = (~np.isnan(data[ii])).nonzero()
                 ind2 = np.abs(data[ii][ind]) > 1.e30
-                ind = tuple([ii[ind2] for ii in ind])
-                data[ii][ind] = np.nan
+                if np.any(ind2):
+                    ind = tuple([ii[ind2] for ii in ind])
+                    if data[ii].dtype in _INT:
+                        data[ii] = data[ii].astype(float)
+                    data[ii][ind] = np.nan
 
     # data supposed to be positive only (nan otherwise)
     if pos is True:
