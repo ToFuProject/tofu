@@ -210,6 +210,7 @@ def get_fsig(sig):
 
                     if ind is None:
                         ind = range(0, nb)
+
                     if nsig > 1:
                         if isinstance(ind, str) or len(ind) != 1:
                             msg = ('ind should be have len() = 1\n'
@@ -217,13 +218,13 @@ def get_fsig(sig):
                             raise Exception(msg)
 
                     if len(ind) == 1:
-                        # DB
-                        print()
-                        print(ii, jj)
-                        print(ind, ind[0])
-                        print(type(sig[jj]), len(sig[jj]))
-                        print(sig[jj])
-                        sig[jj] = sig[jj][ind[0]]
+                        if len(sig[jj]) < ind[0] + 1:
+                            msg = (
+                                "dcond[{ii}]['ind'] = {dcond[ii]['ind']} so ind = {ind} but len(sig[{jj}]) = {len(sig[jj])}"
+                            )
+                            raise Exception(msg)
+                        else:
+                            sig[jj] = sig[jj][ind[0]]
                     else:
                         if nsig != 1:
                             msg = ("nsig should be 1!\n"
