@@ -863,9 +863,9 @@ def get_data_units(dsig=None, occ=None,
             for ids in dfail.keys():
                 nmax = np.max([len(k1) for k1 in dfail[ids].keys()])
                 msg += "\n\t- {}:".format(ids)
-                for sigi, msgi in dfail[ids].items():
-                    msg += "\n\t\t{0}:  {1}".format(sigi.ljust(nmax),
-                                                    msgi.replace('\n', ' '))
+                for sigi, erri in dfail[ids].items():
+                    msgi = str(erri).replace('\n', ' ')
+                    msg += f"\n\t\t{sigi.ljust(nmax)}:  {msgi}"
             warnings.warn(msg)
 
     # return
