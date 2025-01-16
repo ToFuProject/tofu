@@ -832,9 +832,9 @@ def get_data_units(dsig=None, occ=None,
 
         if strict is True:
             for ids, vids in dfail.items():
-                for sigi, vsigi in dout[ids].items():
-                    for kerr, verr in vsigi.items():
-                        raise verr
+                for sigi, verr in dout[ids].items():
+                    print(f"\n{ids}\t{sigi}\t{vsigi}")
+                    raise verr
 
         if data is True:
             for ids in dfail.keys():
