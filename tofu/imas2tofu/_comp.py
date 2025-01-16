@@ -220,7 +220,9 @@ def get_fsig(sig):
                     if len(ind) == 1:
                         if len(sig[jj]) < ind[0] + 1:
                             msg = (
-                                "dcond[{ii}]['ind'] = {dcond[ii]['ind']} so ind = {ind} but len(sig[{jj}]) = {len(sig[jj])}"
+                                f"dcond[{ii}]['ind'] = {dcond[ii]['ind']} "
+                                f"so ind = {ind} "
+                                "but len(sig[{jj}]) = {len(sig[jj])}"
                             )
                             raise Exception(msg)
                         else:
