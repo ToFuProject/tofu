@@ -81,6 +81,7 @@ _INT = (int,) + _NINT
 _NFLOAT = (np.float32, np.float64)
 _FLOAT = (float,) + _NFLOAT
 _NUMB = _INT + _FLOAT
+_BOOL = (bool, np.bool_)
 
 
 #############################################################
@@ -2021,7 +2022,7 @@ class MultiIDSLoader(object):
             pos=pos,
             empty=empty,
             isclose=isclose,
-            strict=True,
+            strict=strict,
             return_all=False,
         )
 
@@ -3193,7 +3194,7 @@ def _fill_idsproperties(ids, com, tfversion, nt=None):
     ids.code.version = tfversion
     if nt is None:
         nt = 1
-    ids.code.output_flag = np.zeros((nt,),dtype=int)
+    ids.code.output_flag = np.zeros((nt,), dtype=int)
     ids.code.parameters = ""
 
 def _put_ids(idd, ids, shotfile, occ=0, cls_name=None,
