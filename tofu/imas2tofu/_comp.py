@@ -39,6 +39,7 @@ _INT = (int,) + _NINT
 _NFLOAT = (np.float32, np.float64)
 _FLOAT = (float,) + _NFLOAT
 _NUMB = _INT + _FLOAT
+_BOOL = (bool, np.bool_)
 
 
 _DSHORT = _defimas2tofu._dshort
@@ -533,8 +534,11 @@ def _checkformat_getdata_indch(indch, nch):
         # make numpy array
         indch = np.r_[indch].ravel()
 
-        # get dtype
-        lc1 = ['int' in indch.dtype.name, 'bool' in indch.dtype.name]
+        # get dtype (may also be a list)
+        lc1 = [
+            isinstance(indch[0], _INT),
+            isinstance(indch[0], _BOOL),
+        ]
 
         if not any(lc1):
             raise Exception(msg)
@@ -596,7 +600,7 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
         for ii in range(0, len(data)):
             c0 = (
                 isinstance(data[ii], np.ndarray)
-                and data.dtype in _NUMB
+                and data[ii].dtype in _NUMB
             )
             if c0 is True:
                 # Make sure to test only non-nan to avoid warning
