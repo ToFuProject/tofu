@@ -645,7 +645,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
                     stack=None, isclose=None, flatocc=None,
                     nan=None, pos=None, empty=None,
                     dids=None, dcomp=None, dshort=None, dall_except=None,
-                    data=True, units=True):
+                    data=True, units=True, strict=None):
     """ Reference method for getting data and units, using shortcuts
 
     For a given ids, sig (shortcut) and occurence (occ)
@@ -698,7 +698,9 @@ def _get_data_units(ids=None, sig=None, occ=None,
                     data=True, units=False, indt=indt, stack=stack,
                     flatocc=False, nan=nan, pos=pos, warn=False,
                     dids=dids, dcomp=dcomp, dshort=dshort,
-                    dall_except=dall_except)[ids]
+                    dall_except=dall_except,
+                    strict=strict,
+                )[ids]
                 out = [dcomp[ids][sig]['func'](
                     *[ddata[kk]['data'][nn] for kk in lstr],
                     **kargs)
@@ -819,7 +821,9 @@ def get_data_units(dsig=None, occ=None,
                     data=data, units=units,
                     nan=nan, pos=pos, empty=empty,
                     dids=dids, dcomp=dcomp, dshort=dshort,
-                    dall_except=dall_except)
+                    dall_except=dall_except,
+                    strict=strict,
+                )
 
                 lc = [dout[ids][sigi]['errdata'] is not None,
                       dout[ids][sigi]['errunits'] is not None]

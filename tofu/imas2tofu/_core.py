@@ -2022,7 +2022,7 @@ class MultiIDSLoader(object):
             pos=pos,
             empty=empty,
             isclose=isclose,
-            strict=True,
+            strict=strict,
             return_all=False,
         )
 
