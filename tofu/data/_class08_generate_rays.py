@@ -844,7 +844,7 @@ def _generic(
             oo = np.full(shape_cam + (nstart, nraysu.max()), np.nan)
 
             for ii, ind in enumerate(np.ndindex(shape_cam)):
-                sli = ind + (slice(None), np.arange(0, dnrays[ind]))
+                sli = ind + (slice(None), slice(0, dnrays[ind], 1))
                 oo[sli] = dout[kk][ind]
 
             dout[kk] = oo
