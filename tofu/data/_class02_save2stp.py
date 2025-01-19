@@ -963,13 +963,13 @@ def _get_ind_global_to_local(dind_ok=None, din=None, ncum=None, lkcam=None):
     return func
 
 
-def _get_ind_local_to_global(ncum=None, dshape=None, lkcam=None):
+def _get_ind_local_to_global(ncum=None, dind_ok=None, lkcam=None):
 
     def func(
             kcam,
             ind,
             ncum=ncum,
-            dshape=dshape,
+            dind_ok=dind_ok,
             lkcam=lkcam,
         ):
 
@@ -1431,7 +1431,7 @@ def _get_data_polyline(
     dk0ind = {
         'pts': {
             'global_to_local': _get_ind_local_to_global(
-                dshape={k0: v0.shape for k0, v0 in dptsx.items()},
+                dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
                 ncum=np.r_[0, np.cumsum([dnpts[kcam] for kcam in lkcam])],
                 lkcam=lkcam,
             ),
