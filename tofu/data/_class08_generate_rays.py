@@ -631,6 +631,7 @@ def _generic(
     dout_pixel = poly2d_sample(
         coll.ddata[kout0]['data'],
         coll.ddata[kout1]['data'],
+        key=kcam,
         dedge=dsampling_pixel.get('dedge'),
         dsurface=dsampling_pixel.get('dsurface'),
     )
@@ -868,6 +869,7 @@ def _get_end_optics(
     dout_optics = poly2d_sample(
         coll.ddata[kout0]['data'],
         coll.ddata[kout1]['data'],
+        key=kop,
         dedge=dsampling_optics.get('dedge'),
         dsurface=dsampling_optics.get('dsurface'),
     )
