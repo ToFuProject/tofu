@@ -971,6 +971,7 @@ def _get_ind_global_to_local(dind_ok=None, din=None, ncum=None, lkcam=None):
 # #################################################################
 
 
+# DEPRECATED
 def _get_data_line(
     dptsx=None,
     dptsy=None,
@@ -1385,6 +1386,7 @@ def _get_data_polyline(
         # -------
         # points
 
+        #have to trasnpose because nonzero operates in C-order only
         iok_pts = np.all(
             [
                 np.isfinite(dptsx[k0]),
@@ -1392,10 +1394,10 @@ def _get_data_polyline(
                 np.isfinite(dptsz[k0]),
             ],
             axis=0,
-        )
+        ).T
 
         # make sure at least 2 points
-        iok_pts[:, np.sum(iok_pts, axis=0) < 2] = False
+        iok_pts[np.sum(iok_pts, axis=-1) < 2, :] = False
 
         nptsi = iok_pts.sum()
         if nptsi == 0:
@@ -1403,7 +1405,7 @@ def _get_data_polyline(
 
         pts += [
             {
-                'ind_local': tt,
+                'ind_local': tt[::-1],
                 'kcam': k0,
             }
             for tt in zip(*iok_pts.nonzero())
@@ -1413,14 +1415,14 @@ def _get_data_polyline(
         # poly
 
         i0_poly = 0
-        for tt in np.ndindex(iok_pts.shape[1:]):
+        for tt in np.ndindex(iok_pts.shape[:-1]):
 
-            sli = (slice(None),) + tt
+            sli = tt + (slice(None),)
             nptsi = iok_pts[sli].sum()
             ipts = i0_poly + np.arange(nptsi)
 
             dpoly = {
-                'ind_local': tt,
+                'ind_local': tt[::-1],
                 'kcam': k0,
                 'ipts_global': i0_pts + ipts,
                 'color': None,
