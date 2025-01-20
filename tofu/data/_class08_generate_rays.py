@@ -233,6 +233,16 @@ def _check(
     )
 
     # ------------
+    # overwrite
+    # ------------
+
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
+        default=False,
+    )
+
+    # ------------
     # key_rays
     # ------------
 
@@ -266,16 +276,6 @@ def _check(
 
     else:
         key_rays = None
-
-    # ------------
-    # overwrite
-    # ------------
-
-    overwrite = ds._generic_check._check_var(
-        overwrite, 'overwrite',
-        types=bool,
-        default=False,
-    )
 
     return (
         key,
@@ -949,6 +949,9 @@ def _store(
     for kcam, v0 in dout.items():
 
         key = key_rays[kcam]
+
+        if key in coll.dobj['rays'].keys() and overwrite is True:
+            coll.remove_rays(key)
 
         # -----------------
         # add ref

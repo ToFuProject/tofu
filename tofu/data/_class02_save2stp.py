@@ -400,7 +400,7 @@ def _check(
     curve = ds._generic_check._check_var(
         curve, 'curve',
         types=str,
-        default=lok[0],
+        default=lok[1],
         allowed=lok,
     )
 
@@ -951,31 +951,16 @@ def _get_ind_global_to_local(dind_ok=None, din=None, ncum=None, lkcam=None):
             lkcam=lkcam,
         ):
 
-        icam = np.searchsorted(ncum-1, ii)
+        icam = np.searchsorted(ncum-1, ii) - 1
         inew = ii - ncum[icam]
+
+        assert (inew == ii) or (inew >= 0 and inew < ncum[icam+1])
 
         kcam = lkcam[icam]
         if dind_ok is None:
             return kcam, din[kcam][inew]['ind']
         else:
             return kcam, tuple([tt[inew] for tt in dind_ok[kcam]])
-
-    return func
-
-
-def _get_ind_local_to_global(ncum=None, dind_ok=None, lkcam=None):
-
-    def func(
-            kcam,
-            ind,
-            ncum=ncum,
-            dind_ok=dind_ok,
-            lkcam=lkcam,
-        ):
-
-        icam = lkcam.index(kcam)
-        iflat = np.array(dind_ok[kcam]).T.tolist().index(ind)
-        return iflat + (ncum[icam] if icam > 0 else 0)
 
     return func
 
@@ -1388,67 +1373,67 @@ def _get_data_polyline(
 
     lkcam = sorted(dptsx.keys())
 
-    # --------
-    # pts
+    # ---------------
+    # pts and dpoly
+    # ---------------
 
-    dok = {k0: np.isfinite(v0) for k0, v0 in dptsx.items()}
-    dnpts = {k0: v0.sum() for k0, v0 in dok.items()}
-    npts = np.sum([v0 for v0 in dnpts.values()])
+    pts = []
+    poly = []
+    i0_pts = 0
+    for k0 in lkcam:
 
-    # -----------
-    # polylines
+        # -------
+        # points
 
-    dpoly = {}
-    for k0, v0 in dptsx.items():
+        iok_pts = np.all(
+            [
+                np.isfinite(dptsx[k0]),
+                np.isfinite(dptsy[k0]),
+                np.isfinite(dptsz[k0]),
+            ],
+            axis=0,
+        )
 
-        dpoly[k0] = {}
-        for ii, ind in enumerate(np.ndindex(v0.shape[1:])):
-            sli = (slice(None),) + ind
+        # make sure at least 2 points
+        iok_pts[:, np.sum(iok_pts, axis=0) < 2] = False
 
-            iok = np.isfinite(v0[sli])
-            if np.any(iok):
-                dpoly[k0][ii] = {
-                    'ind': ind,
-                    'ind_pts': iok.nonzero()[0],
-                    'nn': iok.sum(),
-                    'color': None,
-                }
+        nptsi = iok_pts.sum()
+        if nptsi == 0:
+            continue
 
-    # nb of polylines
-    dnpoly = {k0: len(v0) for k0, v0 in dpoly.items()}
-    npoly = np.sum([v0 for v0 in dnpoly.values()])
-    dpoly_npts = {
-        k0: np.sum([v1['nn'] for v1 in v0.values()])
-        for k0, v0 in dpoly.items()
-    }
+        pts += [
+            {
+                'ind_local': tt,
+                'kcam': k0,
+            }
+            for tt in zip(*iok_pts.nonzero())
+        ]
 
-    assert np.all([np.allclose(dnpts[k0], dpoly_npts[k0]) for k0 in lkcam])
+        # --------
+        # poly
 
-    # -----------
-    # index key dict
-    # -----------
+        i0_poly = 0
+        for tt in np.ndindex(iok_pts.shape[1:]):
 
-    dk0ind = {
-        'pts': {
-            'global_to_local': _get_ind_local_to_global(
-                dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
-                ncum=np.r_[0, np.cumsum([dnpts[kcam] for kcam in lkcam])],
-                lkcam=lkcam,
-            ),
-            'local_to_global': _get_ind_global_to_local(
-                dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
-                ncum=np.r_[0, np.cumsum([dnpts[kcam] for kcam in lkcam])],
-                lkcam=lkcam,
-            ),
-        },
-        'poly': {
-            'local_to_global': _get_ind_global_to_local(
-                din=dpoly,
-                ncum=np.r_[0, np.cumsum([dnpoly[kcam] for kcam in lkcam])],
-                lkcam=lkcam,
-            ),
-        },
-    }
+            sli = (slice(None),) + tt
+            nptsi = iok_pts[sli].sum()
+            ipts = i0_poly + np.arange(nptsi)
+
+            dpoly = {
+                'ind_local': tt,
+                'kcam': k0,
+                'ipts_global': i0_pts + ipts,
+                'color': None,
+            }
+
+            i0_poly += nptsi
+
+            poly.append(dpoly)
+
+        i0_pts += iok_pts.sum()
+
+    npts = len(pts)
+    npoly = len(poly)
 
     # -----------
     # colors
@@ -1485,15 +1470,13 @@ def _get_data_polyline(
             'order': 6,
             # 'nn': nrays,
         },
-        'TRIMMED_CURVE': {
+        'POLYLINE': {
             'order': 7,
             'nn': npoly,
         },
-        'POLYLINE': {
+        'AXIS2_PLACEMENT_3D': {
             'order': 8,
-            'nn': npoly,
         },
-        'AXIS2_PLACEMENT_3D': {'order': 10},
         'DIRECTION0': {
             'order': 9,
             'str': "DIRECTION('',(0.,0.,1.));",
@@ -1520,7 +1503,17 @@ def _get_data_polyline(
     lorder = [dind[k0]['order'] for k0 in lkey]
 
     # safety check
-    assert np.unique(lorder).size == len(lorder)
+    if np.unique(lorder).size != len(lorder):
+        msg = (
+            "Mismatch between lorder and nb of unique indices:\n"
+            f"\t- For saving in {fname}\n"
+            f"\t- len(lorder) = {len(lorder)}\n"
+            f"\t- np.unique(lorder).size = {np.unique(lorder).size}\n"
+            f"\t- lorder = {lorder}\n"
+        )
+        raise Exception(msg)
+
+
     inds = np.argsort(lorder)
     lkey = [lkey[ii] for ii in inds]
 
@@ -1547,7 +1540,7 @@ def _get_data_polyline(
     k0 = 'CARTESIAN_POINT'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = dk0ind['pts']['global_to_local'](ii)
+        kcam, ind = pts[ii]['kcam'], pts[ii]['ind_local']
         lines.append(f"#{ni}={k0}('{kcam}_{ind}',({dptsx[kcam][ind]},{dptsy[kcam][ind]},{dptsz[kcam][ind]}));")
     dind[k0]['msg'] = "\n".join(lines)
 
@@ -1566,9 +1559,8 @@ def _get_data_polyline(
     k0 = 'POLYLINE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = dk0ind['poly']['global_to_local'](ii)
-        ipts_local = dnpoly[kcam][ii]['ind_pts']
-        ipts_global = dk0ind['pts']['local_to_global'](kcam, ipts_local)
+        kcam, ind = poly[ii]['kcam'], poly[ii]['ind_local']
+        ipts_global = poly[ii]['ipts_global']
         ipts = dind['CARTESIAN_POINT']['ind'][ipts_global]
         lstr = ','.join([f"#{jj}" for jj in ipts])
         lines.append(f"#{ni}={k0}('{kcam}_{ind}',({lstr}));")
@@ -1611,7 +1603,7 @@ def _get_data_polyline(
     k0 = 'STYLED_ITEM'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = dk0ind['poly'](ii)
+        kcam, ind = poly[ii]['kcam'], poly[ii]['ind_local']
         jj = colors.index(dcolor[kcam])
         lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['POLYLINE']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
