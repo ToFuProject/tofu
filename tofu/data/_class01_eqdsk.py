@@ -27,74 +27,106 @@ __all_ = ['load_eqdsk']
 # ########################################################
 
 
-_D0 = {
-    'nx': None,
-    'ny': None,
-}
-
-
 _DUNITS = {
+    # ------------
+    # str / scalar
     'comment': {
         'units': None,
+        'ref': 'neq',
+    },
+    'shot': {
+        'units': 'm',
+        'ref': 'neq',
     },
     'current': {
         'units': 'A',
+        'ref': 'neq',
     },
-    'cplasma': {
-        'units': 'A',
-    },
-    'pres': {
-        'units': None,
-    },
-    'pressure': {
-        'units': None,
-    },
-    'psi': {
-        'units': None,
-    },
-    'psi_axis': {
-        'units': None,
-    },
-    'psi_boundary': {
-        'units': None,
-    },
-    'psirz': {
-        'units': None,
-    },
+    # redundant with current
+    # 'cpasma': {
+    #     'units': 'A',
+    #     'ref': 'neq',
+    # },
+    # --------------
     # Magnetic axis
     'rmagx': {
         'units': 'm',
+        'ref': 'neq',
     },
     'zmagx': {
         'units': 'm',
+        'ref': 'neq',
     },
-    'rmaxis': {
+    # Redundant with rmagx and zmagx
+    # 'rmaxis': {
+    #     'units': 'm',
+    #     'ref': 'neq',
+    # },
+    # 'zmaxis': {
+    #     'units': 'm',
+    #     'ref': 'neq',
+    # },
+    'psi_axis': {
+        'units': None,
+        'ref': 'neq',
+    },
+    'psi_boundary': {
+        'units': None,
+        'ref': 'neq',
+    },
+    # ---------
+    # mRZ
+    'psi': {
+        'units': None,
+        'ref': ('neq', 'mRZ'),
+    },
+    # -------------------
+    # mRZ: grad-shafranov
+    # 'f': {
+    #     'units': '',
+    #     'ref': 'mRZ',
+    # },
+    # 'pprime': {
+    #     'units': '',
+    # },
+    # -------------------
+    # lim => first wall
+    # 'rlim': {
+    #     'units': 'm',
+    #     'ref': ('neq', 'nlim'),
+    # },
+    # 'zlim': {
+    #     'units': 'm',
+    #     'ref': ('neq', 'nlim'),
+    # },
+    # 'rcentr': {
+    #     'units': 'm',
+    #     'ref': 'neq',
+    # },
+    # -------------------
+    # bdry => separatrix
+    'rbdry': {
         'units': 'm',
+        'ref': ('neq', 'nsep'),
     },
-    'zmaxis': {
+    'zbdry': {
         'units': 'm',
+        'ref': ('neq', 'nsep'),
     },
-    'rcentr': {
-        'units': 'm',
-    },
-    # grad-shafranov
-    'ffprime': {
-        'units': '',
-    },
-    'pprime': {
-        'units': '',
-    },
-    # others
-    'shot': {
-        'units': 'm',
-    },
-    'xlim': {
-        'units': 'm',
-    },
-    'ylim': {
-        'units': 'm',
-    },
+    # redundant with rbdry and zbdry
+    # 'rbbbs': {
+    #     'units': 'm',
+    #     'ref': ('neq', 'nsep'),
+    # },
+    # 'zbbbs': {
+    #     'units': 'm',
+    #     'ref': ('neq', 'nsep'),
+    # },
 }
+
+for k0, v0 in _DUNITS.items():
+    if isinstance(v0['ref'], str):
+        _DUNITS[k0]['ref'] = (v0['ref'],)
 
 
 # ########################################################
@@ -108,13 +140,10 @@ def load_eqdsk(
     returnas=None,
     # keys
     kmesh=None,
-    # optional time
-    t=None,
-    ktime=None,
-    knt=None,
-    t_units=None,
     # group naming
     func_key_groups=None,
+    # sorting
+    sort_vs=None,
     # optipns
     verb=None,
     strict=None,
@@ -155,22 +184,20 @@ def load_eqdsk(
 
     (
         lpfe, returnas, coll,
-        kmesh, t, ktime, knt, t_units,
+        kmesh,
         geqdsk,
         func_key_groups,
+        sort_vs,
         verb,
         strict,
     ) = check_inputs(
         dpfe=dpfe,
         returnas=returnas,
         kmesh=kmesh,
-        # optional time
-        t=t,
-        ktime=ktime,
-        knt=knt,
-        t_units=t_units,
         # group naming
         func_key_groups=func_key_groups,
+        # sorting
+        sort_vs=sort_vs,
         # options
         verb=verb,
         strict=strict,
@@ -194,138 +221,106 @@ def load_eqdsk(
     # load and extract
     # ----------------
 
-
+    dfail = {}
+    dout_group = {}
     for ig, (kg, vg) in enumerate(dgroups.items()):
 
-        print()
-        print(f"\n--- group {ig} {kg} ----\n")
-
-        dref, ddata = _initialize(
+        dref, ddata, dmesh = _initialize(
             dgroups=dgroups,
             kgroup=kg,
+            kmesh=kmesh,
             latt=vg['lattr'],
-            ltypes=vg['types'],
+            ltypes=vg['ltypes'],
             dout=dout[vg['pfe'][0]]
         )
 
         for ip, pfe in enumerate(vg['pfe']):
-            print()
-            print(ip, pfe)
 
-            for ia, (attr, typ) in enumerate(zip(vg['lattr'], vg['types'])):
+            # --------------
+            # check grid mRZ
 
-                # check identical
-                if attr in _D0.keys():
-                    if ip == 0:
-                        _fill(kattr, typ, dref, ddata, dout[pfe])
-                    else:
-                        _check(kattr, typ, dref, ddata, dout[pfe])
+            R, Z = _extract_grid(dout[pfe])
+
+            c0 = (
+                np.allclose(R, dmesh['mRZ']['knots0'])
+                and np.allclose(Z, dmesh['mRZ']['knots1'])
+            )
+            if not c0:
+                dfail[pfe] = "Different mRZ values!"
+                continue
+
+            # ---------------
+            # fill all fields
+
+            for ia, (katt, typ) in enumerate(zip(vg['lattr'], vg['ltypes'])):
+
+                if katt not in _DUNITS.keys():
+                    continue
+
+                if typ == 'str':
+                    ddata[katt]['data'].append(dout[pfe][katt])
+                elif typ == 'scalar':
+                    ddata[katt]['data'][ip] = dout[pfe][katt]
                 else:
-                    _fill(kattr, typ, dref, ddata, dout[pfe])
+                    sli = [slice(None) for ss in dout[pfe][katt].shape]
+                    sli = (ip,) + tuple(sli)
+                    ddata[katt]['data'][sli] = dout[pfe][katt]
 
+        # ----------------
+        # str list to array
 
-    # loop on all files
-    npfe = len(lpfe)
-    for ii, pfe in enumerate(lpfe):
+        for kk, vv in ddata.items():
+            if isinstance(vv['data'], list):
+                ddata[kk]['data'] = np.array(vv['data'])
 
-        # --------------
-        # open and load
+        # ----------------
+        # optional sorting
 
-        with open(pfe, "r") as ff:
-            data = geqdsk.read(ff)
+        if sort_vs is not None:
 
-        # ----------
-        # initialize
+            lok = [kk for kk in ddata.keys() if len(ddata[kk]['ref']) == 1]
+            if sort_vs in lok:
+                inds = np.argsort(ddata[sort_vs]['data'])
+                for kk, vv in ddata.items():
+                    sli = (inds,) + tuple([slice(None) for ss in vv['data'].shape[1:]])
+                    ddata[kk]['data'] = vv['data'][sli]
 
-        if ii == 0:
-            # extract nb of knots
-            nR = data['nx']
-            nZ = data['ny']
+        # -----------------------
+        # store as group-specific
 
-            # extract R
-            R = data['rleft'] + np.linspace(0, data['rdim'], nR)
-
-            # extract Z
-            Z = data['zmid'] + 0.5 * data['zdim'] * np.linspace(-1, 1, nZ)
-
-            # initialize psi
-            psi = np.full((npfe, nR, nZ), np.nan)
-
-        # ------------
-        # safety check
-
-        c0 = (
-            data['nx'] == nR
-            and data['ny'] == nZ
-            and data['rleft'] == R[0]
-            and data['zmid'] == 0.5*(Z[0] + Z[-1])
-        )
-        if not c0:
-            dfail[pfe] = f"({data['nx']}, {data['ny']})"
-
-        # ---------------
-        # extract psi map
-
-        psi[ii, :, :] = data['psi']
-
-    # -------------
-    # sort vs time
-
-    if t is None:
-        psi = psi[0, :, :]
+        dout_group[vg['key']] = {
+            'dref': dref,
+            'dmesh': dmesh,
+            'ddata': ddata,
+        }
 
     # ----------------------
     # raise error if needed
+    # ---------------------
 
     if len(dfail) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
         msg = (
-            "The following files have unmatching (R, Z) grids:\n"
-            f"\t- reference from {lpfe[0]}: ({nR}, {nZ})\n"
+            "The following files could not be loaded:\n"
             + "\n".join(lstr)
         )
-        raise Exception(msg)
+        if strict is True:
+            raise Exception(msg)
+        else:
+            warnings.warn(msg)
 
     # -------------------
     # build output
     # -------------------
 
     if returnas is dict:
-        ddata, dref = _to_dict(
-            R=R,
-            Z=Z,
-            psi=psi,
-            t=t,
-            knt=knt,
-            ktime=ktime,
-            t_units=t_units,
-        )
+        return dout_group
 
     else:
         _to_Collection(
             coll=coll,
-            kmesh=kmesh,
-            R=R,
-            Z=Z,
-            psi=psi,
-            # optional time
-            t=t,
-            ktime=ktime,
-            knt=knt,
+            dout_group=dout_group,
         )
-
-    # -------------------
-    # return
-    # -------------------
-
-    if returnas is dict:
-        out = ddata, dref
-    elif returnas is True:
-        out = coll
-    else:
-        out = None
-
-    return out
 
 
 # ########################################################
@@ -339,12 +334,10 @@ def check_inputs(
     returnas=None,
     # keys
     kmesh=None,
-    t=None,
-    knt=None,
-    ktime=None,
-    t_units=None,
     # group naming
     func_key_groups=None,
+    # sorting
+    sort_vs=None,
     # optipns
     verb=None,
     strict=None,
@@ -413,45 +406,6 @@ def check_inputs(
             ndigits=2,
         )
 
-    # -------------------
-    # time
-    # -------------------
-
-    if len(lpfe) > 1:
-
-        # time vector
-        if t is None:
-            t = np.arange(0, len(lpfe))
-        t = ds._generic_check._check_flat1darray(
-            t, 't',
-        )
-
-        # key ref time
-        knt = ds._generic_check._obj_key(
-            d0=coll.dref,
-            short='nt',
-            key=knt,
-            ndigits=2,
-        )
-
-        # key time
-        ktime = ds._generic_check._obj_key(
-            d0=coll.ddata,
-            short='t',
-            key=ktime,
-            ndigits=2,
-        )
-
-        # t_units
-        t_units = ds._generic_check._check_var(
-            t_units, 't_units',
-            types=str,
-            default='s',
-        )
-
-    else:
-        t, ktime, knt, t_units = None, None, None, None
-
     # ---------------
     # group naming
     # ---------------
@@ -470,6 +424,16 @@ def check_inputs(
                 "Provided:\n{func_key_groups}\n"
             )
             raise Exception(msg) from err
+
+    # ---------------
+    # sort_vs
+    # ---------------
+
+    if sort_vs is not None:
+        sort_vs = ds._generic_check._check_var(
+            sort_vs, 'sort_vs',
+            types=str,
+        )
 
     # ---------------
     # verb
@@ -493,9 +457,10 @@ def check_inputs(
 
     return (
         lpfe, returnas, coll,
-        kmesh, t, ktime, knt, t_units,
+        kmesh,
         geqdsk,
         func_key_groups,
+        sort_vs,
         verb,
         strict,
     )
@@ -592,7 +557,7 @@ def _check_shapes(
 
         dout[pfe] = {
             'group': kgroup,
-            **dout,
+            **{katt: getattr(data, katt) for katt in lattr},
         }
 
     # ----------------
@@ -662,6 +627,7 @@ def _check_shapes(
 def _initialize(
     dgroups=None,
     kgroup=None,
+    kmesh=None,
     latt=None,
     ltypes=None,
     dout=None,
@@ -675,7 +641,7 @@ def _initialize(
 
     krpfe = "neq"
     dref = {
-        krpfe: {
+        'neq': {
             'key': krpfe,
             'size': npfe,
         },
@@ -696,11 +662,11 @@ def _initialize(
     # R, Z grid
     # ------------
 
-    R, Z = _extract_grid()
+    R, Z = _extract_grid(dout)
 
     dmesh = {
         'mRZ': {
-            'key': km,
+            'key': kmesh,
             'knots0': R,
             'knots1': Z,
             'units': ('m', 'm'),
@@ -709,199 +675,141 @@ def _initialize(
     }
 
     # ------------
+    # lim grid
+    # ------------
+
+    nsep = dout['nbdry']
+    krnsep = 'nsep'
+    dref['nsep'] = {
+        'key': krnsep,
+        'size': nsep,
+    }
+
+    # ------------
     #
     # ------------
 
     for ii, (katt, typ) in enumerate(zip(latt, ltypes)):
 
-        # -----------
-        # ref
+        if katt not in _DUNITS.keys():
+            continue
 
-
-
-
-        # -----------
-        # data
-
-        if kattr in _D0.keys():
-            ddata[katt] = {
-                'key': katt,
-                'data': dout[katt],
-                'units': _DUNIT.get(kattr),
-                'ref': None,
-            }
-
+        # init
+        if typ == 'str':
+            init = []
+        elif typ == 'scalar':
+            init = np.full((npfe,), np.nan)
         else:
-            if typ == 'str':
-                init = []
-            elif typ == 'scalar':
-                init = np.full((len(dout),), np.nan)
-            else:
-                shape = (len(dout),) + typ
-                init = np.full((len(dout),), np.nan)
+            shape = (npfe,) + typ
+            init = np.full(shape, np.nan)
 
-            ddata[katt] = {
-                'key': katt,
-                'data': init,
-                'units': _DUNIT.get(kattr),
-                'ref': None,
-            }
+        # ref
+        ref = tuple([
+            dref[rr]['key'] if rr in dref.keys() else dmesh[rr]['key']
+            for rr in _DUNITS[katt]['ref']
+        ])
 
-
-
-
-    return dref, ddata
-
-
-# ########################################################
-# ########################################################
-#               fill
-# ########################################################
-
-
-def _fill(kattr, typ, ddata, dout, pfe):
-
-    if typ in ('str', 'scalar'):
-        ddata[katt]['data'][ip] = dout[pfe][katt]
-
-    else:
-        sli = None
-        ddata[katt]['data'][sli] = dout[pfe][katt]
-
-    return
-
-
-def _check(kattr, typ, ddata, dout, pfe):
-
-    if typ in ('str', 'scalar'):
-        ddata[katt]['data'][ip] = dout[pfe][katt]
-
-    else:
-        sli = None
-        ddata[katt]['data'][sli] = dout[pfe][katt]
-
-    return
-
-
-# ########################################################
-# ########################################################
-#               to dict and Collection
-# ########################################################
-
-
-def _to_dict(
-    R=None,
-    Z=None,
-    psi=None,
-    t=None,
-    knt=None,
-    ktime=None,
-    t_units=None,
-):
-
-    nR = R.size
-    nZ = Z.size
-
-    # ref keys
-    knR = 'nR'
-    knZ = 'nZ'
-    kpsi = 'psi'
-
-    # ref
-    dref = {
-        'nR': {'size': nR},
-        'nZ': {'size': nZ},
-    }
-    if t is not None:
-        dref[knt] = {'size': t.size}
-        ref = (knt, knR, knZ)
-    else:
-        ref = (knR, knZ)
-
-    # data keys
-    kR = 'R'
-    kZ = 'Z'
-    kpsi = 'psi2d'
-
-    ddata = {
-        kR: {
-            'data': R,
-            'ref': (knR,),
-            'units': 'm',
-        },
-        kZ: {
-            'data': Z,
-            'ref': (knZ,),
-            'units': 'm',
-        },
-        kpsi: {
-            'data': psi,
+        # data
+        ddata[katt] = {
+            'key': katt,
+            'data': init,
+            'units': _DUNITS[katt]['units'],
             'ref': ref,
-            'units': '',
-        },
-    }
-    if t is not None:
-        ddata[ktime] = {
-            'data': t,
-            'ref': knt,
-            'units': t_units,
         }
 
-    return ddata, dref
+    return dref, ddata, dmesh
+
+
+def _extract_grid(dout):
+
+    # -------------------
+    # preliminary checks
+    # -------------------
+
+    c0 = (
+        (dout['nx'] == dout['nr'])
+        and (dout['ny'] == dout['nz'])
+    )
+    if not c0:
+        msg = (
+            "Something strange with nx, ny, nr, nz:\n"
+            f"\t- nx, ny = {dout['nx']}, {dout['ny']}\n"
+            f"\t- nr, nz = {dout['nr']}, {dout['nz']}\n"
+        )
+        raise Exception(msg)
+
+    # -------------------
+    # build
+    # -------------------
+
+    # extract nb of knots
+    nR = dout['nx']
+    nZ = dout['ny']
+
+    # extract R
+    R = dout['rleft'] + np.linspace(0, dout['rdim'], nR)
+
+    # extract Z
+    Z = dout['zmid'] + 0.5 * dout['zdim'] * np.linspace(-1, 1, nZ)
+
+    # -------------------
+    # final checks
+    # -------------------
+
+    c0 = (
+        np.allclose(dout['r_grid'], np.repeat(R[:, None], Z.size, axis=1))
+        and np.allclose(dout['z_grid'], np.repeat(Z[None, :], R.size, axis=0))
+    )
+    if not c0:
+        msg = (
+            "Something strange with r_grid, z_grid:\n"
+            f"\t- r_grid.shape = {dout['r_grid'].shape}\n"
+            f"\t- R.size, Z.size = {R.size}, {Z.size}\n"
+            f"\t- r_grid = {dout['r_grid']}\n"
+            f"\t- R = {R}\n"
+            f"\t- Z = {Z}\n"
+        )
+        raise Exception(msg)
+
+    return R, Z
+
+
+# ########################################################
+# ########################################################
+#               to Collection
+# ########################################################
 
 
 def _to_Collection(
     coll=None,
-    kmesh=None,
-    R=None,
-    Z=None,
-    psi=None,
-    # optional time
-    t=None,
-    ktime=None,
-    knt=None,
-    t_units=None,
+    dout_group=None,
 ):
 
-    # add mesh
-    coll.add_mesh_2d_rect(
-        key=kmesh,
-        knots0=R,
-        knots1=Z,
-        deg=1,
-    )
+    # ---------------
+    # loop on groups
+    # ---------------
 
-    # add time
-    if t is not None:
-        coll.add_ref(key=knt, size=t.size)
-        coll.add_data(
-            key=ktime,
-            data=t,
-            ref=knt,
-            units=t_units,
-        )
+    for kg, vg in dout_group.items():
 
-    # add psi2d
-    kbs = f"{kmesh}_bs1"
-    ref = kbs if t is None else (knt, kbs)
+        # ----------
+        # add refs
 
-    coll.add_data(
-        key='psi2d',
-        data=psi,
-        ref=ref,
-        units='',
-    )
+        for kr, vr in vg['dref'].items():
+            vr['key'] = f"{kg}_{vr['key']}"
+            coll.add_ref(**vr)
 
-    # # add rhopn2d
-    psi0 = np.nanmin(psi, axis=(-2, -1))
-    if t is not None:
-        rhopn2d = (psi0[:, None, None] - psi) / psi0[:, None, None]
-    else:
-        rhopn2d = (psi0 - psi) / psi0
+        # ----------
+        # add mesh
 
-    coll.add_data(
-        key='rhopn2d',
-        data=rhopn2d,
-        ref=ref,
-        units='',
-    )
+        for kr, vr in vg['dmesh'].items():
+            vr['key'] = f"{kg}_{vr['key']}"
+            coll.add_mesh2d_rect(**vr)
+
+        # ----------
+        # add data
+
+        for kr, vr in vg['ddata'].items():
+            vr['key'] = f"{kg}_{vr['key']}"
+            coll.add_data(**vr)
+
+    return
