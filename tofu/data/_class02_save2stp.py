@@ -24,7 +24,7 @@ import datastock as ds
 # #################################################################
 
 
-_COLOR = 'k'
+_COLOR = 'pixel'
 _NAME = 'rays'
 
 
@@ -786,13 +786,13 @@ def _get_dcolor(dptsx=None, color=None):
     # color
     # ---------------
 
+    if color is None:
+        color = _COLOR
+
     if isinstance(color, str) and color == 'pixel':
         color0 = color
     else:
         color0 = None
-
-    if color is None:
-        color = _COLOR
 
     # -----------------
     # str
