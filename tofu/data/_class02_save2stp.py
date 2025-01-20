@@ -52,6 +52,7 @@ def main(
     include_centroid=None,
     factor=None,
     color=None,
+    color_by_pixel=None,
     chain=None,
     curve=None,
     # ---------------
@@ -109,7 +110,9 @@ def main(
         pfe_in,
         outline_only,
         include_centroid,
-        factor, color,
+        factor,
+        color,
+        color_by_pixel,
         chain,
         curve,
         iso,
@@ -127,6 +130,7 @@ def main(
         include_centroid=include_centroid,
         factor=factor,
         color=color,
+        color_by_pixel=color_by_pixel,
         chain=chain,
         curve=curve,
         # saving
@@ -165,7 +169,7 @@ def main(
     # get color dict
     # ---------------
 
-    dcolor, color = _get_dcolor(dptsx=dptsx, color=color)
+    dcolor = _get_dcolor(dptsx=dptsx, color=color)
 
     # ----------------
     # get file content
@@ -185,7 +189,7 @@ def main(
         fname=fname,
         # options
         dcolor=dcolor,
-        color=color,
+        color_by_pixel=color_by_pixel,
         # norm
         iso=iso,
     )
@@ -222,6 +226,7 @@ def _check(
     include_centroid=None,
     factor=None,
     color=None,
+    color_by_pixel=None,
     chain=None,
     curve=None,
     # saving
@@ -401,6 +406,21 @@ def _check(
     ))
 
     # ---------------
+    # color_by_pixel
+    # ---------------
+
+    color_by_pixel = float(ds._generic_check._check_var(
+        color_by_pixel, 'color_by_pixel',
+        types=(float, bool),
+        default=True,
+    ))
+
+    if color_by_pixel is True:
+        color_by_pixel = 0.5
+    if color_by_pixel is not False:
+        assert color_by_pixel >= 0 and color_by_pixel <= 1
+
+    # ---------------
     # iso
     # ---------------
 
@@ -453,7 +473,9 @@ def _check(
         pfe_in,
         outline_only,
         include_centroid,
-        factor, color,
+        factor,
+        color,
+        color_by_pixel,
         chain,
         curve,
         iso,
@@ -789,18 +811,13 @@ def _get_dcolor(dptsx=None, color=None):
     if color is None:
         color = _COLOR
 
-    if isinstance(color, str) and color == 'pixel':
-        color0 = color
-    else:
-        color0 = None
-
     # -----------------
     # str
     # ------------------
 
     if isinstance(color, str):
 
-        if color in ['camera', 'pixel']:
+        if color == 'camera':
             prop_cycle = plt.rcParams['axes.prop_cycle']
             colors = prop_cycle.by_key()['color']
             dcolor = {
@@ -815,8 +832,6 @@ def _get_dcolor(dptsx=None, color=None):
             msg = (
                 "If str, arg 'color' must be either:\n"
                 "\t- 'camera': assign a color to each camera\n"
-                "\t- 'camera': assign a color to each camera and "
-                "make every other pixel lighter shade\n"
                 "\t- color-like: assign the same color to each camera\n"
             )
             raise Exception(msg)
@@ -854,7 +869,7 @@ def _get_dcolor(dptsx=None, color=None):
 
     dcolor = {k0: mcolors.to_rgb(v0) for k0, v0 in dcolor.items()}
 
-    return dcolor, color0
+    return dcolor
 
 
 # #################################################################
@@ -966,7 +981,7 @@ def _get_data_polyline(
     fname=None,
     # options
     dcolor=None,
-    color=None,
+    color_by_pixel=None,
     # norm
     iso=None,
 ):
@@ -1026,10 +1041,10 @@ def _get_data_polyline(
             ipts = i0_poly + np.arange(nptsi)
 
             col = dcolor[k0]
-            if color == 'pixel' and ii%2 == 1:
+            if color_by_pixel is not False and ii%2 == 1:
                 col = np.r_[col]
-                imin = np.argmin(col[col>0])
-                col[imin] = 2 * col[imin]
+                icol = np.argmin(col)
+                col[icol] += (np.max(col) - col[icol]) * color_by_pixel
                 col = tuple(col)
 
             dpoly = {
