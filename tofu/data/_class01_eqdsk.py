@@ -39,6 +39,7 @@ _DUNITS = {
         'ref': 'neq',
     },
     'current': {
+        'key': 'Ip',
         'units': 'A',
         'ref': 'neq',
     },
@@ -50,10 +51,12 @@ _DUNITS = {
     # --------------
     # Magnetic axis
     'rmagx': {
+        'key': 'magaxR',
         'units': 'm',
         'ref': 'neq',
     },
     'zmagx': {
+        'key': 'magaxZ',
         'units': 'm',
         'ref': 'neq',
     },
@@ -67,10 +70,12 @@ _DUNITS = {
     #     'ref': 'neq',
     # },
     'psi_axis': {
+        'key': 'psi_magax',
         'units': None,
         'ref': 'neq',
     },
     'psi_boundary': {
+        'key': 'psi_sep',
         'units': None,
         'ref': 'neq',
     },
@@ -106,10 +111,12 @@ _DUNITS = {
     # -------------------
     # bdry => separatrix
     'rbdry': {
+        'key': 'sepR',
         'units': 'm',
         'ref': ('neq', 'nsep'),
     },
     'zbdry': {
+        'key': 'sepZ',
         'units': 'm',
         'ref': ('neq', 'nsep'),
     },
@@ -144,6 +151,9 @@ def load_eqdsk(
     func_key_groups=None,
     # sorting
     sort_vs=None,
+    # derived
+    add_rhopn=None,
+    add_BRZ=None,
     # optipns
     verb=None,
     strict=None,
@@ -711,7 +721,7 @@ def _initialize(
 
         # data
         ddata[katt] = {
-            'key': katt,
+            'key': _DUNITS[katt].get('key', katt),
             'data': init,
             'units': _DUNITS[katt]['units'],
             'ref': ref,
