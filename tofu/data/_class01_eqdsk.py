@@ -198,6 +198,8 @@ def load_eqdsk(
         geqdsk,
         func_key_groups,
         sort_vs,
+        add_rhopn,
+        add_BRZ,
         verb,
         strict,
     ) = check_inputs(
@@ -208,6 +210,9 @@ def load_eqdsk(
         func_key_groups=func_key_groups,
         # sorting
         sort_vs=sort_vs,
+        # derived
+        add_rhopn=add_rhopn,
+        add_BRZ=add_BRZ,
         # options
         verb=verb,
         strict=strict,
@@ -275,6 +280,19 @@ def load_eqdsk(
                     sli = [slice(None) for ss in dout[pfe][katt].shape]
                     sli = (ip,) + tuple(sli)
                     ddata[katt]['data'][sli] = dout[pfe][katt]
+
+            # ---------------
+            # derived rhopn
+
+            if add_rhopn is True:
+                ddata['rhopn'] = _add_rhopn(ddata)
+
+            # ---------------
+            # derived BRZ
+
+            if add_BRZ is True:
+                # ddata['BR'], ddata['BZ'] = _add_BRZ()
+                pass
 
         # ----------------
         # str list to array
@@ -348,6 +366,9 @@ def check_inputs(
     func_key_groups=None,
     # sorting
     sort_vs=None,
+    # derived
+    add_rhopn=None,
+    add_BRZ=None,
     # optipns
     verb=None,
     strict=None,
@@ -446,6 +467,26 @@ def check_inputs(
         )
 
     # ---------------
+    # add_rhopn
+    # ---------------
+
+    add_rhopn = ds._generic_check._check_var(
+        add_rhopn, 'add_rhopn',
+        types=bool,
+        default=True,
+    )
+
+    # ---------------
+    # add_BRZ
+    # ---------------
+
+    add_BRZ = ds._generic_check._check_var(
+        add_BRZ, 'add_BRZ',
+        types=bool,
+        default=True,
+    )
+
+    # ---------------
     # verb
     # ---------------
 
@@ -471,6 +512,8 @@ def check_inputs(
         geqdsk,
         func_key_groups,
         sort_vs,
+        add_rhopn,
+        add_BRZ,
         verb,
         strict,
     )
@@ -782,6 +825,37 @@ def _extract_grid(dout):
         raise Exception(msg)
 
     return R, Z
+
+
+# ########################################################
+# ########################################################
+#               Derived
+# ########################################################
+
+
+def _add_rhopn(ddata=None):
+
+    psi0 = ddata['psi_axis']['data']
+    psi = psi0 = ddata['psi']['data']
+
+    rhopn = (psi0[:, None, None] - psi) / psi0[:, None, None]
+
+    return {
+        'key': 'rhopn',
+        'data': rhopn,
+        'units': None,
+        'ref': ddata['psi']['ref'],
+    }
+
+
+def _add_BRZ(ddata=None):
+
+    psi0 = ddata['psi_magax']['data']
+    psi = psi0 = ddata['psi']['data']
+
+    rhopn = (psi0[:, None, None] - psi) / psi0[:, None, None]
+
+    return
 
 
 # ########################################################
