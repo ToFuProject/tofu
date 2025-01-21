@@ -493,7 +493,7 @@ def check_inputs(
     verb = ds._generic_check._check_var(
         verb, 'verb',
         types=bool,
-        default=True,
+        default=False,
     )
 
     # ---------------
@@ -722,7 +722,7 @@ def _initialize(
             'key': kmesh,
             'knots0': R,
             'knots1': Z,
-            'units': ('m', 'm'),
+            'units': ['m', 'm'],
             'deg': 1,
         },
     }
@@ -758,7 +758,7 @@ def _initialize(
 
         # ref
         ref = tuple([
-            dref[rr]['key'] if rr in dref.keys() else dmesh[rr]['key']
+            dref[rr]['key'] if rr in dref.keys() else f"{dmesh[rr]['key']}_bs1"
             for rr in _DUNITS[katt]['ref']
         ])
 
@@ -836,7 +836,7 @@ def _extract_grid(dout):
 def _add_rhopn(ddata=None):
 
     psi0 = ddata['psi_axis']['data']
-    psi = psi0 = ddata['psi']['data']
+    psi = ddata['psi']['data']
 
     rhopn = (psi0[:, None, None] - psi) / psi0[:, None, None]
 
@@ -848,14 +848,49 @@ def _add_rhopn(ddata=None):
     }
 
 
-def _add_BRZ(ddata=None):
+# def _add_BRZ(ddata=None):
 
-    psi0 = ddata['psi_magax']['data']
-    psi = psi0 = ddata['psi']['data']
+#     psi = psi0 = ddata['psi']['data']
 
-    rhopn = (psi0[:, None, None] - psi) / psi0[:, None, None]
+#     # ---------------
+#     # BR
+#     # ----------------
 
-    return
+#     dR = np.diff(dmesh['mRZ']['knots0'])
+#     assert np.allclose(dR, dR[0])
+#     dR = None
+
+#     psiRp =
+#     psiRm =
+#     BR = (psiRp - psiRm) / dR
+
+#     dBR = {
+#         'key': 'BR',
+#         'data': BR,
+#         'units': 'T',
+#         'ref': ddata['psi']['ref'],
+#     }
+
+#     # ---------------
+#     # BZ
+#     # ----------------
+
+#     dR = np.diff(dmesh['mRZ']['knots0'])
+#     assert np.allclose(dR, dR[0])
+#     dR =
+
+#     psiRp =
+#     psiRm =
+#     BR = (psiRp - psiRm) / dR
+
+#     dBR = {
+#         'key': 'BR',
+#         'data': BR,
+#         'units': 'T',
+#         'ref': ddata['psi']['ref'],
+#     }
+
+#     return dBR, dBZ
 
 
 # ########################################################
@@ -887,12 +922,14 @@ def _to_Collection(
 
         for kr, vr in vg['dmesh'].items():
             vr['key'] = f"{kg}_{vr['key']}"
-            coll.add_mesh2d_rect(**vr)
+            coll.add_mesh_2d_rect(**vr)
 
         # ----------
         # add data
 
         for kr, vr in vg['ddata'].items():
+
+            vr['ref'] = tuple([f"{kg}_{rr}" for rr in vr['ref']])
             vr['key'] = f"{kg}_{vr['key']}"
             coll.add_data(**vr)
 
