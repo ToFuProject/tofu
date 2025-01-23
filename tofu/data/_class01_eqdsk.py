@@ -709,6 +709,13 @@ def _initialize(
             'dim': 'index',
             'units': None,
         },
+        'pfe': {
+            'key': 'pfe',
+            'data': np.array(dgroups[kgroup]['pfe']),
+            'ref': (krpfe,),
+            'dim': 'index',
+            'units': None,
+        },
     }
 
     # ------------
