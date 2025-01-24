@@ -67,14 +67,15 @@ class Plasma2D(Previous):
         self,
         dpfe=None,
         returnas=None,
-        strict=None,
         # keys
         kmesh=None,
-        # optional time
-        t=None,
-        ktime=None,
-        knt=None,
-        t_units=None,
+        # group naming
+        func_key_groups=None,
+        # sorting
+        sort_vs=None,
+        # options
+        verb=None,
+        strict=None,
     ):
         """ Load an equilibriu map from an eqdsk file
 
@@ -82,15 +83,16 @@ class Plasma2D(Previous):
         """
         return _eqdsk.load_eqdsk(
             dpfe=dpfe,
-            returnas=self,
-            strict=strict,
+            returnas=returnas,
             # keys
             kmesh=kmesh,
-            # optional time
-            t=t,
-            ktime=ktime,
-            knt=knt,
-            t_units=t_units,
+            # group naming
+            func_key_groups=func_key_groups,
+            # sorting
+            sort_vs=sort_vs,
+            # options
+            verb=verb,
+            strict=strict,
         )
 
     # -------------------
