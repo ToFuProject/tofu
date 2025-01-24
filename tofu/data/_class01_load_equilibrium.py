@@ -1,139 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Nov 13 14:41:08 2023
+Created on Fri Jan 24 17:47:46 2025
 
 @author: dvezinet
 """
 
-# Built-in
+
 import os
 import warnings
 
 
-# Common
 import numpy as np
 import datastock as ds
 
 
 from ._utils_types import *
-
-
-__all_ = ['load_eqdsk']
-
-
-# ########################################################
-# ########################################################
-#               Units
-# ########################################################
-
-
-_DUNITS = {
-    # ------------
-    # str / scalar
-    'comment': {
-        'units': None,
-        'ref': 'neq',
-    },
-    'shot': {
-        'units': 'm',
-        'ref': 'neq',
-    },
-    'current': {
-        'key': 'Ip',
-        'units': 'A',
-        'ref': 'neq',
-    },
-    # redundant with current
-    # 'cpasma': {
-    #     'units': 'A',
-    #     'ref': 'neq',
-    # },
-    # --------------
-    # Magnetic axis
-    'rmagx': {
-        'key': 'magaxR',
-        'units': 'm',
-        'ref': 'neq',
-    },
-    'zmagx': {
-        'key': 'magaxZ',
-        'units': 'm',
-        'ref': 'neq',
-    },
-    # Redundant with rmagx and zmagx
-    # 'rmaxis': {
-    #     'units': 'm',
-    #     'ref': 'neq',
-    # },
-    # 'zmaxis': {
-    #     'units': 'm',
-    #     'ref': 'neq',
-    # },
-    'psi_axis': {
-        'key': 'psi_magax',
-        'units': None,
-        'ref': 'neq',
-    },
-    'psi_boundary': {
-        'key': 'psi_sep',
-        'units': None,
-        'ref': 'neq',
-    },
-    # ---------
-    # mRZ
-    'psi': {
-        'units': None,
-        'ref': ('neq', 'mRZ'),
-    },
-    # -------------------
-    # mRZ: grad-shafranov
-    # 'f': {
-    #     'units': '',
-    #     'ref': 'mRZ',
-    # },
-    # 'pprime': {
-    #     'units': '',
-    # },
-    # -------------------
-    # lim => first wall
-    # 'rlim': {
-    #     'units': 'm',
-    #     'ref': ('neq', 'nlim'),
-    # },
-    # 'zlim': {
-    #     'units': 'm',
-    #     'ref': ('neq', 'nlim'),
-    # },
-    # 'rcentr': {
-    #     'units': 'm',
-    #     'ref': 'neq',
-    # },
-    # -------------------
-    # bdry => separatrix
-    'rbdry': {
-        'key': 'sepR',
-        'units': 'm',
-        'ref': ('neq', 'nsep'),
-    },
-    'zbdry': {
-        'key': 'sepZ',
-        'units': 'm',
-        'ref': ('neq', 'nsep'),
-    },
-    # redundant with rbdry and zbdry
-    # 'rbbbs': {
-    #     'units': 'm',
-    #     'ref': ('neq', 'nsep'),
-    # },
-    # 'zbbbs': {
-    #     'units': 'm',
-    #     'ref': ('neq', 'nsep'),
-    # },
-}
-
-for k0, v0 in _DUNITS.items():
-    if isinstance(v0['ref'], str):
-        _DUNITS[k0]['ref'] = (v0['ref'],)
+from . import _class01_load_from_eqdsk as _eqdsk
+from . import _class01_load_from_meq as _meq
 
 
 # ########################################################
@@ -142,7 +25,7 @@ for k0, v0 in _DUNITS.items():
 # ########################################################
 
 
-def load_eqdsk(
+def load(
     dpfe=None,
     returnas=None,
     # keys
@@ -193,9 +76,10 @@ def load_eqdsk(
     # --------------------
 
     (
-        lpfe, returnas, coll,
+        lpfe,
+        eqtype, deqtype,
+        returnas, coll,
         kmesh,
-        geqdsk,
         func_key_groups,
         sort_vs,
         add_rhopn,
@@ -224,7 +108,8 @@ def load_eqdsk(
 
     lpfe, dout, dgroups = _check_shapes(
         lpfe=lpfe,
-        geqdsk=geqdsk,
+        load_pfe=deqtype['load_pfe'],
+        eqtype=eqtype,
         # group keys
         func_key_groups=func_key_groups,
         # options
@@ -244,7 +129,7 @@ def load_eqdsk(
             dgroups=dgroups,
             kgroup=kg,
             kmesh=kmesh,
-            latt=vg['lattr'],
+            lk=vg['lkeys'],
             ltypes=vg['ltypes'],
             dout=dout[vg['pfe'][0]]
         )
@@ -375,22 +260,6 @@ def check_inputs(
 ):
 
     # --------------------
-    # check dependency
-    # --------------------
-
-    # import dependency
-    try:
-        from freeqdsk import geqdsk
-    except Exception as err:
-        msg = (
-            "loading an eqdsk file requires an optional dependency:\n"
-            "\t- file trying to load: {pfe}\n"
-            "\t- required dependency: freeqdsk"
-        )
-        err.args = (msg,)
-        raise err
-
-    # --------------------
     # check pfe
     # --------------------
 
@@ -399,6 +268,49 @@ def check_inputs(
         returnas=list,
         strict=strict,
     )
+
+    # ----------------------------
+    # check file type consistency
+
+    lext = sorted(set([pfe.split('.')[-1] for pfe in lpfe]))
+    if len(lext) > 1:
+        msg = (
+            "Provided dpfe led to loading files of different types!\n"
+            f"Indentified extensions: {lext}\n\n"
+            f"Provided dpfe:\n{dpfe}\n\n"
+            f"Resulting files:\n"
+            + "\n".join([f"\t- {pfe}" for pfe in lpfe])
+        )
+        raise Exception(msg)
+    ext = lext[0].lower()
+
+    # --------------------
+    # get load_pfe and dunits
+    # --------------------
+
+    if ext == 'eqdsk':
+        eqtype = 'eqdsk'
+        deqtype = {
+            'load_pfe': _eqdsk.get_load_pfe(),
+            'dunits': _eqdsk._DUNITS,
+
+        }
+
+    elif ext == 'mat':
+        eqtype = 'meq'
+        deqtype = {
+            'load_pfe': _meq.get_load_pfe(),
+            'dunits': _meq._DUNITS,
+
+        }
+
+    else:
+        msg = (
+            "Non-reckognized file extension!\n"
+            f"\t- allowed: ['eqdsk', 'mat']\n"
+            f"\t- Provided: {ext}"
+        )
+        raise Exception(msg)
 
     # --------------------
     # check returnas
@@ -442,7 +354,7 @@ def check_inputs(
     # ---------------
 
     if func_key_groups is None:
-        func_key_groups = lambda pfe, i0: f"eqdsk{i0}"
+        func_key_groups = lambda pfe, i0: f"{eqtype}{i0}"
 
     else:
         try:
@@ -507,9 +419,10 @@ def check_inputs(
     )
 
     return (
-        lpfe, returnas, coll,
+        lpfe,
+        eqtype, deqtype,
+        returnas, coll,
         kmesh,
-        geqdsk,
         func_key_groups,
         sort_vs,
         add_rhopn,
@@ -525,44 +438,10 @@ def check_inputs(
 # ########################################################
 
 
-def get_load_pfe():
-
-    # -----------------
-    # check dependency
-    # -----------------
-
-    try:
-        from freeqdsk import geqdsk
-    except Exception as err:
-        msg = (
-            "loading an eqdsk file requires an optional dependency:\n"
-            "\t- file trying to load: {pfe}\n"
-            "\t- required dependency: freeqdsk"
-        )
-        err.args = (msg,)
-        raise err
-
-    # -----------------
-    # define load_pfe
-    # -----------------
-
-    def func(pfe):
-
-        data = geqdsk.read(pfe)
-        dout = {
-            {
-                katt: getattr(data, katt) for katt in dir(data)
-                if not k0.startswith('__')
-            }
-        }
-        return dout
-
-    return func
-
-
 def _check_shapes(
     lpfe=None,
-    geqdsk=None,
+    load_pfe=None,
+    eqtype=None,
     # group keys
     func_key_groups=None,
     # options
@@ -591,7 +470,7 @@ def _check_shapes(
 
         try:
             with open(pfe, "r") as ff:
-                data = geqdsk.read(ff)
+                dpfe = load_pfe(ff)
         except Exception as err:
             if strict is True:
                 raise err
@@ -602,26 +481,21 @@ def _check_shapes(
         # sorted attributes
 
         # attributes
-        lattr = tuple(sorted(
-            [k0 for k0 in dir(data) if not k0.startswith('__')]
-        ))
-
-        # values
-        lval = [getattr(data, kk) for kk in lattr]
+        lk = sorted(dpfe.keys())
 
         # types
         ltypes = [
-            vv.shape if isinstance(vv, np.ndarray)
+            dpfe[kk].shape if isinstance(dpfe[kk], np.ndarray)
             else (
-                'str' if isinstance(vv, str)
+                'str' if isinstance(dpfe[kk], str)
                 else 'scalar'
             )
-            for vv in lval
+            for kk in lk
         ]
 
         # unique field_type key
         field_types = "_".join([
-            f"({kk}, {tt})" for kk, tt in zip(lattr, ltypes)
+            f"({kk}, {tt})" for kk, tt in zip(lk, ltypes)
         ])
 
         # -----------
@@ -631,7 +505,7 @@ def _check_shapes(
             kgroup = func_key_groups(pfe, i0)
             dgroups[field_types] = {
                 'key': kgroup,
-                'lattr': lattr,
+                'lkeys': lk,
                 'ltypes': ltypes,
                 'pfe': [pfe],
             }
@@ -645,7 +519,7 @@ def _check_shapes(
 
         dout[pfe] = {
             'group': kgroup,
-            **{katt: getattr(data, katt) for katt in lattr},
+            **dpfe,
         }
 
     # ----------------
@@ -684,10 +558,10 @@ def _check_shapes(
     if verb is True:
 
         lstr = [
-            f"\nEQDSK group '{kg}':\n"
+            f"\n{eqtype} group '{kg}':\n"
             + "\n".join([
-                f"\t- {katt}: {typ}"
-                for katt, typ in zip(vg['lattr'], vg['ltypes'])
+                f"\t- {kk}: {typ}"
+                for kk, typ in zip(vg['lkeys'], vg['ltypes'])
             ])
             for kg, vg in dgroups.items()
         ]
@@ -867,112 +741,3 @@ def _extract_grid(dout):
         raise Exception(msg)
 
     return R, Z
-
-
-# ########################################################
-# ########################################################
-#               Derived
-# ########################################################
-
-
-def _add_rhopn(ddata=None):
-
-    psi0 = ddata['psi_axis']['data']
-    psi = ddata['psi']['data']
-
-    rhopn = (psi0[:, None, None] - psi) / psi0[:, None, None]
-
-    return {
-        'key': 'rhopn',
-        'data': rhopn,
-        'units': None,
-        'ref': ddata['psi']['ref'],
-    }
-
-
-# def _add_BRZ(ddata=None):
-
-#     psi = psi0 = ddata['psi']['data']
-
-#     # ---------------
-#     # BR
-#     # ----------------
-
-#     dR = np.diff(dmesh['mRZ']['knots0'])
-#     assert np.allclose(dR, dR[0])
-#     dR = None
-
-#     psiRp =
-#     psiRm =
-#     BR = (psiRp - psiRm) / dR
-
-#     dBR = {
-#         'key': 'BR',
-#         'data': BR,
-#         'units': 'T',
-#         'ref': ddata['psi']['ref'],
-#     }
-
-#     # ---------------
-#     # BZ
-#     # ----------------
-
-#     dR = np.diff(dmesh['mRZ']['knots0'])
-#     assert np.allclose(dR, dR[0])
-#     dR =
-
-#     psiRp =
-#     psiRm =
-#     BR = (psiRp - psiRm) / dR
-
-#     dBR = {
-#         'key': 'BR',
-#         'data': BR,
-#         'units': 'T',
-#         'ref': ddata['psi']['ref'],
-#     }
-
-#     return dBR, dBZ
-
-
-# ########################################################
-# ########################################################
-#               to Collection
-# ########################################################
-
-
-def _to_Collection(
-    coll=None,
-    dout_group=None,
-):
-
-    # ---------------
-    # loop on groups
-    # ---------------
-
-    for kg, vg in dout_group.items():
-
-        # ----------
-        # add refs
-
-        for kr, vr in vg['dref'].items():
-            vr['key'] = f"{kg}_{vr['key']}"
-            coll.add_ref(**vr)
-
-        # ----------
-        # add mesh
-
-        for kr, vr in vg['dmesh'].items():
-            vr['key'] = f"{kg}_{vr['key']}"
-            coll.add_mesh_2d_rect(**vr)
-
-        # ----------
-        # add data
-
-        for kr, vr in vg['ddata'].items():
-
-            vr['ref'] = tuple([f"{kg}_{rr}" for rr in vr['ref']])
-            vr['key'] = f"{kg}_{vr['key']}"
-            coll.add_data(**vr)
-
-    return
