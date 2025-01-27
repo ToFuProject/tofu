@@ -14,7 +14,7 @@ import numpy as np
 import datastock as ds
 
 
-from ._utils_types import *
+from ._utils_types import _DTYPES
 from . import _class01_load_from_eqdsk as _eqdsk
 from . import _class01_load_from_meq as _meq
 
@@ -25,7 +25,7 @@ from . import _class01_load_from_meq as _meq
 # ########################################################
 
 
-def load(
+def main(
     dpfe=None,
     returnas=None,
     # keys
@@ -129,6 +129,7 @@ def load(
             dgroups=dgroups,
             kgroup=kg,
             kmesh=kmesh,
+            deqtype=deqtype,
             lk=vg['lkeys'],
             ltypes=vg['ltypes'],
             dout=dout[vg['pfe'][0]]
@@ -139,7 +140,7 @@ def load(
             # --------------
             # check grid mRZ
 
-            R, Z = _extract_grid(dout[pfe])
+            R, Z = deqtype['_extract_grid'](dout[pfe])
 
             c0 = (
                 np.allclose(R, dmesh['mRZ']['knots0'])
@@ -154,13 +155,15 @@ def load(
 
             for ia, (katt, typ) in enumerate(zip(vg['lattr'], vg['ltypes'])):
 
-                if katt not in _DUNITS.keys():
+                if katt not in deqtype['dunits'].keys():
                     continue
 
                 if typ == 'str':
                     ddata[katt]['data'].append(dout[pfe][katt])
+
                 elif typ == 'scalar':
                     ddata[katt]['data'][ip] = dout[pfe][katt]
+
                 else:
                     sli = [slice(None) for ss in dout[pfe][katt].shape]
                     sli = (ip,) + tuple(sli)
@@ -169,8 +172,8 @@ def load(
             # ---------------
             # derived rhopn
 
-            if add_rhopn is True:
-                ddata['rhopn'] = _add_rhopn(ddata)
+            # if add_rhopn is True:
+            #     ddata['rhopn'] = _add_rhopn(ddata)
 
             # ---------------
             # derived BRZ
@@ -477,6 +480,11 @@ def _check_shapes(
             dfail[pfe] = err
             continue
 
+        # --------------------
+        # standardize content
+
+        _standardize(dpfe, pfe)
+
         # -----------------
         # sorted attributes
 
@@ -487,8 +495,11 @@ def _check_shapes(
         ltypes = [
             dpfe[kk].shape if isinstance(dpfe[kk], np.ndarray)
             else (
-                'str' if isinstance(dpfe[kk], str)
-                else 'scalar'
+                'str' if isinstance(dpfe[kk], _DTYPES['str'])
+                else (
+                    'scalar' if isinstance(dpfe[kk], _DTYPES['scalar'])
+                    else 'bool'
+                )
             )
             for kk in lk
         ]
@@ -582,6 +593,55 @@ def _check_shapes(
 
 # ########################################################
 # ########################################################
+#               Standardize
+# ########################################################
+
+
+def _standardize(dpfe, pfe):
+
+    for k0, v0 in dpfe.items():
+
+        if isinstance(v0, np.ndarray):
+            if v0.size > 1:
+                dpfe[k0] = np.squeeze(v0)
+            else:
+                dpfe[k0] = _adjust_type(np.squeeze(v0)[0], k0, pfe)
+
+        else:
+            dpfe[k0] = _adjust_type(v0, k0, pfe)
+
+    return
+
+
+def _adjust_type(val, key, pfe):
+
+    if isinstance(val, _DTYPES['int']):
+        val = int(val)
+
+    elif isinstance(val, _DTYPES['float']):
+        val = float(val)
+
+    elif isinstance(val, _DTYPES['bool']):
+        val = bool(val)
+
+    elif isinstance(val, _DTYPES['str']):
+        val = str(val)
+
+    else:
+        msg = (
+            "Unreckognized variable type in eqilibrium file!\n"
+            f"\t- pfe: {pfe}\n"
+            f"\t- variable: {key}\n"
+            f"\t- type: {type(val)}"
+            f"\t- value: {val}\n"
+        )
+        raise Exception(msg)
+
+    return val
+
+
+# ########################################################
+# ########################################################
 #               Initialize
 # ########################################################
 
@@ -590,6 +650,7 @@ def _initialize(
     dgroups=None,
     kgroup=None,
     kmesh=None,
+    deqtype=None,
     latt=None,
     ltypes=None,
     dout=None,
@@ -631,7 +692,7 @@ def _initialize(
     # R, Z grid
     # ------------
 
-    R, Z = _extract_grid(dout)
+    R, Z = deqtype['_extract_grid'](dout)
 
     dmesh = {
         'mRZ': {
@@ -660,7 +721,7 @@ def _initialize(
 
     for ii, (katt, typ) in enumerate(zip(latt, ltypes)):
 
-        if katt not in _DUNITS.keys():
+        if katt not in deqtype['dunits'].keys():
             continue
 
         # init
@@ -675,69 +736,58 @@ def _initialize(
         # ref
         ref = tuple([
             dref[rr]['key'] if rr in dref.keys() else f"{dmesh[rr]['key']}_bs1"
-            for rr in _DUNITS[katt]['ref']
+            for rr in deqtype['dunits'][katt]['ref']
         ])
 
         # data
         ddata[katt] = {
-            'key': _DUNITS[katt].get('key', katt),
+            'key': deqtype['dunits'][katt].get('key', katt),
             'data': init,
-            'units': _DUNITS[katt]['units'],
+            'units': deqtype['dunits'][katt]['units'],
             'ref': ref,
         }
 
     return dref, ddata, dmesh
 
 
-def _extract_grid(dout):
+# ########################################################
+# ########################################################
+#               to Collection
+# ########################################################
 
-    # -------------------
-    # preliminary checks
-    # -------------------
 
-    c0 = (
-        (dout['nx'] == dout['nr'])
-        and (dout['ny'] == dout['nz'])
-    )
-    if not c0:
-        msg = (
-            "Something strange with nx, ny, nr, nz:\n"
-            f"\t- nx, ny = {dout['nx']}, {dout['ny']}\n"
-            f"\t- nr, nz = {dout['nr']}, {dout['nz']}\n"
-        )
-        raise Exception(msg)
+def _to_Collection(
+    coll=None,
+    dout_group=None,
+):
 
-    # -------------------
-    # build
-    # -------------------
+    # ---------------
+    # loop on groups
+    # ---------------
 
-    # extract nb of knots
-    nR = dout['nx']
-    nZ = dout['ny']
+    for kg, vg in dout_group.items():
 
-    # extract R
-    R = dout['rleft'] + np.linspace(0, dout['rdim'], nR)
+        # ----------
+        # add refs
 
-    # extract Z
-    Z = dout['zmid'] + 0.5 * dout['zdim'] * np.linspace(-1, 1, nZ)
+        for kr, vr in vg['dref'].items():
+            vr['key'] = f"{kg}_{vr['key']}"
+            coll.add_ref(**vr)
 
-    # -------------------
-    # final checks
-    # -------------------
+        # ----------
+        # add mesh
 
-    c0 = (
-        np.allclose(dout['r_grid'], np.repeat(R[:, None], Z.size, axis=1))
-        and np.allclose(dout['z_grid'], np.repeat(Z[None, :], R.size, axis=0))
-    )
-    if not c0:
-        msg = (
-            "Something strange with r_grid, z_grid:\n"
-            f"\t- r_grid.shape = {dout['r_grid'].shape}\n"
-            f"\t- R.size, Z.size = {R.size}, {Z.size}\n"
-            f"\t- r_grid = {dout['r_grid']}\n"
-            f"\t- R = {R}\n"
-            f"\t- Z = {Z}\n"
-        )
-        raise Exception(msg)
+        for kr, vr in vg['dmesh'].items():
+            vr['key'] = f"{kg}_{vr['key']}"
+            coll.add_mesh_2d_rect(**vr)
 
-    return R, Z
+        # ----------
+        # add data
+
+        for kr, vr in vg['ddata'].items():
+
+            vr['ref'] = tuple([f"{kg}_{rr}" for rr in vr['ref']])
+            vr['key'] = f"{kg}_{vr['key']}"
+            coll.add_data(**vr)
+
+    return

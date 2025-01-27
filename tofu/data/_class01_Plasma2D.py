@@ -5,16 +5,11 @@
 import copy
 
 
-# Common
-import numpy as np
-import datastock as ds
-
-
 # tofu
 # from tofu import __version__ as __version__
 from ._class00_Config import Config as Previous
 from . import _class01_compute as _compute
-from . import _class01_eqdsk as _eqdsk
+from . import _class01_load_equilibrium as _load_equilibrium
 
 
 __all__ = ['Plasma2D']
@@ -63,7 +58,7 @@ class Plasma2D(Previous):
     # load specific file formats
     # -------------------
 
-    def load_equilirium_from_eqdsk(
+    def load_equilirium_from_files(
         self,
         dpfe=None,
         returnas=None,
@@ -77,11 +72,24 @@ class Plasma2D(Previous):
         verb=None,
         strict=None,
     ):
-        """ Load an equilibriu map from an eqdsk file
+        """ Load an equilibria maps from several files
 
-        Load the R, Z mesh and corresponding psi 2d map
+        Arg dpfe is fed to ds.get_files()
+        Can be a dict of path / list of patterns
+        Handles either:
+            - .eqdsk
+            - .mat (mep files)
+
+        If all files do not have the same mesh size, they are grouped by shape
+            - func_key_groups: callable to name those groups
+
+        Loaded files can be  sorted vs any scalar quantity using
+            - sort_vs
+
+        Loads the R, Z mesh and corresponding 2d maps
+        Also loads all 1d or scalar quantities
         """
-        return _eqdsk.load_eqdsk(
+        return _load_equilibrium.main(
             dpfe=dpfe,
             returnas=returnas,
             # keys
