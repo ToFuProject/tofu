@@ -64,6 +64,8 @@ class Plasma2D(Previous):
         returnas=None,
         # keys
         kmesh=None,
+        # user-defined dunits
+        dunits=None,
         # group naming
         func_key_groups=None,
         # sorting
@@ -95,6 +97,8 @@ class Plasma2D(Previous):
             returnas=returnas,
             # keys
             kmesh=kmesh,
+            # user-defined dunits
+            dunits=dunits,
             # group naming
             func_key_groups=func_key_groups,
             # sorting

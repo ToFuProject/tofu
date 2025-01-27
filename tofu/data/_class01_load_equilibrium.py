@@ -30,6 +30,8 @@ def main(
     returnas=None,
     # keys
     kmesh=None,
+    # user-defined dunits
+    dunits=None,
     # group naming
     func_key_groups=None,
     # sorting
@@ -92,6 +94,8 @@ def main(
         dpfe=dpfe,
         returnas=returnas,
         kmesh=kmesh,
+        # user-defined dunits
+        dunits=dunits,
         # group naming
         func_key_groups=func_key_groups,
         # sorting
@@ -258,6 +262,8 @@ def check_inputs(
     returnas=None,
     # keys
     kmesh=None,
+    # user-defined dunits
+    dunits=None,
     # group naming
     func_key_groups=None,
     # sorting
@@ -297,6 +303,48 @@ def check_inputs(
     ext = lext[0].lower()
 
     # --------------------
+    # dunits
+    # --------------------
+
+    if dunits is not None:
+        ls = ['key', 'units', 'ref', 'transpose']
+        c0 = (
+            isinstance(dunits, dict)
+            and all([
+                isinstance(k0, str)
+                and isinstance(v0, dict)
+                and all([ss in ls for ss in v0.keys()])
+                for k0, v0 in dunits.items()
+            ])
+        )
+        if not c0:
+            msg = (
+                "Arg 'dunits', if provided must be a dict with subdicts:\n"
+                "{"
+                "\t...,\n"
+                "\t'Brx': {\n"
+                "\t\t'key': 'BR',\n"
+                "\t\t'units': 'T',\n"
+                "\t\t'ref': ('neq', 'mRZ'),\n"
+                "\t\t'transpose': True,\n"
+                "\t},\n"
+                "\t...,\n"
+                "}\n\n"
+                "If not provided, loaded from one of:\n"
+                "\t- tofu/data/_class01_load_from_eqdsk.py\n"
+                "\t- tofu/data/_class01_load_from_meq.py\n\n"
+                "Use explore=True to investigate files content!\n"
+                f"\nProvided:\n{dunits}"
+            )
+            raise Exception(msg)
+
+    else:
+        if ext == 'eqdsk':
+            dunits = _eqdsk._DUNITS
+        else:
+            dunits = _meq._DUNITS
+
+    # --------------------
     # get load_pfe and dunits
     # --------------------
 
@@ -304,7 +352,7 @@ def check_inputs(
         eqtype = 'eqdsk'
         deqtype = {
             'load_pfe': _eqdsk.get_load_pfe(),
-            'dunits': _eqdsk._DUNITS,
+            'dunits': dunits,
             'extract_grid': _eqdsk._extract_grid,
             'extra_keys': _eqdsk._EXTRA_KEYS,
         }
@@ -313,7 +361,7 @@ def check_inputs(
         eqtype = 'meq'
         deqtype = {
             'load_pfe': _meq.get_load_pfe(),
-            'dunits': _meq._DUNITS,
+            'dunits': dunits,
             'extract_grid': _meq._extract_grid,
             'extra_keys': [],
         }
@@ -515,14 +563,10 @@ def _check_shapes(
         dpfe = _standardize(dpfe, pfe)
 
         # -----------------
-        # sorted attributes
+        # sorted attributes and types
 
         # attributes
-        lk = sorted([
-            kk for kk in dpfe.keys()
-            if kk in deqtype['dunits'].keys()
-            or kk in deqtype['extra_keys']
-        ])
+        lk = sorted(dpfe.keys())
 
         # types
         ltypes = [
@@ -537,17 +581,28 @@ def _check_shapes(
             for kk in lk
         ]
 
-        # unique field_type key
-        field_types = "_".join([
-            f"({kk}, {tt})" for kk, tt in zip(lk, ltypes)
-        ])
-
         # -------------
-        # explore
+        # explore (optional)
 
         if explore is True:
             _explore(lk, ltypes, dpfe, pfe, deqtype['dunits'])
 
+        # ---------------------
+        # unique field_type key
+
+        # reduce to only loaded fron dunits
+        lik = [
+            ik for ik, kk in enumerate(lk)
+            if kk in deqtype['dunits'].keys()
+            or kk in deqtype['extra_keys']
+        ]
+        lk = [lk[ik] for ik in lik]
+        ltypes = [ltypes[ik] for ik in lik]
+
+        # field_types
+        field_types = "_".join([
+            f"({kk}, {tt})" for kk, tt in zip(lk, ltypes)
+        ])
 
         # -----------
         # groups
