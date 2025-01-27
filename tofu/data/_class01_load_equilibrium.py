@@ -197,8 +197,13 @@ def main(
 
         if sort_vs is not None:
 
-            lok = [kk for kk in ddata.keys() if len(ddata[kk]['ref']) == 1]
-            if sort_vs in lok:
+            lok_att = [kk for kk in ddata.keys() if len(ddata[kk]['ref']) == 1]
+            lok_key = [ddata[kk]['key'] for kk in lok_att]
+            if sort_vs in lok_key:
+                sort_vs = [
+                    kk for kk in lok_att if ddata[kk]['key'] == sort_vs
+                ][0]
+            if sort_vs in lok_att:
                 inds = np.argsort(ddata[sort_vs]['data'])
                 for kk, vv in ddata.items():
                     sli = (inds,) + tuple([slice(None) for ss in vv['data'].shape[1:]])
