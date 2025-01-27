@@ -75,15 +75,15 @@ _DUNITS = {
         'ref': 'neq',
     },
     # Separatrix
-    'sepR': {
-        'key': 'magaxR',
+    'rS': {
+        'key': 'sepR',
         'units': 'm',
-        'ref': 'neq',
+        'ref': ('neq', 'nsep'),
     },
-    'sepZ': {
-        'key': 'magaxZ',
+    'zS': {
+        'key': 'sepZ',
         'units': 'm',
-        'ref': 'neq',
+        'ref': ('neq', 'nsep'),
     },
     # Others
     'Ip': {

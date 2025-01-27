@@ -759,11 +759,14 @@ def _initialize(
 
     if eqtype == 'eqdsk':
         nsep = dout['nbdry']
-        krnsep = 'nsep'
-        dref['nsep'] = {
-            'key': krnsep,
-            'size': nsep,
-        }
+    else:
+        nsep = dout['rS'].size
+
+    krnsep = 'nsep'
+    dref['nsep'] = {
+        'key': krnsep,
+        'size': nsep,
+    }
 
     # ------------
     #
