@@ -40,6 +40,7 @@ def main(
     # optipns
     verb=None,
     strict=None,
+    explore=None,
 ):
     """ load multiple eqdsk equilibria files and concatenate them
 
@@ -86,6 +87,7 @@ def main(
         add_BRZ,
         verb,
         strict,
+        explore,
     ) = check_inputs(
         dpfe=dpfe,
         returnas=returnas,
@@ -100,6 +102,7 @@ def main(
         # options
         verb=verb,
         strict=strict,
+        explore=explore,
     )
 
     # ----------------
@@ -108,13 +111,14 @@ def main(
 
     lpfe, dout, dgroups = _check_shapes(
         lpfe=lpfe,
-        load_pfe=deqtype['load_pfe'],
+        deqtype=deqtype,
         eqtype=eqtype,
         # group keys
         func_key_groups=func_key_groups,
         # options
         verb=verb,
         strict=strict,
+        explore=explore,
     )
 
     # ----------------
@@ -130,30 +134,26 @@ def main(
             kgroup=kg,
             kmesh=kmesh,
             deqtype=deqtype,
-            lk=vg['lkeys'],
+            eqtype=eqtype,
+            lkeys=vg['lkeys'],
             ltypes=vg['ltypes'],
             dout=dout[vg['pfe'][0]]
         )
 
         for ip, pfe in enumerate(vg['pfe']):
 
-            # --------------
-            # check grid mRZ
+            # -----------------------
+            # check grid mRZ and mrho
 
-            R, Z = deqtype['_extract_grid'](dout[pfe])
-
-            c0 = (
-                np.allclose(R, dmesh['mRZ']['knots0'])
-                and np.allclose(Z, dmesh['mRZ']['knots1'])
-            )
-            if not c0:
-                dfail[pfe] = "Different mRZ values!"
+            c0, msg = _check_dmesh(dmesh, deqtype, pfe, dout, dmesh)
+            if c0 is False:
+                dfail[pfe] = msg
                 continue
 
             # ---------------
             # fill all fields
 
-            for ia, (katt, typ) in enumerate(zip(vg['lattr'], vg['ltypes'])):
+            for ia, (katt, typ) in enumerate(zip(vg['lkeys'], vg['ltypes'])):
 
                 if katt not in deqtype['dunits'].keys():
                     continue
@@ -161,7 +161,7 @@ def main(
                 if typ == 'str':
                     ddata[katt]['data'].append(dout[pfe][katt])
 
-                elif typ == 'scalar':
+                elif typ in ['scalar', 'bool']:
                     ddata[katt]['data'][ip] = dout[pfe][katt]
 
                 else:
@@ -260,6 +260,7 @@ def check_inputs(
     # optipns
     verb=None,
     strict=None,
+    explore=None,
 ):
 
     # --------------------
@@ -296,7 +297,7 @@ def check_inputs(
         deqtype = {
             'load_pfe': _eqdsk.get_load_pfe(),
             'dunits': _eqdsk._DUNITS,
-
+            'extract_grid': _eqdsk._extract_grid,
         }
 
     elif ext == 'mat':
@@ -304,7 +305,7 @@ def check_inputs(
         deqtype = {
             'load_pfe': _meq.get_load_pfe(),
             'dunits': _meq._DUNITS,
-
+            'extract_grid': _meq._extract_grid,
         }
 
     else:
@@ -344,13 +345,20 @@ def check_inputs(
     # -------------------
 
     if coll is not None:
+
+        if kmesh is None:
+            kmesh = {}
+        if isinstance(kmesh, str):
+            kmesh = {'mRZ': kmesh}
+
         wm = coll._which_mesh
-        kmesh = ds._generic_check._obj_key(
-            d0=coll.dobj.get(wm, {}),
-            short='m',
-            key=kmesh,
-            ndigits=2,
-        )
+        for km in ['mRZ', 'mrhotn']:
+            kmesh[km] = ds._generic_check._obj_key(
+                d0=coll.dobj.get(wm, {}),
+                short='m',
+                key=kmesh.get(km, km),
+                ndigits=2,
+            )
 
     # ---------------
     # group naming
@@ -421,6 +429,16 @@ def check_inputs(
         default=False,
     )
 
+    # ---------------
+    # explore
+    # ---------------
+
+    explore = ds._generic_check._check_var(
+        explore, 'explore',
+        types=bool,
+        default=False,
+    )
+
     return (
         lpfe,
         eqtype, deqtype,
@@ -432,6 +450,7 @@ def check_inputs(
         add_BRZ,
         verb,
         strict,
+        explore,
     )
 
 
@@ -443,13 +462,14 @@ def check_inputs(
 
 def _check_shapes(
     lpfe=None,
-    load_pfe=None,
+    deqtype=None,
     eqtype=None,
     # group keys
     func_key_groups=None,
     # options
     verb=None,
     strict=None,
+    explore=None,
 ):
 
     # ------------------
@@ -472,8 +492,7 @@ def _check_shapes(
         # open and load
 
         try:
-            with open(pfe, "r") as ff:
-                dpfe = load_pfe(ff)
+            dpfe = deqtype['load_pfe'](pfe)
         except Exception as err:
             if strict is True:
                 raise err
@@ -483,7 +502,7 @@ def _check_shapes(
         # --------------------
         # standardize content
 
-        _standardize(dpfe, pfe)
+        dpfe = _standardize(dpfe, pfe)
 
         # -----------------
         # sorted attributes
@@ -508,6 +527,13 @@ def _check_shapes(
         field_types = "_".join([
             f"({kk}, {tt})" for kk, tt in zip(lk, ltypes)
         ])
+
+        # -------------
+        # explore
+
+        if explore is True:
+            _explore(lk, ltypes, dpfe, pfe, deqtype['dunits'])
+
 
         # -----------
         # groups
@@ -550,7 +576,7 @@ def _check_shapes(
         lstr = [
             f"path = {path}:\n"
             + "\n".join([
-                f"\t- {pp}: {str(dfail[lfail[os.path.join(path, pp)]])}"
+                f"\t- {pp}: {str(dfail[os.path.join(path, pp)])}"
                 for pp in dpathu[path]
             ])
             for path in pathu
@@ -599,18 +625,19 @@ def _check_shapes(
 
 def _standardize(dpfe, pfe):
 
+    dout = {}
     for k0, v0 in dpfe.items():
 
         if isinstance(v0, np.ndarray):
             if v0.size > 1:
-                dpfe[k0] = np.squeeze(v0)
-            else:
-                dpfe[k0] = _adjust_type(np.squeeze(v0)[0], k0, pfe)
+                dout[k0] = np.squeeze(v0)
+            elif v0.size == 1:
+                dout[k0] = _adjust_type(np.squeeze(v0).tolist(), k0, pfe)
 
         else:
-            dpfe[k0] = _adjust_type(v0, k0, pfe)
+            dout[k0] = _adjust_type(v0, k0, pfe)
 
-    return
+    return dout
 
 
 def _adjust_type(val, key, pfe):
@@ -640,6 +667,28 @@ def _adjust_type(val, key, pfe):
     return val
 
 
+def _explore(lk, ltypes, dpfe, pfe, dunits):
+
+    lstr = []
+    for ii, (kk, tt) in enumerate(zip(lk, ltypes)):
+        if tt in ['scalar', 'bool']:
+            stri = f"\t- {ii}/{len(lk)-1}\t{kk}: {dpfe[kk]}"
+        elif isinstance(tt, tuple):
+            if tt == (2,):
+                stri = f"\t- {ii}/{len(lk)-1}\t{kk}: {dpfe[kk]}"
+            else:
+                stri = stri = f"\t- {ii}/{len(lk)-1}\t{kk}: {tt}"
+        lstr.append(stri)
+
+    msg = (
+        f"\n\nExploring content of file: {pfe}\n"
+        + "\n".join(lstr)
+    )
+    print(msg)
+
+    return
+
+
 # ########################################################
 # ########################################################
 #               Initialize
@@ -651,7 +700,8 @@ def _initialize(
     kgroup=None,
     kmesh=None,
     deqtype=None,
-    latt=None,
+    eqtype=None,
+    lkeys=None,
     ltypes=None,
     dout=None,
 ):
@@ -692,34 +742,25 @@ def _initialize(
     # R, Z grid
     # ------------
 
-    R, Z = deqtype['_extract_grid'](dout)
-
-    dmesh = {
-        'mRZ': {
-            'key': kmesh,
-            'knots0': R,
-            'knots1': Z,
-            'units': ['m', 'm'],
-            'deg': 1,
-        },
-    }
+    dmesh = deqtype['extract_grid'](dout, kmesh)
 
     # ------------
     # lim grid
     # ------------
 
-    nsep = dout['nbdry']
-    krnsep = 'nsep'
-    dref['nsep'] = {
-        'key': krnsep,
-        'size': nsep,
-    }
+    if eqtype == 'eqdsk':
+        nsep = dout['nbdry']
+        krnsep = 'nsep'
+        dref['nsep'] = {
+            'key': krnsep,
+            'size': nsep,
+        }
 
     # ------------
     #
     # ------------
 
-    for ii, (katt, typ) in enumerate(zip(latt, ltypes)):
+    for ii, (katt, typ) in enumerate(zip(lkeys, ltypes)):
 
         if katt not in deqtype['dunits'].keys():
             continue
@@ -729,6 +770,8 @@ def _initialize(
             init = []
         elif typ == 'scalar':
             init = np.full((npfe,), np.nan)
+        elif typ == 'bool':
+            init = np.zeros((npfe,), dtype=bool)
         else:
             shape = (npfe,) + typ
             init = np.full(shape, np.nan)
@@ -748,6 +791,31 @@ def _initialize(
         }
 
     return dref, ddata, dmesh
+
+
+# ########################################################
+# ########################################################
+#               check dmesh
+# ########################################################
+
+
+def _check_dmesh(dmesh, deqtype, pfe, dout, kmesh):
+
+    dm = deqtype['extract_grid'](dout[pfe], kmesh)
+
+    msg = None
+    c0 = True
+    for km, vm in dm.items():
+        lk = [kk for kk in vm.keys() if 'knots' in kk]
+        for kk in lk:
+            if not np.allclose(vm[kk], dmesh[km][kk]):
+                msg = f"mesh '{km}' has different knots '{kk}'"
+                c0 = False
+                continue
+        if c0 is False:
+            break
+
+    return c0, msg
 
 
 # ########################################################

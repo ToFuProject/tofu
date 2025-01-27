@@ -58,7 +58,7 @@ class Plasma2D(Previous):
     # load specific file formats
     # -------------------
 
-    def load_equilirium_from_files(
+    def load_equilibrium_from_files(
         self,
         dpfe=None,
         returnas=None,
@@ -71,6 +71,7 @@ class Plasma2D(Previous):
         # options
         verb=None,
         strict=None,
+        explore=None,
     ):
         """ Load an equilibria maps from several files
 
@@ -101,6 +102,7 @@ class Plasma2D(Previous):
             # options
             verb=verb,
             strict=strict,
+            explore=explore,
         )
 
     # -------------------

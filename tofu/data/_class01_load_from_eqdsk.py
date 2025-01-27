@@ -158,12 +158,11 @@ def get_load_pfe():
         # ----------
         # load
 
-        data = geqdsk.read(pfe)
+        with open(pfe, "r") as ff:
+            data = geqdsk.read(ff)
         dout = {
-            {
-                katt: getattr(data, katt) for katt in dir(data)
-                if not k0.startswith('__')
-            }
+            katt: getattr(data, katt) for katt in dir(data)
+            if not katt.startswith('__')
         }
 
         return dout
@@ -177,7 +176,7 @@ def get_load_pfe():
 # ########################################################
 
 
-def _extract_grid(dout):
+def _extract_grid(dout, kmesh):
 
     # -------------------
     # preliminary checks
@@ -228,7 +227,21 @@ def _extract_grid(dout):
         )
         raise Exception(msg)
 
-    return R, Z
+    # -------------------
+    # package
+    # -------------------
+
+    dmesh = {
+        'mRZ': {
+            'key': kmesh['mRZ'],
+            'knots0': R,
+            'knots1': Z,
+            'units': ['m', 'm'],
+            'deg': 1,
+        },
+    }
+
+    return dmesh
 
 
 # ########################################################
