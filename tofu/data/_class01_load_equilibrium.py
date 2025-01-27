@@ -167,13 +167,16 @@ def main(
                 else:
                     sli = [slice(None) for ss in dout[pfe][katt].shape]
                     sli = (ip,) + tuple(sli)
-                    ddata[katt]['data'][sli] = dout[pfe][katt]
+                    if deqtype['dunits'][katt].get('transpose', False) is True:
+                        ddata[katt]['data'][sli] = dout[pfe][katt].T
+                    else:
+                        ddata[katt]['data'][sli] = dout[pfe][katt]
 
             # ---------------
             # derived rhopn
 
-            # if add_rhopn is True:
-            #     ddata['rhopn'] = _add_rhopn(ddata)
+            if add_rhopn is True:
+                ddata['rhopn'] = _add_rhopn(ddata, dunits=deqtype['dunits'])
 
             # ---------------
             # derived BRZ
@@ -298,6 +301,7 @@ def check_inputs(
             'load_pfe': _eqdsk.get_load_pfe(),
             'dunits': _eqdsk._DUNITS,
             'extract_grid': _eqdsk._extract_grid,
+            'extra_keys': _eqdsk._EXTRA_KEYS,
         }
 
     elif ext == 'mat':
@@ -306,6 +310,7 @@ def check_inputs(
             'load_pfe': _meq.get_load_pfe(),
             'dunits': _meq._DUNITS,
             'extract_grid': _meq._extract_grid,
+            'extra_keys': [],
         }
 
     else:
@@ -508,7 +513,11 @@ def _check_shapes(
         # sorted attributes
 
         # attributes
-        lk = sorted(dpfe.keys())
+        lk = sorted([
+            kk for kk in dpfe.keys()
+            if kk in deqtype['dunits'].keys()
+            or kk in deqtype['extra_keys']
+        ])
 
         # types
         ltypes = [
@@ -556,7 +565,7 @@ def _check_shapes(
 
         dout[pfe] = {
             'group': kgroup,
-            **dpfe,
+            **{kk: dpfe[kk] for kk in lk},
         }
 
     # ----------------
@@ -773,6 +782,8 @@ def _initialize(
         elif typ == 'bool':
             init = np.zeros((npfe,), dtype=bool)
         else:
+            if deqtype['dunits'][katt].get('transpose', False) is True:
+                typ = typ[::-1]
             shape = (npfe,) + typ
             init = np.full(shape, np.nan)
 
@@ -783,8 +794,9 @@ def _initialize(
         ])
 
         # data
+        key = deqtype['dunits'][katt].get('key', katt)
         ddata[katt] = {
-            'key': deqtype['dunits'][katt].get('key', katt),
+            'key': key,
             'data': init,
             'units': deqtype['dunits'][katt]['units'],
             'ref': ref,
@@ -816,6 +828,35 @@ def _check_dmesh(dmesh, deqtype, pfe, dout, kmesh):
             break
 
     return c0, msg
+
+
+# ########################################################
+# ########################################################
+#               Derived
+# ########################################################
+
+
+def _add_rhopn(ddata=None, dunits=None):
+
+    kpsi = [kk for kk, vv in dunits.items() if vv['key'] == 'psi'][0]
+    kpsi0 = [kk for kk, vv in dunits.items() if vv['key'] == 'psi_axis'][0]
+    kpsi1 = [kk for kk, vv in dunits.items() if vv['key'] == 'psi_sep'][0]
+
+    psi0 = ddata[kpsi0]['data']
+    psi1 = ddata[kpsi1]['data']
+    psi = ddata[kpsi]['data']
+
+    rhopn = (
+        (psi0[:, None, None] - psi)
+        / (psi0[:, None, None] -psi1[:, None, None])
+    )
+
+    return {
+        'key': 'rhopn',
+        'data': rhopn,
+        'units': None,
+        'ref': ddata[kpsi]['ref'],
+    }
 
 
 # ########################################################

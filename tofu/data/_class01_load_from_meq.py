@@ -32,27 +32,70 @@ _DUNITS = {
         'key': 'BR',
         'units': 'T',
         'ref': ('neq', 'mRZ'),
+        'transpose': True,
     },
     'Bzx': {
         'key': 'BZ',
         'units': 'T',
         'ref': ('neq', 'mRZ'),
+        'transpose': True,
     },
     'Btx': {
         'key': 'Bphi',
         'units': 'T',
         'ref': ('neq', 'mRZ'),
+        'transpose': True,
     },
+    # Poloidal flux
+    'Fx': {
+        'key': 'psi',
+        'units': 'Wb',
+        'ref': ('neq', 'mRZ'),
+        'transpose': True,
+    },
+    'FA': {
+        'key': 'psi_axis',
+        'units': 'Wb',
+        'ref': 'neq',
+    },
+    'FB': {
+        'key': 'psi_sep',
+        'units': 'Wb',
+        'ref': 'neq',
+    },
+    # Magnetic axis
+    'rA': {
+        'key': 'magaxR',
+        'units': 'm',
+        'ref': 'neq',
+    },
+    'zA': {
+        'key': 'magaxZ',
+        'units': 'm',
+        'ref': 'neq',
+    },
+    # Separatrix
+    'sepR': {
+        'key': 'magaxR',
+        'units': 'm',
+        'ref': 'neq',
+    },
+    'sepZ': {
+        'key': 'magaxZ',
+        'units': 'm',
+        'ref': 'neq',
+    },
+    # Others
     'Ip': {
         'key': 'Ip',
         'units': 'A',
         'ref': 'neq',
     },
-    'aminor': {
-        'key': 'r',
-        'units': 'm',
-        'ref': ('neq', 'mrhotn'),
-    },
+    # 'aminor': {
+    #     'key': 'r',
+    #     'units': 'm',
+    #     'ref': ('neq', 'mrhotn'),
+    # },
     'q95': {
         'key': 'q95',
         'units': None,
@@ -68,11 +111,16 @@ _DUNITS = {
         'units': None,
         'ref': 'neq',
     },
-    'rhotornorm': {
-        'key': 'rhotn',
-        'units': None,
-        'ref': ('neq', 'mrhotn'),
+    'Vp': {
+        'key': 'Vp',
+        'units': 'm3',
+        'ref': 'neq',
     },
+    # 'rhotornorm': {
+    #     'key': 'rhotn',
+    #     'units': None,
+    #     'ref': ('neq', 'mrhotn'),
+    # },
     'shot': {
         'key': 'shot',
         'units': None,
@@ -87,6 +135,7 @@ _DUNITS = {
 
 
 for k0, v0 in _DUNITS.items():
+    _DUNITS[k0]['key'] = _DUNITS[k0].get('key', k0)
     if isinstance(v0['ref'], str):
         _DUNITS[k0]['ref'] = (v0['ref'],)
 
@@ -168,7 +217,7 @@ def _extract_grid(dout, kmesh):
     # get 1d mesh
     # -------------------
 
-    rhotn =  dout['rhotornorm']
+    # rhotn =  dout['rhotornorm']
 
     # -------------------
     # package
@@ -182,12 +231,12 @@ def _extract_grid(dout, kmesh):
             'units': ['m', 'm'],
             'deg': 1,
         },
-        'mrhotn': {
-            'key': kmesh['mrhotn'],
-            'knots': rhotn,
-            'units': None,
-            'deg': 1,
-        },
+        # 'mrhotn': {
+        #     'key': kmesh['mrhotn'],
+        #     'knots': rhotn,
+        #     'units': None,
+        #     'deg': 1,
+        # },
     }
 
     return dmesh

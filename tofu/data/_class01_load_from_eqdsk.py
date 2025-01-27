@@ -49,30 +49,20 @@ _DUNITS = {
         'units': 'm',
         'ref': 'neq',
     },
-    # Redundant with rmagx and zmagx
-    # 'rmaxis': {
-    #     'units': 'm',
-    #     'ref': 'neq',
-    # },
-    # 'zmaxis': {
-    #     'units': 'm',
-    #     'ref': 'neq',
-    # },
+    # Poloidal flux
+    'psi': {
+        'units': 'Wb',
+        'ref': ('neq', 'mRZ'),
+    },
     'psi_axis': {
-        'key': 'psi_magax',
-        'units': None,
+        'key': 'psi_axis',
+        'units': 'Wb',
         'ref': 'neq',
     },
     'psi_boundary': {
         'key': 'psi_sep',
-        'units': None,
+        'units': 'Wb',
         'ref': 'neq',
-    },
-    # ---------
-    # mRZ
-    'psi': {
-        'units': None,
-        'ref': ('neq', 'mRZ'),
     },
     # -------------------
     # mRZ: grad-shafranov
@@ -122,8 +112,21 @@ _DUNITS = {
 
 
 for k0, v0 in _DUNITS.items():
+    _DUNITS[k0]['key'] = _DUNITS[k0].get('key', k0)
     if isinstance(v0['ref'], str):
         _DUNITS[k0]['ref'] = (v0['ref'],)
+
+
+# -----------------------------------
+# extra keys needed but not extracted
+# -----------------------------------
+
+_EXTRA_KEYS = [
+    'nx', 'nr', 'ny', 'nz',
+    'rleft', 'rdim', 'zmid', 'zdim',
+    'r_grid', 'z_grid',
+    'nbdry',
+]
 
 
 # ########################################################
@@ -244,25 +247,7 @@ def _extract_grid(dout, kmesh):
     return dmesh
 
 
-# ########################################################
-# ########################################################
-#               Derived
-# ########################################################
 
-
-def _add_rhopn(ddata=None):
-
-    psi0 = ddata['psi_axis']['data']
-    psi = ddata['psi']['data']
-
-    rhopn = (psi0[:, None, None] - psi) / psi0[:, None, None]
-
-    return {
-        'key': 'rhopn',
-        'data': rhopn,
-        'units': None,
-        'ref': ddata['psi']['ref'],
-    }
 
 
 # def _add_BRZ(ddata=None):
