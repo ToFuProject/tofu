@@ -344,9 +344,10 @@ def main(
     # adjust npts
     # -------------
 
-    iok = np.any(np.isfinite(itot), axis=0)
+    iok = np.any(np.isfinite(itot), axis=tuple(range(1, itot.ndim)))
     if not np.all(iok):
-        sli= tuple([itot] + [slice(None) for ss in itot.shape[1:]])
+        sli = (iok,) + tuple([slice(None) for ii in itot.shape[1:]])
+
         itot = itot[sli]
         if out_xyz:
             pts_x = pts_x[sli]
