@@ -712,15 +712,19 @@ def _compute_los(
             inannb = np.r_[-1, inan.nonzero()[0]]
             nnan = inan.sum()
 
-            # some lines can be nan if non-existant:
+            # some lines can be nan if non-existant
+            # one nan for each separation between concatenated LOS
             if nnan != ni:
                 msg = (
                     "Mismatch between expected and observed nb of NaNs!\n"
                     f"\t- key_diag = {key_diag}\n"
                     f"\t- kcam = {k0}\n"
                     f"\t- ii = {ii}\n"
-                    f"\t- ni = i1 - i0 = {i1} - {i0} = {ni}\n"
-                    f"\t- len(ind_ch) = {len(ind_ch)}\n"
+                    f"\t- i1 - i0 = {i1} - {i0} = {ni}\n"
+                    f"\t- groupby, npix = {groupby}    {npix}\n"
+                    f"\t- ni = ind_ch_flat.size = {ni}\n"
+                    f"\t- shape_cam = {shape_cam}\n"
+                    f"\t- ind_ch = {ind_ch}\n"
                     f"\t- res, mode = {res}   {mode}\n"
                     f"\t- R.shape = {R.shape}\n"
                     f"\t- nnan = {nnan}\n"
