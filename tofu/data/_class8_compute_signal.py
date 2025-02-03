@@ -713,7 +713,19 @@ def _compute_los(
             nnan = inan.sum()
 
             # some lines can be nan if non-existant:
-            assert nnan == ni, f"{nnan} != {ni}"
+            if nnan != ni:
+                msg = (
+                    "Mismatch between expected and observed nb of NaNs!\n"
+                    f"\t- key_diag = {key_diag}\n"
+                    f"\t- kcam = {k0}\n"
+                    f"\t- ii = {ii}\n"
+                    f"\t- ni = i1 - i0 = {i1} - {i0} = {ni}\n"
+                    f"\t- len(ind_ch) = {len(ind_ch)}\n"
+                    f"\t- res, mode = {res}   {mode}\n"
+                    f"\t- R.shape = {R.shape}\n"
+                    f"\t- nnan = {nnan}\n"
+                )
+                raise Exception(msg)
 
             # timing
             if timing is True:
