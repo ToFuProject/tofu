@@ -479,8 +479,15 @@ def get_plasma(
     # -------------
     # loop on ids
     # -------------
+    
+    # IMPROVEMENT:
+    # This for loop should be divided in 2 
+    # First: read all meshes on all ids + time traces
+    # second: read all fields that depend on meshes
+    # Use case: when a 2d mesh is needed for ids0 but only exists in ids1 (or vice-versa)
 
     for ids in lids:
+        
         idsshort = _def._dshortids.get(ids, ids)
 
         # -----
@@ -582,6 +589,7 @@ def get_plasma(
 
         cmesh = any([ss in out_.keys() for ss in lsigmesh])
 
+        lprof2d = None
         if len(out_) > 0 and cmesh is True:
 
             npts, datashape = None, None
@@ -628,7 +636,8 @@ def get_plasma(
             # profiles2d on mesh
 
             meshtype = coll.dobj[wm][keym]['type']
-            for ss in set(out_.keys()).difference(lsigmesh):
+            lprof2d = set(out_.keys()).difference(lsigmesh)
+            for ss in lprof2d:
                 add_profile2d(
                     multi=multi,
                     ids=ids,
@@ -703,6 +712,7 @@ def get_plasma(
 
             elif len(drad) == 1:
                 k0ref = list(drad.keys())[0]
+                
             else:
                 if not np.unique([v0.size for v0 in drad.values()]).size == 1:
                     lstr = [f"\t- {k0}: {v0.size}" for k0, v0 in drad.items()]
@@ -731,6 +741,9 @@ def get_plasma(
                 dim = multi._dcomp[ids][k0ref].get('dim', 'unknown')
                 quant = multi._dcomp[ids][k0ref].get('quant', 'unknown')
 
+            # ------------------------------
+            # list available 2d radius maps
+
             radius2d = [
                 k0 for k0, v0 in coll.ddata.items()
                 if '2d' in k0
@@ -738,13 +751,28 @@ def get_plasma(
                 and v0['quant'] == quant
                 and v0['bsplines'] is not None
             ]
+            
+            # one map found
             if len(radius2d) == 1:
                 radius2d = radius2d[0]
+                
+            # None found
             elif len(radius2d) == 0:
                 msg = (
                     "No 2d radius for polar mesh!\n"
+                    f"\t- ids = {ids}\n"
+                    f"\t- cmesh = {cmesh}\n"
+                    f"\t- lsigmesh = {lsigmesh}\n"
+                    f"\t- dim = {dim}\n"
+                    f"\t- quant = {quant}\n"
+                    f"\t- k0ref = {k0ref}\n"
+                    f"\t- kref = {kref}\n"
+                    f"\t- nr = {nr}\n"
+                    f"\t- lprof2d = {lprof2d}\n"
                 )
                 raise Exception(msg)
+                
+            # multiple maps found => ambiguous
             else:
                 msg = (
                     "Several possible 2d radius identified!\n"

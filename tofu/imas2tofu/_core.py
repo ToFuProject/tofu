@@ -2009,10 +2009,17 @@ class MultiIDSLoader(object):
             # plot, plot_X, plot_sig,
             # dsig=dsig)
 
-        # lids
+        # ----------------------
+        # lids determines order in which ids are read
+        # may be important in case 2d mesh only exists in one ids!
+        
         lids = sorted(dsig.keys())
+        if 'equilibrium' in lids:
+            lids = ['equilibrium'] + [ids for ids in lids if ids != 'equilibrium']
 
+        # -------------------------
         # data source consistency
+        
         _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
             lids, upper=True, errshot=False, errExp=False,
             dids=self._dids, didd=self._didd,
