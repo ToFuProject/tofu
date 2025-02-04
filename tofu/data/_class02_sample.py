@@ -303,6 +303,23 @@ def main(
             length = llen
             lengthtot = lentot
 
+    # -------------
+    # adjust npts
+    # -------------
+
+    iok = np.any(np.isfinite(itot), axis=tuple(range(1, itot.ndim)))
+    if not np.all(iok):
+        sli = (iok,) + tuple([slice(None) for ii in itot.shape[1:]])
+
+        itot = itot[sli]
+        if out_xyz:
+            pts_x = pts_x[sli]
+            pts_y = pts_y[sli]
+            pts_z = pts_z[sli]
+        if out_l:
+            length = length[sli]
+            lengthtot = lengthtot[sli]
+
     # -------------------------------------
     # optional concatenation (for plotting)
     # -------------------------------------
@@ -339,22 +356,6 @@ def main(
             lengthtot = remove_consecutive_nans(
                 np.concatenate((lengthtot, nan), axis=0).T.ravel()
             )
-
-    # -------------
-    # adjust npts
-    # -------------
-
-    iok = np.any(np.isfinite(itot), axis=0)
-    if not np.all(iok):
-        sli= tuple([itot] + [slice(None) for ss in itot.shape[1:]])
-        itot = itot[sli]
-        if out_xyz:
-            pts_x = pts_x[sli]
-            pts_y = pts_y[sli]
-            pts_z = pts_z[sli]
-        if out_l:
-            length = length[sli]
-            lengthtot = lengthtot[sli]
 
     # -------------
     # adjust kk

@@ -233,6 +233,16 @@ def _check(
     )
 
     # ------------
+    # overwrite
+    # ------------
+
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
+        default=False,
+    )
+
+    # ------------
     # key_rays
     # ------------
 
@@ -266,16 +276,6 @@ def _check(
 
     else:
         key_rays = None
-
-    # ------------
-    # overwrite
-    # ------------
-
-    overwrite = ds._generic_check._check_var(
-        overwrite, 'overwrite',
-        types=bool,
-        default=False,
-    )
 
     return (
         key,
@@ -631,6 +631,7 @@ def _generic(
     dout_pixel = poly2d_sample(
         coll.ddata[kout0]['data'],
         coll.ddata[kout1]['data'],
+        key=kcam,
         dedge=dsampling_pixel.get('dedge'),
         dsurface=dsampling_pixel.get('dsurface'),
     )
@@ -843,7 +844,7 @@ def _generic(
             oo = np.full(shape_cam + (nstart, nraysu.max()), np.nan)
 
             for ii, ind in enumerate(np.ndindex(shape_cam)):
-                sli = ind + (slice(None), np.arange(0, dnrays[ind]))
+                sli = ind + (slice(None), slice(0, dnrays[ind], 1))
                 oo[sli] = dout[kk][ind]
 
             dout[kk] = oo
@@ -868,6 +869,7 @@ def _get_end_optics(
     dout_optics = poly2d_sample(
         coll.ddata[kout0]['data'],
         coll.ddata[kout1]['data'],
+        key=kop,
         dedge=dsampling_optics.get('dedge'),
         dsurface=dsampling_optics.get('dsurface'),
     )
@@ -947,6 +949,9 @@ def _store(
     for kcam, v0 in dout.items():
 
         key = key_rays[kcam]
+
+        if key in coll.dobj['rays'].keys() and overwrite is True:
+            coll.remove_rays(key)
 
         # -----------------
         # add ref

@@ -432,6 +432,7 @@ def plasma_checkformat_dsig(dsig=None,
 
 def get_plasma(
     multi=None,
+    coll=None,
     dtime0=None,
     d0d=None,
     out0=None,
@@ -454,12 +455,30 @@ def get_plasma(
     plot_sig=None,
 ):
 
-    import tofu.data as tfd
-    plasma = tfd.Collection()
-    wm = plasma._which_mesh
+    # -----------------
+    # Collection
+    # -----------------
 
-    # -----------
+    import tofu.data as tfd
+
+    # not provided => create new instance
+    if coll is None:
+        coll = tfd.Collection()
+
+    # Provided => check
+    elif issubclass(coll.__class__, tfd.Collection):
+        pass
+
+    else:
+        msg = "Unknow coll provided!\n{coll}"
+        raise Exception(coll)
+
+    # which mesh
+    wm = coll._which_mesh
+
+    # -------------
     # loop on ids
+    # -------------
 
     for ids in lids:
         idsshort = _def._dshortids.get(ids, ids)
@@ -488,8 +507,8 @@ def get_plasma(
             nt = dtt['t'].size
 
             # add ref and data
-            plasma.add_ref(key=keynt, size=nt)
-            plasma.add_data(
+            coll.add_ref(key=keynt, size=nt)
+            coll.add_data(
                 key=f'{idsshort}.t',
                 data=dtt['t'],
                 ref=keynt,
@@ -533,7 +552,7 @@ def get_plasma(
                     dim = multi._dcomp[ids][k0].get('dim', 'unknown')
                     quant = multi._dcomp[ids][k0].get('quant', 'unknown')
 
-                plasma.add_data(
+                coll.add_data(
                     key=f'{idsshort}.{k0}',
                     data=v0['data'],
                     ref=(keynt,),
@@ -586,35 +605,35 @@ def get_plasma(
 
             # Nodes / Faces case
             if lc[0]:
-                plasma.add_mesh_2d_tri(
+                coll.add_mesh_2d_tri(
                     key=keym,
                     knots=out_['2dmeshNodes']['data'],
                     indices=out_['2dmeshFaces']['data'],
                     source=ids,
                 )
-                n1 = plasma.dobj[wm][keym]['shape-k'][0]
-                n2 = plasma.dobj[wm][keym]['shape-c'][0]
+                n1 = coll.dobj[wm][keym]['shape-k'][0]
+                n2 = coll.dobj[wm][keym]['shape-c'][0]
 
             # R / Z case
             elif lc[1]:
-                plasma.add_mesh_2d_rect(
+                coll.add_mesh_2d_rect(
                     key=keym,
                     knots0=out_['2dmeshR']['data'],
                     knots1=out_['2dmeshZ']['data'],
                     source=ids,
                 )
-                n1, n2 = plasma.dobj[wm][keym]['shape']
+                n1, n2 = coll.dobj[wm][keym]['shape']
 
             # ------------------
             # profiles2d on mesh
 
-            meshtype = plasma.dobj[wm][keym]['type']
+            meshtype = coll.dobj[wm][keym]['type']
             for ss in set(out_.keys()).difference(lsigmesh):
                 add_profile2d(
                     multi=multi,
                     ids=ids,
                     idsshort=idsshort,
-                    plasma=plasma,
+                    plasma=coll,
                     out_=out_,
                     ss=ss,
                     # for references
@@ -702,7 +721,7 @@ def get_plasma(
             kref = f'{idsshort}.nr'
 
             # add ref and data for radial base
-            plasma.add_ref(key=kref, size=nr)
+            coll.add_ref(key=kref, size=nr)
 
             # Get dim / quant from dshort / dcomp + units
             if k0ref in multi._dshort[ids].keys():
@@ -713,7 +732,7 @@ def get_plasma(
                 quant = multi._dcomp[ids][k0ref].get('quant', 'unknown')
 
             radius2d = [
-                k0 for k0, v0 in plasma.ddata.items()
+                k0 for k0, v0 in coll.ddata.items()
                 if '2d' in k0
                 and v0['dim'] == dim
                 and v0['quant'] == quant
@@ -735,7 +754,7 @@ def get_plasma(
 
             # TBC
             kmrad = f'{idsshort}.radial'
-            plasma.add_mesh_1d(
+            coll.add_mesh_1d(
                 key=kmrad,
                 knots=drad[k0ref],
                 subkey=radius2d,
@@ -775,7 +794,7 @@ def get_plasma(
                         keynt = f"{ids}.nt"
 
                         # add ref
-                        plasma.add_ref(key=keynt, size=nt)
+                        coll.add_ref(key=keynt, size=nt)
 
                     elif nt not in shape or nr not in shape:
                         msg = (
@@ -808,7 +827,7 @@ def get_plasma(
                     quant = multi._dcomp[ids][ss].get('quant', 'unknown')
 
                 # add data
-                plasma.add_data(
+                coll.add_data(
                     key=f'{idsshort}.{ss}',
                     data=out_[ss]['data'],
                     ref=kmrad if len(shape) == 1 else (keynt, kmrad),
@@ -824,13 +843,13 @@ def get_plasma(
     t0 = multi._get_t0(t0, ind=indt0)
     if t0 is not False:
         lt = [
-            k0 for k0, v0 in plasma.ddata.items()
+            k0 for k0, v0 in coll.ddata.items()
             if v0['dim'] == 'time'
         ]
         for tt in lt:
-            plasma.ddata[lt]['data'] -= t0
+            coll.ddata[lt]['data'] -= t0
 
-    return plasma
+    return coll
 
 
 def add_profile2d(

@@ -1895,6 +1895,8 @@ class MultiIDSLoader(object):
 
     def to_Plasma2D(
         self,
+        # optional pre-existing Collection to fill
+        coll=None,
         # dict of signals to be extracted
         dsig=None,
         # time parameters
@@ -1937,6 +1939,9 @@ class MultiIDSLoader(object):
 
         Parameters
         ----------
+        coll:   None / Collection
+            Optional pre-existing Collection instance to fill in
+            If not provided, will create and return a new instance
         tlim:   None / list
             Restrict the loaded data to a time interval with tlim
             if None, loads all time steps
@@ -2050,6 +2055,7 @@ class MultiIDSLoader(object):
         return _comp_toobjects.get_plasma(
             # ressources
             multi=self,
+            coll=coll,
             dtime0=dtime0,
             d0d=d0d,
             out0=out0,

@@ -14,6 +14,7 @@ import datetime as dtm
 
 import numpy as np
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 import datastock as ds
 
 
@@ -23,7 +24,7 @@ import datastock as ds
 # #################################################################
 
 
-_COLOR = 'k'
+_COLOR = 'pixel'
 _NAME = 'rays'
 
 
@@ -51,6 +52,9 @@ def main(
     include_centroid=None,
     factor=None,
     color=None,
+    color_by_pixel=None,
+    chain=None,
+    curve=None,
     # ---------------
     # saving
     pfe_save=None,
@@ -70,7 +74,9 @@ def main(
     coll : tf.data.Collection, optional
         DESCRIPTION. The default is None.
     key : str, optional
-        DESCRIPTION. The default is None.
+        Diagnostic
+    key_cam: str, optional
+        Camera
     pfe_in : str, optional
         DESCRIPTION. The default is None.
     outline_only: bool, optional
@@ -79,6 +85,10 @@ def main(
         scaling factor on coordinates (default: 1)
     color : str / tuple, optional
         DESCRIPTION. The default is None.
+    chain : bool
+        Flag to chain all pixels, for each camera
+    curve:  str
+        Flag to use either 'LINE' or 'POLYLINE'
     pfe_save : str, optional
         DESCRIPTION. The default is None.
     overwrite : bool, optional
@@ -95,12 +105,16 @@ def main(
     # --------------
 
     (
-        key, key_cam,
+        key, key_cam, key_rays,
         ptsx, ptsy, ptsz,
         pfe_in,
         outline_only,
         include_centroid,
-        factor, color,
+        factor,
+        color,
+        color_by_pixel,
+        chain,
+        curve,
         iso,
         pfe_save, overwrite,
     ) = _check(
@@ -116,6 +130,9 @@ def main(
         include_centroid=include_centroid,
         factor=factor,
         color=color,
+        color_by_pixel=color_by_pixel,
+        chain=chain,
+        curve=curve,
         # saving
         pfe_save=pfe_save,
         overwrite=overwrite,
@@ -131,11 +148,13 @@ def main(
         coll=coll,
         key=key,
         key_cam=key_cam,
+        key_rays=key_rays,
         ptsx=ptsx,
         ptsy=ptsy,
         ptsz=ptsz,
         outline_only=outline_only,
         include_centroid=include_centroid,
+        chain=chain,
         pfe_in=pfe_in,
         fname=fname,
     )
@@ -163,13 +182,14 @@ def main(
     )
 
     # DATA
-    msg_data = _get_data(
+    msg_data = _get_data_polyline(
         dptsx=dptsx,
         dptsy=dptsy,
         dptsz=dptsz,
         fname=fname,
         # options
         dcolor=dcolor,
+        color_by_pixel=color_by_pixel,
         # norm
         iso=iso,
     )
@@ -206,6 +226,9 @@ def _check(
     include_centroid=None,
     factor=None,
     color=None,
+    color_by_pixel=None,
+    chain=None,
+    curve=None,
     # saving
     pfe_save=None,
     overwrite=None,
@@ -231,11 +254,10 @@ def _check(
 
     if lc[0]:
 
-
         # ------------
         # coll
 
-        if not issubclass(coll.__class__, ds.DataStock):
+        if 'tofu'not in str(coll.__class__):
             msg = (
                 "Arg coll must be a subclass of datastock.Datastock!\n"
                 f"\t- type(coll) = {type(coll)}"
@@ -265,9 +287,11 @@ def _check(
                 allowed=lok,
                 default=lok,
             )
+            key_rays = None
 
         else:
             key_cam = None
+            key_rays = key
 
     # ---------------
     # array
@@ -326,13 +350,49 @@ def _check(
     outline_only = ds._generic_check._check_var(
         outline_only, 'outline_only',
         types=bool,
-        default=True,
+        default=key_cam is not None,
     )
+
+    if outline_only is True and not (key_cam is not None or key_rays is not None):
+        msg = (
+            "Arg outline_only can only be True if key_cam or key_rays is known!"
+        )
+        raise Exception(msg)
 
     include_centroid = ds._generic_check._check_var(
         include_centroid, 'include_centroid',
         types=bool,
         default=True,
+    )
+
+    # ---------------
+    # chain
+    # ---------------
+
+    chain = ds._generic_check._check_var(
+        chain, 'chain',
+        types=(bool, str),
+        default=False,
+        allowed=[True, False, 'pixel'],
+    )
+
+    if chain is not False and not (key_cam is not None or key_rays is not None):
+        msg = (
+            "Arg chain can only used if key_cam or key_rays is known!\n"
+            f"\t- chain: {chain}\n"
+        )
+        raise Exception(msg)
+
+    # ---------------
+    # curve
+    # ---------------
+
+    lok = ['POLYLINE']
+    curve = ds._generic_check._check_var(
+        curve, 'curve',
+        types=str,
+        default=lok[0],
+        allowed=lok,
     )
 
     # ---------------
@@ -344,6 +404,21 @@ def _check(
         types=(float, int),
         default=1.,
     ))
+
+    # ---------------
+    # color_by_pixel
+    # ---------------
+
+    color_by_pixel = float(ds._generic_check._check_var(
+        color_by_pixel, 'color_by_pixel',
+        types=(float, bool),
+        default=True,
+    ))
+
+    if color_by_pixel is True:
+        color_by_pixel = 0.5
+    if color_by_pixel is not False:
+        assert color_by_pixel >= 0 and color_by_pixel <= 1
 
     # ---------------
     # iso
@@ -393,12 +468,16 @@ def _check(
     )
 
     return (
-        key, key_cam,
+        key, key_cam, key_rays,
         ptsx, ptsy, ptsz,
         pfe_in,
         outline_only,
         include_centroid,
-        factor, color,
+        factor,
+        color,
+        color_by_pixel,
+        chain,
+        curve,
         iso,
         pfe_save, overwrite,
     )
@@ -414,11 +493,13 @@ def _extract(
     coll=None,
     key=None,
     key_cam=None,
+    key_rays=None,
     ptsx=None,
     ptsy=None,
     ptsz=None,
     outline_only=None,
     include_centroid=None,
+    chain=None,
     pfe_in=None,
     fname=None,
 ):
@@ -431,9 +512,9 @@ def _extract(
     dptsy = {}
     dptsz = {}
 
-    # ----------------------
+    # -----------------------
     # extract points from csv
-    # ----------------------
+    # -----------------------
 
     if pfe_in is not None:
 
@@ -471,9 +552,9 @@ def _extract(
         dptsy[fname] = np.array([out[ii::npts, 1] for ii in range(npts)])
         dptsz[fname] = np.array([out[ii::npts, 2] for ii in range(npts)])
 
-    # ----------------------
+    # -------------------------
     # extract points from array
-    # ----------------------
+    # -------------------------
 
     elif ptsx is not None:
 
@@ -481,34 +562,161 @@ def _extract(
         dptsy[fname] = ptsy
         dptsz[fname] = ptsz
 
-    # ----------------------
+    # --------------------------
     # extract points from coll
-    # ----------------------
+    # --------------------------
 
     else:
 
         if key_cam is None:
-            dptsx[fname], dptsy[fname], dptsz[fname] = coll.get_rays_pts(key=key)
+            dptsx[fname], dptsy[fname], dptsz[fname] = coll.get_rays_pts(
+                key=key,
+            )
 
         else:
             for kcam in key_cam:
-                dptsx[kcam], dptsy[kcam], dptsz[kcam] = coll.get_rays_pts(key=key, key_cam=kcam)
+                dptsx[kcam], dptsy[kcam], dptsz[kcam] = coll.get_rays_pts(
+                    key=key,
+                    key_cam=kcam,
+                )
 
-        # ----------
+        # ------------
         # outline_only
 
         if outline_only is True:
-            for kcam, v0 in dptsx.items():
-                if v0.ndim == 3:
+
+            for k0, v0 in dptsx.items():
+
+                # get kcam
+                kcam, axis = _get_kcam(
+                    coll=coll,
+                    k0=k0,
+                    key=key,
+                    key_cam=key_cam,
+                    key_rays=key_rays,
+                )
+
+                shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+                if shape_cam == 2:
+
+                    # get index of non-outline
+                    sli = [0 for ii in v0.shape]
+                    sli[axis[0]] = slice(None)
+                    sli[axis[1]] = slice(None)
+                    sli = tuple(sli)
                     iout = ~_get_outline2d(
-                        dptsx[kcam][1, ...],
+                        dptsx[kcam][sli],
                         include_centroid=include_centroid,
                     )
-                    dptsx[kcam][:, iout] = np.nan
-                    dptsy[kcam][:, iout] = np.nan
-                    dptsz[kcam][:, iout] = np.nan
+
+                    # set non-aligned to nan
+                    sli = [slice(None) for ii in range(v0.size-1)]
+                    sli[axis[0]] = iout
+                    sli = tuple(sli)
+                    dptsx[kcam][sli] = np.nan
+                    dptsy[kcam][sli] = np.nan
+                    dptsz[kcam][sli] = np.nan
+
+        # --------------
+        # chain
+
+        if chain is not False:
+
+            for k0, v0 in dptsx.items():
+
+                # get kcam
+                kcam, axis = _get_kcam(
+                    coll=coll,
+                    k0=k0,
+                    key=key,
+                    key_cam=key_cam,
+                    key_rays=key_rays,
+                )
+
+                shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+
+                # both ways
+                npts = dptsx[k0].shape[0]
+                sli = tuple(
+                    [np.arange(0, npts-1)[::-1]]
+                    + [slice(None) for ii in dptsx[k0].shape[1:]]
+                )
+
+                ptsx = np.concatenate(
+                    (dptsx[k0], dptsx[k0][sli]),
+                    axis=0,
+                )
+                ptsy = np.concatenate(
+                    (dptsy[k0], dptsy[k0][sli]),
+                    axis=0,
+                )
+                ptsz = np.concatenate(
+                    (dptsz[k0], dptsz[k0][sli]),
+                    axis=0,
+                )
+
+                # chain and store
+                if chain is True:
+                    dptsx[k0] = np.ravel(ptsx, order='F')
+                    dptsy[k0] = np.ravel(ptsy, order='F')
+                    dptsz[k0] = np.ravel(ptsz, order='F')
+
+                elif chain == 'pixel':
+                    shape = shape_cam + (-1,)
+                    dptsx[k0] = np.moveaxis(
+                        np.moveaxis(ptsx, 0, -1).reshape(shape),
+                        -1,
+                        0,
+                    )
+                    dptsy[k0] = np.moveaxis(
+                        np.moveaxis(ptsy, 0, -1).reshape(shape),
+                        -1,
+                        0,
+                    )
+                    dptsz[k0] = np.moveaxis(
+                        np.moveaxis(ptsz, 0, -1).reshape(shape),
+                        -1,
+                        0,
+                    )
+
+                else:
+                    raise NotImplementedError(f"{chain}")
 
     return dptsx, dptsy, dptsz
+
+
+def _get_kcam(coll=None, k0=None, key=None, key_cam=None, key_rays=None):
+
+    # ---------------
+    # key_cam already
+
+    if key_cam is not None and k0 in key_cam:
+        kcam = k0
+        ref_cam = coll.dobj['camera'][kcam]['dgeom']['ref']
+        axis = 1 + np.arange(len(ref_cam))
+
+    # ----------
+    # key_rays
+
+    else:
+        ref = coll.dobj['rays'][key]['ref']
+        lkcam = [
+            kcam for kcam, vcam in coll.dobj['camera'].items()
+            if tuple([rr for rr in ref if rr in vcam['dgeom']['ref']]) == vcam['dgeom']['ref']
+        ]
+        if len(lkcam) != 1:
+            msg = ("Multiple possible cameras ")
+            raise Exception(msg)
+
+        kcam = lkcam[0]
+
+        # ---------
+        # get axis
+
+        ref_cam = coll.dobj['camera'][kcam]['dgeom']['ref']
+        axis = [ii for ii, rr in enumerate(ref) if rr in ref_cam]
+
+    return kcam, axis
 
 
 def _get_outline2d(pts, include_centroid=None):
@@ -603,9 +811,34 @@ def _get_dcolor(dptsx=None, color=None):
     if color is None:
         color = _COLOR
 
-    if mcolors.is_color_like(color):
+    # -----------------
+    # str
+    # ------------------
 
-        dcolor = {k0: color for k0 in dptsx.keys()}
+    if isinstance(color, str):
+
+        if color == 'camera':
+            prop_cycle = plt.rcParams['axes.prop_cycle']
+            colors = prop_cycle.by_key()['color']
+            dcolor = {
+                k0: colors[ii%len(colors)]
+                for ii, k0 in enumerate(dptsx.keys())
+            }
+
+        elif mcolors.is_color_like(color):
+            dcolor = {k0: color for k0 in dptsx.keys()}
+
+        else:
+            msg = (
+                "If str, arg 'color' must be either:\n"
+                "\t- 'camera': assign a color to each camera\n"
+                "\t- color-like: assign the same color to each camera\n"
+            )
+            raise Exception(msg)
+
+    # -----------------
+    # dict check
+    # ------------------
 
     elif isinstance(color, dict):
 
@@ -737,92 +970,108 @@ FILE_NAME(
 
 # #################################################################
 # #################################################################
-#          Utility
+#          DATA - POLYLINE
 # #################################################################
 
 
-def _get_k0ind(dind_ok=None, ncum=None, lkcam=None):
-
-    def k0ind(
-            ii,
-            dind_ok=dind_ok,
-            ncum=ncum,
-            lkcam=lkcam,
-        ):
-
-        icam = np.searchsorted(ncum-1, ii)
-        inew = ii - ncum[icam-1] if icam>0 else ii
-
-        return lkcam[icam], tuple([tt[inew] for tt in dind_ok[lkcam[icam]]])
-
-    return k0ind
-
-
-# #################################################################
-# #################################################################
-#          DATA
-# #################################################################
-
-
-def _get_data(
+def _get_data_polyline(
     dptsx=None,
     dptsy=None,
     dptsz=None,
     fname=None,
     # options
     dcolor=None,
+    color_by_pixel=None,
     # norm
     iso=None,
 ):
 
-    # -----------
-    # nrays
-    # -----------
 
-    # vectors
-    dvx = {k0: np.diff(v0, axis=0) for k0, v0 in dptsx.items()}
-    dvy = {k0: np.diff(v0, axis=0) for k0, v0 in dptsy.items()}
-    dvz = {k0: np.diff(v0, axis=0) for k0, v0 in dptsz.items()}
-
-    # dok
-    dok = {k0: np.isfinite(v0) for k0, v0 in dvx.items()}
-
-    # length
-    dlength = {
-        k0: np.sqrt(dvx[k0]**2 + dvy[k0]**2 + dvz[k0]**2)
-        for k0 in dptsx.keys()
-    }
-
-    # directions
-    ddx = {k0: dvx[k0] / dlength[k0] for k0 in dptsx.keys()}
-    ddy = {k0: dvy[k0] / dlength[k0] for k0 in dptsx.keys()}
-    ddz = {k0: dvz[k0] / dlength[k0] for k0 in dptsx.keys()}
-
-    # shapes
-    # dshape_vect = {k0: dvx[k0].shape for k0 in dptsx.keys()}
-
-    dnrays = {k0: v0.sum() for k0, v0 in dok.items()}
-    nrays = np.sum([v0 for v0 in dnrays.values()])
-
-    # --------------
-    # order of kcam
+    # ----------------
+    # prepare
+    # ----------------
 
     lkcam = sorted(dptsx.keys())
-    k0ind = _get_k0ind(
-        dind_ok={k0: v0.nonzero() for k0, v0 in dok.items()},
-        ncum=np.cumsum([dnrays[kcam] for kcam in lkcam]),
-        lkcam=lkcam,
-    )
+
+    # ---------------
+    # pts and dpoly
+    # ---------------
+
+    pts = []
+    poly = []
+    i0_pts = 0
+    for k0 in lkcam:
+
+        # -------
+        # points
+
+        #have to trasnpose because nonzero operates in C-order only
+        iok_pts = np.all(
+            [
+                np.isfinite(dptsx[k0]),
+                np.isfinite(dptsy[k0]),
+                np.isfinite(dptsz[k0]),
+            ],
+            axis=0,
+        ).T
+
+        # make sure at least 2 points
+        iok_pts[np.sum(iok_pts, axis=-1) < 2, :] = False
+
+        nptsi = iok_pts.sum()
+        if nptsi == 0:
+            continue
+
+        pts += [
+            {
+                'ind_local': tt[::-1],
+                'kcam': k0,
+            }
+            for tt in zip(*iok_pts.nonzero())
+        ]
+
+        # --------
+        # poly
+
+        i0_poly = 0
+        for ii, tt in enumerate(np.ndindex(iok_pts.shape[:-1])):
+
+            sli = tt + (slice(None),)
+            nptsi = iok_pts[sli].sum()
+            ipts = i0_poly + np.arange(nptsi)
+
+            col = dcolor[k0]
+            if color_by_pixel is not False and ii%2 == 1:
+                col = np.r_[col]
+                icol = np.argmin(col)
+                col[icol] += (np.max(col) - col[icol]) * color_by_pixel
+                col = tuple(col)
+
+            dpoly = {
+                'ind_local': tt[::-1],
+                'kcam': k0,
+                'ipts_global': i0_pts + ipts,
+                'color': col,
+            }
+
+            i0_poly += nptsi
+
+            poly.append(dpoly)
+
+        i0_pts += iok_pts.sum()
+
+    npts = len(pts)
+    npoly = len(poly)
 
     # -----------
     # colors
     # -----------
 
-    colors = sorted(set([v0 for v0 in dcolor.values()]))
+    colors = sorted(set([dp['color'] for dp in poly]))
     ncol = len(colors)
 
     # -----------------
-    # get index
+    # get index in file
     # ------------------
 
     i0 = 31
@@ -831,7 +1080,7 @@ def _get_data(
         'PRESENTATION_LAYER_ASSIGNMENT': {'order': 1},
         'STYLED_ITEM': {
             'order': 2,
-            'nn': nrays,
+            'nn': npoly,
         },
         'PRESENTATION_STYLE_ASSIGNMENT': {
             'order': 3,
@@ -849,48 +1098,50 @@ def _get_data(
             'order': 6,
             # 'nn': nrays,
         },
-        'TRIMMED_CURVE': {
+        'POLYLINE': {
             'order': 7,
-            'nn': nrays,
+            'nn': npoly,
         },
-        'LINE': {
+        'AXIS2_PLACEMENT_3D': {
             'order': 8,
-            'nn': nrays,
         },
-        'VECTOR': {
-            'order': 9,
-            'nn': nrays,
-        },
-        'AXIS2_PLACEMENT_3D': {'order': 10},
         'DIRECTION0': {
-            'order': 11,
+            'order': 9,
             'str': "DIRECTION('',(0.,0.,1.));",
         },
         'DIRECTION1': {
-            'order': 12,
+            'order': 10,
             'str': "DIRECTION('',(1.,0.,0.));",
         },
-        'DIRECTION': {
-            'order': 13,
-            'nn': nrays,
-        },
         'CARTESIAN_POINT0': {
-            'order': 14,
+            'order': 11,
             'str': "CARTESIAN_POINT('',(0.,0.,0.));",
         },
         'CARTESIAN_POINT': {
-            'order': 15,
-            'nn': nrays,
+            'order': 12,
+            'nn': npts,
         },
-        'MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION': {'order': 16},
+        'MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION': {
+            'order': 13,
+        },
     }
 
     # complement
     lkey = [k0 for k0 in dind.keys()]
     lorder = [dind[k0]['order'] for k0 in lkey]
 
-    # safety ceck
-    assert np.unique(lorder).size == len(lorder)
+    # safety check
+    if np.unique(lorder).size != len(lorder):
+        msg = (
+            "Mismatch between lorder and nb of unique indices:\n"
+            f"\t- For saving in {fname}\n"
+            f"\t- len(lorder) = {len(lorder)}\n"
+            f"\t- np.unique(lorder).size = {np.unique(lorder).size}\n"
+            f"\t- lorder = {lorder}\n"
+        )
+        raise Exception(msg)
+
+
     inds = np.argsort(lorder)
     lkey = [lkey[ii] for ii in inds]
 
@@ -910,10 +1161,6 @@ def _get_data(
         lines.append(f"#{ni}={k0}('color {ii}',{colors[ii][0]},{colors[ii][1]},{colors[ii][2]});")
     dind[k0]['msg'] = "\n".join(lines)
 
-    # ni = dind[k0]['ind'][0]
-    # dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',{color[0]},{color[1]},{color[2]});"
-    # dind[k0]['msg'] = f"#{ni}={k0}('Medium Royal',0.301960784313725,0.427450980392157,0.701960784313725);"
-
     # -----------------
     # CARTESIAN_POINT
     # -----------------
@@ -921,30 +1168,8 @@ def _get_data(
     k0 = 'CARTESIAN_POINT'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
+        kcam, ind = pts[ii]['kcam'], pts[ii]['ind_local']
         lines.append(f"#{ni}={k0}('{kcam}_{ind}',({dptsx[kcam][ind]},{dptsy[kcam][ind]},{dptsz[kcam][ind]}));")
-    dind[k0]['msg'] = "\n".join(lines)
-
-    # -----------------
-    # DIRECTION
-    # -----------------
-
-    k0 = 'DIRECTION'
-    lines = []
-    for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({ddx[kcam][ind]},{ddy[kcam][ind]},{ddz[kcam][ind]}));")
-    dind[k0]['msg'] = "\n".join(lines)
-
-    # -----------------
-    # VECTOR
-    # -----------------
-
-    k0 = 'VECTOR'
-    lines = []
-    for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['DIRECTION']['ind'][ii]},{dlength[kcam][ind]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -953,29 +1178,20 @@ def _get_data(
 
     k0 = 'AXIS2_PLACEMENT_3D'
     ni = dind[k0]['ind'][0]
-    lstr = ', '.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
     dind[k0]['msg'] = f"#{ni}={k0}('',#{dind['CARTESIAN_POINT0']['ind'][0]},#{dind['DIRECTION0']['ind'][0]},#{dind['DIRECTION1']['ind'][0]});"
 
     # -----------------
     # LINE
     # -----------------
 
-    k0 = 'LINE'
+    k0 = 'POLYLINE'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['CARTESIAN_POINT']['ind'][ii]},#{dind['VECTOR']['ind'][ii]});")
-    dind[k0]['msg'] = "\n".join(lines)
-
-    # -----------------
-    # TRIMMED_CURVE
-    # -----------------
-
-    k0 = 'TRIMMED_CURVE'
-    lines = []
-    for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',#{dind['LINE']['ind'][ii]},(PARAMETER_VALUE(0.)),(PARAMETER_VALUE(1.)),.T.,.PARAMETER.);")
+        kcam, ind = poly[ii]['kcam'], poly[ii]['ind_local']
+        ipts_global = poly[ii]['ipts_global']
+        ipts = dind['CARTESIAN_POINT']['ind'][ipts_global]
+        lstr = ','.join([f"#{jj}" for jj in ipts])
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',({lstr}));")
     dind[k0]['msg'] = "\n".join(lines)
 
     # ----------------
@@ -1015,9 +1231,9 @@ def _get_data(
     k0 = 'STYLED_ITEM'
     lines = []
     for ii, ni in enumerate(dind[k0]['ind']):
-        kcam, ind = k0ind(ii)
-        jj = colors.index(dcolor[kcam])
-        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['TRIMMED_CURVE']['ind'][ii]});")
+        kcam, ind = poly[ii]['kcam'], poly[ii]['ind_local']
+        jj = colors.index(poly[ii]['color'])
+        lines.append(f"#{ni}={k0}('{kcam}_{ind}',(#{dind['PRESENTATION_STYLE_ASSIGNMENT']['ind'][jj]}),#{dind['POLYLINE']['ind'][ii]});")
     dind[k0]['msg'] = "\n".join(lines)
 
     # -----------------
@@ -1026,7 +1242,7 @@ def _get_data(
 
     k0 = 'GEOMETRIC_CURVE_SET'
     ni = dind[k0]['ind'][0]
-    lstr = ','.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    lstr = ','.join([f"#{ii}" for ii in dind['POLYLINE']['ind']])
     dind[k0]['msg'] = f"#{ni}={k0}('None',({lstr}));"
 
     # ----------------------
@@ -1035,7 +1251,7 @@ def _get_data(
 
     k0 = 'PRESENTATION_LAYER_ASSIGNMENT'
     ni = dind[k0]['ind'][0]
-    lstr = ','.join([f"#{ii}" for ii in dind['TRIMMED_CURVE']['ind']])
+    lstr = ','.join([f"#{ii}" for ii in dind['POLYLINE']['ind']])
     dind[k0]['msg'] = f"#{ni}={k0}('1','Layer 1',({lstr}));"
 
     # ----------------------------------

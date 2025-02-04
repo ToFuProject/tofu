@@ -218,7 +218,7 @@ def _edges(
     npts = np.round(dist / res, decimals=0).astype(int)
 
     # interpolation for x0
-    out0 = np.ravel([
+    out0 = np.concatenate([
         np.r_[x0_closed[ii]]
         if npts[ii] <= 1 else
         x0_closed[ii] + dx0[ii] * np.linspace(0, 1, npts[ii], endpoint=False)
@@ -226,7 +226,7 @@ def _edges(
     ])
 
     # interpolation for x1
-    out1 = np.ravel([
+    out1 = np.concatenate([
         np.r_[x1_closed[ii]]
         if npts[ii] <= 1 else
         x1_closed[ii] + dx1[ii] * np.linspace(0, 1, npts[ii], endpoint=False)
