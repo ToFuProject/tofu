@@ -977,7 +977,7 @@ def add_profile2d(
 
     # add / check bsplines
     if plasma.dobj.get('bsplines') is None:
-        plasma.add_bsplines(deg=deg)
+        plasma.add_bsplines(key=keym, deg=deg)
     elif list(plasma.dobj['bsplines'].values())[0]['deg'] != deg:
         degref = list(plasma.dobj['bsplines'].values())[0]['deg']
         msg = "Degree not matching!\n\t{deg} vs {degref}"
