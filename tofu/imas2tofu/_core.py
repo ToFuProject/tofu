@@ -1839,7 +1839,7 @@ class MultiIDSLoader(object):
         pass
 
     def _get_dextra(self, dextra=None, fordata=False,
-                    nan=True, pos=None, stack=None):
+                    nan=True, pos=None, stack=None, strict=None):
 
         if stack is None:
             stack = True
@@ -1884,7 +1884,7 @@ class MultiIDSLoader(object):
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
                 out = self.get_data(
                     dsig={ids: vs}, nan=nan,
-                    pos=pos, stack=stack,
+                    pos=pos, stack=stack, strict=strict,
                     return_all=False,
                 )[ids]
 
@@ -2009,10 +2009,17 @@ class MultiIDSLoader(object):
             # plot, plot_X, plot_sig,
             # dsig=dsig)
 
-        # lids
+        # ----------------------
+        # lids determines order in which ids are read
+        # may be important in case 2d mesh only exists in one ids!
+        
         lids = sorted(dsig.keys())
+        if 'equilibrium' in lids:
+            lids = ['equilibrium'] + [ids for ids in lids if ids != 'equilibrium']
 
+        # -------------------------
         # data source consistency
+        
         _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
             lids, upper=True, errshot=False, errExp=False,
             dids=self._dids, didd=self._didd,
@@ -2049,7 +2056,7 @@ class MultiIDSLoader(object):
                 # warnings.warn(msg)
 
         # dextra
-        d0d, dtime0 = self._get_dextra(dextra)
+        d0d, dtime0 = self._get_dextra(dextra, strict=strict)
 
         # get data
         return _comp_toobjects.get_plasma(
