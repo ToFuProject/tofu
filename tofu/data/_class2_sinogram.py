@@ -756,7 +756,12 @@ def _multiple_solutions(
     # plot
     # ---------------------
 
-    if plot is True:
+    dwarn_plot = {
+        k0: v0 for k0, v0 in dwarn.items()
+        if not isinstance(v0, str)
+    }
+
+    if plot is True and len(dwarn_plot) > 0:
 
         # ------------
         # prepare data
@@ -798,7 +803,7 @@ def _multiple_solutions(
         )
 
         # Lines
-        for ind, roots in dwarn.items():
+        for ind, roots in dwarn_plot.items():
 
             # LOS
             ax0.plot(
@@ -862,7 +867,7 @@ def _multiple_solutions(
         )
 
         # Lines
-        for ind, roots in dwarn.items():
+        for ind, roots in dwarn_plot.items():
 
             # LOS
             kk = np.linspace(0, length[ind], 100)
