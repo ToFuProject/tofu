@@ -387,6 +387,7 @@ class Rays(Previous):
         ang_units=None,
         impact_pos=None,
         pmax=None,
+        Dphimax=None,
         # plotting options
         plot=None,
         sketch=None,
@@ -428,6 +429,7 @@ class Rays(Previous):
             ang_units=ang_units,
             impact_pos=impact_pos,
             pmax=pmax,
+            Dphimax=Dphimax,
             # plotting options
             plot=plot,
             sketch=sketch,
