@@ -1145,9 +1145,11 @@ def _check_plot(
                 + f"\nlen(dout) = {len(dout)}\n"
                 + f"dout_config is None: {dout_config is None}"
             )
-            raise Exception(msg)
+            warnings.warn(msg)
+            pmax = 1.
 
-        pmax = np.nanmax(lpmax)
+        else:
+            pmax = np.nanmax(lpmax)
 
     pmax = float(ds._generic_check._check_var(
         pmax, 'pmax',
