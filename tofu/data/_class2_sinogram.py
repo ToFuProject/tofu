@@ -41,6 +41,7 @@ def sinogram(
     ang_units=None,
     impact_pos=None,
     pmax=None,
+    Dphimax=None,
     # plotting options
     plot=None,
     color=None,
@@ -84,7 +85,7 @@ def sinogram(
     # get R0, Z0
     # -----------------
 
-    R0, Z0 = _get_RZ0(R0=R0, Z0=Z0, config=config, kVes=kVes)
+    R0, Z0, Dphimax = _get_RZ0(R0=R0, Z0=Z0, config=config, kVes=kVes)
 
     # -----------------
     # compute for rays
@@ -99,6 +100,7 @@ def sinogram(
             segment=segment,
             R0=R0,
             Z0=Z0,
+            Dphimax=Dphimax,
             # options
             verb=verb,
         )
@@ -392,6 +394,7 @@ def _check(
 def _get_RZ0(
     R0=None,
     Z0=None,
+    Dphimax=None,
     config=None,
     kVes=None,
 ):
@@ -415,7 +418,17 @@ def _get_RZ0(
         else:
             Z0 = config.dStruct['dObj']['Ves'][kVes].dgeom['BaryS'][1]
 
-    return R0, Z0
+    # ---------------
+    # Dphimax = max authorized Delta phi
+
+    Dphimax = ds._generic_check._check_var(
+        Dphimax, 'Dphimax',
+        types=(int, float),
+        sign='>0',
+        default=3*np.pi/4,
+    )
+
+    return R0, Z0, Dphimax
 
 # ###############################################################
 # ###############################################################
@@ -429,22 +442,32 @@ def _compute_rays(
     segment=None,
     R0=None,
     Z0=None,
+    Dphimax=None,
     # options
     verb=None,
 ):
 
     # --------------------------------
     # compute (for first segment only)
+    # --------------------------------
 
     # segment
     seg_pts = segment
     seg_vect = segment
     if segment < 0:
         seg_pts -= 1
+    end_pts = seg_pts + 1
 
     # starting points
     ptsx, ptsy, ptsz = coll.get_rays_pts(kray)
+
+    endx, endy, endz = ptsx[end_pts, ...], ptsy[end_pts, ...], ptsz[end_pts, ...]
     ptsx, ptsy, ptsz = ptsx[seg_pts, ...], ptsy[seg_pts, ...], ptsz[seg_pts, ...]
+    length = np.sqrt(
+        (endx - ptsx)**2
+        + (endy - ptsy)**2
+        + (endz - ptsz)**2
+    )
 
     # unit vectors
     vectx, vecty, vectz = coll.get_rays_vect(kray, norm=True)
@@ -457,22 +480,51 @@ def _compute_rays(
     dphi = np.arccos(np.abs(cosdphi))
 
     # ----------------------
-    # solve k / AM = k v and AC = ZA ez + RA eRA
+    # solve
+    # ----------------------
 
-    # Z = ZA + k (v.ez)
-    # R^2 = RA^2 + k^2 vpar^2 + 2 k RA (v.erA)
-    # R eR.v = RA eRA.v + (ZA - Z) vz + k
-    #        = RA eRA.v + k vpar^2
-    # AM.v = k = AC.v + R0 eR.v + p er.v (=0)
-    # ( R0 (R eR.v) )^2 = ( R [k - AC.v]  )^2
-    #                   = ( R [k + CA.v]  )^2
-    #
+    # ---------
+    # statement
+
+    # O = origin
+    # A = origin of LOS
+    #     OA = ZA ez + RA eRA
+    # M = point on LOS
+    #     AM = k v
+    #         v = vz + vpar
+    #         Z = ZA + k vz
+    #         R^2 = RA^2 + k^2 vpar^2 + 2 k RA (v.eRA)
+    # C = point on z-axis at Z0
+    #     OC = Z0 ez
+    # T = point on circle where tangency happens
+    #     CT = R0 eR0
+
+    # Introduce impact factor p and unit vector er /
+    #     TM = p er
+
+    # Exception: M on axis (C not defined)
+
+    # solve k /
+    #     AM = k v
+    #     AM.MT = 0
+
+    # ---------
+    # method
+
+    # Use:
+    #    AM.v = k = AC.v + R0 eR.v + p er.v (=0)
+    # Re-arrange vs k dependence and multiply by R:
+    #    R k = R AC.v + R R0 eR.v
+    # Square:
+    #    (R R0 eR.v)^2 = (R [k - AC.v])^2
+    #                  = (R [k + CA.v])^2
+
     # Thus:
     # R0^2 [ RA eRA.v + k vpar^2 ]^2 = R^2 [ k + CA.v ]^2
-    #
+
     # R0^2 [ k^2 vpar^4 + 2 k vpar^2 RA (eRA.v) + RA^2 (eRA.v)^2 ]
     #    = [RA^2 + k^2 vpar^2 + 2 k RA (erA.v)] [ k^2 + 2k (CA.v) + (CA.v)^2 ]
-    #
+
     # Polynom deg 4 = 0
     # k^4:
     #   vpar^2
@@ -516,18 +568,55 @@ def _compute_rays(
         roots = poly.roots()
         roots = np.real(roots[np.isreal(roots)])
 
+        # remove solutions with R = 0
+        if (ptsx[ind]**2 + ptsy[ind]**2 > 1.e-12) or vpar2[ind] > 1e-12:
+            R2 = RA[ind]**2 + roots**2 * vpar2[ind] + 2 * roots * RA[ind] * eRAv[ind]
+            roots = roots[R2 > 1e-12]
+
         # positive only
         roots = roots[roots>=0.]
 
+        # only where scalar is close to 0
+        Mx = ptsx[ind] + roots * vectx[ind]
+        My = ptsy[ind] + roots * vecty[ind]
+        Mz = ptsz[ind] + roots * vectz[ind]
+        Mphi = np.arctan2(My, Mx)
+
+        erx = Mx - R0*np.cos(Mphi)
+        ery = My - R0*np.sin(Mphi)
+        erz = Mz - Z0
+
+        ern = np.sqrt(erx**2 + ery**2 + erz**2)
+        erx = erx / ern
+        ery = ery /ern
+        erz = erz / ern
+
+        # check dm.v = 0
+        sca = (erx * vectx[ind] + ery * vecty[ind] + erz * vectz[ind])
+        roots = roots[np.abs(sca) < 1e-12]
+
+        # keep where Dphi < Dphimax
+        Mphi = np.arctan2(
+            ptsy[ind] + roots * vecty[ind],
+            ptsx[ind] + roots * vectx[ind],
+        )
+        Dphi = np.abs(Mphi - phi[ind])
+        discont = Dphi > np.pi
+        Dphi[discont] = 2*np.pi - Dphi[discont]
+        roots = roots[Dphi < Dphimax]
+
         # extract solution
         nsol = roots.size
-        if nsol > 0:
+        if nsol == 0:
+            dwarn[ind] = f"No >=0 roots found with R > 0 and Dphi < pi"
+        else:
             if nsol > 1:
                 dwarn[ind] = roots
             roots0[ind] = roots[np.argmin(np.abs(roots))]
 
     # ----------
     # warnings
+    # ----------
 
     if len(dwarn) > 0 and verb == 2:
         _multiple_solutions(
@@ -539,6 +628,7 @@ def _compute_rays(
             R0=R0, Z0=Z0,
             ptsx=ptsx, ptsy=ptsy, ptsz=ptsz,
             vectx=vectx, vecty=vecty, vectz=vectz,
+            length=length,
         )
 
     # -----------------------
@@ -573,19 +663,39 @@ def _compute_rays(
     erz = rootsz[iok] - Z0
 
     ern = np.sqrt(erx**2 + ery**2 + erz**2)
+    erx = erx / ern
+    ery = ery /ern
+    erz = erz / ern
 
     # check dm.v = 0
-    sca = (erx * vectx[iok] + ery * vecty[iok] + erz * vectz[iok]) / ern
-    if not np.allclose(sca[ern > 1e-10], 0., atol=1e-4):
+    sca = (erx * vectx[iok] + ery * vecty[iok] + erz * vectz[iok])
+    iout = np.abs(sca) > 1e-12
+    if np.any(iout):
+        vnorm = np.sqrt(
+            vectx[iok][iout]**2
+            + vecty[iok][iout]**2
+            + vectz[iok][iout]**2
+        )
+        ern = np.sqrt(erx**2 + ery**2 + erz**2)
         msg = (
-            f"Some rays in '{kray}' seem to have inconsistent solutions:\n"
-            f"sca = {sca}\n"
-            f"ern = {ern}"
+            "Inconsistent sinogram solutions (non-perp to LOS)!\n"
+            f"\t- rays: '{kray}'\n"
+            f"\t- ind = {iout.nonzero()}\n"
+            f"\t- sca = {sca[iout]}\n"
+            f"\t- vectx = {vectx[iok][iout]}\n"
+            f"\t- vecty = {vecty[iok][iout]}\n"
+            f"\t- vectz = {vectz[iok][iout]}\n"
+            f"\t- vect_norm = {vnorm}\n"
+            f"\t- erx = {erx[iout]}\n"
+            f"\t- ery = {ery[iout]}\n"
+            f"\t- erz = {erz[iout]}\n"
+            f"\t- er_norm = {ern}\n"
         )
         raise Exception(msg)
 
     # ---------------
     # impact and ang
+    # ---------------
 
     impact[iok] = ern
     ang[iok] = np.arctan2(erz, erx*np.cos(rootphi) + ery*np.sin(rootphi))
@@ -626,6 +736,7 @@ def _multiple_solutions(
     Z0=None,
     ptsx=None, ptsy=None, ptsz=None,
     vectx=None, vecty=None, vectz=None,
+    length=None,
 ):
 
     # ---------------------
@@ -645,29 +756,44 @@ def _multiple_solutions(
     # plot
     # ---------------------
 
-    if plot is True:
+    dwarn_plot = {
+        k0: v0 for k0, v0 in dwarn.items()
+        if not isinstance(v0, str)
+    }
+
+    if plot is True and len(dwarn_plot) > 0:
 
         # ------------
         # prepare data
 
         theta = np.pi * np.linspace(-1, 1, 101)
         tit = f"Rays from '{kray}' with multiple sinogram roots"
+        dax = {}
 
         # --------------
         # prepare figure
 
-        fig = plt.figure()
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection='3d')
-        ax.set_xlabel('x (m)', size=12, fontweight='bold')
-        ax.set_ylabel('y (m)', size=12, fontweight='bold')
-        ax.set_zlabel('z (m)', size=12, fontweight='bold')
-        ax.set_title(tit, size=12, fontweight='bold')
+        fig = plt.figure(figsize=(12, 8))
+        fig.suptitle(tit, size=14, fontweight='bold')
+
+        ax0 = fig.add_axes([0.1, 0.1, 0.4, 0.8], projection='3d')
+        ax0.set_xlabel('x (m)', size=12, fontweight='bold')
+        ax0.set_ylabel('y (m)', size=12, fontweight='bold')
+        ax0.set_zlabel('z (m)', size=12, fontweight='bold')
+
+        dax['3d'] = ax0
+
+        ax1 = fig.add_axes([0.5, 0.1, 0.4, 0.8], aspect='equal')
+        ax1.set_xlabel('R (m)', size=12, fontweight='bold')
+        ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
+
+        dax['cross'] = ax1
 
         # --------------
-        # plot
+        # plot 3d
 
         # Reference
-        ax.plot(
+        ax0.plot(
             R0 * np.cos(theta),
             R0 * np.sin(theta),
             Z0 * np.ones(theta.shape),
@@ -677,16 +803,31 @@ def _multiple_solutions(
         )
 
         # Lines
-        for ind, roots in dwarn.items():
+        for ind, roots in dwarn_plot.items():
 
-            # line
-            ax.plot(
-                ptsx[ind] + 1.5 * np.max(roots) * np.r_[0, 1] * vectx[ind],
-                ptsy[ind] + 1.5 * np.max(roots) * np.r_[0, 1] * vecty[ind],
-                ptsz[ind] + 1.5 * np.max(roots) * np.r_[0, 1] * vectz[ind],
+            # LOS
+            ax0.plot(
+                ptsx[ind] + length[ind] * np.r_[0, 1] * vectx[ind],
+                ptsy[ind] + length[ind] * np.r_[0, 1] * vecty[ind],
+                ptsz[ind] + length[ind] * np.r_[0, 1] * vectz[ind],
                 c='k',
                 ls='-',
+                lw=3.,
                 marker='None',
+                label=f'LOS_{ind}',
+            )
+
+            # mathematical line
+            rootmax = np.max(roots)
+            ax0.plot(
+                ptsx[ind] + 1.5 * rootmax * np.r_[0, 1] * vectx[ind],
+                ptsy[ind] + 1.5 * rootmax * np.r_[0, 1] * vecty[ind],
+                ptsz[ind] + 1.5 * rootmax * np.r_[0, 1] * vectz[ind],
+                c=(0.5, 0.5, 0.5),
+                ls='-',
+                lw=1.,
+                marker='None',
+                label=f'line_{ind}',
             )
 
             # roots
@@ -705,13 +846,82 @@ def _multiple_solutions(
             py = np.array([ry, ery, nan]).T.ravel()
             pz = np.array([rz, erz, nan]).T.ravel()
 
-            ax.plot(
+            ax0.plot(
                 px,
                 py,
                 pz,
                 c='r',
                 ls='-',
+                lw=1.,
+                label=f'perp_{ind}',
             )
+
+        # ----------
+        # plot cross
+
+        ax1.plot(
+            [R0],
+            [Z0],
+            marker='o',
+            c='k',
+        )
+
+        # Lines
+        for ind, roots in dwarn_plot.items():
+
+            # LOS
+            kk = np.linspace(0, length[ind], 100)
+            R = np.hypot(ptsx[ind] + kk * vectx[ind], ptsy[ind] + kk * vecty[ind])
+
+            ax1.plot(
+                R,
+                ptsz[ind] + kk * vectz[ind],
+                ls='-',
+                lw=3,
+                c='k',
+                label=f'LOS_{ind}',
+            )
+
+            # max root
+            rootmax = np.max(roots)
+            kk = np.linspace(0, rootmax, 100)
+            R = np.hypot(ptsx[ind] + kk * vectx[ind], ptsy[ind] + kk * vecty[ind])
+
+            ax1.plot(
+                R,
+                ptsz[ind] + kk * vectz[ind],
+                ls='-',
+                lw=1,
+                c=(0.5, 0.5, 0.5),
+                label=f'line_{ind}',
+            )
+
+            # roots
+            rx = ptsx[ind] + roots * vectx[ind]
+            ry = ptsy[ind] + roots * vecty[ind]
+            rz = ptsz[ind] + roots * vectz[ind]
+
+            rphi = np.arctan2(ry, rx)
+
+            erx = R0 * np.cos(rphi)
+            ery = R0 * np.sin(rphi)
+            erz = Z0 * np.ones(rx.shape)
+
+            nan = np.full(roots.shape, np.nan)
+            px = np.array([rx, erx, nan]).T.ravel()
+            py = np.array([ry, ery, nan]).T.ravel()
+            pz = np.array([rz, erz, nan]).T.ravel()
+
+            ax1.plot(
+                np.hypot(px, py),
+                pz,
+                c='r',
+                ls='-',
+                lw=1.,
+                label=f'perp_{ind}',
+            )
+
+        ax1.set_xlim(left=0)
 
     return
 
@@ -935,9 +1145,11 @@ def _check_plot(
                 + f"\nlen(dout) = {len(dout)}\n"
                 + f"dout_config is None: {dout_config is None}"
             )
-            raise Exception(msg)
+            warnings.warn(msg)
+            pmax = 1.
 
-        pmax = np.nanmax(lpmax)
+        else:
+            pmax = np.nanmax(lpmax)
 
     pmax = float(ds._generic_check._check_var(
         pmax, 'pmax',

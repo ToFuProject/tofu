@@ -732,6 +732,7 @@ class Test01_Diagnostic():
         ]
         lk = [lrays] + ldiag
         for ii, k0 in enumerate(lk):
+
             dout, dax = self.coll.get_sinogram(
                 key=k0,
                 ang='theta' if ii % 2 == 0 else 'xi',
@@ -741,6 +742,7 @@ class Test01_Diagnostic():
                 config=None if ii % 3 != 1 else self.conf,
                 pmax=None if ii % 3 == 0 else 5,
                 plot=True,
+                verb=2,
             )
             plt.close('all')
             del dax
