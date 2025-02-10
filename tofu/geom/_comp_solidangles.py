@@ -806,12 +806,16 @@ def _check_det_dict(detectors=None):
 
 def _check_ap_dict(apertures=None):
 
+    # ------------------------
+    # preliminary format check
+
     lk0 = ['poly_x', 'poly_y', 'poly_z']
     lk1 = ['nin']
 
     err = False
     if not isinstance(apertures, dict):
         err = True
+
     else:
         if all([k0 in apertures.keys() for k0 in lk0 + lk1]):
             apertures = {'ap0': apertures}
@@ -826,27 +830,43 @@ def _check_ap_dict(apertures=None):
                     for k1 in lk0
                 ])
                 and all([v0[k1].shape == (3,) for k1 in lk1])
-                and np.sqrt(np.sum([v0[k1]**2 for k1 in lk1])) == 1.
+                and np.abs(np.sqrt(np.sum([v0[k1]**2 for k1 in lk1])) - 1.) < 1e-15
             )
         ]
         if len(lkout) > 1:
             err = True
 
+    # raise error
     if err:
         msg = (
             "Arg apertures must be a dict with keys:\n"
             "\t- 'nin': normal vector oriented towards the plasma\n"
             "\t- 'poly_x', 'poly_y', 'poly_z': 3d (x, y, z) polygon\n"
-            "        must be counter-clockwise from 'nin'"
+            "        must be counter-clockwise from 'nin'\n"
+            f"\nProvided:\n"
+            f"\t- type(apertures) = {type(apertures)}\n"
         )
+        if isinstance(apertures, dict):
+            msg += f"\t- apertures.keys() = {sorted(apertures.keys())}\n"
+            if all([isinstance(vv, dict) for vv in apertures.values()]):
+                lstr = [f"\t\t- '{k0}': {sorted(v0.keys())}" for k0, v0 in apertures.items()]
+                msg += (
+                    "With sub-keys:\n"
+                    + "\n".join(lstr)
+                )
+        msg += f"\n\n{apertures}"
         raise Exception(msg)
 
+    # ---------------
     # make sure float
+
     for k0, v0 in apertures.items():
         for k1 in lk0 + lk1:
             apertures[k0][k1] = np.atleast_1d(v0[k1]).ravel().astype(float)
 
+    # --------------
     # check polygons
+
     for k0, v0 in apertures.items():
         (
             apertures[k0]['poly_x'],

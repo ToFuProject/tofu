@@ -39,6 +39,7 @@ _INT = (int,) + _NINT
 _NFLOAT = (np.float32, np.float64)
 _FLOAT = (float,) + _NFLOAT
 _NUMB = _INT + _FLOAT
+_BOOL = (bool, np.bool_)
 
 
 _DSHORT = _defimas2tofu._dshort
@@ -209,6 +210,7 @@ def get_fsig(sig):
 
                     if ind is None:
                         ind = range(0, nb)
+
                     if nsig > 1:
                         if isinstance(ind, str) or len(ind) != 1:
                             msg = ('ind should be have len() = 1\n'
@@ -216,7 +218,15 @@ def get_fsig(sig):
                             raise Exception(msg)
 
                     if len(ind) == 1:
-                        sig[jj] = sig[jj][ind[0]]
+                        if len(sig[jj]) < ind[0] + 1:
+                            msg = (
+                                f"dcond[{ii}]['ind'] = {dcond[ii]['ind']} "
+                                f"so ind = {ind} "
+                                f"but len(sig[{jj}]) = {len(sig[jj])}"
+                            )
+                            raise Exception(msg)
+                        else:
+                            sig[jj] = sig[jj][ind[0]]
                     else:
                         if nsig != 1:
                             msg = ("nsig should be 1!\n"
@@ -533,8 +543,11 @@ def _checkformat_getdata_indch(indch, nch):
         # make numpy array
         indch = np.r_[indch].ravel()
 
-        # get dtype
-        lc1 = ['int' in indch.dtype.name, 'bool' in indch.dtype.name]
+        # get dtype (may also be a list)
+        lc1 = [
+            isinstance(indch[0], _INT),
+            isinstance(indch[0], _BOOL),
+        ]
 
         if not any(lc1):
             raise Exception(msg)
@@ -596,14 +609,17 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
         for ii in range(0, len(data)):
             c0 = (
                 isinstance(data[ii], np.ndarray)
-                and data.dtype in _NUMB
+                and data[ii].dtype in _NUMB
             )
             if c0 is True:
                 # Make sure to test only non-nan to avoid warning
                 ind = (~np.isnan(data[ii])).nonzero()
                 ind2 = np.abs(data[ii][ind]) > 1.e30
-                ind = tuple([ii[ind2] for ii in ind])
-                data[ii][ind] = np.nan
+                if np.any(ind2):
+                    ind = tuple([ii[ind2] for ii in ind])
+                    if data[ii].dtype in _INT:
+                        data[ii] = data[ii].astype(float)
+                    data[ii][ind] = np.nan
 
     # data supposed to be positive only (nan otherwise)
     if pos is True:
@@ -629,7 +645,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
                     stack=None, isclose=None, flatocc=None,
                     nan=None, pos=None, empty=None,
                     dids=None, dcomp=None, dshort=None, dall_except=None,
-                    data=True, units=True):
+                    data=True, units=True, strict=None):
     """ Reference method for getting data and units, using shortcuts
 
     For a given ids, sig (shortcut) and occurence (occ)
@@ -682,7 +698,9 @@ def _get_data_units(ids=None, sig=None, occ=None,
                     data=True, units=False, indt=indt, stack=stack,
                     flatocc=False, nan=nan, pos=pos, warn=False,
                     dids=dids, dcomp=dcomp, dshort=dshort,
-                    dall_except=dall_except)[ids]
+                    dall_except=dall_except,
+                    strict=strict,
+                )[ids]
                 out = [dcomp[ids][sig]['func'](
                     *[ddata[kk]['data'][nn] for kk in lstr],
                     **kargs)
@@ -690,13 +708,13 @@ def _get_data_units(ids=None, sig=None, occ=None,
                 if pos is None:
                     pos = dcomp[ids][sig].get('pos', False)
             except Exception as err:
-                errdata = str(err)
+                errdata = err
 
         if units is True:
             try:
                 unit = dcomp[ids][sig].get('units', None)
             except Exception as err:
-                errunits = str(err)
+                errunits = err
 
     # Data available from ids
     else:
@@ -709,13 +727,13 @@ def _get_data_units(ids=None, sig=None, occ=None,
                 if pos is None:
                     pos = dshort[ids][sig].get('pos', False)
             except Exception as err:
-                errdata = str(err)
+                errdata = err
 
         if units is True:
             try:
                 unit = get_units(ids, sig)
             except Exception as err:
-                errunits = str(err)
+                errunits = err
 
     # Check data
     isempty = None
@@ -725,7 +743,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
                                    isclose=isclose, empty=empty)
         if np.all(isempty):
             msg = ("empty data in {}.{}".format(ids, sig))
-            errdata = msg
+            errdata = Exception(msg)
         elif nocc == 1 and flatocc is True:
             out = out[0]
             isempty = isempty[0]
@@ -803,7 +821,9 @@ def get_data_units(dsig=None, occ=None,
                     data=data, units=units,
                     nan=nan, pos=pos, empty=empty,
                     dids=dids, dcomp=dcomp, dshort=dshort,
-                    dall_except=dall_except)
+                    dall_except=dall_except,
+                    strict=strict,
+                )
 
                 lc = [dout[ids][sigi]['errdata'] is not None,
                       dout[ids][sigi]['errunits'] is not None]
@@ -815,27 +835,37 @@ def get_data_units(dsig=None, occ=None,
                         dfail[ids][sigi+' units'] = dout[ids][sigi]['errunits']
 
             except Exception as err:
-                dfail[ids][sigi] = str(err)
+                dfail[ids][sigi] = err
                 anyfail = True
 
         if len(dfail[ids]) == 0:
             del dfail[ids]
 
+    # ---------------------
     # Print if any failure
+
     if anyfail:
+
+        if strict is True:
+            for ids, vids in dfail.items():
+                for sigi, verr in vids.items():
+                    print(f"\n{ids}\t{sigi}\t{verr}")
+                    raise verr
+
         if data is True:
             for ids in dfail.keys():
                 for sigi in list(dout[ids].keys()):
                     if dout[ids][sigi]['errdata'] is not None:
                         del dout[ids][sigi]
+
         if warn:
             msg = "The following data could not be retrieved:"
             for ids in dfail.keys():
                 nmax = np.max([len(k1) for k1 in dfail[ids].keys()])
                 msg += "\n\t- {}:".format(ids)
-                for sigi, msgi in dfail[ids].items():
-                    msg += "\n\t\t{0}:  {1}".format(sigi.ljust(nmax),
-                                                    msgi.replace('\n', ' '))
+                for sigi, erri in dfail[ids].items():
+                    msgi = str(erri).replace('\n', ' ')
+                    msg += f"\n\t\t{sigi.ljust(nmax)}:  {msgi}"
             warnings.warn(msg)
 
     # return

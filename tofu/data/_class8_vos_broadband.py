@@ -119,6 +119,13 @@ def _vos(
             phor1 = user_limits['phor1'][key_cam]
             dphi = user_limits['dphi'][key_cam]
 
+        else:
+            msg = (
+                "Something weird with pcross0:\n"
+                f"user_limits: {user_limits}\n"
+            )
+            raise Exception(msg)
+
     else:
 
         # get temporary vos

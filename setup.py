@@ -325,7 +325,7 @@ setup(
         "svg.path",
         "Polygon3",
         "cython>=0.26",
-        "spectrally>=0.0.7",
+        "spectrally>=0.0.9",
     ],
     python_requires=">=3.6",
 

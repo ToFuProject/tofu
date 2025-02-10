@@ -22,6 +22,7 @@ __all__ = ['load']
 def load(
     pfe=None,
     cls=None,
+    coll=None,
     allow_pickle=None,
     sep=None,
     verb=None,
@@ -37,6 +38,7 @@ def load(
     coll = bs2.load(
         pfe=pfe,
         cls=cls,
+        coll=coll,
         allow_pickle=allow_pickle,
         sep=sep,
         verb=verb,

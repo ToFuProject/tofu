@@ -130,20 +130,27 @@ def _check_inputs(
     # ---------------------
     # pts vs config vs diag
 
+    lkvpts = [('pts_x', pts_x), ('pts_y', pts_y), ('pts_z', pts_z)]
+    lkvvect = [('vect_x', vect_x), ('vect_y', vect_y), ('vect_z', vect_z)]
+    lkv_rt = [('config', config), ('length', length), ('diag', diag)]
+
     lc = [
-        pts_x is not None,
-        vect_x is not None
-        and (
-            config is not None
-            or length is not None
-            or diag is not None
-        ),
+        all([vv is not None for (kk, vv) in lkvpts]),
+        all([vv is not None for (kk, vv) in lkvvect])
+        and any([vv is not None for (kk, vv) in lkv_rt])
     ]
     if np.sum(lc) != 1:
+        lstr0 = [f"\t\t- {kk} is None: {vv is None}" for (kk, vv) in lkvpts]
+        lstr1 = [f"\t\t- {kk} is None: {vv is None}" for (kk, vv) in lkvvect]
+        lstr2 = [f"\t\t- {kk} is None: {vv is None}" for (kk, vv) in lkv_rt]
         msg = (
             "Please provide either:\n"
-            "\t- pts_x, pts_y, pts_z: directly specify end points\n"
-            "\t- config and / or diag: ray-tracing"
+            "\t- pts_x, pts_y, pts_z: to directly specify end points\n"
+            + "\n".join(lstr0)
+            + "\n\t- vect_x, vect_y, vect_z"
+            + " and (config or length or diag): for ray-tracing\n"
+            + "\n".join(lstr1)
+            + "\n" + "\n".join(lstr2)
         )
         raise Exception(msg)
 

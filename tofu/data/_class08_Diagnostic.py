@@ -67,6 +67,7 @@ class Diagnostic(Previous):
         etendue=None,
         # config for los
         config=None,
+        strict=None,
         length=None,
         # reflections
         reflections_nb=None,
@@ -112,6 +113,7 @@ class Diagnostic(Previous):
                 check=False,
                 # los
                 config=config,
+                strict=strict,
                 length=length,
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
@@ -232,6 +234,7 @@ class Diagnostic(Previous):
         convex=None,
         # for storing los
         config=None,
+        strict=None,
         length=None,
         reflections_nb=None,
         reflections_type=None,
@@ -290,6 +293,7 @@ class Diagnostic(Previous):
                 key=key,
                 # los
                 config=config,
+                strict=strict,
                 length=length,
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
@@ -382,21 +386,31 @@ class Diagnostic(Previous):
     def add_rays_from_diagnostic(
         self,
         key=None,
-        strategy=None,
-        nrays=None,
+        # sampling
+        dsampling_pixel=None,
+        dsampling_optics=None,
+        # optics (to restrain to certain optics only for faster)
+        optics=None,
+        # computing
+        config=None,
         # storing
         store=None,
-        config=None,
+        key_rays=None,
         overwrite=None,
     ):
         return _generate_rays.main(
             coll=self,
             key=key,
-            strategy=strategy,
-            nrays=nrays,
+            # sampling
+            dsampling_pixel=dsampling_pixel,
+            dsampling_optics=dsampling_optics,
+            # optics (to restrain to certain optics only for faster)
+            optics=optics,
+            # computing
+            config=config,
             # storing
             store=store,
-            config=config,
+            key_rays=key_rays,
             overwrite=overwrite,
         )
 
