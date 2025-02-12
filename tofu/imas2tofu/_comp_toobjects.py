@@ -592,18 +592,17 @@ def get_plasma(
         lprof2d = None
         if len(out_) > 0 and cmesh is True:
 
-            npts, datashape = None, None
-            keym = None
+            dmesh = {}
 
             # ----
             # mesh
 
-            keym = f'{idsshort}.mesh'
+            keym0 = f'{idsshort}.mesh'
             lc = [
                 all([ss in lsig for ss in ['2dmeshNodes', '2dmeshFaces']]),
                 all([ss in lsig for ss in ['2dmeshR', '2dmeshZ']]),
             ]
-            if not np.sum(lc) == 1:
+            if not any(lc):
                 msg = (
                     "2d mesh shall be provided either via:\n"
                     "\t- '2dmeshR' and '2dmeshZ'\n"
@@ -613,31 +612,74 @@ def get_plasma(
 
             # Nodes / Faces case
             if lc[0]:
+                keymtri = f"{keym0}tri"
                 coll.add_mesh_2d_tri(
-                    key=keym,
+                    key=keymtri,
                     knots=out_['2dmeshNodes']['data'],
                     indices=out_['2dmeshFaces']['data'],
                     source=ids,
                 )
-                n1 = coll.dobj[wm][keym]['shape-k'][0]
-                n2 = coll.dobj[wm][keym]['shape-c'][0]
+                n1 = coll.dobj[wm][keymtri]['shape-k'][0]
+                n2 = coll.dobj[wm][keymtri]['shape-c'][0]
+                dmesh['tri'] = {
+                    'key': keymtri,
+                    'n1': n1,
+                    'n2': n2,
+                }
 
             # R / Z case
-            elif lc[1]:
+            if lc[1]:
+                keymrect = f"{keym0}rect"
+                R = out_['2dmeshR']['data']
+                Z = out_['2dmeshZ']['data']
+                if R.ndim == 2:
+                    if np.allclose(R[0, :], R[0,0]):
+                        R = R[:, 0]
+                        Z = Z[0, :]
+                    else:
+                        R = R[0, :]
+                        Z = Z[:, 0]
+                
                 coll.add_mesh_2d_rect(
-                    key=keym,
-                    knots0=out_['2dmeshR']['data'],
-                    knots1=out_['2dmeshZ']['data'],
+                    key=keymrect,
+                    knots0=R,
+                    knots1=Z,
                     source=ids,
                 )
-                n1, n2 = coll.dobj[wm][keym]['shape']
+                print(coll.show('mesh'))
+                n1, n2 = coll.dobj[wm][keymrect]['shape-c']
+                dmesh['rect'] = {
+                    'key': keymrect,
+                    'n1': n1,
+                    'n2': n2,
+                }
 
             # ------------------
             # profiles2d on mesh
 
-            meshtype = coll.dobj[wm][keym]['type']
             lprof2d = set(out_.keys()).difference(lsigmesh)
             for ss in lprof2d:
+                
+                # identify proper 2d mesh
+                lm = [
+                    km for km, vm in dmesh.items()
+                    if (
+                        (km == 'tri' and vm['n1'] in out_[ss]['data'].shape)
+                        or (
+                            km == 'rect'
+                            and vm['n1'] in out_[ss]['data'].shape
+                            and vm['n2'] in out_[ss]['data'].shape
+                        )
+                    )
+                ]
+                
+                if len(lm) == 1:
+                    keym = dmesh[lm[0]]['key']
+                else:
+                    msg = f"No / 2 meshes associated to {ss}"
+                    raise Exception(msg)
+                
+                # add profile2d
                 add_profile2d(
                     multi=multi,
                     ids=ids,
@@ -649,9 +691,9 @@ def get_plasma(
                     keynt=keynt,
                     keym=keym,
                     # mesh
-                    meshtype=meshtype,
-                    n1=n1,
-                    n2=n2,
+                    meshtype=coll.dobj[wm][keym]['type'],
+                    n1=dmesh[lm[0]]['n1'],
+                    n2=dmesh[lm[0]]['n2'],
                     nt=nt,
                 )
 
@@ -682,31 +724,36 @@ def get_plasma(
 
             # Identify radius base
             drad = {}
-            for k0, v0 in out_.items():
-                c0 = (
+            lk1d = [
+                k0 for k0, v0 in out_.items()
+                if (
                     isinstance(v0['data'], np.ndarray)
                     and np.all(np.isfinite(v0['data']))
                     and v0['data'].ndim in [1, 2]
                 )
-                if c0:
-                    if v0['data'].ndim == 1:
-                        diff = v0['data'][1] - v0['data'][0]
-                        if np.all(np.diff(v0['data'])*diff > 0):
-                            drad[k0] = v0['data']
-                    else:
-                        if np.allclose(v0['data'][0:1, :], v0['data']):
-                            diff = v0['data'][0, 1] - v0['data'][0, 0]
-                            if np.all(np.diff(v0['data'][0, :])*diff > 0):
-                                drad[k0] = v0['data'][0, :]
-                        elif np.allclose(v0['data'][:, 0:1], v0['data']):
-                            diff = v0['data'][1, 0] - v0['data'][0, 0]
-                            if np.all(np.diff(v0['data'][:, 0])*diff > 0):
-                                drad[k0] = v0['data'][:, 0]
+            ]
+            for k0 in lk1d:
+                v0 = out_[k0]
+                if v0['data'].ndim == 1:
+                    diff = v0['data'][1] - v0['data'][0]
+                    if np.all(np.diff(v0['data'])*diff > 0):
+                        drad[k0] = v0['data']
+                else:
+                    if np.allclose(v0['data'][0:1, :], v0['data']):
+                        diff = v0['data'][0, 1] - v0['data'][0, 0]
+                        if np.all(np.diff(v0['data'][0, :])*diff > 0):
+                            drad[k0] = v0['data'][0, :]
+                    elif np.allclose(v0['data'][:, 0:1], v0['data']):
+                        diff = v0['data'][1, 0] - v0['data'][0, 0]
+                        if np.all(np.diff(v0['data'][:, 0])*diff > 0):
+                            drad[k0] = v0['data'][:, 0]
 
             if len(drad) == 0:
+                lstr = [f"\t- {k0}: {out_[k0]['data'].shape}" for k0 in lk1d]
                 msg = (
                     "No valid radial base could be identified!\n"
-                    "A valid radial base should be a 1d monotonous array"
+                    "A valid radial base should be a 1d monotonous array\n"
+                    + "\n".join(lstr)
                 )
                 raise Exception(msg)
 
