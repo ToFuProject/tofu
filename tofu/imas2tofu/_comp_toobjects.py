@@ -724,31 +724,36 @@ def get_plasma(
 
             # Identify radius base
             drad = {}
-            for k0, v0 in out_.items():
-                c0 = (
+            lk1d = [
+                k0 for k0, v0 in out_.items()
+                if (
                     isinstance(v0['data'], np.ndarray)
                     and np.all(np.isfinite(v0['data']))
                     and v0['data'].ndim in [1, 2]
                 )
-                if c0:
-                    if v0['data'].ndim == 1:
-                        diff = v0['data'][1] - v0['data'][0]
-                        if np.all(np.diff(v0['data'])*diff > 0):
-                            drad[k0] = v0['data']
-                    else:
-                        if np.allclose(v0['data'][0:1, :], v0['data']):
-                            diff = v0['data'][0, 1] - v0['data'][0, 0]
-                            if np.all(np.diff(v0['data'][0, :])*diff > 0):
-                                drad[k0] = v0['data'][0, :]
-                        elif np.allclose(v0['data'][:, 0:1], v0['data']):
-                            diff = v0['data'][1, 0] - v0['data'][0, 0]
-                            if np.all(np.diff(v0['data'][:, 0])*diff > 0):
-                                drad[k0] = v0['data'][:, 0]
+            ]
+            for k0 in lk1d:
+                v0 = out_[k0]
+                if v0['data'].ndim == 1:
+                    diff = v0['data'][1] - v0['data'][0]
+                    if np.all(np.diff(v0['data'])*diff > 0):
+                        drad[k0] = v0['data']
+                else:
+                    if np.allclose(v0['data'][0:1, :], v0['data']):
+                        diff = v0['data'][0, 1] - v0['data'][0, 0]
+                        if np.all(np.diff(v0['data'][0, :])*diff > 0):
+                            drad[k0] = v0['data'][0, :]
+                    elif np.allclose(v0['data'][:, 0:1], v0['data']):
+                        diff = v0['data'][1, 0] - v0['data'][0, 0]
+                        if np.all(np.diff(v0['data'][:, 0])*diff > 0):
+                            drad[k0] = v0['data'][:, 0]
 
             if len(drad) == 0:
+                lstr = [f"\t- {k0}: {out_[k0]['data'].shape}" for k0 in lk1d]
                 msg = (
                     "No valid radial base could be identified!\n"
-                    "A valid radial base should be a 1d monotonous array"
+                    "A valid radial base should be a 1d monotonous array\n"
+                    + "\n".join(lstr)
                 )
                 raise Exception(msg)
 
