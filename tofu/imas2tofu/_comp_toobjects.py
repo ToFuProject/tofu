@@ -592,18 +592,17 @@ def get_plasma(
         lprof2d = None
         if len(out_) > 0 and cmesh is True:
 
-            npts, datashape = None, None
-            keym = None
+            dmesh = {}
 
             # ----
             # mesh
 
-            keym = f'{idsshort}.mesh'
+            keym0 = f'{idsshort}.mesh'
             lc = [
                 all([ss in lsig for ss in ['2dmeshNodes', '2dmeshFaces']]),
                 all([ss in lsig for ss in ['2dmeshR', '2dmeshZ']]),
             ]
-            if not np.sum(lc) == 1:
+            if not any(lc):
                 msg = (
                     "2d mesh shall be provided either via:\n"
                     "\t- '2dmeshR' and '2dmeshZ'\n"
@@ -613,31 +612,74 @@ def get_plasma(
 
             # Nodes / Faces case
             if lc[0]:
+                keymtri = f"{keym0}tri"
                 coll.add_mesh_2d_tri(
-                    key=keym,
+                    key=keymtri,
                     knots=out_['2dmeshNodes']['data'],
                     indices=out_['2dmeshFaces']['data'],
                     source=ids,
                 )
-                n1 = coll.dobj[wm][keym]['shape-k'][0]
-                n2 = coll.dobj[wm][keym]['shape-c'][0]
+                n1 = coll.dobj[wm][keymtri]['shape-k'][0]
+                n2 = coll.dobj[wm][keymtri]['shape-c'][0]
+                dmesh['tri'] = {
+                    'key': keymtri,
+                    'n1': n1,
+                    'n2': n2,
+                }
 
             # R / Z case
-            elif lc[1]:
+            if lc[1]:
+                keymrect = f"{keym0}rect"
+                R = out_['2dmeshR']['data']
+                Z = out_['2dmeshZ']['data']
+                if R.ndim == 2:
+                    if np.allclose(R[0, :], R[0,0]):
+                        R = R[:, 0]
+                        Z = Z[0, :]
+                    else:
+                        R = R[0, :]
+                        Z = Z[:, 0]
+                
                 coll.add_mesh_2d_rect(
-                    key=keym,
-                    knots0=out_['2dmeshR']['data'],
-                    knots1=out_['2dmeshZ']['data'],
+                    key=keymrect,
+                    knots0=R,
+                    knots1=Z,
                     source=ids,
                 )
-                n1, n2 = coll.dobj[wm][keym]['shape']
+                print(coll.show('mesh'))
+                n1, n2 = coll.dobj[wm][keymrect]['shape-c']
+                dmesh['rect'] = {
+                    'key': keymrect,
+                    'n1': n1,
+                    'n2': n2,
+                }
 
             # ------------------
             # profiles2d on mesh
 
-            meshtype = coll.dobj[wm][keym]['type']
             lprof2d = set(out_.keys()).difference(lsigmesh)
             for ss in lprof2d:
+                
+                # identify proper 2d mesh
+                lm = [
+                    km for km, vm in dmesh.items()
+                    if (
+                        (km == 'tri' and vm['n1'] in out_[ss]['data'].shape)
+                        or (
+                            km == 'rect'
+                            and vm['n1'] in out_[ss]['data'].shape
+                            and vm['n2'] in out_[ss]['data'].shape
+                        )
+                    )
+                ]
+                
+                if len(lm) == 1:
+                    keym = dmesh[lm[0]]['key']
+                else:
+                    msg = f"No / 2 meshes associated to {ss}"
+                    raise Exception(msg)
+                
+                # add profile2d
                 add_profile2d(
                     multi=multi,
                     ids=ids,
@@ -649,9 +691,9 @@ def get_plasma(
                     keynt=keynt,
                     keym=keym,
                     # mesh
-                    meshtype=meshtype,
-                    n1=n1,
-                    n2=n2,
+                    meshtype=coll.dobj[wm][keym]['type'],
+                    n1=dmesh[lm[0]]['n1'],
+                    n2=dmesh[lm[0]]['n2'],
                     nt=nt,
                 )
 
