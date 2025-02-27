@@ -8,6 +8,7 @@
 # tofu
 from ._class01_Plasma2D import Plasma2D as Previous
 from . import _class2_check as _check
+from . import _class02_touch as _touch
 from . import _class02_sample as _sample
 from . import _class02_tangency_radius as _tangency_radius
 from . import _class2_plot as _plot
@@ -26,11 +27,12 @@ __all__ = ['Rays']
 
 class Rays(Previous):
 
+    _which_rays = 'rays'
     _show_in_summary = 'all'
 
     _dshow = dict(Previous._dshow)
     _dshow.update({
-        'rays': [
+        _which_rays: [
             'shape',
             'ref',
             'pts',
@@ -156,6 +158,41 @@ class Rays(Previous):
         norm=None,
     ):
         return _check._get_vect(coll=self, key=key, key_cam=key_cam, norm=norm)
+
+    # --------------
+    # touch
+    # --------------
+
+    def get_rays_touch_dict(
+        self,
+        key=None,
+        config=None,
+        allowed=None,
+        excluded=None,
+    ):
+        """ Compute which ray touches which solid in a config
+
+
+        Parameters
+        ----------
+        key:    str
+            key to an existing ray
+        config: Config
+            an existing Config instance
+
+        Returns
+        -------
+        dout: dict
+            output dict
+
+        """
+        return _touch.main(
+            coll=self,
+            key=key,
+            config=config,
+            allowed=allowed,
+            excluded=excluded,
+        )
 
     # --------------
     # discretizing
