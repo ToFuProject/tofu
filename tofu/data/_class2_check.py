@@ -72,8 +72,9 @@ def _check_inputs(
     # -------------
     # key
 
+    wray = coll._which_rays
     key = ds._generic_check._obj_key(
-        d0=coll.dobj.get('rays', {}),
+        d0=coll.dobj.get(wray, {}),
         short='ray',
         key=key,
     )
@@ -611,7 +612,7 @@ def _rays(
 def _check_key(coll=None, key=None, key_cam=None):
 
     # check key
-    lrays = list(coll.dobj.get('rays', {}).keys())
+    lrays = list(coll.dobj.get(coll._which_rays, {}).keys())
     ldiag = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
         if any([
@@ -665,7 +666,8 @@ def _get_start(
     # ---------------
     # get start
 
-    stx, sty, stz = coll.dobj['rays'][key]['start']
+    wrays = coll._which_rays
+    stx, sty, stz = coll.dobj[wrays][key]['start']
     if isinstance(stx, str):
         stx = coll.ddata[stx]['data']
         sty = coll.ddata[sty]['data']
@@ -693,7 +695,8 @@ def _get_pts(
     # ---------------
     # get other pts
 
-    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
+    wrays = coll._which_rays
+    ptsx, ptsy, ptsz = coll.dobj[wrays][key]['pts']
     ptsx = coll.ddata[ptsx]['data']
     ptsy = coll.ddata[ptsy]['data']
     ptsz = coll.ddata[ptsz]['data']
@@ -730,7 +733,8 @@ def _get_vect(
 
     stx, sty, stz = _get_start(coll=coll, key=key)
 
-    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
+    wrays = coll._which_rays
+    ptsx, ptsy, ptsz = coll.dobj[wrays][key]['pts']
     ptsx = coll.ddata[ptsx]['data']
     ptsy = coll.ddata[ptsy]['data']
     ptsz = coll.ddata[ptsz]['data']
@@ -978,7 +982,7 @@ def _make_dict(
 
     # dobj
     dobj = {
-        'rays': {
+        coll._which_rays: {
             key: {
                 'start': start,
                 'pts': pts,
@@ -1010,7 +1014,8 @@ def _remove(
     # ----------
     # check
 
-    lok = list(coll.dobj.get('rays', {}).keys())
+    wrays = coll._which_rays
+    lok = list(coll.dobj.get(wrays, {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
@@ -1026,7 +1031,7 @@ def _remove(
     ]
     ld = []
     for k0 in lkd:
-        v0 = coll._dobj['rays'][key][k0]
+        v0 = coll._dobj[wrays][key][k0]
         if isinstance(v0, str):
             ld.append(v0)
         elif isinstance(v0, (tuple, list)):
@@ -1045,4 +1050,4 @@ def _remove(
     # -----------
     # remove rays
 
-    del coll._dobj['rays'][key]
+    del coll._dobj[wrays][key]
