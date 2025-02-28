@@ -53,7 +53,7 @@ def main(
     # ray-tracing
     # -----------------
 
-    # call legacy code
+    # call legacy code  -- SOMETHING WRONG HERE
     cam = CamLOS1D(
         dgeom=(
             np.array([startx[mask], starty[mask], startz[mask]]),
