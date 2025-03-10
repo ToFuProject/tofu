@@ -35,6 +35,7 @@ def main(
     config=None,
     # storing
     store=None,
+    strict=None,
     key_rays=None,
     overwrite=None,
 ):
@@ -75,7 +76,7 @@ def main(
      dsampling_pixel,
      dsampling_optics,
      optics,
-     store, key_rays, overwrite,
+     store, strict, key_rays, overwrite,
     ) = _check(
         coll=coll,
         key=key,
@@ -86,6 +87,7 @@ def main(
         optics=optics,
         # storing
         store=store,
+        strict=strict,
         key_rays=key_rays,
         overwrite=overwrite,
     )
@@ -133,6 +135,7 @@ def main(
             dout=dout,
             key_rays=key_rays,
             config=config,
+            strict=strict,
             overwrite=overwrite,
         )
 
@@ -156,6 +159,7 @@ def _check(
     optics=None,
     # storing
     store=None,
+    strict=None,
     key_rays=None,
     overwrite=None,
 ):
@@ -222,7 +226,7 @@ def _check(
     else:
         optics0 = {}
 
-    # ------------
+    # -----------
     # store
     # ------------
 
@@ -230,6 +234,16 @@ def _check(
         store, 'store',
         types=bool,
         default=True,
+    )
+
+    # -----------
+    # strict
+    # ------------
+
+    strict = ds._generic_check._check_var(
+        strict, 'stict',
+        types=bool,
+        default=False,
     )
 
     # ------------
@@ -281,7 +295,7 @@ def _check(
         key,
         dsampling_pixel, dsampling_optics,
         optics0,
-        store, key_rays, overwrite,
+        store, strict, key_rays, overwrite,
     )
 
 
@@ -298,7 +312,10 @@ def _check_optics_for_kcam(
             lok = np.r_[ind0, -1]
         else:
             nop = doptics['paths'].sum(axis=1)
-            lok = np.r_[np.arange(0, np.min(nop)), -np.arange(1, np.min(nop)+1)]
+            lok = np.r_[
+                np.arange(0, np.min(nop)),
+                -np.arange(1, np.min(nop)+1),
+            ]
 
         optics = ds._generic_check._check_var(
             optics, 'optics',
@@ -432,11 +449,10 @@ def _random(
         start1f = np.repeat(start1, end0.size)
 
         # vignetting polygons
-        vignett_poly = [
-            np.array(coll.get_optics_poly(k0, closed=True, add_points=False))
-            for k0 in doptics['optics']
-        ]
-        lnvert = np.array([vv.shape[1] for vv in vignett_poly], dtype=np.int64)
+        # vignett_poly = [
+            # np.array(coll.get_optics_poly(k0, closed=True, add_points=False))
+            # for k0 in doptics['optics']
+        # ]
 
         # loop on pixels
         ray_orig = np.full((3, nrays*end0.size), np.nan)
@@ -496,7 +512,6 @@ def _random(
         for ind in np.ndindex(shape_cam):
 
             print(ind)
-
 
     return dout
 
@@ -916,18 +931,6 @@ def _update_cxyz(
 
 # ###############################################################
 # ###############################################################
-#                      mesh
-# ###############################################################
-
-
-def _mesh():
-
-
-    return
-
-
-# ###############################################################
-# ###############################################################
 #                      store
 # ###############################################################
 
@@ -938,9 +941,9 @@ def _store(
     dout=None,
     key_rays=None,
     config=None,
+    strict=None,
     overwrite=None,
 ):
-
 
     # --------------
     # store
@@ -973,6 +976,7 @@ def _store(
             key=key,
             ref=ref,
             config=config,
+            strict=strict,
             **v0
         )
 
