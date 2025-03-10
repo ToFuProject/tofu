@@ -395,6 +395,7 @@ class Diagnostic(Previous):
         config=None,
         # storing
         store=None,
+        strict=None,
         key_rays=None,
         overwrite=None,
     ):
@@ -410,6 +411,7 @@ class Diagnostic(Previous):
             config=config,
             # storing
             store=store,
+            strict=strict,
             key_rays=key_rays,
             overwrite=overwrite,
         )
