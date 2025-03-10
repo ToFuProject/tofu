@@ -624,17 +624,6 @@ def _extract(
 
             for k0, v0 in dptsx.items():
 
-                # get kcam
-                kcam, axis = _get_kcam(
-                    coll=coll,
-                    k0=k0,
-                    key=key,
-                    key_cam=key_cam,
-                    key_rays=key_rays,
-                )
-
-                shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
-
                 # both ways
                 npts = dptsx[k0].shape[0]
                 sli = tuple(
@@ -662,7 +651,19 @@ def _extract(
                     dptsz[k0] = np.ravel(ptsz, order='F')
 
                 elif chain == 'pixel':
+
+                    # get kcam
+                    kcam = _get_kcam(
+                        coll=coll,
+                        k0=k0,
+                        key=key,
+                        key_cam=key_cam,
+                        key_rays=key_rays,
+                    )[0]
+
+                    shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
                     shape = shape_cam + (-1,)
+
                     dptsx[k0] = np.moveaxis(
                         np.moveaxis(ptsx, 0, -1).reshape(shape),
                         -1,
