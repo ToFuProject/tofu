@@ -2160,7 +2160,7 @@ class DataCam1D(DataAbstract):
     def _is2D(cls):        return False
 
 lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
-DataCam1D.__signature__ = sig.replace(parameters=lp)
+# DataCam1D.__signature__ = sig.replace(parameters=lp)
 
 class DataCam1DSpectral(DataCam1D):
     """ Data object used for 1D cameras or list of 1D cameras  """
@@ -2175,7 +2175,7 @@ class DataCam1DSpectral(DataCam1D):
         return self.get_ddata('nlamb')
 
 lp = [p for p in params.values() if p.name not in ['dX12']]
-DataCam1D.__signature__ = sig.replace(parameters=lp)
+# DataCam1D.__signature__ = sig.replace(parameters=lp)
 
 
 class DataCam2D(DataAbstract):
@@ -2248,7 +2248,7 @@ class DataCam2D(DataAbstract):
             return x1, x2, indr, extent
 
 lp = [p for p in params.values() if p.name not in ['lamb']]
-DataCam2D.__signature__ = sig.replace(parameters=lp)
+# DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 
@@ -2265,7 +2265,7 @@ class DataCam2DSpectral(DataCam2D):
         return self.get_ddata('nlamb')
 
 lp = [p for p in params.values()]
-DataCam2D.__signature__ = sig.replace(parameters=lp)
+# DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 # ####################################################################
