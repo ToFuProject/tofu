@@ -1,6 +1,20 @@
 
+import os
+
+
+import numpy as np
+
 
 from .. import _utils
+
+
+# ##############################################################
+# ##############################################################
+#               Bremsstrahlung anisotropy factor
+# ##############################################################
+
+
+_PATH_HERE = os.path.dirname(__file__)
 
 
 # ##############################################################
@@ -57,6 +71,8 @@ def ddcross_ei(
     E_ph_eV=None,
     costheta=None,
     anisotropy=None,
+    # options
+    return_intermediates=None,
 ):
     """ Return the energy-dependent HXR generation cros-section
 
@@ -67,8 +83,23 @@ def ddcross_ei(
 
     Sources:
         [1] Nocente et al., Nuclear Fusion 57, no. 7 (July 1, 2017): 076016.
-        [2] Salvat et al., Nuclear Instruments and Methods in Physics Research Section B: Beam Interactions with Materials and Atoms 63, no. 3 (February 1992): 255–69
+        [2] Salvat et al., Nuclear Instruments and Methods in Physics Research
+            Section B: Beam Interactions with Materials and Atoms 63,
+            no. 3 (February 1992): 255–69
     """
+
+    # --------------------
+    # Load tabulated data
+    # --------------------
+
+    # load screening radius
+    fname = "RE_HXR_CrossSection_ScreeningRadius_Salvat.csv"
+    pfe = os.path.join(_PATH_HERE, fname)
+    Z_R, RZ3a0 = np.loadtxt(pfe, delimiter=',').T
+
+    fname = "RE_HXR_ElectronElectron_Salvat.csv"
+    pfe = os.path.join(_PATH_HERE, fname)
+    Z_eta, eta_inf = np.loadtxt(pfe, delimiter=',').T
 
     # -----------------------------------
     # cross-section (without anisotropy)
@@ -93,7 +124,7 @@ def ddcross_ei(
     a0 = 5.291772e-11
 
     # screening radius (should be tabulate from fig. 4), m
-    #R = 0.81 * a0 / Z**(1/3)
+    # R = 0.81 * a0 / Z**(1/3)
     Rz3a0 = scpinterp.interp1d(
         np.round(Z_R),
         RZ3a0,
@@ -190,5 +221,12 @@ def ddcross_ei(
             'units': '?',
         },
     }
+
+    # -----------------
+    # intermediates
+    # -----------------
+
+    if return_intermediates is True:
+        pass
 
     return dout
