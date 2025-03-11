@@ -88,6 +88,7 @@ import tofu.data as data
 import tofu.spectro as spectro
 import tofu.tests as tests
 import tofu.benchmarks as benchmarks
+from . import physics_tools
 
 
 # -------------------------------------
