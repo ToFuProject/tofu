@@ -12,6 +12,7 @@ __all__ = [
     'normalized_momentum_distribution',
     'anisotropy_factor',
     'get_growth_source_terms',
+    'get_ddcross_brems_ei',
 ]
 
 
@@ -685,3 +686,28 @@ def _check_growth(
     lout = [dparams[k0] for k0 in lk]
 
     return lout
+
+
+# ########################################################################
+# ########################################################################
+#            Differencial Bremsstrahlung cross-section
+# ########################################################################
+
+
+def get_ddcross_brems_ei(
+    E_re_eV=None,
+    E_ph_eV=None,
+):
+
+    # -------------
+    # format output
+    # -------------
+
+    dout = {
+        'ddcross_ei': {
+            'data': None,
+            'units': '?',
+        },
+    }
+
+    return dout
