@@ -6,20 +6,20 @@ import scipy.special as __scpsp
 import datastock as __ds
 
 
+from . import _utils
+
+
 __all__ = [
-    'convert_momentum_velocity_energy',
     'get_critical_dreicer_electric_fields',
-    'normalized_momentum_distribution',
-    'anisotropy_factor',
+    'get_normalized_momentum_distribution',
     'get_growth_source_terms',
-    'get_ddcross_brems_ei',
 ]
 
 
-# ########################################################################
-# ########################################################################
+# ##############################################################
+# ##############################################################
 #                 DEFAULTS
-# ########################################################################
+# ##############################################################
 
 
 # see:
@@ -28,137 +28,10 @@ _SIGMAP = 1.
 _LNG = 20.
 
 
-# ########################################################################
-# ########################################################################
-#                 Conversions momentum - velocity - energy
-# ########################################################################
-
-
-def convert_momentum_velocity_energy(
-    energy_kinetic_eV=None,
-    velocity_ms=None,
-    momentum_normalized=None,
-    gamma=None,
-    beta=None,
-):
-    """ Convert any input to all outputs
-
-    returns a dict with, for each ouput key 'data' and 'units'
-
-    - momentum_normalized: total relativistic momentum / mec2
-    - energy_kinetic_eV: kinetic energy in eV
-    - gamma: Lorentz factor
-    - beta = v / c
-    - velocity_ms : velocity in m/s
-
-    see:
-    [1] Pandya et al., Physica Scripta 93, no. 11 (November 1, 2018): 115601
-    [2] https://en.wikipedia.org/wiki/Energy%E2%80%93momentum_relation
-
-    """
-
-    # ---------------
-    # dict in - check
-    # ---------------
-
-    din0 = locals()
-    din = {k0: v0 for k0, v0 in din0.items() if v0 is not None}
-
-    if len(din) != 1:
-        lstr = [f"\t- {k0}" for k0 in din.keys()]
-        msg = (
-            "Please provide only one input of the following:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
-
-    key = list(din.keys())[0]
-    val = __np.atleast_1d(din[key])
-
-    # -----------------
-    # convert to gamma
-    # -----------------
-
-    if 'gamma' not in din.keys():
-        gamma = _to_gamma(key=key, val=val)
-
-    else:
-        gamma = val
-
-    # -----------------
-    # initialize dout
-    # -----------------
-
-    dout = {
-        'gamma': {
-            'data': gamma,
-            'units': None,
-        },
-    }
-
-    # -----------------
-    # convert from gamma
-    # -----------------
-
-    lk = [k0 for k0 in din0.keys() if k0 != 'gamma']
-    for k0 in lk:
-        dout[k0] = _from_gamma(key=k0, gamma=gamma)
-
-    return dout
-
-
-def _to_gamma(key, val):
-
-    if key == 'beta':
-        gamma = __np.sqrt(1. / (1. - val**2))
-
-    elif key == 'velocity_ms':
-        gamma = __np.sqrt(1. / (1. - (val/__scpct.c)**2))
-
-    elif key == 'momentum_normalized':
-        gamma = __np.sqrt(val**2 + 1)
-
-    elif key == 'energy_kinetic_eV':
-        mc2_eV = __scpct.m_e * __scpct.c**2 / __scpct.e
-        gamma = (val + mc2_eV) / mc2_eV
-
-    else:
-        msg = f"key {key} not implemented in _to_gamma()!"
-        raise Exception(msg)
-
-    return gamma
-
-
-def _from_gamma(key, gamma):
-
-    if key == 'beta':
-        out = __np.sqrt(gamma**2 - 1) / gamma
-        units = None
-
-    elif key == 'velocity_ms':
-        out = __scpct.c * __np.sqrt(gamma**2 - 1) / gamma
-        units = 'm/s'
-
-    elif key == 'momentum_normalized':
-        out = __np.sqrt(gamma**2 - 1)
-        units = None
-
-    elif key == 'energy_kinetic_eV':
-        mc2_eV = __scpct.m_e * __scpct.c**2 / __scpct.e
-        out = mc2_eV * (gamma - 1)
-        units = 'eV'
-
-    else:
-        msg = f"key {key} not implemented in _from_gamma()!"
-        raise Exception(msg)
-
-    return {'data': out, 'units': units}
-
-
-# ########################################################################
-# ########################################################################
+# ##############################################################
+# ##############################################################
 #                 Critical and Dreicer electric fields
-# ########################################################################
+# ##############################################################
 
 
 def get_critical_dreicer_electric_fields(
@@ -255,13 +128,13 @@ def _check_critical_dreicer(
     return [dparams[kk] for kk in ['ne_m3', 'kTe_eV', 'lnG']]
 
 
-# ########################################################################
-# ########################################################################
+# ##############################################################
+# ##############################################################
 #                 Normalized Momentum Distribution
-# ########################################################################
+# ##############################################################
 
 
-def normalized_momentum_distribution(
+def get_normalized_momentum_distribution(
     momentum_normalized=None,
     # parameters
     ne_m3=None,
@@ -320,7 +193,7 @@ def normalized_momentum_distribution(
     # -------------
 
     # get momentum max from total energy eV.s/m - shape
-    pmax = convert_momentum_velocity_energy(
+    pmax = _utils.convert_momentum_velocity_energy(
         energy_kinetic_eV=Emax_eV,
     )['momentum_normalized']['data']
 
@@ -507,53 +380,10 @@ def _re_dist_dreicer(
     return re_dist
 
 
-# ########################################################################
-# ########################################################################
-#               Bremsstrahlung anisotropy factor
-# ########################################################################
-
-
-def anisotropy_factor(
-    gamma=None,
-    costheta=None,
-):
-    """ Return the anisotropic factor (unitless)
-
-    Depends on:
-        - gamma: thelorentz factor of the Runaway electron
-        - costheta: angle of observation relative to electron direction
-
-    ref:
-    [1] Pandya et al., Physica Scripta 93, no. 11 (November 1, 2018): 115601
-
-    """
-
-    # -----------
-    # prepare
-    # -----------
-
-    # gamma => beta
-    beta = convert_momentum_velocity_energy(
-        gamma=gamma,
-    )['beta']['data']
-
-    # -----------
-    # compute
-    # -----------
-
-    # anisotropy of cross-section
-    anis = (
-        (3/8) * (1 + ((costheta - beta) / (1 - beta * costheta))**2)
-        / (gamma**2 * (1 - beta * costheta)**2)
-    )
-
-    return anis
-
-
-# ########################################################################
-# ########################################################################
+# ##############################################################
+# ##############################################################
 #            Primary & secondary growth source terms
-# ########################################################################
+# ##############################################################
 
 
 def get_growth_source_terms(
@@ -686,28 +516,3 @@ def _check_growth(
     lout = [dparams[k0] for k0 in lk]
 
     return lout
-
-
-# ########################################################################
-# ########################################################################
-#            Differencial Bremsstrahlung cross-section
-# ########################################################################
-
-
-def get_ddcross_brems_ei(
-    E_re_eV=None,
-    E_ph_eV=None,
-):
-
-    # -------------
-    # format output
-    # -------------
-
-    dout = {
-        'ddcross_ei': {
-            'data': None,
-            'units': '?',
-        },
-    }
-
-    return dout
