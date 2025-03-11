@@ -1,6 +1,6 @@
 
 
-from . import _utils
+from .. import _utils
 
 
 # ##############################################################
@@ -9,7 +9,7 @@ from . import _utils
 # ##############################################################
 
 
-def get_anisotropy_factor(
+def anisotropy(
     gamma=None,
     costheta=None,
 ):
@@ -52,9 +52,11 @@ def get_anisotropy_factor(
 # ##############################################################
 
 
-def get_ddcross_brems_ei_thick(
+def ddcross_ei(
     E_re_eV=None,
     E_ph_eV=None,
+    costheta=None,
+    anisotropy=None,
 ):
     """ Return the energy-dependent HXR generation cros-section
 
