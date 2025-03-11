@@ -20,7 +20,7 @@ __all__ = [
 def convert_momentum_velocity_energy(
     energy_kinetic_eV=None,
     velocity_ms=None,
-    momentum_normalized=None,
+    momentum_kinetic_normalized=None,
     gamma=None,
     beta=None,
 ):
@@ -75,7 +75,7 @@ def convert_momentum_velocity_energy(
 
     lk = [k0 for k0 in din0.keys() if k0 != 'gamma']
     for k0 in lk:
-        dout[k0].update(**_from_gamma(key=k0, gamma=gamma))
+        dout[k0] = _from_gamma(key=k0, gamma=gamma)
 
     return dout
 
@@ -88,7 +88,7 @@ def _to_gamma(key, val):
     elif key == 'velocity_ms':
         gamma = np.sqrt(1. / (1. - (val/scpct.c)**2))
 
-    elif key == 'momentum_normalized':
+    elif key == 'momentum_kinetic_normalized':
         gamma = np.sqrt(val**2 + 1)
 
     elif key == 'energy_kinetic_eV':
@@ -112,7 +112,7 @@ def _from_gamma(key, gamma):
         out = scpct.c * np.sqrt(gamma**2 - 1) / gamma
         units = 'm/s'
 
-    elif key == 'momentum_normalized':
+    elif key == 'momentum_kinetic_normalized':
         out = np.sqrt(gamma**2 - 1)
         units = None
 
@@ -147,7 +147,7 @@ def normalized_momentum_distribution(
     """ Return the normalized RE momentum distribution
 
     Depends on:
-        - pp: normaized momentum (variable)
+        - pp: normalized kinetic momentum (variable)
 
     Parameters:
         - ne: background electron density (1/m3)
@@ -298,11 +298,30 @@ def _check_dist(
     Emax=None,
 ):
 
+    dparams = {k0: v0 for k0, v0 in locals().items() if k0 != 'pp'}
+
     # -----------------------
     # pp = normalized momentum
     # -----------------------
 
-    return
+    try:
+        pp = np.atleast_1d(pp)
+    except Exception as err:
+        msg = (
+            "Arg pp (normalized kinetic momentum) must be a np.ndarray!\n"
+            f"Provided:\n{pp}\n"
+        )
+        raise Exception(msg)
+
+    shape_pp = pp.shape
+
+    # -----------------------
+    # all others
+    # -----------------------
+
+    dparams = ds._generic_check._uniformize_params_shapes(**dparams)
+
+    return [pp] + [dparams[k0] for k0 in ['ne', 'zeff', 'Epar', 'Emax']]
 
 
 # ########################################################################
@@ -346,3 +365,12 @@ def anisotropy_factor(
     )
 
     return anis
+
+
+# ########################################################################
+# ########################################################################
+#            Clean up
+# ########################################################################
+
+
+# del np, scpct
