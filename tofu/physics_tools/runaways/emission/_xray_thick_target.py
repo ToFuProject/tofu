@@ -3,6 +3,9 @@ import os
 
 
 import numpy as np
+import scipy.constants as scpct
+import scipy.interpolate as scpinterp
+import datastock as ds
 
 
 from .. import _utils
@@ -10,7 +13,7 @@ from .. import _utils
 
 # ##############################################################
 # ##############################################################
-#               Bremsstrahlung anisotropy factor
+#                        DEFAULTS
 # ##############################################################
 
 
@@ -39,6 +42,15 @@ def anisotropy(
     """
 
     # -----------
+    # check inputs
+    # -----------
+
+    gamma, costheta = _check_anisotropy(
+        gamma=gamma,
+        costheta=costheta,
+    )
+
+    # -----------
     # prepare
     # -----------
 
@@ -60,15 +72,31 @@ def anisotropy(
     return anis
 
 
+def _check_anisotropy(
+    gamma=None,
+    costheta=None,
+):
+
+    dout, shape = ds._generc_check._check_all_broadcastable(
+        gamma=gamma,
+        costheta=costheta,
+    )
+
+    return dout['gamma']['data'], dout['costheta']['data']
+
+
 # ##############################################################
 # ##############################################################
 #            Differencial Bremsstrahlung cross-section
 # ##############################################################
 
 
-def ddcross_ei(
+def dcross_ei(
     E_re_eV=None,
     E_ph_eV=None,
+    atomic_nb=None,
+    adjust=None,
+    # optional anistropy
     costheta=None,
     anisotropy=None,
     # options
@@ -87,6 +115,27 @@ def ddcross_ei(
             Section B: Beam Interactions with Materials and Atoms 63,
             no. 3 (February 1992): 255–69
     """
+
+    # --------------------
+    # check inputs
+    # --------------------
+
+    (
+        E_re_eV, E_ph_eV,
+        atomic_nb, adjust,
+        costheta, anisotropy,
+        return_intermediates,
+    ) = _check_dcross_ei(
+        E_re_eV=E_re_eV,
+        E_ph_eV=E_ph_eV,
+        atomic_nb=atomic_nb,
+        adjust=adjust,
+        # optional anistropy
+        costheta=costheta,
+        anisotropy=anisotropy,
+        # options
+        return_intermediates=return_intermediates,
+    )
 
     # --------------------
     # Load tabulated data
@@ -115,7 +164,7 @@ def ddcross_ei(
     mc2_eV = scpct.m_e * scpct.c**2 / scpct.e
 
     # mc (eV.s/m)
-    mc_eVsm = mc2 / scpct.c
+    mc_eVsm = mc2_eV / scpct.c
 
     # fine structure constant (adim.)
     alpha = scpct.alpha
@@ -129,16 +178,15 @@ def ddcross_ei(
         np.round(Z_R),
         RZ3a0,
         kind='linear',
-    )(Z)
-    R = Rz3a0 * a0 / Z**(1/3)
-    print(f"Screening radius for Z = {Z}:\n\t- RZ^(1/3)/a0 = {Rz3a0}\n\t- R = {R}")
+    )(atomic_nb)
+    R = Rz3a0 * a0 / atomic_nb**(1/3)
 
     # high-energy coulomb correction (adim.)
-    aa = (alpha * Z)**2
+    aa = (alpha * atomic_nb)**2
     fc = aa * np.sum([1./(nn * (nn**2 + aa)) for nn in range(1, 101)])
 
     # log(R * mc/hbar)   adim
-    logRmchb = np.log(R * mc / hbar)
+    logRmchb = np.log(R * mc_eVsm / hbar_eVs)
 
     # ----------------------
     # prepare (nEe,) vectors
@@ -149,41 +197,47 @@ def ddcross_ei(
         np.round(Z_eta),
         eta_inf,
         kind='linear',
-    )(Z)
-    print(f"eta_inf for Z = {Z}:\n\t- eta_inf = {eta_inf}")
-    eta = (E_e / mc2)**0.8 / ((E_e/mc2)**0.8 + 2.43) * eta_inf
+    )(atomic_nb)
+
+    # eta
+    eta = (E_re_eV / mc2_eV)**0.8 / ((E_re_eV / mc2_eV)**0.8 + 2.43) * eta_inf
 
     # correction term at low energies adim
     F2 = (
-        (2.04 + 9.09*alpha*Z)
-        * (mc2**2 / (E_e * (E_e + mc2))) ** (1.26 - 0.93*alpha*Z)
+        (2.04 + 9.09 * alpha * atomic_nb)
+        * (mc2_eV**2 / (E_re_eV * (E_re_eV + mc2_eV)))
+        ** (1.26 - 0.93 * alpha * atomic_nb)
     )
 
     # useful for q0 = minimum momentum transfer (eV.s/m)
-    gamma = (E_e + mc2) / mc2
+    gamma = _utils.convert_momentum_velocity_energy(
+        energy_kinetic_eV=E_re_eV,
+    )['gamma']['data']
 
     # --------------------------
     # prepare (nEe, nEph) arrays
 
     # reduced energy of the photon (adim.)
-    eps = E_ph[None, :] / (E_e[:, None] + mc2)
+    eps = E_ph_eV / (E_re_eV + mc2_eV)
     eps[eps > 1] = np.nan
-    epsd = (E_e - 5*mc2) / (E_e + mc2)
+    epsd = (E_re_eV - 5 * mc2_eV) / (E_re_eV + mc2_eV)
 
-    # turn off fc wen eps > epsd
+    # turn off fc when eps > epsd
     theta = eps < epsd
 
     # q0 = minimum momentum transfer (eV.s/m)
-    q0 = (mc / (2*gamma[:, None])) * eps / (1 - eps)
+    q0 = (mc_eVsm / (2 * gamma)) * eps / (1 - eps)
 
     # adim
-    bb = R * q0 / hbar
+    bb = R * q0 / hbar_eVs
 
     # Phi1
     Phi1 = 2 - 2*np.log(1 + bb**2) - 4*bb*np.arctan(1/bb) + 4*logRmchb
 
     # Phi2
     term2 = 2*bb**2 * (4 - 4*bb*np.arctan(1/bb) - 3*np.log(1 + 1/bb**2))
+
+    # adjustment
     if adjust is True:
         bb_too_large = bb > 1000
         term2[bb_too_large] = -10/3.
@@ -203,22 +257,36 @@ def ddcross_ei(
     phi2 = (4/3) * (1 - eps) * (f2 + f0)
 
     # cross-section in m2
-    dcross_E_deps = (
-        a0**2 * alpha**5 * Z * (Z + eta) * (phi1 * eps + phi2 / eps)
+    dcross_Ere_deps = (
+        a0**2 * alpha**5 * atomic_nb * (atomic_nb + eta)
+        * (phi1 * eps + phi2 / eps)
     )
 
     # change of variable to find derivative vs Eph (m2/eV)
     # deps / dEp = 1/(E_re + mc2)
-    dcross_E = dcross_E_deps / (E_e[:, None] + mc2)
+    # m2 / eV
+    dcross_Ere = dcross_Ere_deps / (E_re_eV + mc2_eV)
+
+    # -------------
+    # Optional anisotropy
+    # -------------
+
+    if anisotropy is True:
+        anis = anisotropy(
+            costheta=costheta,
+            gamma=gamma,
+        )
+
+        dcross_Ere = dcross_Ere * anis
 
     # -------------
     # format output
     # -------------
 
     dout = {
-        'ddcross_ei': {
-            'data': None,
-            'units': '?',
+        'ddcross_ei_Ere': {
+            'data': dcross_Ere,
+            'units': 'm2/eV',
         },
     }
 
@@ -227,6 +295,91 @@ def ddcross_ei(
     # -----------------
 
     if return_intermediates is True:
-        pass
+
+        dout.update({
+            'RZ13a0': {
+                'data': Rz3a0,
+                'units': '',
+            },
+            'eta_inf': {
+                'data': eta_inf,
+                'units': '',
+            },
+        })
 
     return dout
+
+
+def _check_dcross_ei(
+    E_re_eV=None,
+    E_ph_eV=None,
+    atomic_nb=None,
+    adjust=None,
+    # optional anistropy
+    costheta=None,
+    anisotropy=None,
+    # options
+    return_intermediates=None,
+):
+
+    # -----------------
+    # options
+    # -----------------
+
+    # adjust
+    adjust = ds._generic_check._check_var(
+        adjust, 'adjust',
+        types=bool,
+        default=True,
+    )
+
+    # anistropy
+    anisotropy = ds._generic_check._check_var(
+        anisotropy, 'anisotropy',
+        types=bool,
+        default=False,
+    )
+
+    # return_intermediates
+    return_intermediates = ds._generic_check._check_var(
+        return_intermediates, 'return_intermediates',
+        types=bool,
+        default=False,
+    )
+
+    # -----------------
+    # broadcastable
+    # -----------------
+
+    dout = {
+        'E_re_eV': E_re_eV,
+        'E_ph_eV': E_ph_eV,
+        'atomic_nb': atomic_nb,
+    }
+    if anisotropy is True:
+        dout['costheta'] = costheta
+
+    dout, shape = ds._generc_check._check_all_broadcastable(
+        **dout,
+    )
+
+    lk = ['E_re_eV', 'E_ph_eV', 'atomic_nb']
+    E_re_eV, E_ph_eV, atomic_nb = [dout[k0] for k0 in lk]
+
+    return (
+        E_re_eV, E_ph_eV,
+        atomic_nb, adjust,
+        costheta, anisotropy,
+        return_intermediates,
+    )
+
+
+# ##############################################################
+# ##############################################################
+#            plot Differencial Bremsstrahlung cross-section
+# ##############################################################
+
+
+def plot_dcross_Ere_ei():
+
+    return
