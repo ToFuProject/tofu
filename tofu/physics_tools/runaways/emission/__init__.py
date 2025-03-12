@@ -1,4 +1,6 @@
 
 
-from ._xray_thick_target import anisotropy as xray_thick_anisotropy
-from ._xray_thick_target import dcross_ei as xray_thick_dcross_ei
+from ._xray_thick_target import anisotropy as get_xray_thick_anisotropy
+from ._xray_thick_target import dcross_ei as get_xray_thick_dcross_ei
+from ._xray_thick_target import plot_dcross_ei as plot_xray_thick_dcross_ei
+from ._xray_thick_target import plot_dcross_vs_Salvat as plot_xray_thick_dcross_ei_vs_Salvat
