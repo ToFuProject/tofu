@@ -325,6 +325,7 @@ setup(
         "svg.path",
         "Polygon3",
         "cython>=0.26",
+        "datastock>=0.0.47",
         "bsplines2d>=0.0.20",
         "spectrally>=0.0.9",
     ],
