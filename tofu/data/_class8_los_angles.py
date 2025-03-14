@@ -292,6 +292,9 @@ def _vos_from_los(
             strict=strict,
             # debug
             key=key,
+            key_cam=key_cam,
+            ii=ii,
+            ind=ind,
         )
 
         # ---------
@@ -615,6 +618,9 @@ def _get_rays_from_pix(
     strict=None,
     # debug
     key=None,
+    key_cam=None,
+    ii=None,
+    ind=None,
 ):
 
     # pixels points (start)
@@ -645,7 +651,7 @@ def _get_rays_from_pix(
     # ----------
     # diag
 
-    for ii, oo in enumerate(lspectro):
+    for jj, oo in enumerate(lspectro):
 
         reflect_ptsvect = coll.get_optics_reflect_ptsvect(oo)
         (

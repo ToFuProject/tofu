@@ -379,11 +379,15 @@ def equivalent_apertures(
             sli0[:-1] = ij
             sli = tuple(sli0)
 
+            # ref optics cls and key
+            roc = optics_cls[iref[ij]]
+            rok = optics[iref[ij]]
+
             # get coordinates in x, y, z
             if pinhole is False:
-                coord_x01toxyz = coll.get_optics_x01toxyz(key=optics[iref[ij]])
+                coord_x01toxyz = coll.get_optics_x01toxyz(key=rok)
                 pts2plane = coll.get_optics_reflect_ptsvect(
-                    key=optics[iref[ij]],
+                    key=rok,
                     asplane=True,
                 )
 
@@ -428,20 +432,20 @@ def equivalent_apertures(
                     x0=cents0[ij],
                     x1=cents1[ij],
                 )
-                sli = tuple([slice(None)] + list(ij))
-                plane_nin[sli] = coll.dobj[optics_cls[iref[ij]]][optics[iref[ij]]]['dgeom']['nin']
+                sliF = tuple([slice(None)] + list(ij))
+                plane_nin[sliF] = coll.dobj[roc][rok]['dgeom']['nin']
 
             # --- DEBUG ---------
-            # if ii in [1148]:
-            #     _debug_plot2(
-            #         p0=p0, p1=p1,
-            #         cents0=cents0, cents1=cents1,
-            #         ii=ii,
-            #         ip=ip,
-            #         coord_x01toxyz=coord_x01toxyz,
-            #         cx=cx, cy=cy, cz=cz,
-            #         area=area,
-            #     )
+            # if ii in [0]:
+                # _debug_plot2(
+                    # p0=p0, p1=p1,
+                    # cents0=cents0, cents1=cents1,
+                    # ii=ii,
+                    # ip=0,
+                    # coord_x01toxyz=coord_x01toxyz,
+                    # cx=cx, cy=cy, cz=cz,
+                    # area=area,
+                # )
             # --------------------
 
         # -------------------
@@ -454,7 +458,9 @@ def equivalent_apertures(
             )
 
             # add centroid to x0, x1
-            plane_nin = coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['nin']
+            roc_all = optics_cls[iref]
+            rok_all = optics[iref]
+            plane_nin = coll.dobj[roc_all][rok_all]['dgeom']['nin']
 
         # ------ DEBUG --------
         # if True:
@@ -483,7 +489,10 @@ def equivalent_apertures(
 
     if plot is True:
         if pinhole is True:
-            out0, out1 = coll.get_optics_outline(key=optics[iref], add_points=False)
+            out0, out1 = coll.get_optics_outline(
+                key=optics[iref],
+                add_points=False,
+            )
         else:
             raise NotImplementedError()
         _plot(
@@ -731,10 +740,29 @@ def _check(
             raise NotImplementedError()
 
     else:
+
         if pinhole is True:
-            iref = len(optics)-1
+            iref = len(optics) - 1
         else:
-            iref = np.max(paths * np.arange(paths.shape[-1]), axis=-1)
+
+            # get optics with smallest solid angle as ref
+            cx, cy, cz = coll.get_camera_cents_xyz(key_cam)
+            ap_cent = np.array([
+                coll.dobj[ocls][kop]['dgeom']['cent']
+                for ocls, kop in zip(optics_cls, optics)
+            ])
+            ap_area = np.array([
+                coll.dobj[ocls][kop]['dgeom']['area']
+                for ocls, kop in zip(optics_cls, optics)
+            ])
+            dist2 = (
+                (ap_cent[:, 0][None, :] - cx.ravel()[:, None])**2
+                + (ap_cent[:, 1][None, :] - cy.ravel()[:, None])**2
+                + (ap_cent[:, 2][None, :] - cz.ravel()[:, None])**2
+            )
+            sang = ap_area[None, :] / dist2
+            sang[~paths] = np.nan
+            iref = np.nanargmin(sang, axis=-1)
 
     # -----------
     # add_points
@@ -1405,3 +1433,4 @@ def _debug_plot2(
     plt.gca().set_title(f'planar coordinates - {ii}', size=12)
     plt.gca().set_xlabel('x0 (m)', size=12)
     plt.gca().set_ylabel('x1 (m)', size=12)
+    plt.gca().set_aspect('equal')
