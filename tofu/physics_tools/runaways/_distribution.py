@@ -1,9 +1,9 @@
 
 
-import numpy as __np
-import scipy.constants as __scpct
-import scipy.special as __scpsp
-import datastock as __ds
+import numpy as np
+import scipy.constants as scpct
+import scipy.special as scpsp
+import datastock as ds
 
 
 from . import _utils
@@ -55,30 +55,27 @@ def get_critical_dreicer_electric_fields(
     # -------------
 
     # vacuum permittivity in C/(V.m), scalar
-    eps0 = __scpct.epsilon_0
+    eps0 = scpct.epsilon_0
 
-    # custom computation intermediates, scalars
-    pie02 = __np.pi * eps0**2
+    # custom computation intermediates C^2/(V^2.m^2), scalar
+    pie02 = np.pi * eps0**2
 
     # electron charge (C), scalar
-    e = __scpct.e
+    e = scpct.e
 
-    # electron rest energy (eV), scalar
-    mec2_eV = __scpct.m_e * __scpct.c**2 / e
-
-    # rest energy of electron in eV, scalar
-    # mec_eVsm = mec2_eV / scpct.c    # eV.s/m
+    # electron rest energy (J = C.V), scalar
+    mec2_CV = scpct.m_e * scpct.c**2
 
     # -------------
     # compute
     # -------------
 
     # critical electric field (V/m)
-    Ec_Vm = ne_m3 * e**3 * lnG / (4 * pie02 * mec2_eV)
+    Ec_Vm = ne_m3 * e**3 * lnG / (4 * pie02 * mec2_CV)
 
     # Dreicer electric field
     if kTe_eV is not None:
-        Ed_Vm = Ec_Vm * mec2_eV / kTe_eV
+        Ed_Vm = Ec_Vm * (mec2_CV / e) / kTe_eV
     else:
         Ed_Vm = None
 
@@ -119,7 +116,7 @@ def _check_critical_dreicer(
     # broadcastable
     # -----------------
 
-    dparams, shape = __ds._generic_check._check_all_broadcastable(
+    dparams, shape = ds._generic_check._check_all_broadcastable(
         ne_m3=ne_m3,
         kTe_eV=kTe_eV,
         lnG=lnG,
@@ -145,7 +142,7 @@ def get_normalized_momentum_distribution(
     lnG=None,
     sigmap=None,
     # options
-    plot=None,
+    return_intermediates=None,
 ):
     """ Return the normalized RE momentum distribution, interpolated at pp
 
@@ -176,17 +173,27 @@ def get_normalized_momentum_distribution(
     # check inputs
     # -------------
 
-    pp, ne_m3, Zeff, Epar_Vm, Emax_eV, lnG, shape = _check_dist(
+    (
+        pp, ne_m3, Zeff,
+        Epar_Vm, Emax_eV,
+        sigmap, lnG,
+        shape,
+        return_intermediates,
+    ) = _check_dist(
         pp=momentum_normalized,
         ne_m3=ne_m3,
         Zeff=Zeff,
         Epar_Vm=electric_field_par_Vm,
         Emax_eV=energy_kinetic_max_eV,
         sigmap=sigmap,
+        return_intermediates=return_intermediates,
     )
 
-    # pp.shape = (npp,)
-    # all others = shape
+    # -----------
+    # initialize
+    # -----------
+
+    re_dist = np.full(shape, np.nan)
 
     # -------------
     # prepare
@@ -209,71 +216,126 @@ def get_normalized_momentum_distribution(
     # -------------
 
     # normalized electric field, adim
-    Etild = Epar_Vm / Ec_Vm                             # [nt, nr, 1]
-    Ehat = (Etild - 1) / (1 + Zeff)               # [nt, nr, 1]
+    Etild = Epar_Vm / Ec_Vm
 
-    # adim
-    Cz = __np.sqrt(3 * (Zeff + 5) / __np.pi)          # [nt, 1, 1]
+    # ---------------------------
+    # intermediate check on Etild
+    # ---------------------------
 
-    # critical momentum, adim
-    pc = 1. / __np.sqrt(Etild - 1.)                 # [nt, nr, 1]
+    iok = Etild > 1.
+    if np.any(iok):
 
-    # Cs
-    Cs = (
-        Etild
-        - ((1 + Zeff)/4) * (Etild - 2) * __np.sqrt(Etild / (Etild - 1))
-    )
+        Ehat = (Etild[iok] - 1) / (1 + Zeff[iok])
 
-    # -------------------
-    # total distribution
-    # ------------------
+        # adim
+        Cz = np.sqrt(3 * (Zeff[iok] + 5) / np.pi)
 
-    kwdargs = {
-        'sigmap': sigmap,
-        'pp': pp,
-        'pmax': pmax,
-        'Ehat': Ehat,
-        'Cz': Cz,
-        'Cs': Cs,
-        'lnG': lnG,
-    }
+        # critical momentum, adim
+        pc = 1. / np.sqrt(Etild[iok] - 1.)
 
-    # -----------
-    # Initialize
+        # Cs
+        Cs = (
+            Etild[iok]
+            - (
+                ((1 + Zeff[iok])/4)
+                * (Etild[iok] - 2)
+                * np.sqrt(Etild[iok] / (Etild[iok] - 1))
+            )
+        )
 
-    if shape is None:
+        # -------------------
+        # kwdargs to func
 
-        if Etild > 5:
-            re_dist = _re_dist_avalanche(**kwdargs)
-        elif (2 < Cs < 1 + Etild):
-            re_dist = _re_dist_dreicer(**kwdargs)
-        else:
-            re_dist = __np.nan
+        kwdargs = {
+            'sigmap': sigmap[iok],
+            'pp': pp[iok],
+            'pmax': pmax[iok],
+            'Etild': Etild[iok],
+            'Zeff': Zeff[iok],
+            'Ehat': Ehat,
+            'Cz': Cz,
+            'Cs': Cs,
+            'lnG': lnG[iok],
+        }
+
+        # ------------------
+        # Compute
+
+        # avalanche-dominated
+        ioki = Etild[iok] > 5.
+        if np.any(ioki):
+            kwdargsi = {k0: v0[ioki] for k0, v0 in kwdargs.items()}
+            iok0 = np.copy(iok)
+            iok0[iok0] = ioki
+            re_dist[iok0] = _re_dist_avalanche(**kwdargsi)
+
+        # Dreicer-dominated
+        ioki = (2 < Cs) & (Cs < 1 + Etild[iok])
+        if np.any(ioki):
+            kwdargsi = {k0: v0[ioki] for k0, v0 in kwdargs.items()}
+            iok0 = np.copy(iok)
+            iok0[iok0] = ioki
+            re_dist[iok0] = _re_dist_dreicer(**kwdargsi)
+
+        # --------------------------------
+        # Set to 0 below critical momentum
+
+        iout = np.copy(iok)
+        iout[iok] = pp[iok] < pc
+        re_dist[iout] = np.nan
+
+    # -----------------------
+    # no valid electric field
 
     else:
+        Ehat = None
+        Cz = None
+        pc = None
+        Cs = None
 
-        # initilize
-        re_dist = __np.full(shape, __np.nan)
+    # -------------
+    # format output
+    # -------------
 
-        # avalanche
-        ind_av = Etild > 5.
-        if __np.any(ind_av):
-            kwdargsi = {k0: v0[ind_av] for k0, v0 in kwdargs.items()}
-            re_dist[ind_av] = _re_dist_avalanche(**kwdargsi)
+    dout = {
+        'dist': {
+            'data': re_dist,
+            'units': None,
+        },
+    }
 
-        # Dreicer
-        ind_dr = (2 < Cs < 1 + Etild)
-        if __np.any(ind_dr):
-            kwdargsi = {k0: v0[ind_dr] for k0, v0 in kwdargs.items()}
-            re_dist[ind_dr] = _re_dist_dreicer(**kwdargsi)
+    # ----------------------
+    # optional intermediates
 
-    # --------------------------------
-    # Dreicer (primary) dominated
+    if return_intermediates is True:
+        dout.update({
+            'Cs': {
+                'data': Cs,
+                'units': None,
+            },
+            'Cz': {
+                'data': Cz,
+                'units': None,
+            },
+            'Ec': {
+                'data': Ec_Vm,
+                'units': 'V/m',
+            },
+            'Etild': {
+                'data': Etild,
+                'units': None,
+            },
+            'Ehat': {
+                'data': Ehat,
+                'units': None,
+            },
+            'pc': {
+                'data': pc,
+                'units': None,
+            },
+        })
 
-    # make sure sure remove all below Ec
-    re_dist[pp < pc] = 0.
-
-    return re_dist
+    return dout
 
 
 def _check_dist(
@@ -284,6 +346,8 @@ def _check_dist(
     Emax_eV=None,
     sigmap=None,
     lnG=None,
+    # options
+    return_intermediates=None,
 ):
 
     # -----------------------
@@ -307,14 +371,24 @@ def _check_dist(
     # all broadcastable
     # -----------------------
 
-    dparams, shape = __ds._generic_check._check_all_broadcastable(
+    dparams, shape = ds._generic_check._check_all_broadcastable(
         return_full_arrays=True,
         **locals(),
     )
-    lk = ['pp', 'ne_m3', 'zeff', 'Epar_Vm', 'Emax_eV', 'sigmap', 'lnG']
+    lk = ['pp', 'ne_m3', 'Zeff', 'Epar_Vm', 'Emax_eV', 'sigmap', 'lnG']
     lout = [dparams[k0] for k0 in lk]
 
-    return lout, shape
+    # ---------------------
+    # return_intermediates
+    # ---------------------
+
+    return_intermediates = ds._generic_check._check_var(
+        return_intermediates, 'return_intermediates',
+        types=bool,
+        default=False,
+    )
+
+    return lout + [shape, return_intermediates]
 
 
 def _re_dist_avalanche(
@@ -329,13 +403,13 @@ def _re_dist_avalanche(
 ):
 
     # fermi decay factor, adim
-    fermi = 1. / (__np.exp((pp - pmax) / sigmap) + 1.)
+    fermi = 1. / (np.exp((pp - pmax) / sigmap) + 1.)
 
     # distribution, adim
     re_dist = (
-        (Ehat / (2*__np.pi*Cz*lnG))
+        (Ehat / (2*np.pi*Cz*lnG))
         * (1/pp)
-        * __np.exp(- pp / (Cz * lnG))
+        * np.exp(- pp / (Cz * lnG))
         * fermi
     )
 
@@ -366,13 +440,13 @@ def _re_dist_dreicer(
     # Hypergeometric confluent Kummer function
     term1 = 1 - Cs / (Etild + 1)
     term2 = ((Etild + 1) / (2.*(1. + Zeff))) * pperp2par
-    F1 = __scpsp.hyp1f1(term1, 1, term2)
+    F1 = scpsp.hyp1f1(term1, 1, term2)
 
     # ppar_exp_inv
     ppar_exp_inv = 1./(p_par**((Cs - 2.) / (Etild - 1.)))
 
     # exponential
-    exponential = __np.exp(-((Etild + 1) / (2 * (1 + Zeff))) * pperp2par)
+    exponential = np.exp(-((Etild + 1) / (2 * (1 + Zeff))) * pperp2par)
 
     # distribution
     re_dist = ppar_exp_inv * exponential * F1
@@ -418,19 +492,19 @@ def get_growth_source_terms(
     # -------------
 
     # vacuum permittivity in C/(V.m), scalar
-    eps0 = __scpct.epsilon_0
+    eps0 = scpct.epsilon_0
 
-    # charge
-    e = __scpct.e
+    # charge C
+    e = scpct.e
 
-    # mec2
-    mec2_eV = __scpct.m_e * __scpct.c**2 / e
+    # mec2 (J = CV)
+    mec2_CV = scpct.m_e * scpct.c**2
 
-    # mec eV.s/m
-    mec = mec2_eV / __scpct.c
+    # mec C.V.s/m
+    mec = mec2_CV / scpct.c
 
-    # me2c3 eV**2 / (m/s) = C^2 V^2 s / m
-    me2c3 = mec2_eV**2 / __scpct.c
+    # me2c3 J**2 / (m/s) = C^2 V^2 s / m
+    me2c3 = mec2_CV**2 / scpct.c
 
     # Dreicer electric field - shape
     dEcEd = get_critical_dreicer_electric_fields(
@@ -447,28 +521,30 @@ def get_growth_source_terms(
     # -------------
 
     # term1 (m^3/s)
-    term1 = e**4 * lnG / (4 * __np.pi * eps0**2 * me2c3)
+    term1 = e**4 * lnG / (4 * np.pi * eps0**2 * me2c3)
 
-    # term2 - unitless
-    term2 = (mec2_eV / (2.*kTe_eV))**1.5
+    # term2 - unitless (convert kTe_eV => J)
+    term2 = (mec2_CV / (2. * kTe_eV * e))**1.5
 
     # term3 - unitless
     term3 = (Ed_Vm / Epar_Vm)**(3*(1. + Zeff) / 16.)
 
     # exp - unitless
-    exp = __np.exp(
-        -Ed_Vm / (4.*Epar_Vm) - __np.sqrt((1. + Zeff) * Ed_Vm / Epar_Vm)
+    exp = np.exp(
+        -Ed_Vm / (4.*Epar_Vm) - np.sqrt((1. + Zeff) * Ed_Vm / Epar_Vm)
     )
 
-    # sqrt
-    sqrt = __np.sqrt(__np.pi / (3 * (5 + Zeff)))
+    # sqrt - unitless
+    sqrt = np.sqrt(np.pi / (3 * (5 + Zeff)))
 
     # -------------
     # Compute
     # -------------
 
+    # 1/m^3/s
     S_primary = ne_m3**2 * term1 * term2 * term3 * exp
 
+    # 1/s   (C / C.V.s/m * V.m)
     S_secondary = sqrt * (e / mec) * (Epar_Vm - Ec_Vm) / lnG
 
     # -------------
@@ -508,7 +584,7 @@ def _check_growth(
     # all broadcastable
     # -----------------------
 
-    dparams, shape = __ds._generic_check._check_all_broadcastable(
+    dparams, shape = ds._generic_check._check_all_broadcastable(
         return_full_arrays=False,
         **locals(),
     )
