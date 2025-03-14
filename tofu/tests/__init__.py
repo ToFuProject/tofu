@@ -10,3 +10,4 @@ from . import tests06_mesh
 from . import tests07_inversions
 from . import tests08_diagnostics
 from . import tests09_tutorials
+from . import tests10_physics
