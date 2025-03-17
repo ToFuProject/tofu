@@ -1,4 +1,4 @@
 
 
-from .transmission import main as get_transmission
+from .transmission import main as get_xray_transmission
 

@@ -20,6 +20,12 @@ _PATH_HERE = os.path.dirname(__file__)
 _PATH_INPUTS = os.path.join(_PATH_HERE, 'inputs_filter')
 
 
+# MASS DENSITIE, g/cm3
+_DMASS_DENS = {
+    'LaBr3': 5.06,
+}
+
+
 # AVAILABLE MATERIALS
 _LMAT_LENGTH = [
     ss for ss in os.listdir(_PATH_INPUTS)
@@ -34,6 +40,7 @@ _LMAT_MASS = [
     and ss.count('_') == 1
 ]
 _LMAT_MASS = [ss.split('_')[0] for ss in _LMAT_MASS]
+_LMAT_MASS = [ss for ss in _LMAT_MASS if ss in _DMASS_DENS.keys()]
 _LOK_MAT = _LMAT_LENGTH + _LMAT_MASS
 
 
@@ -99,7 +106,7 @@ def main(
         if v0['type'] == 'length':
             func = _get_transmission_from_length
         else:
-            func = _get_transmission_from_length
+            func = _get_transmission_from_mass
 
         # compute
         trans = func(
@@ -301,14 +308,29 @@ def _error_dthick(dthick, dfail=None):
 
 def _get_transmission_from_length(mat=None, E=None, thick=None):
 
+    # load absorption length
+    name = f"AttenuationLength_{mat}.txt"
+    pfe = os.path.join(_PATH_INPUTS, name)
+    # length in microns
+    Att_E, Att_L = np.loadtxt(pfe).T
+    # length microns => m
+    Att_L = Att_L * 1e-6
+
+    # compute transmision
+    length = 10**(scpinterp.interp1d(
+        np.log10(Att_E),
+        np.log10(Att_L),
+        kind='linear',
+        bounds_error=False,
+        fill_value=(np.log10(Att_L[0]), np.log10(Att_L[-1])),
+    )(np.log10(E)))
+
+    return np.exp(-thick / length)
+
+
+def _get_transmission_from_mass(mat=None, E=None, thick=None):
+
     """
-    # crystal absorption (MeV, cm2/g)
-    pfe = os.path.join(
-        _PATH_HERE, 'tofu_sparc', 'filters', 'LaBr3_MassAttenuationCoef.csv',
-    )
-    E_abs, coef_mass = np.loadtxt(pfe, delimiter=',').T
-    mass_density = 5.06 # g/cm3
-    att_length = 1e-2 / (coef_mass * mass_density)
 
     absorp = 1 - np.exp(
         - 0.02 / scpinterp.interp1d(
@@ -321,35 +343,25 @@ def _get_transmission_from_length(mat=None, E=None, thick=None):
     )
     """
 
-    # load absorption length
-    name = f"AttenuationLength_{mat}.txt"
+    # crystal absorption (MeV, cm2/g)
+    name = f"{mat}_MassAttenuationCoef.csv"
     pfe = os.path.join(_PATH_INPUTS, name)
-    Att_E, Att_L = np.loadtxt(pfe).T
+    E_abs, coef_mass = np.loadtxt(pfe, delimiter=',').T
 
-    # compute transmision
+    # intermediates
+    mass_density = _DMASS_DENS[mat]
+    # length, m
+    att_length = 1e-2 / (coef_mass * mass_density)
+
+    # interpolat log log
     length = 10**(scpinterp.interp1d(
-        np.log10(Att_E),
-        np.log10(Att_L),
+        np.log10(E_abs) + 6.,  # MeV => eV
+        np.log10(att_length),
         kind='linear',
         bounds_error=False,
-        fill_value=(np.log10(Att_L[0]), np.log10(Att_L[-1])),
+        fill_value=(np.log10(att_length[0]), np.log10(att_length[-1])),
     )(np.log10(E)))
 
-    trans = np.exp(-thick * 1e6 / length)
-
-    # ----- DEBUG ------------
-
-    # plt.figure()
-    # plt.gcf().suptitle(key, size=12)
-    # plt.loglog(Att_E, Att_L, '.-', E, length.T, 'x')
-
-    # plt.figure()
-    # plt.gcf().suptitle(key, size=12)
-    # plt.scatter(
-    #     np.repeat(E[None, :], thick.size, axis=0).ravel(),
-    #     np.repeat(thick[:, None], E.size, axis=1).ravel(),
-    #     c=trans.ravel(),
-    #     marker='s',
-    # )
+    trans = np.exp(-thick / length)
 
     return trans
