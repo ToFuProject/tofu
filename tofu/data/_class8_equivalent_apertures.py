@@ -379,12 +379,12 @@ def equivalent_apertures(
             sli0[:-1] = ij
             sli = tuple(sli0)
 
-            # ref optics cls and key
-            roc = optics_cls[iref[ij]]
-            rok = optics[iref[ij]]
-
             # get coordinates in x, y, z
             if pinhole is False:
+                # ref optics cls and key
+                roc = optics_cls[iref[ij]]
+                rok = optics[iref[ij]]
+
                 coord_x01toxyz = coll.get_optics_x01toxyz(key=rok)
                 pts2plane = coll.get_optics_reflect_ptsvect(
                     key=rok,
