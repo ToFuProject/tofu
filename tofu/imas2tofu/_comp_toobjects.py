@@ -479,15 +479,15 @@ def get_plasma(
     # -------------
     # loop on ids
     # -------------
-    
+
     # IMPROVEMENT:
-    # This for loop should be divided in 2 
+    # This for loop should be divided in 2
     # First: read all meshes on all ids + time traces
     # second: read all fields that depend on meshes
     # Use case: when a 2d mesh is needed for ids0 but only exists in ids1 (or vice-versa)
 
     for ids in lids:
-        
+
         idsshort = _def._dshortids.get(ids, ids)
 
         # -----
@@ -619,8 +619,8 @@ def get_plasma(
                     indices=out_['2dmeshFaces']['data'],
                     source=ids,
                 )
-                n1 = coll.dobj[wm][keymtri]['shape-k'][0]
-                n2 = coll.dobj[wm][keymtri]['shape-c'][0]
+                n1 = coll.dobj[wm][keymtri]['shape_k'][0]
+                n2 = coll.dobj[wm][keymtri]['shape_c'][0]
                 dmesh['tri'] = {
                     'key': keymtri,
                     'n1': n1,
@@ -639,7 +639,7 @@ def get_plasma(
                     else:
                         R = R[0, :]
                         Z = Z[:, 0]
-                
+
                 coll.add_mesh_2d_rect(
                     key=keymrect,
                     knots0=R,
@@ -647,7 +647,7 @@ def get_plasma(
                     source=ids,
                 )
                 print(coll.show('mesh'))
-                n1, n2 = coll.dobj[wm][keymrect]['shape-c']
+                n1, n2 = coll.dobj[wm][keymrect]['shape_c']
                 dmesh['rect'] = {
                     'key': keymrect,
                     'n1': n1,
@@ -659,7 +659,7 @@ def get_plasma(
 
             lprof2d = set(out_.keys()).difference(lsigmesh)
             for ss in lprof2d:
-                
+
                 # identify proper 2d mesh
                 lm = [
                     km for km, vm in dmesh.items()
@@ -672,13 +672,13 @@ def get_plasma(
                         )
                     )
                 ]
-                
+
                 if len(lm) == 1:
                     keym = dmesh[lm[0]]['key']
                 else:
                     msg = f"No / 2 meshes associated to {ss}"
                     raise Exception(msg)
-                
+
                 # add profile2d
                 add_profile2d(
                     multi=multi,
@@ -759,7 +759,7 @@ def get_plasma(
 
             elif len(drad) == 1:
                 k0ref = list(drad.keys())[0]
-                
+
             else:
                 if not np.unique([v0.size for v0 in drad.values()]).size == 1:
                     lstr = [f"\t- {k0}: {v0.size}" for k0, v0 in drad.items()]
@@ -798,11 +798,11 @@ def get_plasma(
                 and v0['quant'] == quant
                 and v0['bsplines'] is not None
             ]
-            
+
             # one map found
             if len(radius2d) == 1:
                 radius2d = radius2d[0]
-                
+
             # None found
             elif len(radius2d) == 0:
                 msg = (
@@ -818,7 +818,7 @@ def get_plasma(
                     f"\t- lprof2d = {lprof2d}\n"
                 )
                 raise Exception(msg)
-                
+
             # multiple maps found => ambiguous
             else:
                 msg = (

@@ -458,7 +458,7 @@ class Test02_Collection():
 
             ind = ii % nn
 
-            if len(self.obj.dobj['mesh'][k0]['shape-c']) == 2:
+            if len(self.obj.dobj['mesh'][k0]['shape_c']) == 2:
                 indt = self.obj.select_ind(
                     key=k0,
                     ind=lind[ind],
@@ -497,7 +497,7 @@ class Test02_Collection():
         lelem = [None, 'cents', 'knots']
         for ii, k0 in enumerate(self.lm):
 
-            if len(self.obj.dobj['mesh'][k0]['shape-c']) == 2:
+            if len(self.obj.dobj['mesh'][k0]['shape_c']) == 2:
                 lind = lind0
             else:
                 lind = lind1
@@ -748,7 +748,7 @@ class Test02_Collection():
         # for ii, k0 in enumerate(self.lbs):
 
             # km = self.obj.dobj['bsplines'][k0]['mesh']
-            # if len(self.obj.dobj['mesh'][km]['shape-c']) == 2:
+            # if len(self.obj.dobj['mesh'][km]['shape_c']) == 2:
                 # li = li0
             # else:
                 # li = li1
