@@ -5,13 +5,14 @@ import json
 
 
 from ..data import Collection
+from . import _ddef
 from . import _equilibrium
 
 
-# ###########################################################
-# ###########################################################
+# ################################################
+# ################################################
 #              DEFAULT
-# ###########################################################
+# ################################################
 
 
 _DEXTRACT = {
@@ -22,26 +23,29 @@ _DEXTRACT = {
 }
 
 
-# ###########################################################
-# ###########################################################
+# ################################################
+# ################################################
 #              Main
-# ###########################################################
+# ################################################
 
 
 def load_from_omas(
     pfe=None,
     coll=None,
-    key=None,
+    prefix=None,
+    strict=None,
+    dshort=None,
 ):
 
     # ------------
     # check inputs
     # ------------
 
-    pfe, coll, key = _check(
+    pfe, coll, prefix, dshort = _check(
         pfe=pfe,
         coll=coll,
-        key=key,
+        prefix=prefix,
+        dshort=dshort,
     )
 
     # Collection
@@ -58,13 +62,16 @@ def load_from_omas(
     # extract data to coll
     # -------------
 
-    for k0, v0 in dout.items():
-        func = _DEXTRACT.get(k0)
+    for ids, din in dout.items():
+        func = _DEXTRACT.get(ids)
         if func is not None:
             func(
-                din=v0,
+                din=dout,
                 coll=coll,
-                key=key,
+                ids=ids,
+                prefix=prefix,
+                dshort=dshort,
+                strict=strict,
             )
 
     return coll
@@ -79,8 +86,23 @@ def load_from_omas(
 def _check(
     pfe=None,
     coll=None,
-    key=None,
+    prefix=None,
+    dshort=None,
 ):
+
+    # -------------
+    # dshort
+    # -------------
+
+    if dshort is None:
+        dshort = _ddef.get_dshort()
+
+    if not isinstance(dshort, dict):
+        msg = (
+            "Arg dshort must be a dict\n"
+            f"Provided:\n{dshort}\n"
+        )
+        raise Exception(msg)
 
     # --------------
     # pfe
@@ -110,17 +132,17 @@ def _check(
             raise Exception(msg)
 
     # --------------
-    # key
+    # prefix
     # --------------
 
-    if key is None:
-        key = os.path.split(pfe)[1].strip('.json')
+    if prefix is None:
+        prefix = os.path.split(pfe)[1].strip('.json')
 
-    if not isinstance(key, str):
-        msg = f"Arg key must be a str!\nProvided: {key}\n"
+    if not isinstance(prefix, str):
+        msg = f"Arg key must be a str!\nProvided: {prefix}\n"
         raise Exception(msg)
 
-    return pfe, coll, key
+    return pfe, coll, prefix, dshort
 
 
 # ###########################################################

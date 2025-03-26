@@ -1,6 +1,10 @@
 
 
+import numpy as np
 import datastock as ds
+
+
+from . import _ddef
 
 
 # ############################################
@@ -16,7 +20,17 @@ def _make_key(
     sep="_",
 ):
 
-    return sep.join([prefix, ids, short]).strip(sep)
+    # -----------
+    # check
+
+    if prefix in [None, False]:
+        prefix = ''
+
+    if not isinstance(prefix, str):
+        msg = f"Arg prefix must be a str!\nProvided: {prefix}"
+        raise Exception(msg)
+
+    return sep.join([prefix, _ddef._DIDS[ids], short]).strip(sep)
 
 
 # ############################################
@@ -27,19 +41,20 @@ def _make_key(
 
 def _get_short(
     din=None,
+    ids=None,
     short=None,
-    ddef=None,
+    dshort=None,
     strict=None,
+    prefix=None,
 ):
 
     # ------------
     # check inputs
     # ------------
 
-    short, ddef, strict = _check(
+    short, strict = _check(
         din=din,
         short=short,
-        ddef=ddef,
         strict=strict,
     )
 
@@ -49,20 +64,79 @@ def _get_short(
 
     try:
 
-        out = _short(din, ddef[short])
+        # -----------
+        # ddata
 
-        dout = {
-            'data': out,
-            'units': ddef[short]['units'],
+        out = _short(din[ids], dshort[ids][short]['long'])
+
+        # key
+        key = _make_key(
+            prefix=prefix,
+            ids=ids,
+            short=short,
+        )
+
+        # ref
+        if 'ref' in dshort[ids][short].keys():
+            ref = tuple([
+                rr if rr == 'im2d'
+                else _make_key(
+                    prefix=prefix,
+                    ids=ids,
+                    short=rr,
+                )
+                for rr in dshort[ids][short]['ref']
+            ])
+        else:
+            ref = None
+
+        # ddata
+        ddata = {
+            short: {
+                'key': key,
+                'data': out,
+                'units': dshort[ids][short]['units'],
+                'ref': ref,
+            }
         }
 
+        # ----------
+        # dref
+
+        if dshort[ids][short].get('ref0') is not None:
+
+            # key of ref
+            kref = _make_key(
+                prefix=prefix,
+                ids=ids,
+                short=dshort[ids][short]['ref0'],
+            )
+
+            # supposed to be an array
+            out = np.array(out)
+            assert out.ndim == 1
+
+            # dref
+            dref = {kref: {'key': kref, 'size': out.size}}
+            ddata[short]['ref'] = kref
+
+        else:
+            dref = None
+
     except Exception as err:
+
         if strict is True:
             raise err
         else:
-            return err
+            return err, None
 
-    return dout
+    return ddata, dref
+
+
+# ############################################
+# ############################################
+#             Elementary
+# ############################################
 
 
 def _short(din=None, elem=None):
@@ -79,7 +153,8 @@ def _short(din=None, elem=None):
     # ---------------
 
     if '.' in elem:
-        e0, e1 = elem[:elem.index('.')]
+        ind = elem.index('.')
+        e0, e1 = elem[:ind], elem[ind+1:]
     else:
         e0, e1 = elem, None
 
@@ -88,9 +163,16 @@ def _short(din=None, elem=None):
     # ---------------
 
     if '[' in e0:
-        ee = e0[:e0.index['[']]
-        nn = len(din[ee])
-        out = [_short(din[ee][ii], e1) for ii in range(nn)]
+        i0 = e0.index('[')
+        i1 = e0.index(']')
+        ee = e0[:i0]
+        rin = e0[i0+1:i1]
+
+        if rin in ['im2d']:
+            out = _short(din[ee][0], e1)
+        else:
+            nn = len(din[ee])
+            out = np.array([_short(din[ee][ii], e1) for ii in range(nn)])
 
     else:
         out = _short(din[e0], e1)
@@ -107,7 +189,6 @@ def _short(din=None, elem=None):
 def _check(
     din=None,
     short=None,
-    ddef=None,
     strict=None,
 ):
 
@@ -137,10 +218,10 @@ def _check(
     # strict
     # -------------
 
-    strict = ds._generic._check_var(
+    strict = ds._generic_check._check_var(
         strict, 'strict',
         types=bool,
         default=False,
     )
 
-    return short, ddef, strict
+    return short, strict

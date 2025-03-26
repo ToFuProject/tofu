@@ -3,7 +3,6 @@
 import numpy as np
 
 
-from . import _ddef
 from . import _utils
 
 
@@ -11,20 +10,6 @@ from . import _utils
 # ###########################################################
 #              DEFAULTS
 # ###########################################################
-
-
-_IDS = 'eq'
-
-
-_DIN = {
-    'time': {
-        'type': list,
-    },
-    'time_slice': {
-        'type': dict,
-        'len': 'time',
-    },
-}
 
 
 # ###########################################################
@@ -35,118 +20,268 @@ _DIN = {
 
 def main(
     din=None,
+    ids=None,
     coll=None,
     key=None,
     prefix=None,
+    dshort=None,
+    strict=None,
 ):
-    # ---------------
-    # check
-    # ---------------
 
-    if prefix is None:
-        prefix = ''
-    elif not isinstance(prefix, str):
-        msg = (
-            "Arg prefix must be a str!\n"
-            f"Provided: {prefix}\n"
-        )
-        raise Exception(msg)
+    # ------------------------
+    # data as ref0 first
+    # ------------------------
 
-    # ---------------
-    # time
-    # ---------------
+    lref0, dfail_ref0 = _add_ref0(
+        coll=coll,
+        din=din,
+        dshort=dshort,
+        ids=ids,
+        prefix=prefix,
+        strict=strict,
+    )
 
-    _get_time(coll)
+    # ------------------------
+    # data dependent only on ref0
+    # ------------------------
 
-    ref_nt = f"{key}_eq_nt"
-    coll.add_ref(ref_nt, size=len(din['time']))
+    dfail_data_ref0 = _add_data_ref0(
+        coll=coll,
+        din=din,
+        dshort=dshort,
+        ids=ids,
+        prefix=prefix,
+        strict=strict,
+        lref0=lref0,
+    )
 
-    kt = f"{key}_eq_t"
-    coll.add_data(kt, data=din['time'], units='s', ref=ref_nt)
+    # -----------------------------
+    # mesh 2d second
+    # -----------------------------
 
-    # ---------------
-    # 2d mesh
-    # ---------------
-
-    key_mesh = _add_mesh_2d(
+    dbsplines = _add_mesh_2d(
         din=din,
         coll=coll,
-        key=key,
+        ids=ids,
+        prefix=prefix,
+        # unused ?
+        dshort=dshort,
     )
+
+    print(coll)
 
     # ---------------
     # 2d data
     # ---------------
 
-    key_psi2d = _add_data_2d(
+    lk2d = _add_data_2d(
         din=din,
+        ids=ids,
         coll=coll,
-        key=key,
-        ref_nt=ref_nt,
-        key_mesh=key_mesh,
+        dshort=dshort,
+        prefix=prefix,
+        strict=strict,
+        # bsplines
+        dbsplines=dbsplines,
     )
 
     # -------------
     # add mesh 1d
     # -------------
 
-    key_mesh_1d = _add_mesh_1d(
-        din=din,
-        coll=coll,
-        key=key,
-        ref_nt=ref_nt,
-        key_mesh=key_mesh,
-        key_psi2d=key_psi2d,
-    )
+    # key_mesh_1d = _add_mesh_1d(
+        # din=din,
+        # coll=coll,
+        # key=key,
+        # ref_nt=ref_nt,
+        # key_mesh=key_mesh,
+        # key_psi2d=key_psi2d,
+    # )
 
     # -------------
     # add data 1d
     # -------------
 
-    _add_data_1d(
-        din=din,
-        coll=coll,
-        key=key,
-        ref_nt=ref_nt,
-        key_mesh=key_mesh,
-        key_mesh_1d=key_mesh_1d,
-    )
+    # _add_data_1d(
+        # din=din,
+        # coll=coll,
+        # key=key,
+        # ref_nt=ref_nt,
+        # key_mesh=key_mesh,
+        # key_mesh_1d=key_mesh_1d,
+    # )
 
     return
 
 
 # ###########################################################
 # ###########################################################
-#           Time
+#           Ref0
 # ###########################################################
 
 
-def _get_time(coll=None, din=None):
+def _add_ref0(
+    coll=None,
+    din=None,
+    dshort=None,
+    ids=None,
+    prefix=None,
+    strict=None,
+):
+
+    # --------------
+    # prepare
+    # --------------
+
+    # ex: time
+    lshortref = [
+        k0 for k0, v0 in dshort[ids].items()
+        if v0.get('ref0') is not None
+    ]
+
+    # initialize
+    ddata = {}
+    dref = {}
+    dfail = {}
 
     # --------------
     # must have
     # --------------
 
-    dout = _try_get(
-        din,
-        ddef['t'],
-        must_have=True,
-    )
+    lref0 = []
+    for k0 in lshortref:
+        ddatai, drefi = _utils._get_short(
+            din=din,
+            ids=ids,
+            short=k0,
+            dshort=dshort,
+            prefix=prefix,
+            strict=strict,
+        )
+
+        # -----
+        # store
+
+        if isinstance(ddatai, dict):
+            dref.update(drefi)
+            ddata.update(ddatai)
+            lref0.append(dshort[ids][k0]['ref0'])
+
+        else:
+            dfail[k0] = str(ddatai)
 
     # --------------
-    # add
+    # fail
     # --------------
 
-    # ref
-    reft = f"eq_nt"
-    coll.add_ref(reft, size=dout['t']['data'].size)
+    if len(dfail) > 0 and strict is True:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "IDS '{ids}', the following keys could not be loaded:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # --------------
+    # store
+    # --------------
+
+    # dref
+    for kr, vr in dref.items():
+        coll.add_ref(**vr)
 
     # data
-    kt = "eq_t"
-    coll.add_data()
+    lk = ['key', 'data', 'units', 'ref']
+    for kd, vd in ddata.items():
+        coll.add_data(
+            **{k0: v0 for k0, v0 in vd.items() if k0 in lk}
+        )
 
-    return
+    return lref0, dfail
 
+
+# ###########################################################
+# ###########################################################
+#           data ref0
+# ###########################################################
+
+
+def _add_data_ref0(
+    coll=None,
+    din=None,
+    dshort=None,
+    ids=None,
+    prefix=None,
+    strict=None,
+    lref0=None,
+):
+
+    # --------------
+    # prepare
+    # --------------
+
+    # ex: time
+    lshort = [
+        k0 for k0, v0 in dshort[ids].items()
+        if v0.get('ref0') is None
+        and v0.get('ref') is not None
+        and all([rr in lref0 for rr in v0['ref']])
+        and not '1d' in k0
+    ]
+
+    # initialize
+    ddata = {}
+    dref = {}
+    dfail = {}
+
+    # --------------
+    # must have
+    # --------------
+
+    for k0 in lshort:
+        ddatai, drefi = _utils._get_short(
+            din=din,
+            ids=ids,
+            short=k0,
+            dshort=dshort,
+            prefix=prefix,
+            strict=strict,
+        )
+
+        # -----
+        # store
+
+        if isinstance(ddatai, dict):
+            assert drefi is None
+            ddata.update(ddatai)
+
+        else:
+            dfail[k0] = str(ddatai)
+
+    # --------------
+    # fail
+    # --------------
+
+    if len(dfail) > 0 and strict is True:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "IDS '{ids}', the following keys could not be loaded:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # --------------
+    # store
+    # --------------
+
+    # data
+    lk = ['key', 'data', 'units', 'ref']
+    for kd, vd in ddata.items():
+        coll.add_data(
+            **{k0: v0 for k0, v0 in vd.items() if k0 in lk}
+        )
+
+    return dfail
 
 # ###########################################################
 # ###########################################################
@@ -157,36 +292,49 @@ def _get_time(coll=None, din=None):
 def _add_mesh_2d(
     din=None,
     coll=None,
-    key=None,
+    ids=None,
+    prefix=None,
+    # unused ?
+    dshort=None,
 ):
+    # ----------------
+    # initialize
+    # ----------------
 
-    mtype = din['time_slice'][0]['profiles_2d'][0]['grid_type']['name']
-    km = f"{key}_eq_m2d"
+    dbsplines = {}
 
-    # -------------
-    # rectangular
-    # -------------
+    # ----------------
+    # list of mesh 2d
+    # ----------------
 
-    if mtype == 'rectangular':
-        R = din['time_slice'][0]['profiles_2d'][0]['grid']['dim1']
-        Z = din['time_slice'][0]['profiles_2d'][0]['grid']['dim2']
+    if ids == 'equilibrium':
 
-        coll.add_mesh_2d_rect(
-            key=km,
-            knots0=R,
-            knots1=Z,
-            units='m',
-            deg=1,
-        )
+        p2d = din[ids]['time_slice'][0]['profiles_2d']
+        nmesh = len(p2d)
+        for im in range(nmesh):
+            mtype = p2d[im]['grid_type']['name']
 
-    # -------------
-    # others
-    # -------------
+            if mtype == 'rectangular':
+                R = p2d[im]['grid']['dim1']
+                Z = p2d[im]['grid']['dim2']
 
-    else:
-        raise NotImplementedError()
+                km = _utils._make_key(
+                    prefix=prefix,
+                    ids=ids,
+                    short=f'm2d{im}',
+                )
 
-    return km
+                coll.add_mesh_2d_rect(
+                    key=km,
+                    knots0=R,
+                    knots1=Z,
+                    units='m',
+                    deg=1,
+                )
+
+                dbsplines[im] = f"{km}_bs1"
+
+    return dbsplines
 
 
 # ###########################################################
@@ -197,55 +345,115 @@ def _add_mesh_2d(
 
 def _add_data_2d(
     din=None,
+    ids=None,
     coll=None,
-    key=None,
-    ref_nt=None,
-    key_mesh=None,
+    dshort=None,
+    prefix=None,
+    strict=None,
+    # bsplines
+    dbsplines=None,
 ):
 
+    # ------------------
+    # get list of data
+    # ------------------
+
+    if ids == 'equilibrium':
+        ldata_ind = [
+            k0 for k0, v0 in dshort[ids].items()
+            if '[im2d]' in v0['long']
+            and 'grid' not in dshort[ids][k0]['long']
+        ]
+
     # -------------
-    # psi2d
+    # loop on data
     # -------------
 
-    psi2d = np.array([
-        din['time_slice'][ii]['profiles_2d'][0]['psi']
-        for ii in range(coll.dref[ref_nt]['size'])
-    ])
+    lk2d = []
+    dfail = {}
+    for kd in ldata_ind:
+
+        ddatai, drefi = _utils._get_short(
+            din=din,
+            ids=ids,
+            short=kd,
+            dshort=dshort,
+            prefix=prefix,
+            strict=strict,
+        )
+
+        # ----------
+        # exception catching
+
+        if not isinstance(ddatai, dict):
+            dfail[kd] = ddatai
+            continue
+
+        # ------------
+        # safety check
+
+        c0 = (
+            drefi is None
+            and 'im2d' in ddatai[kd]['ref']
+        )
+        if not c0:
+            msg = (
+                "Inconsistent data from:\n"
+                f"\t- ids = {ids}\n"
+                f"\t- short = {kd}\n"
+                f"\t- drefi = {drefi}\n"
+                f"\t- ddatai[{kd}]['ref'] = {ddatai[kd]['ref']}\n"
+            )
+            raise Exception(msg)
+
+        ref = tuple([
+            dbsplines[0] if rr == 'im2d'
+            else rr for rr in ddatai[kd]['ref']
+        ])
+        ddatai[kd]['ref'] = ref
+
+        # -------------
+        # safety check on shape
+        # -------------
+
+        import pdb; pdb.set_trace()     # DB
+        kbs = f"{key_mesh}_bs1"
+        wbs = coll._which_bsplines
+        shape_bs = coll.dobj[wbs][kbs]['shape']
+        if psi2d.shape[1:] == shape_bs:
+            pass
+        elif psi2d.shape[1:] == shape_bs[::-1]:
+            psi2d = np.swapaxes(psi2d, 1, 2)
+        else:
+            msg = (
+                "2d data 'psi' has unknow shape vs bsplines!\n"
+                f"\t- psi2d.shape = {psi2d.shape}\n"
+                f"\t- coll.dobj[{wbs}][{kbs}]['shape'] = {shape_bs}\n"
+            )
+            raise Exception(msg)
+
+        # -------------
+        # store
+        # -------------
+
+        coll.add_data(**ddatai)
+
+        # store in list
+        lk2d.append(list(ddatai.keys())[0])
 
     # -------------
-    # safety check on shape
+    # dfail
     # -------------
 
-    kbs = f"{key_mesh}_bs1"
-    wbs = coll._which_bsplines
-    shape_bs = coll.dobj[wbs][kbs]['shape']
-    if psi2d.shape[1:] == shape_bs:
-        pass
-    elif psi2d.shape[1:] == shape_bs[::-1]:
-        psi2d = np.swapaxes(psi2d, 1, 2)
-    else:
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {str(v0)}" for k0, v0 in dfail.items()]
         msg = (
-            "2d data 'psi' has unknow shape vs bsplines!\n"
-            f"\t- psi2d.shape = {psi2d.shape}\n"
-            f"\t- coll.dobj[{wbs}][{kbs}]['shape'] = {shape_bs}\n"
+            "The following 2d data could not be loaded:\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 
-    # -------------
-    # safety check on shape
-    # -------------
-
-    key_psi2d = f"{key}_eq_psi2d"
-    coll.add_data(
-        key=key_psi2d,
-        data=psi2d,
-        ref=(ref_nt, kbs),
-        dim='mag flux',
-        name='psi',
-        units='Wb',
-    )
-
-    return key_psi2d
+    return lk2d
 
 
 # ###########################################################
