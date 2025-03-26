@@ -3,10 +3,17 @@
 import numpy as np
 
 
+from . import _ddef
+from . import _utils
+
+
 # ###########################################################
 # ###########################################################
 #              DEFAULTS
 # ###########################################################
+
+
+_IDS = 'eq'
 
 
 _DIN = {
@@ -30,11 +37,26 @@ def main(
     din=None,
     coll=None,
     key=None,
+    prefix=None,
 ):
+    # ---------------
+    # check
+    # ---------------
+
+    if prefix is None:
+        prefix = ''
+    elif not isinstance(prefix, str):
+        msg = (
+            "Arg prefix must be a str!\n"
+            f"Provided: {prefix}\n"
+        )
+        raise Exception(msg)
 
     # ---------------
     # time
     # ---------------
+
+    _get_time(coll)
 
     ref_nt = f"{key}_eq_nt"
     coll.add_ref(ref_nt, size=len(din['time']))
@@ -95,41 +117,33 @@ def main(
 
 # ###########################################################
 # ###########################################################
-#           Check
+#           Time
 # ###########################################################
 
 
-def _check(din):
+def _get_time(coll=None, din=None):
 
     # --------------
     # must have
     # --------------
 
-    dfail = {}
-    for k0, v0 in _DIN.items():
+    dout = _try_get(
+        din,
+        ddef['t'],
+        must_have=True,
+    )
 
-        # type
-        if not isinstance(din.get(k0), v0['type']):
-            dfail[k0] = f"Wrong type ({type(din.get(k0))} vs {v0['type']})"
-            continue
+    # --------------
+    # add
+    # --------------
 
-        # length
-        if v0['len'] is not None:
-            if isinstance(v0['len'], int):
-                ll = v0['len']
-            else:
-                ll = len(v0[v0['len']])
-            if len(din[k0]) != ll:
-                dfail[k0] = "Wrong length ({len(din[k0])} vs {ll})"
-                continue
+    # ref
+    reft = f"eq_nt"
+    coll.add_ref(reft, size=dout['t']['data'].size)
 
-    if len(dfail) > 0.:
-        lstr = [f"\t- {k0}: {v0}"for k0, v0 in dfail.items()]
-        msg = (
-            "subdict 'equilibrium' not valid from omas json file!\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
+    # data
+    kt = "eq_t"
+    coll.add_data()
 
     return
 
@@ -190,7 +204,7 @@ def _add_data_2d(
 ):
 
     # -------------
-    # psi
+    # psi2d
     # -------------
 
     psi2d = np.array([
@@ -198,11 +212,34 @@ def _add_data_2d(
         for ii in range(coll.dref[ref_nt]['size'])
     ])
 
+    # -------------
+    # safety check on shape
+    # -------------
+
+    kbs = f"{key_mesh}_bs1"
+    wbs = coll._which_bsplines
+    shape_bs = coll.dobj[wbs][kbs]['shape']
+    if psi2d.shape[1:] == shape_bs:
+        pass
+    elif psi2d.shape[1:] == shape_bs[::-1]:
+        psi2d = np.swapaxes(psi2d, 1, 2)
+    else:
+        msg = (
+            "2d data 'psi' has unknow shape vs bsplines!\n"
+            f"\t- psi2d.shape = {psi2d.shape}\n"
+            f"\t- coll.dobj[{wbs}][{kbs}]['shape'] = {shape_bs}\n"
+        )
+        raise Exception(msg)
+
+    # -------------
+    # safety check on shape
+    # -------------
+
     key_psi2d = f"{key}_eq_psi2d"
     coll.add_data(
         key=key_psi2d,
         data=psi2d,
-        ref=(ref_nt, f"{key_mesh}_bs1"),
+        ref=(ref_nt, kbs),
         dim='mag flux',
         name='psi',
         units='Wb',
