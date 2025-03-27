@@ -9,7 +9,7 @@ requires = [
 [project]
 name = "tofu"
 version = "1.8.5"
-description="A python library for Tomography for Fusion",
+description="A python library for Tomography for Fusion"
 readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
