@@ -1,6 +1,7 @@
 
 
 import warnings
+import itertools as itt
 
 
 import numpy as np
@@ -91,7 +92,7 @@ def main(
     # add mesh and data 1d
     # ---------------------
 
-    dfail_data1d, lk1d = _add_mesh_data_1d(
+    dfail_data1d = _add_mesh_data_1d(
         din=din,
         ids=ids,
         coll=coll,
@@ -107,7 +108,7 @@ def main(
     # warnings
     # -------------
 
-    dfail = dfail_ref0 | dfail_data_ref0 | dfail_data2d
+    dfail = dfail_ref0 | dfail_data_ref0 | dfail_data2d | dfail_data1d
     if warn is True and len(dfail) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
         msg = (
@@ -362,8 +363,8 @@ def _add_data_2d(
     # get list of data
     # ------------------
 
-    if ids == 'equilibrium':
-        ldata_ind = [
+    if ids in ['summary', 'equilibrium', 'core_profiles']:
+        ldata = [
             k0 for k0, v0 in dshort[ids].items()
             if '[im2d]' in v0['long']
             and 'grid' not in dshort[ids][k0]['long']
@@ -375,7 +376,7 @@ def _add_data_2d(
 
     lk2d = []
     dfail = {}
-    for kd in ldata_ind:
+    for kd in ldata:
 
         ddatai, drefi = _utils._get_short(
             din=din,
@@ -464,6 +465,28 @@ def _add_data_2d(
         lk2d.append(ddatai[kd]['key'])
 
     # -------------
+    # update ldata and complete
+    # -------------
+
+    ldata = [kk for kk in ldata if kk not in dfail.keys()]
+    lpsi = [kk for kk in ldata if 'psi' in kk]
+
+    # -----------------
+    # poloidal flux
+
+    if len(lpsi) > 0:
+
+        kpsin = [kk for kk in lpsi if kk.endswith('psin')]
+        if len(kpsin) == 0:
+            pass
+            # _add_psin_from_psi()
+
+        krhopn = [kk for kk in ldata if kk.endswith('rhopn')]
+        if len(krhopn) == 0:
+            pass
+            # _add_rhopn_from_psin()
+
+    # -------------
     # dfail
     # -------------
 
@@ -513,6 +536,14 @@ def _add_mesh_data_1d(
     ddata = {}
     axis = None
     shape = None
+
+    if len(ldata) == 0:
+        return dfail
+
+    # -------------
+    # loop on data
+    # -------------
+
     for kd in ldata:
 
         ddatai, drefi = _utils._get_short(
@@ -568,76 +599,26 @@ def _add_mesh_data_1d(
 
         ddata[kd] = ddatai[kd]
 
-    # ----------------
-    # identify mesh 1d
-    # ----------------
+    # update ldata
+    ldata = [kk for kk in ldata if kk in ddata.keys()]
 
-    sli = tuple([
-        slice(None) if ii == axis
-        else slice(0, 1, 1)
-        for ii in range(len(shape))
-    ])
+    # -------------------------------
+    # identify 1d knots and 2d subkey
+    # -------------------------------
 
-    l1d = [
-        k0 for k0, v0 in ddata.items()
-        if np.allclose(v0['data'], v0['data'][sli])
-    ]
-    if len(l1d) != 1:
-        msg = (
-            "No / multiple constant 1d mesh data identified:\n"
-            f"\t- ids = {ids}\n"
-            f"\t- l1d = {l1d}\n"
-        )
-        raise Exception(msg)
-
-    # ----------------
-    # add mesh 1d
-    # ----------------
-
-    k1d = l1d[0]
-    k2d = [kk for kk in lk2d if ddata[k1d]['name'] == coll.ddata[kk]['name']]
-    if len(k2d) > 1:
-        msg = (
-            "Several 2d data identified to match 1d mesh:\n"
-            "\t- ids = {ids}\n"
-            "\t- k1d = {k1d}\n"
-            "\t- k2d = {k2d}\n"
-        )
-        raise Exception(msg)
-
-    q1d = ddata[l1d[0]]['data'][sli].ravel()
-
-    # --------------------
-    # no match => add psin
-
-    if len(k2d) == 0:
-        sli1 = tuple([
-            slice(-1, None, 1) if ii == axis
-            else slice(None)
-            for ii in range(len(shape))
-        ])
-        lk2 = [kk for kk in lk2d if kk.endswith(k1d.replace('1d', '')[:-1])]
-        if len(lk2) != 1:
-            msg = "Unidentified 2d subkey"
-            raise Exception(msg)
-        k2d = lk2[0]
-        import pdb; pdb.set_trace()     # DB
-        sli1 = tuple([
-
-        ])
-        q2dn = coll.ddata[k2d]['data'] / q1d0[sli1]
-
-        coll.add_data(
-            key=f"{k2d}n",
-            data=q2dn,
-            ref=coll.ddata[k2d]['ref'],
-        )
-
-    else:
-        k2d = k2d[0]
+    k1d, q1d, k2d = _get_subkey(
+        coll=coll,
+        ids=ids,
+        shape=shape,
+        axis=axis,
+        ddata=ddata,
+        ldata=ldata,
+        lk2d=lk2d,
+    )
 
     # --------------------
     # add mesh
+    # --------------------
 
     km = _utils._make_key(
         prefix=prefix,
@@ -651,7 +632,7 @@ def _add_mesh_data_1d(
         knots=q1d,
         subkey=k2d,
         deg=1,
-        **{k0: ddata[l1d[0]].get(k0) for k0 in lk},
+        **{k0: ddata[k1d].get(k0) for k0 in lk},
     )
 
     kbs = f"{km}_bs1"
@@ -695,3 +676,106 @@ def _add_mesh_data_1d(
         raise Exception(msg)
 
     return dfail
+
+
+# ################################################################
+# ################################################################
+#        Identify subkey
+# ################################################################
+
+
+def _get_subkey(
+    coll=None,
+    ids=None,
+    shape=None,
+    axis=None,
+    ddata=None,
+    ldata=None,
+    lk2d=None,
+):
+
+    # ----------------
+    # identify mesh 1d
+    # ----------------
+
+    sli = tuple([
+        slice(None) if ii == axis
+        else slice(0, 1, 1)
+        for ii in range(len(shape))
+    ])
+
+    l1d = [
+        k0 for k0, v0 in ddata.items()
+        if np.allclose(v0['data'], v0['data'][sli])
+    ]
+    if len(l1d) != 1:
+        msg = (
+            "No / multiple constant 1d mesh data identified:\n"
+            f"\t- ids = {ids}\n"
+            f"\t- l1d = {l1d}\n"
+        )
+        raise Exception(msg)
+
+    k1d = l1d[0]
+    q1d = ddata[l1d[0]]['data'][sli].ravel()
+
+    # ------------------
+    # Identify 2d subkey
+    # ------------------
+
+    k2d = [kk for kk in lk2d if ddata[k1d]['name'] == coll.ddata[kk]['name']]
+    if len(k2d) > 1:
+        msg = (
+            "Several 2d data identified to match 1d mesh:\n"
+            "\t- ids = {ids}\n"
+            "\t- k1d = {k1d}\n"
+            "\t- k2d = {k2d}\n"
+        )
+        raise Exception(msg)
+
+    # --------------------
+    # no match => add psin
+    # --------------------
+
+    if len(k2d) == 0 and k1d[-1] == 'n':
+
+        # get k2
+        lk1 = [kk for kk in ldata if kk.endswith(k1d[:-1])]
+        lk2 = [kk for kk in lk2d if kk.endswith(k1d.replace('1d', '2d')[:-1])]
+        if len(lk1) != 1:
+            msg = f"Unidentified 1d base for 2d subkey: {lk1}"
+            raise Exception(msg)
+        if len(lk2) != 1:
+            msg = f"Unidentified 2d subkey: {lk2}"
+            raise Exception(msg)
+        k2d = lk2[0]
+
+        # slices
+        sli0 = tuple([
+            0 if ii == axis else slice(None) for ii in range(len(shape))
+        ])
+        sli1 = tuple([
+            -1 if ii == axis else slice(None) for ii in range(len(shape))
+        ])
+        sli2 = tuple(itt.chain.from_iterable([
+            [None, None] if ii == axis
+            else [slice(None)] for ii in range(len(shape))
+        ]))
+
+        # compute normalization
+        q1d0 = ddata[lk1[0]]['data'][sli0][sli2]
+        q1d1 = ddata[lk1[0]]['data'][sli1][sli2]
+        q2dn = (coll.ddata[k2d]['data'] - q1d0) / (q1d1 - q1d0)
+
+        # add data2d
+        k2dn = f"{k2d}n"
+        coll.add_data(
+            key=k2dn,
+            data=q2dn,
+            ref=coll.ddata[k2d]['ref'],
+        )
+
+    else:
+        k2dn = k2d[0]
+
+    return k1d, q1d, k2dn

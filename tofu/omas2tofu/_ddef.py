@@ -10,7 +10,9 @@ import copy
 
 
 _DIDS = {
+    "summary": 'sum',
     'equilibrium': 'eq',
+    'core_profiles': 'cprof',
 }
 
 
@@ -21,6 +23,33 @@ _DIDS = {
 
 
 _DSHORT = {
+
+    # ---------------
+    # summary
+    # ---------------
+
+    "summary": {
+
+        # -----------
+        # time traces
+
+        't': {
+            'dim': 'time',
+            'long': 'time',
+            'units': 's',
+            'ref0': 'nt',
+        },
+        'Q': {
+            'dim': 'gain',
+            'long': 'global_quantities.fusion_gain.value[nt]',
+            'units': None,
+        },
+        'H98': {
+            'dim': None,
+            'long': 'global_quantities.h_98.value[nt]',
+            'units': None,
+        },
+    },
 
     # ---------------
     # equilibrium
@@ -187,6 +216,105 @@ _DSHORT = {
             'dim': 'volume',
             'long': 'time_slice[nt].profiles_1d.volume[im1d]',
             'units': 'm3',
+        },
+    },
+
+    # ---------------
+    # core_profiles
+    # ---------------
+
+    "core_profiles": {
+
+        # -----------
+        # time traces
+
+        't': {
+            'dim': 'time',
+            'long': 'time',
+            'units': 's',
+            'ref0': 'nt',
+        },
+        'Vloop': {
+            'dim': 'voltage',
+            'name': 'Vloop',
+            'long': 'global_quantities.v_loop[nt]',
+            'units': 'V',
+        },
+        'TeVol': {
+            'dim': 'Te',
+            'name': 'Te',
+            'long': 'global_quantities.t_e_volume_average[nt]',
+            'units': 'eV',
+        },
+        'neVol': {
+            'dim': 'density',
+            'name': 'ne',
+            'long': 'global_quantities.n_e_volume_average[nt]',
+            'units': '1/m3',
+        },
+        'Ip': {
+            'dim': 'current',
+            'name': 'Ip',
+            'long': 'global_quantities.ip[nt]',
+            'units': 'A',
+        },
+        'betap': {
+            'dim': 'beta',
+            'name': 'betap',
+            'long': 'global_quantities.beta_pol[nt]',
+            'units': None,
+        },
+        'betat': {
+            'dim': 'beta',
+            'name': 'betat',
+            'long': 'global_quantities.beta_tor[nt]',
+            'units': None,
+        },
+        'betatn': {
+            'dim': 'beta',
+            'name': 'betatn',
+            'long': 'global_quantities.beta_tor_norm[nt]',
+            'units': None,
+        },
+        'Wdia': {
+            'dim': 'Energy',
+            'name': 'Wdia',
+            'long': 'global_quantities.energy_diamagnetic[nt]',
+            'units': 'J',
+        },
+
+        # -----------
+        # profiles 1d
+
+        '1dpsi': {
+            'dim': 'B flux',
+            'name': 'psi',
+            'long': 'profiles_1d[nt].grid.psi[im1d]',
+            'units': 'Wb',
+        },
+        '1dphi': {
+            'dim': 'B flux',
+            'name': 'phi',
+            'long': 'profiles_1d[nt].grid.phi[im1d]',
+            'units': 'Wb',
+        },
+        '1drhotn': {
+            'dim': 'rho',
+            'name': 'rhotn',
+            'long': 'profiles_1d[nt].grid.rho_tor_norm[im1d]',
+            'units': None,
+        },
+        '1drhopn': {
+            'dim': 'rho',
+            'name': 'rhopn',
+            'long': 'profiles_1d[nt].grid.rho_pol_norm[im1d]',
+            'units': None,
+        },
+        '1dV': {
+            'dim': 'rho',
+            'name': 'rhopn',
+            'long': 'profiles_1d[nt].grid.rho_pol_norm[im1d]',
+            'units': None,
         },
     },
 }

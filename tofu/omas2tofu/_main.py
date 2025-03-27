@@ -18,11 +18,18 @@ from . import _equilibrium
 # ################################################
 
 
+_IDS_ORDER = [
+    'summary',
+    'equilibrium',
+    # 'core_profiles',
+]
+
+
 _DEXTRACT = {
+    'summary': _equilibrium.main,
     'equilibrium': _equilibrium.main,
-    # 'core_profiles': None,
+    'core_profiles': _equilibrium.main,
     # 'pulse_schedule': None,
-    # 'summary': None,
 }
 
 
@@ -67,7 +74,8 @@ def load_from_omas(
     # extract data to coll
     # -------------
 
-    for ids, din in dout.items():
+    ids_order = [ids for ids in _IDS_ORDER if ids in dout.keys()]
+    for ids in ids_order:
         func = _DEXTRACT.get(ids)
         if func is not None:
             func(
