@@ -4759,7 +4759,7 @@ class Rays(utils.ToFuObject):
         # Add 'compute' parameter if not present
         if "compute" not in config._dextraprop["lprop"]:
             config = config.copy()
-            config.add_extraprop("compute", True)
+            config.add_extraprop("compute", config.get_visible())
         return config
 
     def _checkformat_inputs_dsino(self, RefPt=None):
