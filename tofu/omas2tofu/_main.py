@@ -123,16 +123,18 @@ def _check(
     # pfe
     # --------------
 
-    c0 = (
-        os.path.isfile(pfe)
-        and pfe.endswith('.json')
-    )
-    if not c0:
-        msg = (
-            "Arg 'pfe' must be a path/file.ext to a valid json file!\n"
-            f"Provided:\n{pfe}\n"
+    if not isinstance(pfe, dict):
+        c0 = (
+            isinstance(pfe, str)
+            and os.path.isfile(pfe)
+            and pfe.endswith('.json')
         )
-        raise Exception(msg)
+        if not c0:
+            msg = (
+                "Arg 'pfe' must be a path/file.ext to a valid json file!\n"
+                f"Provided:\n{pfe}\n"
+            )
+            raise Exception(msg)
 
     # --------------
     # coll
@@ -151,7 +153,10 @@ def _check(
     # --------------
 
     if prefix is None:
-        prefix = os.path.split(pfe)[1].strip('.json')
+        if isinstance(pfe, str):
+            prefix = os.path.split(pfe)[1].strip('.json')
+        else:
+            prefix = ''
 
     if not isinstance(prefix, str):
         msg = f"Arg key must be a str!\nProvided: {prefix}\n"
@@ -186,8 +191,11 @@ def _load_json(
     # load
     # --------------
 
-    with open(pfe) as ff:
-        dout = json.load(ff)
+    if isinstance(pfe, str):
+        with open(pfe) as ff:
+            dout = json.load(ff)
+    else:
+        dout = pfe
 
     # --------------
     # basic checks on content
