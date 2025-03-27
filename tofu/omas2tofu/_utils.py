@@ -95,8 +95,11 @@ def _get_short(
             short: {
                 'key': key,
                 'data': out,
-                'units': dshort[ids][short]['units'],
                 'ref': ref,
+                'units': dshort[ids][short].get('units'),
+                'dim': dshort[ids][short].get('dim'),
+                'quant': dshort[ids][short].get('quant'),
+                'name': dshort[ids][short].get('name'),
             }
         }
 

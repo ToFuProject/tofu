@@ -1,5 +1,8 @@
 
 
+import warnings
+
+
 import numpy as np
 
 
@@ -26,6 +29,7 @@ def main(
     prefix=None,
     dshort=None,
     strict=None,
+    warn=None,
 ):
 
     # ------------------------
@@ -68,13 +72,11 @@ def main(
         dshort=dshort,
     )
 
-    print(coll)
-
     # ---------------
     # 2d data
     # ---------------
 
-    lk2d = _add_data_2d(
+    dfail_data2d, lk2d = _add_data_2d(
         din=din,
         ids=ids,
         coll=coll,
@@ -85,31 +87,35 @@ def main(
         dbsplines=dbsplines,
     )
 
+    # ---------------------
+    # add mesh and data 1d
+    # ---------------------
+
+    dfail_data1d, lk1d = _add_mesh_data_1d(
+        din=din,
+        ids=ids,
+        coll=coll,
+        dshort=dshort,
+        prefix=prefix,
+        strict=strict,
+        # bsplines
+        dbsplines=dbsplines,
+        lk2d=lk2d,
+    )
+
     # -------------
-    # add mesh 1d
+    # warnings
     # -------------
 
-    # key_mesh_1d = _add_mesh_1d(
-        # din=din,
-        # coll=coll,
-        # key=key,
-        # ref_nt=ref_nt,
-        # key_mesh=key_mesh,
-        # key_psi2d=key_psi2d,
-    # )
-
-    # -------------
-    # add data 1d
-    # -------------
-
-    # _add_data_1d(
-        # din=din,
-        # coll=coll,
-        # key=key,
-        # ref_nt=ref_nt,
-        # key_mesh=key_mesh,
-        # key_mesh_1d=key_mesh_1d,
-    # )
+    dfail = dfail_ref0 | dfail_data_ref0 | dfail_data2d
+    if warn is True and len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "The following data could not be loaded:\n"
+            f"From ids = {ids}\n"
+            + "\n".join(lstr)
+        )
+        warnings.warn(msg)
 
     return
 
@@ -226,12 +232,10 @@ def _add_data_ref0(
         if v0.get('ref0') is None
         and v0.get('ref') is not None
         and all([rr in lref0 for rr in v0['ref']])
-        and not '1d' in k0
     ]
 
     # initialize
     ddata = {}
-    dref = {}
     dfail = {}
 
     # --------------
@@ -406,28 +410,46 @@ def _add_data_2d(
             )
             raise Exception(msg)
 
+        # ----------
+        # ref
+
+        kbs = dbsplines[0]
+
         ref = tuple([
-            dbsplines[0] if rr == 'im2d'
+            kbs if rr == 'im2d'
             else rr for rr in ddatai[kd]['ref']
         ])
         ddatai[kd]['ref'] = ref
+
+        axis = ref.index(kbs)
 
         # -------------
         # safety check on shape
         # -------------
 
-        import pdb; pdb.set_trace()     # DB
-        kbs = f"{key_mesh}_bs1"
         wbs = coll._which_bsplines
         shape_bs = coll.dobj[wbs][kbs]['shape']
-        if psi2d.shape[1:] == shape_bs:
+        shape = ddatai[kd]['data'].shape
+
+        if shape[axis:axis+len(shape_bs)] == shape_bs:
             pass
-        elif psi2d.shape[1:] == shape_bs[::-1]:
-            psi2d = np.swapaxes(psi2d, 1, 2)
+
+        elif shape[axis:axis+len(shape_bs)] == shape_bs[::-1]:
+            assert len(shape_bs) == 2
+            ddatai[kd]['data'] = np.swapaxes(
+                ddatai[kd]['data'],
+                axis,
+                axis + 1,
+            )
+
         else:
             msg = (
-                "2d data 'psi' has unknow shape vs bsplines!\n"
-                f"\t- psi2d.shape = {psi2d.shape}\n"
+                "2d data has unknow shape vs bsplines!\n"
+                f"\t- ids = {ids}\n"
+                f"\t- short = {kd}\n"
+                f"\t- ref = {ref}\n"
+                f"\t- kbs = {kbs}\n"
+                f"\t- shape = {shape}\n"
                 f"\t- coll.dobj[{wbs}][{kbs}]['shape'] = {shape_bs}\n"
             )
             raise Exception(msg)
@@ -436,16 +458,16 @@ def _add_data_2d(
         # store
         # -------------
 
-        coll.add_data(**ddatai)
+        coll.add_data(**ddatai[kd])
 
         # store in list
-        lk2d.append(list(ddatai.keys())[0])
+        lk2d.append(ddatai[kd]['key'])
 
     # -------------
     # dfail
     # -------------
 
-    if len(dfail) > 0:
+    if len(dfail) > 0 and strict is True:
         lstr = [f"\t- {k0}: {str(v0)}" for k0, v0 in dfail.items()]
         msg = (
             "The following 2d data could not be loaded:\n"
@@ -453,7 +475,7 @@ def _add_data_2d(
         )
         raise Exception(msg)
 
-    return lk2d
+    return dfail, lk2d
 
 
 # ###########################################################
@@ -462,134 +484,214 @@ def _add_data_2d(
 # ###########################################################
 
 
-def _add_mesh_1d(
+def _add_mesh_data_1d(
     din=None,
+    ids=None,
     coll=None,
-    key=None,
-    ref_nt=None,
-    key_mesh=None,
-    key_psi2d=None,
+    dshort=None,
+    prefix=None,
+    strict=None,
+    # bsplines
+    dbsplines=None,
+    lk2d=None,
 ):
 
-    # ---------------
-    # safety check
-    # ---------------
+    # ------------------
+    # get list of data
+    # ------------------
 
-    npsi = np.array([
-        len(din['time_slice'][ii]['profiles_1d']['psi_norm'])
-        for ii in range(coll.dref[ref_nt]['size'])
+    ldata = [
+        k0 for k0, v0 in dshort[ids].items()
+        if '[im1d]' in v0['long']
+    ]
+
+    # -------------
+    # loop on data
+    # -------------
+
+    dfail = {}
+    ddata = {}
+    axis = None
+    shape = None
+    for kd in ldata:
+
+        ddatai, drefi = _utils._get_short(
+            din=din,
+            ids=ids,
+            short=kd,
+            dshort=dshort,
+            prefix=prefix,
+            strict=strict,
+        )
+
+        # ----------
+        # exception catching
+
+        if not isinstance(ddatai, dict):
+            dfail[kd] = ddatai
+            continue
+
+        # ------------
+        # safety check
+
+        c0 = (
+            drefi is None
+            and np.sum(['im1d' in rr for rr in ddatai[kd]['ref']])
+        )
+        if not c0:
+            msg = (
+                "Inconsistent data from:\n"
+                f"\t- ids = {ids}\n"
+                f"\t- short = {kd}\n"
+                f"\t- drefi = {drefi}\n"
+                f"\t- ddatai[{kd}]['ref'] = {ddatai[kd]['ref']}\n"
+            )
+            raise Exception(msg)
+
+        # shape
+        shapei = ddatai[kd]['data'].shape
+        if shape is None:
+            shape = shapei
+        else:
+            assert shapei == shape
+
+        # axis
+        r1d = [rr for rr in ddatai[kd]['ref'] if 'm1d' in rr][0]
+        axisi = ddatai[kd]['ref'].index(r1d)
+        if axis is None:
+            axis = axisi
+        else:
+            assert axis == axisi
+
+        # ------------------
+        # aggregate to ddata
+
+        ddata[kd] = ddatai[kd]
+
+    # ----------------
+    # identify mesh 1d
+    # ----------------
+
+    sli = tuple([
+        slice(None) if ii == axis
+        else slice(0, 1, 1)
+        for ii in range(len(shape))
     ])
-    if not np.all(npsi == npsi[0]):
+
+    l1d = [
+        k0 for k0, v0 in ddata.items()
+        if np.allclose(v0['data'], v0['data'][sli])
+    ]
+    if len(l1d) != 1:
         msg = (
-            "size of profiles_1d['psi_norm'] is not homogeneous in time!\n"
-            f"npsi = {npsi}\n"
+            "No / multiple constant 1d mesh data identified:\n"
+            f"\t- ids = {ids}\n"
+            f"\t- l1d = {l1d}\n"
         )
         raise Exception(msg)
 
-    lpsin = np.array([
-        din['time_slice'][ii]['profiles_1d']['psi_norm']
-        for ii in range(coll.dref[ref_nt]['size'])
-    ])
-    if not np.allclose(lpsin, lpsin[0:1, :]):
+    # ----------------
+    # add mesh 1d
+    # ----------------
+
+    k1d = l1d[0]
+    k2d = [kk for kk in lk2d if ddata[k1d]['name'] == coll.ddata[kk]['name']]
+    if len(k2d) > 1:
         msg = (
-            "Values of profiles_1d['psi'] is not homogeneous in time!\n"
-            f"{lpsin}\n"
+            "Several 2d data identified to match 1d mesh:\n"
+            "\t- ids = {ids}\n"
+            "\t- k1d = {k1d}\n"
+            "\t- k2d = {k2d}\n"
         )
         raise Exception(msg)
 
-    psin1d = lpsin[0, :]
+    q1d = ddata[l1d[0]]['data'][sli].ravel()
 
-    # ---------------
-    # add psin2d
-    # ---------------
+    # --------------------
+    # no match => add psin
 
-    psi = np.array([
-        din['time_slice'][ii]['profiles_1d']['psi']
-        for ii in range(coll.dref[ref_nt]['size'])
-    ])
-    psi0 = psi[:, 0][:, None, None]
-    psi1 = psi[:, -1][:, None, None]
-
-    psi2d = coll.ddata[key_psi2d]['data']
-    psin2d = (psi2d - psi0) / (psi1 - psi0)
-
-    kpsin2d = f"{key}_eq_psin2d"
-    coll.add_data(
-        kpsin2d,
-        data=psin2d,
-        units=None,
-        dim='mag flux norm',
-        name='psin',
-        ref=coll.ddata[key_psi2d]['ref'],
-    )
-
-    # ---------------
-    # psi
-    # ---------------
-
-    key_mesh_1d = f"{key}_eq_m1d"
-    coll.add_mesh_1d(
-        key=key_mesh_1d,
-        knots=psin1d,
-        dim='mag flux norm',
-        name='psin',
-        units=None,
-        subkey=kpsin2d,
-        deg=1,
-    )
-
-    return key_mesh_1d
-
-
-# ###########################################################
-# ###########################################################
-#       data 1d
-# ###########################################################
-
-
-def _add_data_1d(
-    din=None,
-    coll=None,
-    key=None,
-    ref_nt=None,
-    key_mesh=None,
-    key_mesh_1d=None,
-):
-
-    dk = {
-        'dpressure_dpsi': {'dpdpsi': 'Pa/Wb'},
-        'dvolume_dpsi': {'dVdpsi': 'm3/Wb'},
-        'elongation': {'kappa': None},
-        # 'geometric_axis': {'geomAx': 'm'},
-        'j_tor': {'jtor': 'A/m2'},
-        'pressure': {'p': 'Pa'},
-        'psi': {'psi': 'Wb'},
-        'q': {'q': None},
-        'r_inboard': {'rin': 'm'},
-        'r_outboard': {'rout': 'm'},
-        'rho_tor': {'rhot': None},
-        'rho_tor_norm': {'rhotn': None},
-        'surface': {'S': 'm2'},
-        'triangularity_lower': {'triangLow': None},
-        'triangularity_upper': {'triangUp': None},
-        'volume': {'V': 'm3'},
-    }
-
-    kbs1d = f"{key_mesh_1d}_bs1"
-    for ii, (k0, v0) in enumerate(dk.items()):
-
-        data = np.array([
-            din['time_slice'][ii]['profiles_1d'][k0]
-            for ii in range(coll.dref[ref_nt]['size'])
+    if len(k2d) == 0:
+        sli1 = tuple([
+            slice(-1, None, 1) if ii == axis
+            else slice(None)
+            for ii in range(len(shape))
         ])
+        lk2 = [kk for kk in lk2d if kk.endswith(k1d.replace('1d', '')[:-1])]
+        if len(lk2) != 1:
+            msg = "Unidentified 2d subkey"
+            raise Exception(msg)
+        k2d = lk2[0]
+        import pdb; pdb.set_trace()     # DB
+        sli1 = tuple([
 
-        k1 = list(v0.keys())[0]
-        keyi = f"{key}_eq_{k1}"
+        ])
+        q2dn = coll.ddata[k2d]['data'] / q1d0[sli1]
+
         coll.add_data(
-            key=keyi,
-            data=data,
-            units=v0[k1],
-            ref=(ref_nt, kbs1d),
+            key=f"{k2d}n",
+            data=q2dn,
+            ref=coll.ddata[k2d]['ref'],
         )
 
-    return
+    else:
+        k2d = k2d[0]
+
+    # --------------------
+    # add mesh
+
+    km = _utils._make_key(
+        prefix=prefix,
+        ids=ids,
+        short='m1d',
+    )
+
+    lk = ['dim', 'quant', 'name', 'units']
+    coll.add_mesh_1d(
+        key=km,
+        knots=q1d,
+        subkey=k2d,
+        deg=1,
+        **{k0: ddata[l1d[0]].get(k0) for k0 in lk},
+    )
+
+    kbs = f"{km}_bs1"
+
+    # ----------------
+    # add data 1d
+    # ----------------
+
+    for kd in ldata:
+
+        if kd == k1d:
+            continue
+
+        # ----------
+        # ref
+
+        ref = tuple([
+            kbs if 'im1d' in rr
+            else rr for rr in ddata[kd]['ref']
+        ])
+        ddata[kd]['ref'] = ref
+
+        axis = ref.index(kbs)
+
+        # -------------
+        # store
+        # -------------
+
+        coll.add_data(**ddata[kd])
+
+    # -------------
+    # dfail
+    # -------------
+
+    if len(dfail) > 0 and strict is True:
+        lstr = [f"\t- {k0}: {str(v0)}" for k0, v0 in dfail.items()]
+        msg = (
+            "The following 1d data could not be loaded:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    return dfail

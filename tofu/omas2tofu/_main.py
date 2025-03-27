@@ -4,6 +4,9 @@ import os
 import json
 
 
+import datastock as ds
+
+
 from ..data import Collection
 from . import _ddef
 from . import _equilibrium
@@ -35,17 +38,19 @@ def load_from_omas(
     prefix=None,
     strict=None,
     dshort=None,
+    warn=None,
 ):
 
     # ------------
     # check inputs
     # ------------
 
-    pfe, coll, prefix, dshort = _check(
+    pfe, coll, prefix, dshort, warn = _check(
         pfe=pfe,
         coll=coll,
         prefix=prefix,
         dshort=dshort,
+        warn=warn,
     )
 
     # Collection
@@ -72,6 +77,7 @@ def load_from_omas(
                 prefix=prefix,
                 dshort=dshort,
                 strict=strict,
+                warn=warn,
             )
 
     return coll
@@ -88,6 +94,7 @@ def _check(
     coll=None,
     prefix=None,
     dshort=None,
+    warn=None,
 ):
 
     # -------------
@@ -142,7 +149,17 @@ def _check(
         msg = f"Arg key must be a str!\nProvided: {prefix}\n"
         raise Exception(msg)
 
-    return pfe, coll, prefix, dshort
+    # --------------
+    # warn
+    # --------------
+
+    warn = ds._generic_check._check_var(
+        warn, 'warn',
+        types=bool,
+        default=True,
+    )
+
+    return pfe, coll, prefix, dshort, warn
 
 
 # ###########################################################

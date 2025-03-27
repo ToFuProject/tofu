@@ -64,26 +64,31 @@ _DSHORT = {
 
         '2dpsi': {
             'dim': 'B flux',
+            'name': 'psi',
             'long': 'time_slice[nt].profiles_2d[im2d].psi',
             'units': 'Wb',
         },
         '2dphi': {
             'dim': 'B flux',
+            'name': 'phi',
             'long': 'time_slice[nt].profiles_2d[im2d].phi',
             'units': 'Wb',
         },
         '2dBR': {
             'dim': 'B',
+            'name': 'BR',
             'long': 'time_slice[nt].profiles_2d[im2d].b_field_r',
             'units': 'T',
         },
         '2dBZ': {
             'dim': 'B',
+            'name': 'BZ',
             'long': 'time_slice[nt].profiles_2d[im2d].b_field_z',
             'units': 'T',
         },
         '2dBphi': {
             'dim': 'B',
+            'name': 'Btor',
             'long': 'time_slice[nt].profiles_2d[im2d].b_field_tor',
             'units': 'T',
         },
@@ -93,84 +98,94 @@ _DSHORT = {
 
         '1ddpdpsi': {
             'dim': 'p / flux',
-            'long': 'time_slice[nt].profiles_1d.dpressure_dpsi',
+            'long': 'time_slice[nt].profiles_1d.dpressure_dpsi[im1d]',
             'units': 'Pa/Wb',
         },
         '1ddVdpsi': {
             'dim': 'vol / flux',
-            'long': 'time_slice[nt].profiles_1d.dvolume_dpsi',
+            'long': 'time_slice[nt].profiles_1d.dvolume_dpsi[im1d]',
             'units': 'm3/Wb',
         },
         '1dkappa': {
             'dim': 'adim',
-            'long': 'time_slice[nt].profiles_1d.elongation',
+            'long': 'time_slice[nt].profiles_1d.elongation[im1d]',
             'units': None,
         },
         '1djtor': {
             'dim': 'current density',
-            'long': 'time_slice[nt].profiles_1d.j_tor',
+            'long': 'time_slice[nt].profiles_1d.j_tor[im1d]',
             'units': 'A/m2',
         },
         '1dp': {
             'dim': 'pressure',
-            'long': 'time_slice[nt].profiles_1d.pressure',
+            'long': 'time_slice[nt].profiles_1d.pressure[im1d]',
             'units': 'Pa',
         },
         '1dpsi': {
             'dim': 'B flux',
-            'long': 'time_slice[nt].profiles_1d.psi',
+            'name': 'psi',
+            'long': 'time_slice[nt].profiles_1d.psi[im1d]',
+            'units': 'Wb',
+        },
+        '1dpsin': {
+            'dim': 'B flux norm',
+            'name': 'psin',
+            'long': 'time_slice[nt].profiles_1d.psi_norm[im1d]',
+            'units': None,
+        },
+        '1dphi': {
+            'dim': 'B flux',
+            'name': 'phi',
+            'long': 'time_slice[nt].profiles_1d.phi[im1d]',
             'units': 'Wb',
         },
         '1dq': {
             'dim': 'q',
-            'long': 'time_slice[nt].profiles_1d.q',
+            'long': 'time_slice[nt].profiles_1d.q[im1d]',
             'units': None,
         },
         '1drin': {
             'dim': 'distance',
             'description': 'LCFS major radius, inboard',
-            'long': 'time_slice[nt].profiles_1d.r_inboard',
+            'long': 'time_slice[nt].profiles_1d.r_inboard[im1d]',
             'units': 'm',
         },
         '1drout': {
             'dim': 'distance',
             'description': 'LCFS major radius, outboard',
-            'long': 'time_slice[nt].profiles_1d.r_outboard',
+            'long': 'time_slice[nt].profiles_1d.r_outboard[im1d]',
             'units': 'm',
         },
         '1drhot': {
             'dim': 'rho',
-            'long': 'time_slice[nt].profiles_1d.rho_tor',
+            'name': 'rhot',
+            'long': 'time_slice[nt].profiles_1d.rho_tor[im1d]',
             'units': None,
         },
         '1drhotn': {
             'dim': 'rho',
-            'long': 'time_slice[nt].profiles_1d.rho_tor_norm',
+            'name': 'rhotn',
+            'long': 'time_slice[nt].profiles_1d.rho_tor_norm[im1d]',
             'units': None,
-        },
-        '1d': {
-            'dim': '',
-            'long': 'time_slice[nt].profiles_1d.',
-            'units': '',
         },
         '1dS': {
             'dim': 'surface',
-            'long': 'time_slice[nt].profiles_1d.surface',
+            'long': 'time_slice[nt].profiles_1d.surface[im1d]',
             'units': 'm2',
         },
         '1dtrianglow': {
             'dim': 'triangularity',
-            'long': 'time_slice[nt].profiles_1d.triangularity_lower',
+            'long': 'time_slice[nt].profiles_1d.triangularity_lower[im1d]',
             'units': None,
         },
         '1dtriangup': {
             'dim': 'triangularity',
-            'long': 'time_slice[nt].profiles_1d.triangularity_upper',
+            'long': 'time_slice[nt].profiles_1d.triangularity_upper[im1d]',
             'units': None,
         },
         '1dV': {
             'dim': 'volume',
-            'long': 'time_slice[nt].profiles_1d.volume',
+            'long': 'time_slice[nt].profiles_1d.volume[im1d]',
             'units': 'm3',
         },
     },
@@ -234,9 +249,7 @@ def get_dshort():
                 if kr.isnumeric():
                     continue
 
-                if kr in lref0:
-                    ref.append(kr)
-                elif kr == 'im2d':
+                if kr in lref0 + ['im1d', 'im2d']:
                     ref.append(kr)
 
                 ss = ss[ss.index(']')+1:]
