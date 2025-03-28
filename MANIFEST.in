@@ -7,6 +7,13 @@ include _updateversion.py
 recursive-include tofu/geom *.pxd
 recursive-include tofu/geom/inputs *.txt
 recursive-include tofu/spectro *.txt
+
+# physics
+tofu/physics_tools/runaways/emission/*.csv
+tofu/physics_tools/transmission/inputs_filter/*.txt
+tofu/physics_tools/transmission/inputs_filter/*.csv
+
+# tests data
 recursive-include tofu/tests/tests01_geom/test_data *.txt
 recursive-include tofu/tests/tests01_geom/test_data *.npz
 recursive-include tofu/tests/tests01_geom/test_data *.svg
