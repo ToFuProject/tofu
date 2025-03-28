@@ -436,12 +436,12 @@ def _check(
     if isinstance(margin_perp, (float, int)):
         margin_perp = [margin_perp, margin_perp]
 
-    margin_perp = float(ds._generic_check._check_flat1darray(
+    margin_perp = ds._generic_check._check_flat1darray(
         margin_perp, 'margin_perp',
-        dtype=(int, float),
+        dtype=float,
         size=2,
         sign='>=0',
-    ))
+    )
 
     # -----------
     # verb
@@ -710,11 +710,11 @@ def _spectro(
 
 def _plot(
     coll=None,
+    key_diag=None,
+    key_cam=None,
     # dout
     is2d=None,
     spectro=None,
-    key_diag=None,
-    key_cam=None,
     indch=None,
     indref=None,
     los_ref=None,
@@ -754,7 +754,7 @@ def _plot(
     (
         etend0, etend, etend_lamb,
         etend_plane0, etend_plane, etend_plane_lamb,
-        sli,
+        sli, axis,
         extent_cam, extent_plane,
         vmin_cam0, vmax_cam0,
         vmin_cam, vmax_cam,
@@ -788,7 +788,18 @@ def _plot(
         vmax_plane=vmax_plane,
     )
 
-    sang_plot = sang0['data'][sli].ravel()
+    # --------------
+    # prepare
+
+    ix1 = int(x1.size/2)
+    # sang_plot = sang0['data'][sli].ravel()
+    sang_tot_plot = np.sum(sang0['data'], axis=axis)
+
+    # tit
+    tit = (
+        "Solid angle subtended from points in the plasma by:\n"
+        f"{key_diag} - {key_cam}"
+    )
 
     # --------------
     # prepare
@@ -824,7 +835,7 @@ def _plot(
         ax.scatter(
             np.hypot(ptsx, ptsy).ravel(),
             ptsz.ravel(),
-            c=sang_plot,
+            c=sang_tot_plot,
             s=4,
             marker='.',
             vmin=vmin_plane,
@@ -848,7 +859,7 @@ def _plot(
         ax.scatter(
             ptsx.ravel(),
             ptsy.ravel(),
-            c=sang_plot,
+            c=sang_tot_plot,
             s=4,
             marker='.',
             vmin=vmin_plane,
@@ -873,7 +884,7 @@ def _plot(
             ptsx.ravel(),
             ptsy.ravel(),
             ptsz.ravel(),
-            c=sang0['data'][sli].ravel(),
+            c=sang_tot_plot,
             s=4,
             marker='.',
             vmin=vmin_plane,
@@ -919,6 +930,7 @@ def _plot(
                 lw=1.,
                 c='k',
                 marker='.',
+                label='Analytical',
             )
 
             # plane-specific etendue
@@ -928,6 +940,7 @@ def _plot(
                 lw=1.,
                 c='b',
                 marker='.',
+                label='Numerical',
             )
 
             # ref pixel
@@ -945,6 +958,8 @@ def _plot(
                 ls='--',
                 lw=1,
             )
+
+            ax.legend()
 
     kax = 'cam_etend0'
     if dax.get(kax) is not None:
@@ -1083,7 +1098,7 @@ def _plot(
 
         # ref pixel
         _add_marker(ax, indref, indplot)
-        plt.colorbar(im, ax=[ax, dax['cam_plane_lamb']['handle']])
+        plt.colorbar(im0, ax=[ax, dax['cam_plane_lamb']['handle']])
 
     kax = 'cam_diff_lamb'
     if dax.get(kax) is not None:
@@ -1114,7 +1129,8 @@ def _plot(
         ax = dax[kax]['handle']
 
         im = ax.imshow(
-            sang0['data'][sli].T,
+            sang_tot_plot.T,
+            # sang0['data'][sli].T,
             extent=extent_plane,
             origin='lower',
             interpolation='nearest',
@@ -1122,7 +1138,14 @@ def _plot(
             vmax=vmax_plane0,
         )
 
-        plt.colorbar(im, ax=ax, label='solid angle (sr)')
+        ax.axhline(x1[ix1], c='w', ls='--', lw=0.5)
+
+        plt.colorbar(
+            im,
+            ax=ax,
+            cax=dax.get('colorbar', {}).get('handle'),
+            label='solid angle (sr)',
+        )
 
     kax = 'plane'
     if dax.get(kax) is not None:
@@ -1138,6 +1161,18 @@ def _plot(
         )
 
         plt.colorbar(im, ax=ax, label='solid angle (sr)')
+
+    # -------------------------------------------
+    # slice through sang 2d map
+
+    kax = 'slice'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        ax.plot(
+            x0,
+            sang0['data'][..., ix1].T.reshape((x0.size, -1)),
+        )
 
     # ----------
     # diag geom
@@ -1163,6 +1198,15 @@ def _plot(
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
             plot_config.plot(lax=ax, proj=kax, dLeg=False)
+
+    # ------------
+    # figure title
+
+    list(dax.values())[0]['handle'].figure.suptitle(
+        tit,
+        size=14,
+        fontweight='bold',
+    )
 
     return dax
 
@@ -1244,8 +1288,10 @@ def _check_plot(
     if is2d:
         extent_cam = None
         sli = (indplot[0], indplot[1], slice(None), slice(None))
+        axis = (0, 1)
     else:
         sli = (indplot, slice(None), slice(None))
+        axis = 0
 
     # extent_plane
     dx0 = 0.5*(x0[1] - x0[0])
@@ -1315,7 +1361,7 @@ def _check_plot(
     return (
         etend0, etend, etend_lamb,
         etend_plane0, etend_plane, etend_plane_lamb,
-        sli,
+        sli, axis,
         extent_cam, extent_plane,
         vmin_cam0, vmax_cam0,
         vmin_cam, vmax_cam,
@@ -1337,13 +1383,13 @@ def _get_dax(
     # check
 
     if fs is None:
-        fs = (15, 9)
+        fs = (16, 10)
 
     dmargin = ds._generic_check._check_var(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.05, 'top': 0.95,
+            'bottom': 0.05, 'top': 0.92,
             'left': 0.05, 'right': 0.95,
             'wspace': 0.4, 'hspace': 0.5,
         },
@@ -1452,45 +1498,57 @@ def _get_dax(
         }
 
     else:
-        gs = gridspec.GridSpec(ncols=5, nrows=6, **dmargin)
+        nn = 4
+        gs = gridspec.GridSpec(ncols=5*nn+1, nrows=6, **dmargin)
 
         # --------
         # create
 
-        ax0 = fig.add_subplot(gs[:3, :2], aspect='equal', adjustable='datalim')
-        ax0.set_xlabel('X (m)')
-        ax0.set_ylabel('Y (m)')
+        ax0 = fig.add_subplot(gs[:3, :2*nn], aspect='equal', adjustable='datalim')
+        ax0.set_xlabel('X (m)', size=12, fontweight='bold')
+        ax0.set_ylabel('Y (m)', size=12, fontweight='bold')
 
-        ax1 = fig.add_subplot(gs[3:, :2], aspect='equal', adjustable='datalim')
-        ax1.set_xlabel('R (m)')
-        ax1.set_ylabel('Z (m)')
+        ax1 = fig.add_subplot(gs[3:, :2*nn], aspect='equal', adjustable='datalim')
+        ax1.set_xlabel('R (m)', size=12, fontweight='bold')
+        ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
 
-        ax2 = fig.add_subplot(gs[:2, 2:], projection='3d')
-        ax2.set_xlabel('X (m)')
-        ax2.set_ylabel('Y (m)')
-        ax2.set_ylabel('Z (m)')
+        ax2 = fig.add_subplot(gs[:2, 2*nn+1:3*nn+1], projection='3d')
+        ax2.set_xlabel('X (m)', size=12, fontweight='bold')
+        ax2.set_ylabel('Y (m)', size=12, fontweight='bold')
+        ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
 
         if is2d is True:
-            ax30 = fig.add_subplot(gs[2:4, 2], aspect='equal')
+            ax30 = fig.add_subplot(gs[2:4, 2*nn:3*nn], aspect='equal')
             ax30.set_ylabel('x1 (m)')
             ax30.set_xlabel('x0 (m)')
             ax30.set_title('integral', size=12, fontweight='bold')
 
-            ax31 = fig.add_subplot(gs[2:4, 3], sharex=ax30, sharey=ax30)
+            ax31 = fig.add_subplot(gs[2:4, 3*nn:4*nn], sharex=ax30, sharey=ax30)
             ax31.set_xlabel('x0 (m)')
             ax31.set_title('etendue', size=12, fontweight='bold')
 
-            ax32 = fig.add_subplot(gs[2:4, 4], sharex=ax30, sharey=ax30)
+            ax32 = fig.add_subplot(gs[2:4, 4*nn:-1], sharex=ax30, sharey=ax30)
             ax32.set_xlabel('x0 (m)')
             ax32.set_title('difference', size=12, fontweight='bold')
 
         else:
-            ax30 = fig.add_subplot(gs[2:4, 2:])
-            ax30.set_ylabel('x1 (m)')
+            ax30 = fig.add_subplot(gs[:2, 3*nn+2:])
+            ax30.set_xlabel('channel', size=12, fontweight='bold')
+            ax30.set_ylabel('Etendue (m2.sr)', size=12, fontweight='bold')
 
-        ax4 = fig.add_subplot(gs[4:, 2:], aspect='equal', adjustable='datalim')
-        ax4.set_ylabel('x1 (m)')
-        ax4.set_xlabel('x0 (m)')
+        ax4 = fig.add_subplot(
+            gs[2:4, 2*nn+1:-1],
+            aspect='equal',
+            adjustable='datalim',
+        )
+        ax4.set_ylabel('x1 (m)', size=12, fontweight='bold')
+        ax4.set_xlabel('x0 (m)', size=12, fontweight='bold')
+
+        ax4c = fig.add_subplot(gs[2:4, -1])
+
+        ax5 = fig.add_subplot(gs[4:, 2*nn+1:-1], sharex=ax4)
+        ax5.set_ylabel('sang (sr)', size=12, fontweight='bold')
+        ax5.set_xlabel('x0 (m)', size=12, fontweight='bold')
 
         # dict
         dax = {
@@ -1499,6 +1557,8 @@ def _get_dax(
             '3d': {'handle': ax2, 'type': '3d'},
             'cam_plane0': {'handle': ax30, 'type': 'camera'},
             'plane0': {'handle': ax4, 'type': 'misc'},
+            'colorbar': {'handle': ax4c, 'type': 'misc'},
+            'slice': {'handle': ax5, 'type': 'misc'},
         }
         if is2d is True:
             dax['cam_etend0'] = {'handle': ax31, 'type': 'camera'}
