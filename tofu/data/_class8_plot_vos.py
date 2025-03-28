@@ -87,6 +87,8 @@ def _plot_diagnostic_vos(
         _,
         _,
         _,
+        plot_pcross,
+        plot_phor,
         ylab,
         plot_colorbar,
         _,
