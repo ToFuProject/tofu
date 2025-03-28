@@ -205,7 +205,7 @@ def _vos_from_los(
     res = ds._generic_check._check_var(
         res, 'res',
         types=float,
-        default=0.01,
+        default=0.005,
         sign='>0',
     )
 
@@ -306,7 +306,7 @@ def _vos_from_los(
             + np.diff(ptsz, axis=0)**2
         )
 
-        npts = int(np.ceil(np.nanmax(length) / res))
+        npts = int(np.ceil(np.nanmax(length) / res)) + 2
         indi = np.linspace(0, 1, npts)
         iok = np.all(np.isfinite(ptsx), axis=0)
 
