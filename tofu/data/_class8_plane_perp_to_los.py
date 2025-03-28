@@ -421,11 +421,11 @@ def _check(
     # -----------
     # margin_par
 
-    margin_par = ds._generic_check._check_var(
+    margin_par = float(ds._generic_check._check_var(
         margin_par, 'margin_par',
-        types=float,
+        types=(int, float),
         default=0.5,
-    )
+    ))
 
     # -----------
     # margin_perp
@@ -436,12 +436,12 @@ def _check(
     if isinstance(margin_perp, (float, int)):
         margin_perp = [margin_perp, margin_perp]
 
-    margin_perp = ds._generic_check._check_flat1darray(
+    margin_perp = float(ds._generic_check._check_flat1darray(
         margin_perp, 'margin_perp',
-        dtype=float,
+        dtype=(int, float),
         size=2,
         sign='>=0',
-    )
+    ))
 
     # -----------
     # verb
