@@ -49,6 +49,10 @@ def _plot_diagnostic_vos(
     vmax_cam=None,
     dvminmax=None,
     alpha=None,
+    # plot vos polygons
+    plot_pcross=None,
+    plot_phor=None,
+    # colorbar
     plot_colorbar=None,
     # config
     plot_config=None,
@@ -83,6 +87,8 @@ def _plot_diagnostic_vos(
         _,
         _,
         _,
+        plot_pcross,
+        plot_phor,
         ylab,
         plot_colorbar,
         _,
@@ -94,6 +100,9 @@ def _plot_diagnostic_vos(
         vmin=vmin,
         vmax=vmax,
         alpha=alpha,
+        # plot vos polygons
+        plot_pcross=plot_pcross,
+        plot_phor=plot_phor,
         # figure
         plot_colorbar=plot_colorbar,
         proj=proj,
@@ -186,6 +195,12 @@ def _plot_diagnostic_vos(
         is2d=is2d,
         indch=indch,
     )
+
+    # plot vos polygons ?
+    if plot_pcross is False:
+        pc0, pc1, pc0i, pc1i = None, None, None, None
+    if plot_phor is False:
+        ph0, ph1, ph0i, ph1i = None, None, None, None
 
     # mesh envelop
     dout = coll.get_mesh_outline(key=dvos[key_cam[0]]['keym'])
@@ -717,7 +732,6 @@ def _get_etendue_length(
         vectz[-1, ...][iok],
     ])
 
-
     # Prepare structures
     ves = _core.Ves(
         Poly=poly,
@@ -895,7 +909,6 @@ def _add_camera_data(
     extent_cam=None,
 ):
 
-
     if is2d:
 
         # sang
@@ -1065,7 +1078,7 @@ def _get_dax(
         # -------------
         # cross
 
-        ax1 = fig.add_subplot(gs[:2, :2], aspect='equal')  # , adjustable='datalim')
+        ax1 = fig.add_subplot(gs[:2, :2], aspect='equal')
         ax1.set_xlabel(r'R (m)', size=12)
         ax1.set_ylabel(r'Z (m)', size=12)
 
@@ -1079,7 +1092,7 @@ def _get_dax(
         # -------------
         # camera
 
-        ax3 = fig.add_subplot(gs[0, 2], aspect='equal')  # , adjustable='datalim')
+        ax3 = fig.add_subplot(gs[0, 2], aspect='equal')
         ax3.set_xlabel(r'x0 (m)', size=12)
         ax3.set_ylabel(r'x1 (m)', size=12)
         ax3.set_title('sang * dV (m3.sr)', size=12, fontweight='bold')
@@ -1119,7 +1132,7 @@ def _get_dax(
         # -------------
         # cross
 
-        ax1 = fig.add_subplot(gs[0, 0], aspect='equal')  # adjustable='datalim')
+        ax1 = fig.add_subplot(gs[0, 0], aspect='equal')
         ax1.set_xlabel(r'R (m)', size=12)
         ax1.set_ylabel(r'Z (m)', size=12)
 

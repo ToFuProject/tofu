@@ -108,6 +108,9 @@ Do you want to use **tofu** on IMAS and don't know where to start?
 
 
 ## Installing tofu
+Tofu installation currently works with Python 3.10 & 3.11.
+
+For Windows installations, make sure that you've installed [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) prior to proceeding. Select the "Desktop Development with C++" module.
 
 **From source** (compiled on your system using pip, all platforms)
 

@@ -325,6 +325,8 @@ setup(
         "svg.path",
         "Polygon3",
         "cython>=0.26",
+        "datastock>=0.0.49",
+        "bsplines2d>=0.0.21",
         "spectrally>=0.0.9",
     ],
     python_requires=">=3.6",
@@ -361,6 +363,8 @@ setup(
         "tofu.tests.tests06_mesh.test_data": ['*.txt', '*.npz'],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.spectro": ["*.txt"],
+        "tofu.physics_tools.runaways.emission": ['*.csv'],
+        "tofu.physics_tools.transmission.inputs_filter": ['*.txt', '*.csv'],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
     include_package_data=True,
