@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.lines as mlines
 import datastock as ds
 
 
@@ -188,10 +189,14 @@ def _compute(
 ):
 
     # ---------------
-    # prepare
+    # prepare & outputs
     # ---------------
 
     dist_plot = dist
+
+    alpha = np.arctan(pitch / focal)
+    beta = 2. * np.arctan((det_size + ap_size) / (2. * focal))
+    R = (beta - alpha) / alpha
 
     # ---------------
     # sensors
@@ -299,6 +304,17 @@ def _compute(
     # ---------------
 
     dout = {
+        'inputs': {
+            'pitch': pitch,
+            'focal': focal,
+            'det_size': det_size,
+            'ap_size': ap_size,
+        },
+        'outputs': {
+            'alpha': alpha,
+            'beta': beta,
+            'R': R,
+        },
         'sensors': {
             'cy': cy,
             'y_low': y_low,
@@ -372,17 +388,41 @@ def _add_text(dout):
     )
 
     # -------------
-    # edge-to-edge
+    # inputs
     # -------------
 
-    edge = (
-        "R = 0:\n"
-        + r"$\Rightarrow$" + " "
-        + r"$\alpha = \beta$" + "\n"
-        + r"$\Rightarrow$" + " "
-        + r"$2\frac{W_A + W_D}{2F} \approx \frac{P}{F}$" + "\n"
-        + r"$\Rightarrow$" + " "
-        + r"$W_A \approx P - W_D$"
+    inputs = (
+        "Inputs:\n   "
+        + r"$P = $" + f"{dout['inputs']['pitch']} m\n   "
+        + r"$F = $" + f"{dout['inputs']['focal']} m\n   "
+        + r"$W_D = $" + f"{dout['inputs']['det_size']} m\n   "
+        + r"$W_A = $" + f"{dout['inputs']['ap_size']} m"
+    )
+
+    # -------------
+    # outputs
+    # -------------
+
+    alpha_str = round(dout['outputs']['alpha']*180/np.pi, ndigits=1)
+    beta_str = round(dout['outputs']['beta']*180/np.pi, ndigits=1)
+    R_str = round(dout['outputs']['R']*100, ndigits=1)
+
+    outputs = (
+        "Outputs:\n   "
+        + r"$\alpha = $" + f"{alpha_str} deg\n   "
+        + r"$\beta = $" + f"{beta_str} deg\n   "
+        + r"$R = $" + f"{R_str} %"
+    )
+
+    # -------------
+    # Recommendation
+    # -------------
+
+    WA = 1.1*dout['inputs']['pitch'] - dout['inputs']['det_size']
+
+    R10 = (
+        "To get R = 10 %:\n    "
+        + r"$W_A \approx 1.1P - W_D = $" + f"{WA:3.1e} m"
     )
 
     # -------------
@@ -392,20 +432,28 @@ def _add_text(dout):
     dout['text'] = {
         'alpha': {
             'str': alpha,
-            'pos': (0.10, 0.4),
+            'pos': (0.10, 0.40),
         },
         'beta': {
             'str': beta,
-            'pos': (0.25, 0.4),
+            'pos': (0.25, 0.40),
         },
         'overlap': {
             'str': overlap,
-            'pos': (0.10, 0.25),
+            'pos': (0.10, 0.30),
         },
-        # 'edge': {
-            # 'str': edge,
-            # 'pos': (0.10, 0.25),
-        # },
+        'inputs': {
+            'str': inputs,
+            'pos': (0.60, 0.40),
+        },
+        'outputs': {
+            'str': outputs,
+            'pos': (0.80, 0.40),
+        },
+        'R10': {
+            'str': R10,
+            'pos': (0.60, 0.15),
+        },
     }
 
     return
@@ -497,9 +545,17 @@ def _plot(dout):
             v0['pos'][1],
             v0['str'],
             size=14,
-            verticalalignment='center',
+            verticalalignment='top',
             horizontalalignment='left',
             transform=fig.transFigure,
         )
+
+    # figure
+    fig.add_artist(mlines.Line2D(
+        [0.5, 0.5],
+        [0.1, 0.4],
+        linewidth=2,
+        color='k',
+    ))
 
     return
