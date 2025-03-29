@@ -143,13 +143,16 @@ def main(
     # create plane perpendicular to los_ref
 
     if parallel:
-        e0_cam = coll.dobj['camera'][key_cam]['dgeom']['e0']
+        # e0_cam = coll.dobj['camera'][key_cam]['dgeom']['e0']
         e1_cam = coll.dobj['camera'][key_cam]['dgeom']['e1']
     else:
-        ke0 = coll.dobj['camera'][key_cam]['dgeom']['e0']
-        ke1 = coll.dobj['camera'][key_cam]['dgeom']['e1']
-        e0_cam = coll.ddata[ke0]['data'][indref]
-        e1_cam = coll.ddata[ke1]['data'][indref]
+        # ke0x, ke0y, ke0z = coll.dobj['camera'][key_cam]['dgeom']['e0']
+        ke1x, ke1y, ke1z = coll.dobj['camera'][key_cam]['dgeom']['e1']
+        e1_cam = np.r_[
+            coll.ddata[ke1x]['data'][indref],
+            coll.ddata[ke1y]['data'][indref],
+            coll.ddata[ke1z]['data'][indref],
+        ]
 
     e0 = np.cross(e1_cam, los_ref)
     e0 = e0 / np.linalg.norm(e0)
@@ -162,7 +165,7 @@ def main(
 
     # get limits of plane
     if indch is None:
-        kk = vx[-1, ...]
+        # kk = vx[-1, ...]
 
         x0, x1, iok = _get_intersect_los_plane(
             cent=pt_plane,
@@ -375,7 +378,6 @@ def _check(
             indch = int(ds._generic_check._check_var(
                 indch, 'indch',
                 types=(float, int),
-                allowed=['los', 'vos'],
             )) % nch
 
     # -----------------
