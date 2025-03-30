@@ -51,7 +51,7 @@ def teardown_module():
 
 def _ref_line():
 
-    start = np.r_[4, 0, 0]
+    start = np.r_[2.5, 0, 0]
 
     vect = np.r_[-1, 0, 0]
     vect = vect / np.linalg.norm(vect)
@@ -102,12 +102,12 @@ def _apertures():
 
     out0 = 0.01 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
-    cent = start + 0.15 * vect
+    cent = start + np.r_[0, 0.04, 0] + 0.06 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=np.pi/10.,
+        theta=-np.pi/20.,
         phi=0.,
     )
 
@@ -365,14 +365,14 @@ def _cameras():
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
 
-    cent0 = 0.02*np.linspace(-1, 1, 5)
-    cent1 = 0.02*np.linspace(-1, 1, 5)
+    cent0 = 0.02*np.linspace(-1, 1, 11)
+    cent1 = 0.02*np.linspace(-1, 1, 11)
 
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=np.pi/20.,
+        theta=-np.pi/20,
         phi=0.,
     )
 
@@ -589,6 +589,20 @@ class Test01_Diagnostic():
         conf = tf.load_config('SPARC')
         conf.remove_Struct(Cls='PFC', Name='ICRH0')
         self.conf = conf
+
+        # IRCH0 for get_touch, shifted
+        conf_touch = tf.load_config('SPARC')
+        poly = conf_touch.PFC.ICRH0.Poly
+        poly[0, :] = poly[0, :] - 0.05
+        conf_touch.remove_Struct(Cls='PFC', Name='ICRH0')
+        conf_touch.add_Struct(
+            Cls='PFC',
+            Name='ICRH0',
+            Poly=poly,
+            Lim=np.r_[20, 340]*np.pi/180.,
+            dextraprop={'visible': True},
+        )
+        self.conf_touch = conf_touch
 
         # get dict
         dapertures = _apertures()
@@ -823,17 +837,21 @@ class Test01_Diagnostic():
 
     def test07_add_rays_from_diagnostic(self):
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
-            noptics = any([len(v1['optics']) == 0 for v1 in v0['doptics'].values()])
+            noptics = any([
+                len(v1['optics']) == 0 for v1 in v0['doptics'].values()
+            ])
             if v0['is2d'] or v0['spectro'] or noptics:
                 continue
+            dsamp = {'dedge': {'res': 'max'}, 'dsurface': {'nb': 3}}
             dout = self.coll.add_rays_from_diagnostic(
                 key=k0,
-                dsampling_pixel={'dedge': {'res': 'max'}, 'dsurface': {'nb': 3}},
-                dsampling_optics={'dedge': {'res': 'max'}, 'dsurface': {'nb': 3}},
+                dsampling_pixel=dsamp,
+                dsampling_optics=dsamp,
                 optics=-1,
                 config=self.conf,
-                store=ii%2 == 0,
+                store=(ii % 2 == 0),
             )
+            assert isinstance(dout, dict)
 
     def test08_reverse_ray_tracing(self):
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
@@ -882,7 +900,15 @@ class Test01_Diagnostic():
                 colorbar=None,
             )
 
-    def test09_save_to_json(self):
+    def test09_get_rays_touch_dict(self):
+        dout = self.coll.get_rays_touch_dict(
+            key='diag5_cam22_los',
+            config=self.config_touch,
+            allowed=['PFC_ICRH0', 'FirstWallV0'],
+        )
+        assert isinstance(dout, dict)
+
+    def test10_save_to_json(self):
 
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
 
