@@ -23,6 +23,7 @@ def main(
     coll=None,
     key=None,
     config=None,
+    segment=None,
     allowed=None,
     excluded=None,
 ):
@@ -31,10 +32,11 @@ def main(
     # check inputs
     # -----------------
 
-    key, lstruct = _check(
+    key, segment, lstruct = _check(
         coll=coll,
         key=key,
         config=config,
+        segment=segment,
         allowed=allowed,
         excluded=excluded,
     )
@@ -43,10 +45,17 @@ def main(
     # prepare
     # -----------------
 
-    startx, starty, startz = coll.get_rays_start(key)
-    vx, vy, vz = coll.get_rays_start(key)
+    ptsx, ptsy, ptsz = coll.get_rays_pts(key)
+    vx, vy, vz = coll.get_rays_vect(key)
 
-    mask = np.isfinite(startx)
+    ptsx = ptsx[segment, ...]
+    ptsy = ptsy[segment, ...]
+    ptsz = ptsz[segment, ...]
+    vx = vx[segment, ...]
+    vy = vy[segment, ...]
+    vz = vz[segment, ...]
+
+    mask = np.isfinite(ptsx) & np.isfinite(vx)
     maskn = mask.nonzero()
 
     # -----------------
@@ -56,7 +65,7 @@ def main(
     # call legacy code  -- SOMETHING WRONG HERE
     cam = CamLOS1D(
         dgeom=(
-            np.array([startx[mask], starty[mask], startz[mask]]),
+            np.array([ptsx[mask], ptsy[mask], ptsz[mask]]),
             np.array([vx[mask], vy[mask], vz[mask]]),
         ),
         config=config,
@@ -73,7 +82,7 @@ def main(
     dtouch = cam.get_touch_dict()
 
     # intitialize
-    itouch = -np.ones(startx.shape, dtype=int)
+    itouch = -np.ones(ptsx.shape, dtype=int)
 
     for ii, ks in enumerate(lstruct):
 
@@ -106,6 +115,7 @@ def _check(
     coll=None,
     key=None,
     config=None,
+    segment=None,
     allowed=None,
     excluded=None,
 ):
@@ -121,6 +131,18 @@ def _check(
         types=str,
         allowed=lok,
     )
+
+    # -----------------
+    # segment
+    # -----------------
+
+    vx, vy, vz = coll.get_rays_vect(key)
+    segment = int(ds._generic_check._check_var(
+        segment, 'segment',
+        types=(int, float),
+        default=0,
+        allowed=np.r_[range(vx.shape[0]), -1],
+    ))
 
     # -----------------
     # config
@@ -178,4 +200,4 @@ def _check(
 
         lstruct = [ss for ss in lok if ss not in excluded]
 
-    return key, lstruct
+    return key, segment, lstruct
