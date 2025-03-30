@@ -903,7 +903,7 @@ class Test01_Diagnostic():
     def test09_get_rays_touch_dict(self):
         dout = self.coll.get_rays_touch_dict(
             key='diag5_cam22_los',
-            config=self.config_touch,
+            config=self.conf_touch,
             segment=-1,
             allowed=['PFC_ICRH0', 'FirstWallV0'],
         )
