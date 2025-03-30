@@ -9,15 +9,12 @@ import itertools as itt
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.mplot3d import Axes3D
 import datastock as ds
 
 
 # specific
-from . import _generic_check
-from . import _generic_plot
 
 
 # ###############################################################
@@ -608,7 +605,7 @@ def _compute_rays(
         # extract solution
         nsol = roots.size
         if nsol == 0:
-            dwarn[ind] = f"No >=0 roots found with R > 0 and Dphi < pi"
+            dwarn[ind] = "No >=0 roots found with R > 0 and Dphi < pi"
         else:
             if nsol > 1:
                 dwarn[ind] = roots

@@ -161,6 +161,9 @@ class Diagnostic(Previous):
         key=None,
         key_cam=None,
         data=None,
+        # relevant for LOS data
+        segment=None,
+        # relevant for spectro data
         rocking_curve=None,
         units=None,
         default=None,
@@ -173,7 +176,10 @@ class Diagnostic(Previous):
             'etendue'
             'amin'
             'amax'
-            'tangency radius'
+            'tangency_radius'
+            'length'
+            'alpha'
+            'alpha_pixel'
             'lamb'
             'lambmin'
             'lambmax'
@@ -185,6 +191,9 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
             data=data,
+            # relevant for LOS data
+            segment=segment,
+            # relevant for spectro data
             rocking_curve=rocking_curve,
             units=units,
             default=default,
