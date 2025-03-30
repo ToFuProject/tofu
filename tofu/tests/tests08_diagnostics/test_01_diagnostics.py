@@ -905,7 +905,7 @@ class Test01_Diagnostic():
             key='diag5_cam22_los',
             config=self.conf_touch,
             segment=-1,
-            allowed=['PFC_ICRH0', 'FirstWallV0'],
+            allowed=['PFC_ICRH0', 'Ves_FirstWallV0'],
         )
         assert isinstance(dout, dict)
 
