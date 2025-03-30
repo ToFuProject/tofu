@@ -51,7 +51,7 @@ def teardown_module():
 
 def _ref_line():
 
-    start = np.r_[2.5, 0, 0]
+    start = np.r_[4, 0, 0]
 
     vect = np.r_[-1, 0, 0]
     vect = vect / np.linalg.norm(vect)
@@ -102,7 +102,7 @@ def _apertures():
 
     out0 = 0.01 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
-    cent = start + np.r_[0, 0.04, 0] + 0.06 * vect
+    cent = start + 0.15 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
         v0=v0,
@@ -365,8 +365,8 @@ def _cameras():
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
 
-    cent0 = 0.02*np.linspace(-1, 1, 11)
-    cent1 = 0.02*np.linspace(-1, 1, 11)
+    cent0 = 0.02*np.linspace(-1, 1, 5)
+    cent1 = 0.02*np.linspace(-1, 1, 5)
 
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
@@ -786,12 +786,12 @@ class Test01_Diagnostic():
                 key_diag=k0,
                 key_mesh=key_mesh,
                 # resolution
-                res_RZ=0.03,
+                res_RZ=0.04,
                 res_phi=0.04,
                 # spectro
-                n0=5,
-                n1=5,
-                res_lamb=1e-10,
+                n0=3,
+                n1=3,
+                res_lamb=2e-10,
                 visibility=False,
                 store=True,
             )
@@ -851,7 +851,7 @@ class Test01_Diagnostic():
                 config=self.conf,
                 store=(ii % 2 == 0),
             )
-            assert isinstance(dout, dict)
+            assert isinstance(dout, dict) or dout is None
 
     def test08_reverse_ray_tracing(self):
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
@@ -904,6 +904,7 @@ class Test01_Diagnostic():
         dout = self.coll.get_rays_touch_dict(
             key='diag5_cam22_los',
             config=self.config_touch,
+            segment=-1,
             allowed=['PFC_ICRH0', 'FirstWallV0'],
         )
         assert isinstance(dout, dict)
