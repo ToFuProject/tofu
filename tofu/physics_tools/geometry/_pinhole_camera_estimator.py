@@ -78,7 +78,7 @@ def main(
 
     _plot(dout)
 
-    return
+    return dout
 
 
 # ################################################
