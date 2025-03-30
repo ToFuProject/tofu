@@ -167,6 +167,7 @@ class Rays(Previous):
         self,
         key=None,
         config=None,
+        segment=None,
         allowed=None,
         excluded=None,
     ):
@@ -190,6 +191,7 @@ class Rays(Previous):
             coll=self,
             key=key,
             config=config,
+            segment=segment,
             allowed=allowed,
             excluded=excluded,
         )

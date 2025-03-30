@@ -28,6 +28,9 @@ def main(
     key=None,
     key_cam=None,
     data=None,
+    # relevant for LOS data
+    segment=None,
+    # relevant for spectro data
     rocking_curve=None,
     units=None,
     default=None,
@@ -146,7 +149,7 @@ def main(
                     key=key,
                     key_cam=cc,
                     quantity=data,
-                    segment=-1,
+                    segment=segment,
                     lim_to_segments=False,
                 )
             if data in ['length', 'tangency_radius']:
@@ -161,9 +164,9 @@ def main(
                 vectx, vecty, vectz = coll.get_rays_vect(klos)
                 dvect = coll.get_camera_unit_vectors(cc)
                 sca = (
-                    dvect['nin_x'] * vectx
-                    + dvect['nin_y'] * vecty
-                    + dvect['nin_z'] * vectz
+                    dvect['nin_x'] * vectx[0, ...]
+                    + dvect['nin_y'] * vecty[0, ...]
+                    + dvect['nin_z'] * vectz[0, ...]
                 )
 
                 ddata[cc] = np.arccos(sca)
@@ -439,7 +442,6 @@ def _check(
         # allowable values
 
         lquant = ['etendue', 'amin', 'amax']  # 'los'
-        lcomp = ['length', 'tangency radius', 'alpha', 'alpha_pixel']
 
         # -------------
         # overall check
