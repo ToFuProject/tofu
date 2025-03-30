@@ -336,19 +336,19 @@ def intersect_radius(
     # prepare
 
     (
-     pts_x, pts_y, pts_z,
-     ABx, ABy, ABz,
-     AOx, AOy, AOz,
-     ABvn2, AOvn2, B,
-     i0,
-     ) = _tangency_radius_prepare(
+        pts_x, pts_y, pts_z,
+        ABx, ABy, ABz,
+        AOx, AOy, AOz,
+        ABvn2, AOvn2, B,
+        i0,
+    ) = _tangency_radius_prepare(
          coll=coll,
          key=key,
          quantity=quantity,
          segment=segment,
          axis_pt=axis_pt,
          axis_vect=axis_vect,
-         )
+    )
 
     # pre-select according to rad_min
     kmin = np.zeros(ABx.shape, dtype=float)

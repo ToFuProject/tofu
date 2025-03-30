@@ -31,7 +31,7 @@ from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
 from . import _class8_plot_coverage as _plot_coverage
-from . import _class08_save2stp as _save2stp
+# from . import _class08_save2stp as _save2stp
 from . import _class08_saveload_from_file as _saveload_from_file
 
 
@@ -161,6 +161,9 @@ class Diagnostic(Previous):
         key=None,
         key_cam=None,
         data=None,
+        # relevant for LOS data
+        segment=None,
+        # relevant for spectro data
         rocking_curve=None,
         units=None,
         default=None,
@@ -173,7 +176,10 @@ class Diagnostic(Previous):
             'etendue'
             'amin'
             'amax'
-            'tangency radius'
+            'tangency_radius'
+            'length'
+            'alpha'
+            'alpha_pixel'
             'lamb'
             'lambmin'
             'lambmax'
@@ -185,6 +191,9 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
             data=data,
+            # relevant for LOS data
+            segment=segment,
+            # relevant for spectro data
             rocking_curve=rocking_curve,
             units=units,
             default=default,
@@ -1264,6 +1273,9 @@ class Diagnostic(Previous):
         alpha=None,
         dx0=None,
         dx1=None,
+        # plot vos polygons
+        plot_pcross=None,
+        plot_phor=None,
         # config
         plot_config=None,
         plot_colorbar=None,
@@ -1299,6 +1311,9 @@ class Diagnostic(Previous):
             alpha=alpha,
             dx0=dx0,
             dx1=dx1,
+            # plot vos polygons
+            plot_pcross=plot_pcross,
+            plot_phor=plot_phor,
             # config
             plot_config=plot_config,
             plot_colorbar=plot_colorbar,
@@ -1336,6 +1351,9 @@ class Diagnostic(Previous):
         vmax_cam=None,
         dvminmax=None,
         alpha=None,
+        # plot vos polygons
+        plot_pcross=None,
+        plot_phor=None,
         plot_colorbar=None,
         # config
         plot_config=None,
@@ -1370,6 +1388,9 @@ class Diagnostic(Previous):
             vmax_cam=vmax_cam,
             dvminmax=dvminmax,
             alpha=alpha,
+            # plot vos polygons
+            plot_pcross=plot_pcross,
+            plot_phor=plot_phor,
             plot_colorbar=plot_colorbar,
             # config
             plot_config=plot_config,

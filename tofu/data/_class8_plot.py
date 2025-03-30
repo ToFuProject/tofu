@@ -31,6 +31,9 @@ def _plot_diagnostic_check(
     alpha=None,
     dx0=None,
     dx1=None,
+    # plot vos polygons
+    plot_pcross=None,
+    plot_phor=None,
     # figure
     plot_colorbar=None,
     proj=None,
@@ -99,7 +102,7 @@ def _plot_diagnostic_check(
             raise Exception(msg)
 
         if len(set(refz)) != 1:
-            msg = f"data '{data}' shall have the same extra ref for all cameras"
+            msg = f"data '{data}' need the same extra ref for all cameras"
             raise Exception(msg)
 
         refz = refz[0]
@@ -178,7 +181,25 @@ def _plot_diagnostic_check(
         default=0.,
     ))
 
-    # -------
+    # -------------
+    # plot_pcross
+
+    plot_pcross = ds._generic_check._check_var(
+        plot_pcross, 'plot_pcross',
+        types=bool,
+        default=True,
+    )
+
+    # -------------
+    # plot_phor
+
+    plot_phor = ds._generic_check._check_var(
+        plot_phor, 'plot_phor',
+        types=bool,
+        default=True,
+    )
+
+    # -------------
     # plot_colorbar
 
     plot_colorbar = ds._generic_check._check_var(
@@ -215,6 +236,8 @@ def _plot_diagnostic_check(
         nlos,
         dx0,
         dx1,
+        plot_pcross,
+        plot_phor,
         ylab,
         plot_colorbar,
         connect,
@@ -255,6 +278,9 @@ def _plot_diagnostic(
     alpha=None,
     dx0=None,
     dx1=None,
+    # plot vos polygons
+    plot_pcross=None,
+    plot_phor=None,
     # config
     plot_config=None,
     plot_colorbar=None,
@@ -292,6 +318,8 @@ def _plot_diagnostic(
         nlos,
         dx0,
         dx1,
+        plot_pcross,
+        plot_phor,
         ylab,
         plot_colorbar,
         connect,
@@ -305,6 +333,9 @@ def _plot_diagnostic(
         alpha=alpha,
         dx0=dx0,
         dx1=dx1,
+        # plot vos polygons
+        plot_pcross=plot_pcross,
+        plot_phor=plot_phor,
         # figure
         plot_colorbar=plot_colorbar,
         proj=proj,
@@ -587,7 +618,7 @@ def _plot_diagnostic(
                 dref_vos=dref_vos,
                 color_dict=color_dict,
                 nan_los=nan_los,
-                nan_vos=nan_vos,
+                nan_vos=nan_vos if plot_pcross is True else None,
                 alpha=alpha,
             )
 
@@ -606,7 +637,7 @@ def _plot_diagnostic(
                 dref_vos=dref_vos,
                 color_dict=color_dict,
                 nan_los=nan_los,
-                nan_vos=nan_vos,
+                nan_vos=nan_vos if plot_phor is True else None,
                 alpha=alpha,
             )
 
@@ -620,13 +651,13 @@ def _plot_diagnostic(
                     nan_los,
                     nan_los,
                     nan_los,
-                    c=color_dict['x'][ii%len(color_dict['x'])],
+                    c=color_dict['x'][ii % len(color_dict['x'])],
                     ls='-',
                     lw=1.,
                 )
 
                 # add mobile
-                kl0 = f'{k0}_los-3d-{ii}'
+                # kl0 = f'{k0}_los-3d-{ii}'
                 # coll2.add_mobile(
                 # key=kl0,
                 # handle=l0,
@@ -775,7 +806,7 @@ def _plot_diagnostic(
                     l0, = ax.plot(
                         dataz,
                         ddata[k0][sli],
-                        c=color_dict['x'][ii%len(color_dict['x'])],
+                        c=color_dict['x'][ii % len(color_dict['x'])],
                         lw=1.,
                         ls='-',
                     )
@@ -1185,7 +1216,7 @@ def _add_camera_los_cross(
             l0, = ax.plot(
                 nan_los,
                 nan_los,
-                c=color_dict['x'][ii%len(color_dict['x'])],
+                c=color_dict['x'][ii % len(color_dict['x'])],
                 ls='-',
                 lw=1.,
             )
@@ -1209,7 +1240,7 @@ def _add_camera_los_cross(
             l0, = ax.fill(
                 nan_vos,
                 nan_vos,
-                fc=color_dict['x'][ii%len(color_dict['x'])],
+                fc=color_dict['x'][ii % len(color_dict['x'])],
                 alpha=alpha,
                 ls='None',
                 lw=0.,
@@ -1251,7 +1282,7 @@ def _add_camera_los_hor(
             l0, = ax.plot(
                 nan_los,
                 nan_los,
-                c=color_dict['x'][ii%len(color_dict['x'])],
+                c=color_dict['x'][ii % len(color_dict['x'])],
                 ls='-',
                 lw=1.,
             )
@@ -1277,7 +1308,7 @@ def _add_camera_los_hor(
                 l0, = ax.fill(
                     nan_vos,
                     nan_vos,
-                    fc=color_dict['x'][ii%len(color_dict['x'])],
+                    fc=color_dict['x'][ii % len(color_dict['x'])],
                     alpha=alpha,
                     ls='None',
                     lw=0.,
@@ -1326,7 +1357,7 @@ def _add_camera_vlines_marker(
                 ddatay[k0][0:1],
                 marker='s',
                 ms=6,
-                markeredgecolor=color_dict['x'][ii%ncolx],
+                markeredgecolor=color_dict['x'][ii % ncolx],
                 markerfacecolor='None',
             )
 
@@ -1352,7 +1383,10 @@ def _add_camera_vlines_marker(
 
         for ii in range(nlos):
             lv = ax.axvline(
-                ddatax[k0][0], c=color_dict['y'][ii%ncoly], lw=1., ls='-',
+                ddatax[k0][0],
+                c=color_dict['y'][ii % ncoly],
+                lw=1.,
+                ls='-',
             )
             kv = f'{k0}_v{ii:02.0f}{suffix}'
             coll2.add_mobile(

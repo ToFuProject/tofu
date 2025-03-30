@@ -6,8 +6,6 @@
 
 # Common
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import datastock as ds
 
 
@@ -217,7 +215,6 @@ def _plot_rays_check(
     )
 
     ref = coll.dobj['rays'][key]['ref']
-    nrays = np.prod(coll.dobj['rays'][key]['shape'])
 
     # ------------
     # concatenate

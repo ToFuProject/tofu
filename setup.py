@@ -363,6 +363,8 @@ setup(
         "tofu.tests.tests06_mesh.test_data": ['*.txt', '*.npz'],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.spectro": ["*.txt"],
+        "tofu.physics_tools.runaways.emission": ['*.csv'],
+        "tofu.physics_tools.transmission.inputs_filter": ['*.txt', '*.csv'],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
     include_package_data=True,
