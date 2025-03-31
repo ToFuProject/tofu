@@ -11,6 +11,7 @@ from . import _class2_check as _check
 from . import _class02_touch as _touch
 from . import _class02_sample as _sample
 from . import _class02_tangency_radius as _tangency_radius
+from . import _class02_single_point_camera as _single_point_cam
 from . import _class2_plot as _plot
 from . import _class2_sinogram as _sinogram
 from . import _class02_save2stp as _save2stp
@@ -361,6 +362,46 @@ class Rays(Previous):
             return_pts=return_pts,
             return_itot=return_itot,
             )
+
+    # --------------
+    # Single point camera
+    # --------------
+
+    def add_single_point_camera(
+        self,
+        key=None,
+        cent=None,
+        nin=None,
+        e0=None,
+        e1=None,
+        angle0=None,
+        angle1=None,
+        config=None,
+        visibility=None,
+        touch=None,
+    ):
+        """ Add a set of 2d rays from a single point
+
+        Rays are sampling a portion of sphere around cent
+        Portion is defined by 2 angles:
+            - alpha
+            - beta
+
+        """
+
+        return _single_point_cam.main(
+            coll=self,
+            key=key,
+            cent=cent,
+            nin=nin,
+            e0=e0,
+            e1=e1,
+            angle0=angle0,
+            angle1=angle1,
+            config=config,
+            visibility=visibility,
+            touch=touch,
+        )
 
     # --------------
     # plotting
