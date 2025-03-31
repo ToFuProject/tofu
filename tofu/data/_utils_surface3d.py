@@ -67,14 +67,13 @@ def _surface3d(
     ]
     if np.sum(lc) != 1:
         kwd = locals()
-        lstr = [
-            f"\t- {ss}: {kwd[ss]}"
-            for ss in [
-                    'outline_x0', 'outline_x1', 'cent', 'e0',
-                    'extenthalf', 'curve_r', 'cent', 'e0',
-                     'poly_x', 'poly_y', 'poly_z',
-                    ]
-            ]
+
+        lk = [
+            'outline_x0', 'outline_x1', 'cent', 'e0',
+            'extenthalf', 'curve_r', 'cent', 'e0',
+            'poly_x', 'poly_y', 'poly_z',
+        ]
+        lstr = [f"\t- {ss}: {kwd[ss]}" for ss in lk]
         msg = (
             "Please provide either (xor):\n"
             "\t- planar: outline_x0, outline_x1 and cent, e0, e1\n"
