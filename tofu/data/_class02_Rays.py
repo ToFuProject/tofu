@@ -368,7 +368,7 @@ class Rays(Previous):
     # Single point camera
     # --------------
 
-    def add_single_point_camera(
+    def add_single_point_camera2d(
         self,
         key=None,
         cent=None,
@@ -378,6 +378,11 @@ class Rays(Previous):
         angle0=None,
         angle1=None,
         config=None,
+        # optional naming
+        key_angle0=None,
+        key_angle1=None,
+        ref_angle0=None,
+        ref_angle1=None,
     ):
         """ Add a set of 2d rays from a single point
 
@@ -398,6 +403,11 @@ class Rays(Previous):
             angle0=angle0,
             angle1=angle1,
             config=config,
+            # optional naming
+            key_angle0=key_angle0,
+            key_angle1=key_angle1,
+            ref_angle0=ref_angle0,
+            ref_angle1=ref_angle1,
         )
 
     # ------------------

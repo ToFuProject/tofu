@@ -73,14 +73,14 @@ def main(
     # -----------
     # angles ref
 
-    for k0, v0 in dangles.keys():
+    for k0, v0 in dangles.items():
         if v0['ref'] not in coll.dref.keys():
             coll.add_ref(v0['ref'], size=v0['data'].size)
 
     # ------------
     # angles data
 
-    for k0, v0 in dangles.keys():
+    for k0, v0 in dangles.items():
         if v0['ref'] not in coll.dref.keys():
             coll.add_data(**v0)
 
@@ -123,7 +123,7 @@ def main(
         vect_y=vy,
         vect_z=vz,
         # ref
-        ref=(dangles['angle0']['ref'], dangles['angle0']['ref']),
+        ref=(dangles['angle0']['ref'], dangles['angle1']['ref']),
         # config
         config=config,
         strict=False,
@@ -302,7 +302,7 @@ def _check_angles(
         ang_units = ds._generic_check._check_var(
             ang_units, "units_angles",
             default="deg",
-            included=['deg', 'rad'],
+            allowed=['deg', 'rad'],
         )
 
     return {
