@@ -13,11 +13,13 @@ import datastock as ds
 _DANGLES = {
     'angle0': {
         'nb': 101,
-        'lim': np.r_[-1, 1] * 0.5 * np.pi,
+        'lim': np.r_[-1, 1] * 90,
+        'units': 'deg',
     },
     'angle1': {
         'nb': 101,
-        'lim': np.r_[-1, 1] * 0.5 * np.pi,
+        'lim': np.r_[-1, 1] * 90,
+        'units': 'deg',
     },
 }
 
@@ -84,7 +86,7 @@ def main(
     # angles data
 
     for k0, v0 in dangles.items():
-        if v0['ref'] not in coll.dref.keys():
+        if v0['key'] not in coll.dref.keys():
             coll.add_data(**v0)
 
     # -------------
@@ -282,6 +284,7 @@ def _check_angles(
                 _DANGLES[ang_name]['lim'][1],
                 int(ang),
             )
+            ang_units = _DANGLES[ang_name]['units']
 
         # --------------
         # flat unique array
