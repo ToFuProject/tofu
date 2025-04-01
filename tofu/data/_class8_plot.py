@@ -23,6 +23,8 @@ from . import _generic_plot
 
 def _plot_diagnostic_check(
     coll=None,
+    # keys
+    isray=None,
     key=None,
     key_cam=None,
     # parameters
@@ -49,10 +51,34 @@ def _plot_diagnostic_check(
 
     # -------
     # key
+    # -------
 
-    # key
-    key, key_cam = coll.get_diagnostic_cam(key, key_cam)
-    is2d = coll.dobj['diagnostic'][key]['is2d']
+    if isray is True:
+        wrays = coll._which_rays
+        lok = list(coll.dobj.get(wrays, {}).keys())
+        key = ds._generic_check._check_var(
+            key, 'key',
+            types=str,
+            allowed=lok,
+        )
+        ndim = len(coll.dobj[wrays][key]['shape'])
+        if ndim == 2:
+            is2d = False
+        elif ndim == 3:
+            is2d = True
+        else:
+            msg = (
+                "Interactive plot if rays only works for 1d or 2d\n"
+                f"\t - key = {key}\n"
+                f"\t - shape[nseg, ...] = {coll.dobj[wrays][key]['shape']}\n"
+            )
+            raise Exception(msg)
+        key_cam = [key]
+
+    else:
+        # key
+        key, key_cam = coll.get_diagnostic_cam(key, key_cam)
+        is2d = coll.dobj['diagnostic'][key]['is2d']
     # spectro = coll.dobj['diagnostic'][key]['spectro']
 
     # if spectro:
@@ -65,32 +91,51 @@ def _plot_diagnostic_check(
 
     # -------
     # data
+    # -------
 
     # default
-    defdata = 'etendue'
-    c0 = (
-        data is None
-        and all([
-            v0.get(defdata) is not None
-            for v0 in coll.dobj['diagnostic'][key]['doptics'].values()
-        ])
-    )
-    if c0:
-        data = defdata
+    if isray is True:
+        defdata = 'length'
+        c0 = data is None
 
-    # get data dict
-    out = coll.get_diagnostic_data(
-        key=key,
-        key_cam=key_cam,
-        data=data,
-        units=units,
-    )
+        # get data dict
+        out = coll.get_rays_quantity(
+            key=key,
+            quantity=data,
+        )
 
-    # extract
-    if out is None:
-        ddata, dref, units, static, daxis = {}, {}, None, True, None
+        ddata = {key: out[0]}
+        units = None
+        dref = {key: out[2]}
+        static = True
+        daxis = None
+
     else:
-        ddata, dref, units, static, daxis = out
+        defdata = 'etendue'
+        c0 = (
+            data is None
+            and all([
+                v0.get(defdata) is not None
+                for v0 in coll.dobj['diagnostic'][key]['doptics'].values()
+            ])
+        )
+
+        if c0:
+            data = defdata
+
+        # get data dict
+        out = coll.get_diagnostic_data(
+            key=key,
+            key_cam=key_cam,
+            data=data,
+            units=units,
+        )
+
+        # extract
+        if out is None:
+            ddata, dref, units, static, daxis = {}, {}, None, True, None
+        else:
+            ddata, dref, units, static, daxis = out
 
     refz = None
     if static is False:
@@ -111,6 +156,7 @@ def _plot_diagnostic_check(
 
     # ----------
     # vmin, vmax
+    # ----------
 
     if vmin is None and len(ddata) > 0:
         vmin = np.nanmin([np.nanmin(v0) for v0 in ddata.values()])
@@ -120,6 +166,7 @@ def _plot_diagnostic_check(
 
     # -----
     # alpha
+    # -----
 
     alpha = ds._generic_check._check_var(
         alpha, 'alpha',
@@ -130,6 +177,7 @@ def _plot_diagnostic_check(
 
     # -----
     # proj
+    # -----
 
     pall = ['cross', 'hor', '3d', 'camera', 'traces']
     proj = _generic_plot._proj(
@@ -142,6 +190,7 @@ def _plot_diagnostic_check(
 
     # ----------
     # los_res
+    # ----------
 
     los_res = ds._generic_check._check_var(
         los_res, 'los_res',
@@ -150,13 +199,15 @@ def _plot_diagnostic_check(
         sign='> 0.',
     )
 
-    # -------
+    # -----------
     # color_dict
+    # -----------
 
     color_dict = _check_color_dict(color_dict)
 
     # -------
     # nlos
+    # -------
 
     nlos = ds._generic_check._check_var(
         nlos, 'nlos',
@@ -166,6 +217,7 @@ def _plot_diagnostic_check(
 
     # ---------------
     # dx0, dx1
+    # ---------------
 
     # dx0
     dx0 = float(ds._generic_check._check_var(
@@ -183,24 +235,31 @@ def _plot_diagnostic_check(
 
     # -------------
     # plot_pcross
+    # -------------
 
     plot_pcross = ds._generic_check._check_var(
         plot_pcross, 'plot_pcross',
         types=bool,
         default=True,
     )
+    if isray is True:
+        plot_pcross = False
 
     # -------------
     # plot_phor
+    # -------------
 
     plot_phor = ds._generic_check._check_var(
         plot_phor, 'plot_phor',
         types=bool,
         default=True,
     )
+    if isray is True:
+        plot_phor = False
 
     # -------------
     # plot_colorbar
+    # -------------
 
     plot_colorbar = ds._generic_check._check_var(
         plot_colorbar, 'plot_colorbar',
@@ -210,6 +269,7 @@ def _plot_diagnostic_check(
 
     # -------
     # connect
+    # -------
 
     connect = ds._generic_check._check_var(
         connect, 'connect',
@@ -262,8 +322,10 @@ def _check_color_dict(color_dict=None):
 
 def _plot_diagnostic(
     coll=None,
+    # key
     key=None,
     key_cam=None,
+    isray=None,
     keyZ=None,
     optics=None,
     elements=None,
@@ -327,6 +389,7 @@ def _plot_diagnostic(
         coll=coll,
         key=key,
         key_cam=key_cam,
+        isray=isray,
         # parameters
         vmin=vmin,
         vmax=vmax,
@@ -351,14 +414,17 @@ def _plot_diagnostic(
     # ------------
     # prepare data
 
-    dplot = coll.get_diagnostic_dplot(
-        key=key,
-        key_cam=key_cam,
-        optics=optics,
-        elements=elements,
-        dx0=dx0,
-        dx1=dx1,
-    )
+    if isray is True:
+        dplot = None
+    else:
+        dplot = coll.get_diagnostic_dplot(
+            key=key,
+            key_cam=key_cam,
+            optics=optics,
+            elements=elements,
+            dx0=dx0,
+            dx1=dx1,
+        )
 
     # -------------------------
     # prepare los interactivity
@@ -372,6 +438,7 @@ def _plot_diagnostic(
     # dcamref
     dcamref, drefx, drefy = _prepare_dcamref(
         coll=coll,
+        isray=isray,
         key_cam=key_cam,
         is2d=is2d,
     )
@@ -380,6 +447,7 @@ def _plot_diagnostic(
     dlos_n, dref_los = _prepare_los(
         coll=coll,
         coll2=coll2,
+        isray=isray,
         dcamref=dcamref,
         key_diag=key,
         key_cam=key_cam,
@@ -390,6 +458,7 @@ def _plot_diagnostic(
     dvos_n, dref_vos = _prepare_vos(
         coll=coll,
         coll2=coll2,
+        isray=isray,
         dcamref=dcamref,
         key_diag=key,
         key_cam=key_cam,
@@ -400,6 +469,7 @@ def _plot_diagnostic(
     _, dkeyx, dkeyy, ddatax, ddatay, dextent = _prepare_datarefxy(
         coll=coll,
         coll2=coll2,
+        isray=isray,
         dcamref=dcamref,
         drefx=drefx,
         drefy=drefy,
@@ -462,12 +532,13 @@ def _plot_diagnostic(
     # -----------------
     # plot static parts
 
-    _plot_diag_geom(
-        dax=dax,
-        key_cam=key_cam,
-        dplot=dplot,
-        is2d=is2d,
-    )
+    if dplot is not None:
+        _plot_diag_geom(
+            dax=dax,
+            key_cam=key_cam,
+            dplot=dplot,
+            is2d=is2d,
+        )
 
     # plot data
     if static is True:
@@ -873,13 +944,21 @@ def _plot_diagnostic(
 
 def _prepare_dcamref(
     coll=None,
+    isray=None,
     key_cam=None,
     is2d=None,
 ):
-    dcamref = {
-        k0: coll.dobj['camera'][k0]['dgeom']['ref']
-        for k0 in key_cam
-    }
+
+    if isray is True:
+        wrays = coll._which_rays
+        dcamref = {key_cam[0]: coll.dobj[wrays][key_cam[0]]['ref'][1:]}
+
+    else:
+        dcamref = {
+            k0: coll.dobj['camera'][k0]['dgeom']['ref']
+            for k0 in key_cam
+        }
+
     drefx = {k0: v0[0] for k0, v0 in dcamref.items()}
 
     if is2d:
@@ -893,6 +972,7 @@ def _prepare_dcamref(
 def _prepare_los(
     coll=None,
     coll2=None,
+    isray=None,
     dcamref=None,
     key_diag=None,
     key_cam=None,
@@ -903,10 +983,15 @@ def _prepare_los(
     # create dlos, dvos
 
     # dlos
-    dlos_n = {
-        k0: coll.dobj['diagnostic'][key_diag]['doptics'][k0]['los']
-        for k0 in key_cam
-    }
+    if isray is True:
+        dlos_n = {key_diag: key_diag}
+    else:
+        dlos_n = {
+            k0: coll.dobj['diagnostic'][key_diag]['doptics'][k0]['los']
+            for k0 in key_cam
+        }
+
+    # initialize
     dref_los = {}
 
     # -------------
@@ -947,11 +1032,18 @@ def _prepare_los(
 def _prepare_vos(
     coll=None,
     coll2=None,
+    isray=None,
     dcamref=None,
     key_diag=None,
     key_cam=None,
     los_res=None,
 ):
+
+    # -------------
+    # trivial cases
+
+    if isray is True:
+        return None, None
 
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
     if doptics[key_cam[0]].get('dvos') is None:
@@ -1011,6 +1103,7 @@ def _prepare_vos(
 def _prepare_datarefxy(
     coll=None,
     coll2=None,
+    isray=None,
     dcamref=None,
     drefx=None,
     drefy=None,
@@ -1054,13 +1147,40 @@ def _prepare_datarefxy(
         # datax, datay
         if ddata is not None:
             if is2d:
-                dkeyx[k0], dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents']
+                if isray is True:
 
-                ddatax[k0] = coll.ddata[dkeyx[k0]]['data'] + dx0
-                ddatay[k0] = coll.ddata[dkeyy[k0]]['data'] + dx1
+                    # x
+                    ref, key, data = coll.get_ref_vector(
+                        ref=drefx[k0],
+                    )[2:5]
+                    if key is not None:
+                        dkeyx[k0] = key
+                        ddatax[k0] = data
+                    else:
+                        dkeyx[k0] = 'index0'
+                        ddatax[k0] = np.arange(0, coll.dref[ref]['size'])
+
+                    # y
+                    ref, key, data = coll.get_ref_vector(
+                        ref=drefy[k0],
+                    )[2:5]
+                    if key is not None:
+                        dkeyy[k0] = key
+                        ddatay[k0] = data
+                    else:
+                        dkeyy[k0] = 'index1'
+                        ddatay[k0] = np.arange(0, coll.dref[ref]['size'])
+
+                else:
+                    dkeyx[k0] = coll.dobj['camera'][k0]['dgeom']['cents'][0]
+                    dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents'][1]
+
+                    ddatax[k0] = coll.ddata[dkeyx[k0]]['data'] + dx0
+                    ddatay[k0] = coll.ddata[dkeyy[k0]]['data'] + dx1
 
                 coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
                 coll2.add_data(key=dkeyy[k0], data=ddatay[k0], ref=drefy[k0])
+
             else:
                 dkeyx[k0] = f'{k0}_i0'
                 ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size']) + dx0
@@ -1071,16 +1191,23 @@ def _prepare_datarefxy(
 
             reft = None
             if is2d:
-                if ddatax[k0].size == 1:
-                    ddx = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][0]]['data']
-                    ddx = np.max(ddx) - np.min(ddx)
+                if isray is True:
+                    ddx = 1
+                    ddy = 1
+
                 else:
-                    ddx = ddatax[k0][1] - ddatax[k0][0]
-                if ddatay[k0].size == 1:
-                    ddy = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][1]]['data']
-                    ddy = np.max(ddy) - np.min(ddy)
-                else:
-                    ddy = ddatay[k0][1] - ddatay[k0][0]
+                    if ddatax[k0].size == 1:
+                        kout0 = coll.dobj['camera'][k0]['dgeom']['outline'][0]
+                        ddx = coll.ddata[kout0]['data']
+                        ddx = np.max(ddx) - np.min(ddx)
+                    else:
+                        ddx = ddatax[k0][1] - ddatax[k0][0]
+                    if ddatay[k0].size == 1:
+                        kout1 = coll.dobj['camera'][k0]['dgeom']['outline'][1]
+                        ddy = coll.ddata[kout1]['data']
+                        ddy = np.max(ddy) - np.min(ddy)
+                    else:
+                        ddy = ddatay[k0][1] - ddatay[k0][0]
 
                 dextent[k0] = (
                     ddatax[k0][0] - 0.5*ddx,
