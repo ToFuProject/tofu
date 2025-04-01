@@ -37,19 +37,21 @@ def main(
     e1=None,
     angle0=None,
     angle1=None,
+    config=None,
+    strict=None,
     # optional naming
     key_angle0=None,
     key_angle1=None,
     ref_angle0=None,
     ref_angle1=None,
-    config=None,
+    units_angles=None,
 ):
 
     # -------------
     # check inputs
     # -------------
 
-    key, cent, nin, e0, e1, dangles = _check(
+    key, cent, nin, e0, e1, dangles, strict = _check(
         coll=coll,
         key=key,
         cent=cent,
@@ -58,12 +60,13 @@ def main(
         e1=e1,
         angle0=angle0,
         angle1=angle1,
+        strict=strict,
         # optional naming
         key_angle0=key_angle0,
         key_angle1=key_angle1,
         ref_angle0=ref_angle0,
         ref_angle1=ref_angle1,
-        config=config,
+        units_angles=units_angles,
     )
 
     # -------------
@@ -90,7 +93,12 @@ def main(
 
     # angles, full shape
     angle0f = dangles['angle0']['data'][:, None]
+    if dangles['angle0']['units'] == 'deg':
+        angle0f = angle0f * np.pi/180.
+
     angle1f = dangles['angle1']['data'][None, :]
+    if dangles['angle1']['units'] == 'deg':
+        angle1f = angle1f * np.pi/180.
 
     # unit vectors
     vx = (
@@ -126,7 +134,7 @@ def main(
         ref=(dangles['angle0']['ref'], dangles['angle1']['ref']),
         # config
         config=config,
-        strict=False,
+        strict=strict,
     )
 
     return
@@ -147,13 +155,13 @@ def _check(
     e1=None,
     angle0=None,
     angle1=None,
+    strict=None,
     # optional naming
     key_angle0=None,
     key_angle1=None,
     ref_angle0=None,
     ref_angle1=None,
     units_angles=None,
-    config=None,
 ):
 
     # --------------
@@ -188,6 +196,7 @@ def _check(
         e1=e0,
         e2=e1,
         dim=3,
+        direct=False,
     )
 
     # --------------
@@ -218,7 +227,14 @@ def _check(
     # options
     # --------------
 
-    return key, cent, nin, e0, e1, dangles
+    # strict
+    strict = ds._generic_check._check_var(
+        strict, 'strict',
+        types=bool,
+        default=False,
+    )
+
+    return key, cent, nin, e0, e1, dangles, strict
 
 
 def _check_angles(
@@ -248,7 +264,7 @@ def _check_angles(
 
         ang_key = ang
         ang_data = coll.ddata[ang_key]['data']
-        ang_ref = coll.ddata[ang_key]['ref']
+        ang_ref = coll.ddata[ang_key]['ref'][0]
         ang_units = coll.ddata[ang_key]['units']
 
     # --------------
@@ -282,6 +298,7 @@ def _check_angles(
         lout = list(coll.ddata.keys())
         ang_key = ds._generic_check._check_var(
             ang_key, ang_name,
+            types=str,
             default=f"{key}_{ang_name}",
             excluded=lout,
         )
@@ -292,6 +309,7 @@ def _check_angles(
         lout = list(coll.dref.keys())
         ang_ref = ds._generic_check._check_var(
             ang_ref, f"{ang_name}",
+            types=str,
             default=f"{key}_n{ang_name}",
             excluded=lout,
         )
@@ -301,6 +319,7 @@ def _check_angles(
 
         ang_units = ds._generic_check._check_var(
             ang_units, "units_angles",
+            types=str,
             default="deg",
             allowed=['deg', 'rad'],
         )
