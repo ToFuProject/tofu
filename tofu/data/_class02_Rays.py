@@ -11,9 +11,11 @@ from . import _class2_check as _check
 from . import _class02_touch as _touch
 from . import _class02_sample as _sample
 from . import _class02_tangency_radius as _tangency_radius
+from . import _class02_single_point_camera as _single_point_cam
 from . import _class2_plot as _plot
 from . import _class2_sinogram as _sinogram
 from . import _class02_save2stp as _save2stp
+from . import _class8_plot
 
 
 __all__ = ['Rays']
@@ -363,10 +365,46 @@ class Rays(Previous):
             )
 
     # --------------
-    # plotting
+    # Single point camera
     # --------------
 
-    def plot_rays(
+    def add_single_point_camera(
+        self,
+        key=None,
+        cent=None,
+        nin=None,
+        e0=None,
+        e1=None,
+        angle0=None,
+        angle1=None,
+        config=None,
+    ):
+        """ Add a set of 2d rays from a single point
+
+        Rays are sampling a portion of sphere around cent
+        Portion is defined by 2 angles:
+            - alpha
+            - beta
+
+        """
+
+        return _single_point_cam.main(
+            coll=self,
+            key=key,
+            cent=cent,
+            nin=nin,
+            e0=e0,
+            e1=e1,
+            angle0=angle0,
+            angle1=angle1,
+            config=config,
+        )
+
+    # ------------------
+    # plotting - static
+    # ------------------
+
+    def plot_rays_static(
         self,
         key=None,
         proj=None,
@@ -395,6 +433,75 @@ class Rays(Previous):
             res=res,
             # config
             plot_config=plot_config,
+            # figure
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            wintit=wintit,
+            # interactivity
+            color_dict=color_dict,
+            nlos=nlos,
+            dinc=dinc,
+            connect=connect,
+        )
+
+    # ------------------
+    # plotting - interactive
+    # ------------------
+
+    def plot_rays(
+        self,
+        # keys
+        key=None,
+        keyZ=None,
+        # options
+        proj=None,
+        res=None,
+        # data plot
+        data=None,
+        units=None,
+        cmap=None,
+        vmin=None,
+        vmax=None,
+        alpha=None,
+        dx0=None,
+        dx1=None,
+        # config
+        plot_config=None,
+        plot_colorbar=None,
+        # figure
+        dax=None,
+        dmargin=None,
+        fs=None,
+        wintit=None,
+        # interactivity
+        color_dict=None,
+        nlos=None,
+        dinc=None,
+        connect=None,
+    ):
+
+        return _class8_plot._plot_diagnostic(
+            coll=self,
+            isray=True,
+            # keys
+            key=key,
+            keyZ=keyZ,
+            # options
+            proj=proj,
+            los_res=res,
+            # data plot
+            data=data,
+            units=units,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            alpha=alpha,
+            dx0=dx0,
+            dx1=dx1,
+            # config
+            plot_config=plot_config,
+            plot_colorbar=plot_colorbar,
             # figure
             dax=dax,
             dmargin=dmargin,
