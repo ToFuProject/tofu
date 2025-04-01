@@ -159,7 +159,12 @@ class Rays(Previous):
         key_cam=None,
         norm=None,
     ):
-        return _check._get_vect(coll=self, key=key, key_cam=key_cam, norm=norm)
+        return _check._get_vect(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            norm=norm,
+        )
 
     # --------------
     # touch
