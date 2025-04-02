@@ -30,6 +30,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+         curl -X PURGE https://pypi.python.org/simple/datastock/
+         curl -X PURGE https://pypi.python.org/simple/bsplines2d/
+         curl -X PURGE https://pypi.python.org/simple/spectrally/
          pip install --upgrade pip
          pip install flake8 pytest coverage wheel
          pip install -r requirements.txt
