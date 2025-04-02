@@ -35,7 +35,7 @@ jobs:
          curl -X PURGE https://pypi.org/simple/spectrally/
          pip install --upgrade pip
          pip install flake8 pytest coverage wheel
-         pip install -r requirements.txt
+         pip install -r requirements.txt --no-cache
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
