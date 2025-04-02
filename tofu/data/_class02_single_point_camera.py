@@ -12,12 +12,14 @@ import datastock as ds
 
 _DANGLES = {
     'angle0': {
-        'nb': 51,
-        'lim': np.r_[-1, 1] * 0.5 * np.pi,
+        'nb': 101,
+        'lim': np.r_[-1, 1] * 90,
+        'units': 'deg',
     },
     'angle1': {
-        'nb': 51,
-        'lim': np.r_[-1, 1] * 0.5 * np.pi,
+        'nb': 101,
+        'lim': np.r_[-1, 1] * 90,
+        'units': 'deg',
     },
 }
 
@@ -38,13 +40,20 @@ def main(
     angle0=None,
     angle1=None,
     config=None,
+    strict=None,
+    # optional naming
+    key_angle0=None,
+    key_angle1=None,
+    ref_angle0=None,
+    ref_angle1=None,
+    units_angles=None,
 ):
 
     # -------------
     # check inputs
     # -------------
 
-    key, cent, nin, e0, e1, angle0, angle1 = _check(
+    key, cent, nin, e0, e1, dangles, strict = _check(
         coll=coll,
         key=key,
         cent=cent,
@@ -53,7 +62,13 @@ def main(
         e1=e1,
         angle0=angle0,
         angle1=angle1,
-        config=config,
+        strict=strict,
+        # optional naming
+        key_angle0=key_angle0,
+        key_angle1=key_angle1,
+        ref_angle0=ref_angle0,
+        ref_angle1=ref_angle1,
+        units_angles=units_angles,
     )
 
     # -------------
@@ -63,37 +78,29 @@ def main(
     # -----------
     # angles ref
 
-    ref_rays = (f'{key}_nangle0', f'{key}_nangle1')
-    nrays = (angle0.size, angle1.size)
-    coll.add_ref(ref_rays[0], size=nrays[0])
-    coll.add_ref(ref_rays[1], size=nrays[1])
+    for k0, v0 in dangles.items():
+        if v0['ref'] not in coll.dref.keys():
+            coll.add_ref(v0['ref'], size=v0['data'].size)
 
     # ------------
     # angles data
 
-    kangle0 = f"{key}_angle0"
-    coll.add_data(
-        kangle0,
-        data=angle0*180/np.pi,
-        units='deg',
-        ref=ref_rays[0],
-    )
-
-    kangle1 = f"{key}_angle1"
-    coll.add_data(
-        kangle1,
-        data=angle1*180/np.pi,
-        units='deg',
-        ref=ref_rays[1],
-    )
+    for k0, v0 in dangles.items():
+        if v0['key'] not in coll.dref.keys():
+            coll.add_data(**v0)
 
     # -------------
     # unit vectors
     # -------------
 
     # angles, full shape
-    angle0f = angle0[:, None]
-    angle1f = angle1[None, :]
+    angle0f = dangles['angle0']['data'][:, None]
+    if dangles['angle0']['units'] == 'deg':
+        angle0f = angle0f * np.pi/180.
+
+    angle1f = dangles['angle1']['data'][None, :]
+    if dangles['angle1']['units'] == 'deg':
+        angle1f = angle1f * np.pi/180.
 
     # unit vectors
     vx = (
@@ -126,10 +133,10 @@ def main(
         vect_y=vy,
         vect_z=vz,
         # ref
-        ref=ref_rays,
+        ref=(dangles['angle0']['ref'], dangles['angle1']['ref']),
         # config
         config=config,
-        strict=False,
+        strict=strict,
     )
 
     return
@@ -150,7 +157,13 @@ def _check(
     e1=None,
     angle0=None,
     angle1=None,
-    config=None,
+    strict=None,
+    # optional naming
+    key_angle0=None,
+    key_angle1=None,
+    ref_angle0=None,
+    ref_angle1=None,
+    units_angles=None,
 ):
 
     # --------------
@@ -185,6 +198,7 @@ def _check(
         e1=e0,
         e2=e1,
         dim=3,
+        direct=False,
     )
 
     # --------------
@@ -192,51 +206,130 @@ def _check(
     # --------------
 
     # angle0
-    angle0 = _check_angles(
-        ang=angle0,
-        ang_name='angle0',
-    )
-
-    # angle1
-    angle1 = _check_angles(
-        ang=angle1,
-        ang_name='angle1',
-    )
+    dangles = {
+        'angle0': _check_angles(
+            coll=coll,
+            key=key,
+            ang=angle0,
+            ang_name='angle0',
+            ang_key=key_angle0,
+            ang_ref=ref_angle0,
+        ),
+        'angle1': _check_angles(
+            coll=coll,
+            key=key,
+            ang=angle1,
+            ang_name='angle1',
+            ang_key=key_angle1,
+            ang_ref=ref_angle1,
+        ),
+    }
 
     # --------------
     # options
     # --------------
 
-    return key, cent, nin, e0, e1, angle0, angle1
+    # strict
+    strict = ds._generic_check._check_var(
+        strict, 'strict',
+        types=bool,
+        default=False,
+    )
+
+    return key, cent, nin, e0, e1, dangles, strict
 
 
 def _check_angles(
+    coll=None,
+    key=None,
     ang=None,
     ang_name=None,
+    ang_key=None,
+    ang_ref=None,
+    ang_units=None,
 ):
 
     # --------------
-    # default values
+    # existing key
     # --------------
 
-    if ang is None:
-        ang = _DANGLES[ang_name]['nb']
-
-    if isinstance(ang, (float, int)):
-        ang = np.linspace(
-            _DANGLES[ang_name]['lim'][0],
-            _DANGLES[ang_name]['lim'][1],
-            int(ang),
+    if isinstance(ang, str):
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0['monot'] == (True,)
+        ]
+        ang = ds._generic_check._check_var(
+            ang, ang_name,
+            types=str,
+            allowed=lok,
         )
 
+        ang_key = ang
+        ang_data = coll.ddata[ang_key]['data']
+        ang_ref = coll.ddata[ang_key]['ref'][0]
+        ang_units = coll.ddata[ang_key]['units']
+
     # --------------
-    # flat unique array
+    # int, float, array
     # --------------
 
-    ang = ds._generic_check._check_flat1darray(
-        ang, ang_name,
-        dtype=float,
-        unique=True,
-    )
+    else:
 
-    return ang
+        if ang is None:
+            ang = _DANGLES[ang_name]['nb']
+
+        if isinstance(ang, (float, int)):
+            ang = np.linspace(
+                _DANGLES[ang_name]['lim'][0],
+                _DANGLES[ang_name]['lim'][1],
+                int(ang),
+            )
+            ang_units = _DANGLES[ang_name]['units']
+
+        # --------------
+        # flat unique array
+
+        ang_data = ds._generic_check._check_flat1darray(
+            ang, ang_name,
+            dtype=float,
+            unique=True,
+        )
+
+        # -------
+        # keys
+
+        lout = list(coll.ddata.keys())
+        ang_key = ds._generic_check._check_var(
+            ang_key, ang_name,
+            types=str,
+            default=f"{key}_{ang_name}",
+            excluded=lout,
+        )
+
+        # -------
+        # ref
+
+        lout = list(coll.dref.keys())
+        ang_ref = ds._generic_check._check_var(
+            ang_ref, f"{ang_name}",
+            types=str,
+            default=f"{key}_n{ang_name}",
+            excluded=lout,
+        )
+
+        # -------
+        # units
+
+        ang_units = ds._generic_check._check_var(
+            ang_units, "units_angles",
+            types=str,
+            default="deg",
+            allowed=['deg', 'rad'],
+        )
+
+    return {
+        'key': ang_key,
+        'data': ang_data,
+        'ref': ang_ref,
+        'units': ang_units,
+    }

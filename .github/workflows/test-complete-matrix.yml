@@ -15,9 +15,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest] 
         python-version: ['3.8', '3.9', '3.10', '3.11']
-        include:
-          - python-version: '3.7.11'
-            os: ubuntu-20.04
         exclude:
           - python-version: ['3.11']
             os: windows-latest
@@ -30,9 +27,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+         curl -X PURGE https://pypi.org/simple/datastock/
+         curl -X PURGE https://pypi.org/simple/bsplines2d/
+         curl -X PURGE https://pypi.org/simple/spectrally/
          pip install --upgrade pip
          pip install flake8 pytest coverage wheel
-         pip install -r requirements.txt
+         pip install -r requirements.txt --no-cache
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names

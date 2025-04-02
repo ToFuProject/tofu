@@ -835,6 +835,15 @@ class Test01_Diagnostic():
 
         plt.close('all')
 
+    def test07_add_single_point_camera2d(self):
+        self.coll.add_single_point_camera2d(
+            cent=np.r_[3, 0, 0],
+            nin=np.r_[-1, 0, 1],
+            angle0=25,
+            angle1=25,
+            config=self.conf_touch,
+        )
+
     def test07_add_rays_from_diagnostic(self):
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):
             noptics = any([
