@@ -638,14 +638,12 @@ def _nonspectro(
             return_flat_det=False,
         )
 
-        import pdb; pdb.set_trace()     # DB
-
     # -----------
     # collimator
 
     else:
-        sang = np.full(())
 
+        sang = np.full(cx.shape + ptsx.shape, np.nan)
         for ii, indch in enumerate(np.ndindex(cx.shape)):
 
             det = {
@@ -669,7 +667,7 @@ def _nonspectro(
             lap = [doptics['optics'][ii] for ii in paths[sliap].nonzero()[0]]
             api = {kap: apertures for kap in lap}
 
-            sli = (indch)
+            sli = (indch, slice(None), slice(None))
 
             sang[sli] = _comp_solidangles.calc_solidangle_apertures(
                 # observation points
