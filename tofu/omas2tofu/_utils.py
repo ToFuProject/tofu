@@ -116,12 +116,20 @@ def _get_short(
             )
 
             # supposed to be an array
+            nref = dshort[ids][short]['long'].count('[')
             out = np.array(out)
-            assert out.ndim == 1
+            if out.ndim != nref:
+                msg = "Something weird..."
+                raise Exception(msg)
 
             # dref
-            dref = {kref: {'key': kref, 'size': out.size}}
-            ddata[short]['ref'] = kref
+            indr = ref.index(kref)
+            dref = {
+                kref: {
+                    'key': kref,
+                    'size': out.shape[indr],
+                },
+            }
 
         else:
             dref = None
