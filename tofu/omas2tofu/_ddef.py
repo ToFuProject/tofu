@@ -10,6 +10,7 @@ import copy
 
 
 _DIDS = {
+    "pulse_schedule": 'ps',
     "summary": 'sum',
     'equilibrium': 'eq',
     'core_profiles': 'cprof',
@@ -25,6 +26,54 @@ _DIDS = {
 _DSHORT = {
 
     # ---------------
+    # pulse_schedule
+    # ---------------
+
+    "pulse_schedule": {
+        "flux_t": {
+            'dim': 'time',
+            'name': 'time',
+            'long': 'flux_control.time[flux_nt]',
+            'units': 's',
+            'ref0': 'flux_nt',
+        },
+        "flux_ip": {
+            'dim': 'current',
+            'long': 'flux_control.i_plasma.reference[flux_nt]',
+            'units': 'A',
+        },
+        "flux_li3": {
+            'dim': 'inductance',
+            'long': 'flux_control.li_3.reference[flux_nt]',
+            'units': 'H',
+        },
+        "ne_t": {
+            'dim': 'time',
+            'name': 'time',
+            'long': 'density_control.time[ne_nt]',
+            'units': 's',
+            'ref0': 'ne_nt',
+        },
+        "ne_neV": {
+            'dim': 'density',
+            'long': 'density_control.n_e_volume_average.reference[ne_nt]',
+            'units': '1/m3',
+        },
+        "ic_t": {
+            'dim': 'time',
+            'name': 'time',
+            'long': 'ic.time[ic_nt]',
+            'units': 's',
+            'ref0': 'ic_nt',
+        },
+        "ic_ic": {
+            'dim': 'power',
+            'long': 'ic.power.reference[ic_nt]',
+            'units': 'W',
+        },
+    },
+
+    # ---------------
     # summary
     # ---------------
 
@@ -35,6 +84,7 @@ _DSHORT = {
 
         't': {
             'dim': 'time',
+            'name': 'time',
             'long': 'time[nt]',
             'units': 's',
             'ref0': 'nt',
@@ -62,6 +112,7 @@ _DSHORT = {
 
         't': {
             'dim': 'time',
+            'name': 'time',
             'long': 'time[nt]',
             'units': 's',
             'ref0': 'nt',
@@ -245,6 +296,7 @@ _DSHORT = {
 
         't': {
             'dim': 'time',
+            'name': 'time',
             'long': 'time[nt]',
             'units': 's',
             'ref0': 'nt',

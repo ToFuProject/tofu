@@ -214,7 +214,7 @@ def _add_ref0(
         coll.add_ref(**vr)
 
     # data
-    lk = ['key', 'data', 'units', 'ref']
+    lk = ['key', 'data', 'units', 'ref', 'dim', 'quant', 'name']
     for kd, vd in ddata.items():
         coll.add_data(
             **{k0: v0 for k0, v0 in vd.items() if k0 in lk}
@@ -296,7 +296,7 @@ def _add_data_ref0(
     # --------------
 
     # data
-    lk = ['key', 'data', 'units', 'ref']
+    lk = ['key', 'data', 'units', 'ref', 'dim', 'quant', 'name']
     for kd, vd in ddata.items():
         coll.add_data(
             **{k0: v0 for k0, v0 in vd.items() if k0 in lk}
@@ -379,7 +379,7 @@ def _add_data_2d(
     # get list of data
     # ------------------
 
-    if ids in ['summary', 'equilibrium', 'core_profiles']:
+    if ids in ['pulse_schedule', 'summary', 'equilibrium', 'core_profiles']:
         ldata = [
             k0 for k0, v0 in dshort[ids].items()
             if '[im2d]' in v0['long']
@@ -642,7 +642,7 @@ def _add_mesh_data_1d(
         short='m1d',
     )
 
-    lk = ['dim', 'quant', 'name', 'units']
+    lk = ['units', 'dim', 'quant', 'name']
     coll.add_mesh_1d(
         key=km,
         knots=q1d,
