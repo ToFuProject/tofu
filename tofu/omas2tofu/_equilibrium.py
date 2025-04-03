@@ -146,6 +146,12 @@ def _add_ref0(
         if v0.get('ref0') is not None
     ]
 
+    # order to start with 1d vectors
+    # ex: sepR also depends on nt
+    nref = [dshort[ids][k0]['long'].count('[') for k0 in lshortref]
+    lshortref = [lshortref[ii] for ii in np.argsort(nref)]
+    nref = [dshort[ids][k0]['long'].count('[') for k0 in lshortref]
+
     # initialize
     ddata = {}
     dref = {}
@@ -156,7 +162,7 @@ def _add_ref0(
     # --------------
 
     lref0 = []
-    for k0 in lshortref:
+    for ii, k0 in enumerate(lshortref):
         ddatai, drefi = _utils._get_short(
             din=din,
             ids=ids,
@@ -165,6 +171,16 @@ def _add_ref0(
             prefix=prefix,
             strict=strict,
         )
+
+        # ---------------------
+        # check is several ref
+
+        if nref[ii] > 1:
+            refi = [
+                rr for rr in dshort[ids][k0]['ref']
+                if rr not in list(drefi.keys())[0]
+            ]
+            assert all([rr in lref0 for rr in refi])
 
         # -----
         # store

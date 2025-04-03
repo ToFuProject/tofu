@@ -35,7 +35,7 @@ _DSHORT = {
 
         't': {
             'dim': 'time',
-            'long': 'time',
+            'long': 'time[nt]',
             'units': 's',
             'ref0': 'nt',
         },
@@ -62,7 +62,7 @@ _DSHORT = {
 
         't': {
             'dim': 'time',
-            'long': 'time',
+            'long': 'time[nt]',
             'units': 's',
             'ref0': 'nt',
         },
@@ -70,6 +70,21 @@ _DSHORT = {
             'dim': 'current',
             'long': 'time_slice[nt].global_quantities.ip',
             'units': 'A',
+        },
+
+        # -----------
+        # boundary
+
+        'sepR': {
+            'dim': 'distance',
+            'long': 'time_slice[nt].boundary.outline.r[nsep]',
+            'units': 'm',
+            'ref0': 'nsep',
+        },
+        'sepZ': {
+            'dim': 'distance',
+            'long': 'time_slice[nt].boundary.outline.z[nsep]',
+            'units': 'm',
         },
 
         # --------
@@ -230,7 +245,7 @@ _DSHORT = {
 
         't': {
             'dim': 'time',
-            'long': 'time',
+            'long': 'time[nt]',
             'units': 's',
             'ref0': 'nt',
         },
@@ -341,9 +356,6 @@ def get_dshort():
         ]
         lref0 = [dshort[ids][k0]['ref0'] for k0 in lkref0]
 
-        for k0 in lkref0:
-            dshort[ids][k0]['ref'] = (dshort[ids][k0]['ref0'],)
-
         # ---------------
         # list of meshes
 
@@ -357,7 +369,7 @@ def get_dshort():
 
         ldata = [
             k0 for k0, v0 in vids.items()
-            if all([v0.get(ss) is None for ss in ['ref0', 'mesh']])
+            if all([v0.get(ss) is None for ss in ['mesh']])
         ]
 
         # ---------
