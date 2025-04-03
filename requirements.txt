@@ -11,7 +11,7 @@ svg.path
 Polygon3
 
 ######## Requirements with Version Specifier ########
-datastock>=0.0.49
-bsplines2d>=0.0.21
+datastock>=0.0.54
+bsplines2d>=0.0.22
 spectrally>=0.0.9
 Cython>=0.26

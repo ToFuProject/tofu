@@ -152,7 +152,9 @@ def sinogram(
                 np.cos(dout_config['ang'][ineg] + np.pi),
             )
 
+    # -------------
     # convert angle
+
     if ang == 'xi':
         for k0, v0 in dout.items():
             dout[k0]['ang'] = np.arctan2(
@@ -166,7 +168,28 @@ def sinogram(
                 np.cos(dout_config['ang'] - np.pi/2),
             )
 
+    elif ang == 'zeta':
+        for k0, v0 in dout.items():
+            zeta = np.arctan2(
+                np.sin(np.pi - v0['ang']),
+                np.cos(np.pi - v0['ang']),
+            )
+            if impact_pos is False:
+                zeta[zeta > np.pi/2] = zeta[zeta > np.pi/2] - np.pi
+            dout[k0]['ang'] = zeta
+
+        if dout_config is not None:
+            zeta = np.arctan2(
+                np.sin(np.pi - dout_config['ang']),
+                np.cos(np.pi - dout_config['ang']),
+            )
+            if impact_pos is False:
+                zeta[zeta > np.pi/2] = zeta[zeta > np.pi/2] - np.pi
+            dout_config['ang'] = zeta
+
+    # -------------------
     # convert angle units
+
     if ang_units == 'deg':
         for k0, v0 in dout.items():
             dout[k0]['ang'] = v0['ang'] * 180 / np.pi
@@ -174,7 +197,9 @@ def sinogram(
         if dout_config is not None:
             dout_config['ang'] = dout_config['ang'] * 180 / np.pi
 
+    # -------------
     # store in dict
+
     for k0, v0 in dout.items():
         dout[k0]['ang_var'] = ang
         dout[k0]['ang_units'] = ang_units
@@ -184,7 +209,6 @@ def sinogram(
         dout_config['ang_var'] = ang
         dout_config['ang_units'] = ang_units
         dout_config['impact_pos'] = impact_pos
-
 
     # ------------
     # plot
@@ -271,14 +295,6 @@ def _check(
         allowed=ldiag + lrays,
     )
 
-    # # if diag => single
-    # if any([ss in ldiag for ss in key]) and len(key) != 1:
-    #     msg = (
-    #         "Arg key must be either a list of ray keys or a single diag key!\n"
-    #         f"Provided: {key}"
-    #     )
-    #     raise Exception(msg)
-
     # convert to list of rays
     if any([k0 in ldiag and k0 not in lrays for k0 in key]):
         for ii, k0 in enumerate(key):
@@ -311,7 +327,10 @@ def _check(
         lkVes = list(config.dStruct['dObj']['Ves'].keys())
         if kVes is None:
             lkVes = list(config.dStruct['dObj']['Ves'].keys())
-            ls = [config.dStruct['dObj']['Ves'][k0].dgeom['Surf'] for k0 in lkVes]
+            ls = [
+                config.dStruct['dObj']['Ves'][k0].dgeom['Surf']
+                for k0 in lkVes
+            ]
             kVes = lkVes[np.argmin(ls)]
 
         kVes = ds._generic_check._check_var(
@@ -327,7 +346,7 @@ def _check(
         ang, 'ang',
         types=str,
         default='theta',
-        allowed=['xi', 'theta'],
+        allowed=['xi', 'theta', 'zeta'],
     )
 
     # ------------
@@ -458,8 +477,8 @@ def _compute_rays(
     # starting points
     ptsx, ptsy, ptsz = coll.get_rays_pts(kray)
 
-    endx, endy, endz = ptsx[end_pts, ...], ptsy[end_pts, ...], ptsz[end_pts, ...]
-    ptsx, ptsy, ptsz = ptsx[seg_pts, ...], ptsy[seg_pts, ...], ptsz[seg_pts, ...]
+    endx, endy, endz = [pp[end_pts, ...] for pp in [ptsx, ptsy, ptsz]]
+    ptsx, ptsy, ptsz = [pp[seg_pts, ...] for pp in [ptsx, ptsy, ptsz]]
     length = np.sqrt(
         (endx - ptsx)**2
         + (endy - ptsy)**2
@@ -468,7 +487,7 @@ def _compute_rays(
 
     # unit vectors
     vectx, vecty, vectz = coll.get_rays_vect(kray, norm=True)
-    vectx, vecty, vectz = vectx[seg_vect, ...], vecty[seg_vect, ...], vectz[seg_vect, ...]
+    vectx, vecty, vectz = [vv[seg_vect, ...] for vv in [vectx, vecty, vectz]]
     vnorm2d = np.sqrt(vectx**2 + vecty**2)
 
     # dphi
@@ -566,12 +585,16 @@ def _compute_rays(
         roots = np.real(roots[np.isreal(roots)])
 
         # remove solutions with R = 0
-        if (ptsx[ind]**2 + ptsy[ind]**2 > 1.e-12) or vpar2[ind] > 1e-12:
-            R2 = RA[ind]**2 + roots**2 * vpar2[ind] + 2 * roots * RA[ind] * eRAv[ind]
-            roots = roots[R2 > 1e-12]
+        if (ptsx[ind]**2 + ptsy[ind]**2 > 1.e-9) or vpar2[ind] > 1e-9:
+            R2 = (
+                RA[ind]**2
+                + roots**2 * vpar2[ind]
+                + 2 * roots * RA[ind] * eRAv[ind]
+            )
+            roots = roots[R2 > 1e-9]
 
         # positive only
-        roots = roots[roots>=0.]
+        roots = roots[roots >= 0.]
 
         # only where scalar is close to 0
         Mx = ptsx[ind] + roots * vectx[ind]
@@ -585,12 +608,12 @@ def _compute_rays(
 
         ern = np.sqrt(erx**2 + ery**2 + erz**2)
         erx = erx / ern
-        ery = ery /ern
+        ery = ery / ern
         erz = erz / ern
 
         # check dm.v = 0
         sca = (erx * vectx[ind] + ery * vecty[ind] + erz * vectz[ind])
-        roots = roots[np.abs(sca) < 1e-12]
+        roots = roots[np.abs(sca) < 1e-9]
 
         # keep where Dphi < Dphimax
         Mphi = np.arctan2(
@@ -661,12 +684,12 @@ def _compute_rays(
 
     ern = np.sqrt(erx**2 + ery**2 + erz**2)
     erx = erx / ern
-    ery = ery /ern
+    ery = ery / ern
     erz = erz / ern
 
     # check dm.v = 0
     sca = (erx * vectx[iok] + ery * vecty[iok] + erz * vectz[iok])
-    iout = np.abs(sca) > 1e-12
+    iout = np.abs(sca) > 1e-9
     if np.any(iout):
         vnorm = np.sqrt(
             vectx[iok][iout]**2
@@ -868,7 +891,10 @@ def _multiple_solutions(
 
             # LOS
             kk = np.linspace(0, length[ind], 100)
-            R = np.hypot(ptsx[ind] + kk * vectx[ind], ptsy[ind] + kk * vecty[ind])
+            R = np.hypot(
+                ptsx[ind] + kk * vectx[ind],
+                ptsy[ind] + kk * vecty[ind],
+            )
 
             ax1.plot(
                 R,
@@ -882,7 +908,10 @@ def _multiple_solutions(
             # max root
             rootmax = np.max(roots)
             kk = np.linspace(0, rootmax, 100)
-            R = np.hypot(ptsx[ind] + kk * vectx[ind], ptsy[ind] + kk * vecty[ind])
+            R = np.hypot(
+                ptsx[ind] + kk * vectx[ind],
+                ptsy[ind] + kk * vecty[ind],
+            )
 
             ax1.plot(
                 R,
@@ -937,7 +966,6 @@ def _compute_config(
     # options
     verb=None,
 ):
-
 
     # --------------
     # Select polygon
@@ -1004,7 +1032,6 @@ def _plot(
 
     # -----------
     # prepare
-
 
     # -----------
     # plot rays
@@ -1221,7 +1248,8 @@ def _get_ax(
 
     # sinogram
     ax0 = fig.add_subplot(gs[:, :-1])
-    ax0.set_xlabel(r"$" + f"\{ang}" + r"$" + f" ({ang_units})", size=12, fontweight='bold')
+    xlab = r"$" + f"\{ang}" + r"$" + f" ({ang_units})"
+    ax0.set_xlabel(xlab, size=12, fontweight='bold')
     ax0.set_ylabel(r"$p$ (m)", size=12, fontweight='bold')
 
     angmax = np.pi
@@ -1269,40 +1297,52 @@ def _plot_sketch(ax=None):
     pt = np.array([[0, -0.8], [0, 0.8]])
     line = np.array([[-1.6, 0.1], [0, 1.7]])
     hor = np.array([[-0.4, 0.2], [1.2, 1.2]])
+    vert = np.array([[-0.4, -0.4], [1.2, 1.7]])
     theta = np.linspace(0, 3.*np.pi/4., 30)
     ksi = np.linspace(0, np.pi/4., 10)
+    zeta = np.linspace(np.pi/4., np.pi/2., 10)
 
-    theta = np.array([0.3*np.cos(theta),0.3*np.sin(theta)])
+    theta = np.array([0.3*np.cos(theta), 0.3*np.sin(theta)])
     ksi = np.array([-0.4+0.4*np.cos(ksi), 1.2+0.4*np.sin(ksi)])
+    zeta = np.array([-0.4+0.4*np.cos(zeta), 1.2+0.4*np.sin(zeta)])
 
     # plot
     ax.plot(
-        pt[0,:], pt[1,:], '+k',
-        pt[0,:], pt[1,:], '--k',
-        line[0,:], line[1,:], '-k',
-        hor[0,:], hor[1,:], '-k',
-        theta[0,:], theta[1,:], '-k',
-        ksi[0,:], ksi[1,:], '-k',
+        pt[0, :], pt[1, :], '+k',
+        pt[0, :], pt[1, :], '--k',
+        line[0, :], line[1, :], '-k',
+        hor[0, :], hor[1, :], '-k',
+        vert[0, :], vert[1, :], '-k',
+        theta[0, :], theta[1, :], '-k',
+        ksi[0, :], ksi[1, :], '-k',
+        zeta[0, :], zeta[1, :], '-k',
     )
 
     # annotate
     ax.annotate(
         r"$\theta$",
-        xy=(0.3,0.4),
+        xy=(0.3, 0.4),
         xycoords='data',
         va="center",
         ha="center",
     )
     ax.annotate(
         r"$\xi$",
-        xy=(0.1,1.4),
+        xy=(0.1, 1.4),
+        xycoords='data',
+        va="center",
+        ha="center",
+    )
+    ax.annotate(
+        r"$\zeta$",
+        xy=(-0.2, 1.7),
         xycoords='data',
         va="center",
         ha="center",
     )
     ax.annotate(
         r"$p$",
-        xy=(-0.7,0.3),
+        xy=(-0.7, 0.3),
         xycoords='data',
         va="center",
         ha="center",
