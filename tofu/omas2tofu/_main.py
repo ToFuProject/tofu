@@ -23,7 +23,7 @@ _IDS_ORDER = [
     'summary',
     'pulse_schedule',
     'equilibrium',
-    # 'core_profiles',
+    'core_profiles',
 ]
 
 
