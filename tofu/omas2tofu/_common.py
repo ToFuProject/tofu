@@ -7,6 +7,7 @@ import numpy as np
 
 
 from . import _utils
+from . import _equilibrium
 from . import _core_profiles
 
 
@@ -14,6 +15,12 @@ from . import _core_profiles
 # ###########################################################
 #              DEFAULTS
 # ###########################################################
+
+
+_DSUBKEY = {
+    'equilibrium': _equilibrium._get_subkey,
+    'core_profiles': _core_profiles._get_subkey,
+}
 
 
 # ###########################################################
@@ -739,8 +746,11 @@ def _get_subkey(
     # Identify 2d subkey
     # ------------------
 
-    k2d = [kk for kk in lk2d if ddata[k1d]['name'] == coll.ddata[kk]['name']]
-    if len(k2d) > 1:
+    k2d_name = [
+        kk for kk in lk2d if ddata[k1d]['name'] == coll.ddata[kk]['name']
+    ]
+
+    if len(k2d_name) > 1:
         msg = (
             "Several 2d data identified to match 1d mesh:\n"
             "\t- ids = {ids}\n"
@@ -753,15 +763,15 @@ def _get_subkey(
     # no match => call specialized routine
     # --------------------
 
-    if len(k2d) == 1:
+    if len(k2d_name) == 1:
 
-        k2dn = k2d[0]
+        k2dn = k2d_name[0]
 
     else:
 
-        if ids == 'core_profiles':
-
-            _core_profiles._get_subkey(
+        if ids in _DSUBKEY.keys():
+            print(ids, lk2d, k2d_name)
+            k1d, q1d, k2dn = _DSUBKEY[ids](
                 coll=coll,
                 ids=ids,
                 shape=shape,
@@ -769,6 +779,8 @@ def _get_subkey(
                 ddata=ddata,
                 ldata=ldata,
                 lk2d=lk2d,
+                k1d=k1d,
+                q1d=q1d,
             )
 
         else:
