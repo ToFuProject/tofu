@@ -351,6 +351,8 @@ class Diagnostic(Previous):
     ):
         """ Creates a plane perpendicular to los
         compute contribution of each point to the signal
+
+        return dout
         """
 
         return _planeperp.main(

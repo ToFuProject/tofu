@@ -9,6 +9,7 @@ import datastock as ds
 
 from ..data import Collection
 from . import _ddef
+from . import _common
 from . import _equilibrium
 
 
@@ -20,16 +21,17 @@ from . import _equilibrium
 
 _IDS_ORDER = [
     'summary',
+    'pulse_schedule',
     'equilibrium',
     # 'core_profiles',
 ]
 
 
 _DEXTRACT = {
-    'summary': _equilibrium.main,
-    'equilibrium': _equilibrium.main,
-    'core_profiles': _equilibrium.main,
-    # 'pulse_schedule': None,
+    'summary': [_common.main],
+    'pulse_schedule': [_common.main],
+    'equilibrium': [_common.main, _equilibrium.main],
+    'core_profiles': [_common.main],
 }
 
 
@@ -40,8 +42,12 @@ _DEXTRACT = {
 
 
 def load_from_omas(
+    # resources
     pfe=None,
     coll=None,
+    # ids to include
+    ids=None,
+    # options
     prefix=None,
     strict=None,
     dshort=None,
@@ -52,9 +58,10 @@ def load_from_omas(
     # check inputs
     # ------------
 
-    pfe, coll, prefix, dshort, warn = _check(
+    pfe, coll, lids, prefix, dshort, warn = _check(
         pfe=pfe,
         coll=coll,
+        ids=ids,
         prefix=prefix,
         dshort=dshort,
         warn=warn,
@@ -74,19 +81,26 @@ def load_from_omas(
     # extract data to coll
     # -------------
 
-    ids_order = [ids for ids in _IDS_ORDER if ids in dout.keys()]
+    ids_order = [
+        ids for ids in _IDS_ORDER
+        if ids in dout.keys()
+        and ids in lids
+    ]
+
+    # loop to extract
     for ids in ids_order:
-        func = _DEXTRACT.get(ids)
-        if func is not None:
-            func(
-                din=dout,
-                coll=coll,
-                ids=ids,
-                prefix=prefix,
-                dshort=dshort,
-                strict=strict,
-                warn=warn,
-            )
+        lfunc = _DEXTRACT.get(ids)
+        if lfunc is not None:
+            for func in lfunc:
+                func(
+                    din=dout,
+                    coll=coll,
+                    ids=ids,
+                    prefix=prefix,
+                    dshort=dshort,
+                    strict=strict,
+                    warn=warn,
+                )
 
     return coll
 
@@ -100,6 +114,7 @@ def load_from_omas(
 def _check(
     pfe=None,
     coll=None,
+    ids=None,
     prefix=None,
     dshort=None,
     warn=None,
@@ -149,6 +164,20 @@ def _check(
             raise Exception(msg)
 
     # --------------
+    # ids
+    # --------------
+
+    if isinstance(ids, str):
+        ids = [ids]
+    ids = ds._generic_check._check_var_iter(
+        ids, 'ids',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=_IDS_ORDER,
+        default=_IDS_ORDER,
+    )
+
+    # --------------
     # prefix
     # --------------
 
@@ -172,7 +201,7 @@ def _check(
         default=True,
     )
 
-    return pfe, coll, prefix, dshort, warn
+    return pfe, coll, ids, prefix, dshort, warn
 
 
 # ###########################################################

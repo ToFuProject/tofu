@@ -1216,8 +1216,15 @@ def _check_plot(
             dmargin=dmargin,
         )
 
-    elif issubclass(dax, plt.Axes):
-        dax = {'sinogram': {'handle': dax}}
+    else:
+        if isinstance(dax, plt.Axes):
+            dax = {'sinogram': {'handle': dax}}
+        elif isinstance(dax, dict):
+            for k0 in ['sinogram', 'sketch']:
+                if isinstance(dax.get(k0), dict):
+                    pass
+                elif isinstance(dax.get(k0), plt.Axes):
+                    dax[k0] = {'handle': dax[k0]}
 
     return (
         pmax,

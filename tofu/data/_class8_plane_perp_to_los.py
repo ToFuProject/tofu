@@ -581,6 +581,10 @@ def _nonspectro(
     # -----------------
     # prepare apertures
 
+    pinhole = doptics['pinhole']
+    if pinhole is False:
+        paths = doptics['paths']
+
     apertures = coll.get_optics_as_input_solid_angle(doptics['optics'])
 
     # -----------
@@ -590,48 +594,108 @@ def _nonspectro(
     cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
     dvect = coll.get_camera_unit_vectors(key=key_cam)
 
-    det = {
-        'cents_x': cx,
-        'cents_y': cy,
-        'cents_z': cz,
-        'outline_x0': coll.ddata[k0]['data'],
-        'outline_x1': coll.ddata[k1]['data'],
-        'nin_x': np.full(cx.shape, dvect['nin_x']) if par else dvect['nin_x'],
-        'nin_y': np.full(cx.shape, dvect['nin_y']) if par else dvect['nin_y'],
-        'nin_z': np.full(cx.shape, dvect['nin_z']) if par else dvect['nin_z'],
-        'e0_x': np.full(cx.shape, dvect['e0_x']) if par else dvect['e0_x'],
-        'e0_y': np.full(cx.shape, dvect['e0_y']) if par else dvect['e0_y'],
-        'e0_z': np.full(cx.shape, dvect['e0_z']) if par else dvect['e0_z'],
-        'e1_x': np.full(cx.shape, dvect['e1_x']) if par else dvect['e1_x'],
-        'e1_y': np.full(cx.shape, dvect['e1_y']) if par else dvect['e1_y'],
-        'e1_z': np.full(cx.shape, dvect['e1_z']) if par else dvect['e1_z'],
-    }
-
     # -------------
     # compute
+    # -------------
 
-    sang = _comp_solidangles.calc_solidangle_apertures(
-        # observation points
-        pts_x=ptsx,
-        pts_y=ptsy,
-        pts_z=ptsz,
-        # polygons
-        apertures=apertures,
-        detectors=det,
-        # possible obstacles
-        config=config,
-        # parameters
-        summed=False,
-        visibility=False,
-        return_vector=False,
-        return_flat_pts=False,
-        return_flat_det=False,
+    ref = (
+        coll.dobj['camera'][key_cam]['dgeom']['ref']
+        + tuple([None for ii in ptsx.shape])
     )
+
+    # --------
+    # pinhole
+
+    if pinhole is True:
+
+        det = {
+            'cents_x': cx,
+            'cents_y': cy,
+            'cents_z': cz,
+            'outline_x0': coll.ddata[k0]['data'],
+            'outline_x1': coll.ddata[k1]['data'],
+            'nin_x': np.full(cx.shape, dvect['nin_x']) if par else dvect['nin_x'],
+            'nin_y': np.full(cx.shape, dvect['nin_y']) if par else dvect['nin_y'],
+            'nin_z': np.full(cx.shape, dvect['nin_z']) if par else dvect['nin_z'],
+            'e0_x': np.full(cx.shape, dvect['e0_x']) if par else dvect['e0_x'],
+            'e0_y': np.full(cx.shape, dvect['e0_y']) if par else dvect['e0_y'],
+            'e0_z': np.full(cx.shape, dvect['e0_z']) if par else dvect['e0_z'],
+            'e1_x': np.full(cx.shape, dvect['e1_x']) if par else dvect['e1_x'],
+            'e1_y': np.full(cx.shape, dvect['e1_y']) if par else dvect['e1_y'],
+            'e1_z': np.full(cx.shape, dvect['e1_z']) if par else dvect['e1_z'],
+        }
+
+        sang = _comp_solidangles.calc_solidangle_apertures(
+            # observation points
+            pts_x=ptsx,
+            pts_y=ptsy,
+            pts_z=ptsz,
+            # polygons
+            apertures=apertures,
+            detectors=det,
+            # possible obstacles
+            config=config,
+            # parameters
+            summed=False,
+            visibility=False,
+            return_vector=False,
+            return_flat_pts=False,
+            return_flat_det=False,
+        )
+
+    # -----------
+    # collimator
+
+    else:
+
+        sang = np.full(cx.shape + ptsx.shape, np.nan)
+        for ii, indch in enumerate(np.ndindex(cx.shape)):
+
+            det = {
+                'cents_x': cx[indch],
+                'cents_y': cy[indch],
+                'cents_z': cz[indch],
+                'outline_x0': coll.ddata[k0]['data'],
+                'outline_x1': coll.ddata[k1]['data'],
+                'nin_x': dvect['nin_x'] if par else dvect['nin_x'][indch],
+                'nin_y': dvect['nin_y'] if par else dvect['nin_y'][indch],
+                'nin_z': dvect['nin_z'] if par else dvect['nin_z'][indch],
+                'e0_x': dvect['e0_x'] if par else dvect['e0_x'][indch],
+                'e0_y': dvect['e0_y'] if par else dvect['e0_y'][indch],
+                'e0_z': dvect['e0_z'] if par else dvect['e0_z'][indch],
+                'e1_x': dvect['e1_x'] if par else dvect['e1_x'][indch],
+                'e1_y': dvect['e1_y'] if par else dvect['e1_y'][indch],
+                'e1_z': dvect['e1_z'] if par else dvect['e1_z'][indch],
+            }
+
+            sliap = indch + (slice(None),)
+            lap = [doptics['optics'][ii] for ii in paths[sliap].nonzero()[0]]
+            api = {kap: apertures[kap] for kap in lap}
+
+            sli = (indch, slice(None), slice(None))
+
+            sang[sli] = _comp_solidangles.calc_solidangle_apertures(
+                # observation points
+                pts_x=ptsx,
+                pts_y=ptsy,
+                pts_z=ptsz,
+                # polygons
+                apertures=api,
+                detectors=det,
+                # possible obstacles
+                config=config,
+                # parameters
+                summed=False,
+                visibility=False,
+                return_vector=False,
+                return_flat_pts=False,
+                return_flat_det=False,
+            )
 
     return {
         'sang0': {
             'data': sang,
-            'ref': None,
+            'ref': ref,
             'units': 'sr',
         },
     }
