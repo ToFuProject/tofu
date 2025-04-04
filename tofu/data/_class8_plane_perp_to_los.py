@@ -598,6 +598,11 @@ def _nonspectro(
     # compute
     # -------------
 
+    ref = (
+        coll.dobj['camera'][key_cam]['dgeom']['ref']
+        + tuple([None for ii in ptsx.shape])
+    )
+
     # --------
     # pinhole
 
@@ -663,9 +668,9 @@ def _nonspectro(
                 'e1_z': dvect['e1_z'] if par else dvect['e1_z'][indch],
             }
 
-            sliap = (indch, slice(None))
+            sliap = indch + (slice(None),)
             lap = [doptics['optics'][ii] for ii in paths[sliap].nonzero()[0]]
-            api = {kap: apertures for kap in lap}
+            api = {kap: apertures[kap] for kap in lap}
 
             sli = (indch, slice(None), slice(None))
 
@@ -690,7 +695,7 @@ def _nonspectro(
     return {
         'sang0': {
             'data': sang,
-            'ref': None,
+            'ref': ref,
             'units': 'sr',
         },
     }
