@@ -20,6 +20,10 @@ def main(
     pitch=None,
     det_nb=None,
     dist=None,
+    # equivalent collimator
+    collimator=None,
+    collimator_length=None,
+    diverging=None,
 ):
     """ Plot a 2d represntation of a pinhole camera
 
@@ -44,6 +48,10 @@ def main(
         pitch,
         det_nb,
         dist,
+        # equivalent collimator
+        collimator,
+        collimator_length,
+        diverging,
     ) = _check(
         det_size=det_size,
         ap_size=ap_size,
@@ -51,20 +59,44 @@ def main(
         pitch=pitch,
         det_nb=det_nb,
         dist=dist,
+        # equivalent collimator
+        collimator=collimator,
+        collimator_length=collimator_length,
+        diverging=diverging,
     )
 
     # ---------------
-    # compute
+    # inputs
     # ---------------
 
-    dout = _compute(
-        det_size=det_size,
-        ap_size=ap_size,
-        focal=focal,
-        pitch=pitch,
-        det_nb=det_nb,
-        dist=dist,
-    )
+    dout = {
+        'inputs': {
+            'det_size': det_size,
+            'ap_size': ap_size,
+            'focal': focal,
+            'det_nb': det_nb,
+            'dist': dist,
+        }
+    }
+
+    # ---------------
+    # compute pinhole (ref)
+    # ---------------
+
+    dout['pinhole'] = _compute_pinhole(**dout['inputs'])
+
+    # ---------------
+    # compute collimator
+    # ---------------
+
+    if collimator is True:
+        dout['collimator'] = _compute_collimator(
+            dinputs=dout['inputs'],
+            dpinhole=dout['pinhole'],
+            # equivalent collimator
+            length=collimator_length,
+            diverging=diverging,
+        )
 
     # ---------------
     # add text
@@ -94,6 +126,10 @@ def _check(
     pitch=None,
     det_nb=None,
     dist=None,
+    # equivalent collimator
+    collimator=None,
+    collimator_length=None,
+    diverging=None,
 ):
 
     # -------------
@@ -163,6 +199,40 @@ def _check(
         default=2.,
     ))
 
+    # -------------
+    # collimator
+    # -------------
+
+    collimator = float(ds._generic_check._check_var(
+        collimator, 'collimator',
+        types=bool,
+        default=collimator_length is not None,
+    ))
+
+    # -------------
+    # collimator_length
+    # -------------
+
+    collimator_length = float(ds._generic_check._check_var(
+        collimator_length, 'collimator_length',
+        types=(int, float),
+        sign='>0',
+        default=focal/2.,
+    ))
+
+    if collimator is False:
+        collimator_length = None
+
+    # -------------
+    # diverging
+    # -------------
+
+    diverging = ds._generic_check._check_var(
+        diverging, 'diverging',
+        types=bool,
+        default=False,
+    )
+
     return (
         det_size,
         ap_size,
@@ -170,22 +240,30 @@ def _check(
         pitch,
         det_nb,
         dist,
+        # equivalent collimator
+        collimator,
+        collimator_length,
+        diverging,
     )
 
 
 # ################################################
 # ################################################
-#           Compute
+#           Compute pinhole
 # ################################################
 
 
-def _compute(
+def _compute_pinhole(
     det_size=None,
     ap_size=None,
     focal=None,
     pitch=None,
     det_nb=None,
     dist=None,
+    # equivalent collimator
+    collimator=None,
+    collimator_length=None,
+    diverging=None,
 ):
 
     # ---------------
@@ -217,7 +295,6 @@ def _compute(
     apx = focal
     apy_up = 0.5 * ap_size
     apy_low = -0.5 * ap_size
-
     apx_plot = np.full((5,), apx)
     apy_plot = np.array([y_low[0], apy_low, np.nan, apy_up, y_up[-1]])
 
@@ -240,7 +317,7 @@ def _compute(
     )
 
     # ---------------
-    # FOS
+    # FOV
     # ---------------
 
     fov_x = np.r_[0, dist_plot]
@@ -349,6 +426,34 @@ def _compute(
     }
 
     return dout
+
+
+# ################################################
+# ################################################
+#           Compute collimator
+# ################################################
+
+
+def _compute_collimator(
+    det_size=None,
+    ap_size=None,
+    focal=None,
+    pitch=None,
+    det_nb=None,
+    dist=None,
+    # equivalent collimator
+    length=None,
+    diverging=None,
+):
+
+    # ---------------
+    # prepare & outputs
+    # ---------------
+
+
+
+
+    return
 
 
 # ################################################
