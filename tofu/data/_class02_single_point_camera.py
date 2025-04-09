@@ -134,6 +134,11 @@ def main(
         vect_z=vz,
         # ref
         ref=(dangles['angle0']['ref'], dangles['angle1']['ref']),
+        # specific to ptcam
+        angles=(dangles['angle0']['key'], dangles['angle1']['key']),
+        nin=nin,
+        e0=e0,
+        e1=e1,
         # config
         config=config,
         strict=strict,
@@ -333,3 +338,192 @@ def _check_angles(
         'ref': ang_ref,
         'units': ang_units,
     }
+
+
+# ########################################################
+# ########################################################
+#              Get rays angles
+# ########################################################
+
+
+def _get_rays_angles(
+    coll=None,
+    key_single_pt_cam=None,
+    # rays to get angles of
+    key_rays=None,
+    segment=None,
+    # max tolerance
+    tol_radius=None,
+):
+
+    # -------------
+    # check inputs
+    # -------------
+
+    key_single_pt_cam, key_rays, segment, tol_radius = _check_rays_angles(
+        coll=coll,
+        key_single_pt_cam=key_single_pt_cam,
+        key_rays=key_rays,
+        segment=segment,
+        tol_radius=tol_radius,
+    )
+
+    # -------------
+    # prepare
+    # -------------
+
+    wrays = coll._which_rays
+    ref = coll.dobj[wrays][key_single_pt_cam]['ref'][1:]
+    shape = coll.dobj[wrays][key_single_pt_cam]['shape'][1:]
+    kang0, kang1 = coll.dobj[wrays][key_single_pt_cam]['angles']
+    units = coll.ddata[kang0]['units']
+
+    # unit vectors
+    e0 = coll.dobj[wrays][key_single_pt_cam]['e0']
+    e1 = coll.dobj[wrays][key_single_pt_cam]['e1']
+
+    ptsx, ptsy, ptsz = coll.get_rays_pts(key_single_pt_cam)
+    cent = np.r_[ptsx[0, 0, 0], ptsy[0, 0, 0], ptsz[0, 0, 0]]
+
+    # -------------
+    # get impact factor vs tol_radius
+    # -------------
+
+    ptsx, ptsy, ptsz = coll.get_rays_pts(key_rays)
+    ptsx0, ptsx1 = ptsx[segment, ...], ptsx[segment+1, ...]
+    ptsy0, ptsy1 = ptsy[segment, ...], ptsy[segment+1, ...]
+    ptsz0, ptsz1 = ptsz[segment, ...], ptsz[segment+1, ...]
+
+    p0c_x = (ptsx0 - cent[0])
+    p0c_y = (ptsy0 - cent[1])
+    p0c_z = (ptsz0 - cent[2])
+
+    vx = ptsx1 - ptsx0
+    vy = ptsy1 - ptsy0
+    vz = ptsz1 - ptsz0
+    vn = np.sqrt(vx**2 + vy**2 + vz**2)
+    vx = vx / vn
+    vy = vy / vn
+    vz = vz / vn
+
+    crossx = p0c_y * vz - p0c_z * vy
+    crossy = p0c_z * vx - p0c_x * vz
+    crossz = p0c_x * vy - p0c_y * vx
+
+    impact = np.sqrt(crossx**2 + crossy**2 + crossz**2)
+
+    if tol_radius is not None:
+        iok = impact < tol_radius
+    else:
+        iok = np.ones(shape, dtype=bool)
+
+    # -------------
+    # compute
+    # -------------
+
+    # intialize
+    ang0 = np.full(shape, np.nan)
+    ang1 = np.full(shape, np.nan)
+
+    # compute
+    if np.any(iok):
+
+        # vect from cent
+        vx = ptsx1[iok] - cent[0]
+        vy = ptsy1[iok] - cent[1]
+        vz = ptsz1[iok] - cent[2]
+        vnorm = np.sqrt(vx**2 + vy**2 + vz**2)
+        vx = vx / vnorm
+        vy = vy / vnorm
+        vz = vz / vnorm
+
+        # derive angles
+        ang1[iok] = np.arcsin(vx * e1[0] + vy * e1[1] + vz * e1[2])
+        cos1_sin0 = vx * e0[0] + vy * e0[1] + vz * e0[2]
+        ang0[iok] = np.arcsin(cos1_sin0 / np.cos(ang1[iok]))
+
+    # -------------
+    # output
+    # -------------
+
+    dout = {
+        'angle0': {
+            'key': f'{key_rays}_{key_single_pt_cam}_ang0',
+            'data': ang0,
+            'units': units,
+            'ref': ref,
+            'dim': 'angle',
+        },
+        'angle1': {
+            'key': f'{key_rays}_{key_single_pt_cam}_ang1',
+            'data': ang1,
+            'units': units,
+            'ref': ref,
+            'dim': 'angle',
+        },
+        'impact': {
+            'key': f'{key_rays}_{key_single_pt_cam}_impact',
+            'data': impact,
+            'ref': ref,
+            'units': 'm',
+            'dim': 'distance',
+        },
+    }
+
+    return dout
+
+
+# ########################################################
+# ########################################################
+#              check inputs rays angles
+# ########################################################
+
+
+def _check_rays_angles(
+    coll=None,
+    key_single_pt_cam=None,
+    # rays to get angles of
+    key_rays=None,
+    segment=None,
+    # max tolerance
+    tol_radius=None,
+):
+
+    # -------------
+    # keys
+    # -------------
+
+    wrays = coll._which_rays
+
+    # key_rays
+    lok = list(coll.dobj.get(wrays, {}).keys())
+    key_rays = ds._generic_check._check_var(
+        key_rays, 'key_rays',
+        types=str,
+        allowed=lok,
+    )
+
+    # key_single_pt_cam
+    lok = [
+        k0 for k0 in lok
+        if isinstance(coll.dobj[wrays][k0].get('angles'), tuple)
+        and len(coll.dobj[wrays][k0]['angles']) == 2
+        and all([
+            ss in coll.ddata.keys()
+            for ss in coll.dobj[wrays][k0].get('angles')
+        ])
+    ]
+    key_single_pt_cam = ds._generic_check._check_var(
+        key_single_pt_cam, 'key_single_pt_cam',
+        types=str,
+        allowed=lok,
+    )
+
+    # -----------------
+    # tol_radius
+    # -----------------
+
+    return (
+        key_single_pt_cam, key_rays,
+        segment, tol_radius,
+    )
