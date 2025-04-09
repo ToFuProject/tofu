@@ -150,20 +150,40 @@ class Rays(Previous):
         self,
         key=None,
         key_cam=None,
+        segment=None,
     ):
-        return _check._get_pts(coll=self, key=key, key_cam=key_cam)
+        """ Return (ptsx, ptsy, ptsz) coordinates for rays
+
+        segment = None => all segments returned, (nseg, ...) array
+        segment = int => (2, ...) array returned
+        """
+        return _check._get_pts(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            segment=segment,
+        )
 
     def get_rays_vect(
         self,
         key=None,
         key_cam=None,
         norm=None,
+        segment=None,
     ):
+        """ Return (vx, vy, vz) coordinates for desired rays
+
+        Optionally (default) normalized
+
+        segment = None => all segments returned, (nseg-1, ...) array
+        segment = int => (...,) array returned
+        """
         return _check._get_vect(
             coll=self,
             key=key,
             key_cam=key_cam,
             norm=norm,
+            segment=segment,
         )
 
     # --------------

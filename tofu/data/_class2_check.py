@@ -603,10 +603,10 @@ def _rays(
     )
 
 
-# ##################################################################
-# ##################################################################
+# ###########################################################
+# ###########################################################
 #                   Rays - check key
-# ##################################################################
+# ###########################################################
 
 
 def _check_key(coll=None, key=None, key_cam=None):
@@ -646,10 +646,38 @@ def _check_key(coll=None, key=None, key_cam=None):
     return kray
 
 
-# ##################################################################
-# ##################################################################
+# #########################################################
+# #########################################################
+#                   Rays - check segment
+# #########################################################
+
+
+def _check_segment(coll, key, segment):
+
+    if segment is not None:
+
+        wrays = coll._which_rays
+        nseg = coll.dobj[wrays][key]['shape'][0] - 1
+        lok = list(range(nseg)) + [-1]
+        segment = int(ds._generic_check._check_var(
+            segment, 'segment',
+            types=(int, float),
+        ))
+        if segment not in lok:
+            msg = (
+                "Arg semgment for rays '{key}' must be in:\n"
+                f"\t- allowed: {lok}\n"
+                f"\t- Provided: {segment}\n"
+            )
+            raise Exception(msg)
+
+    return segment
+
+
+# #########################################################
+# #########################################################
 #                   Rays - get start and vect
-# ##################################################################
+# #########################################################
 
 
 def _get_start(
@@ -680,12 +708,14 @@ def _get_pts(
     coll=None,
     key=None,
     key_cam=None,
+    segment=None,
 ):
 
     # ---------
     # check key
 
     key = _check_key(coll=coll, key=key, key_cam=key_cam)
+    segment = _check_segment(coll, key, segment)
 
     # ---------
     # get start
@@ -702,9 +732,20 @@ def _get_pts(
     ptsz = coll.ddata[ptsz]['data']
 
     # concatenate
-    ptsx = np.insert(ptsx, 0, stx, axis=0)
-    ptsy = np.insert(ptsy, 0, sty, axis=0)
-    ptsz = np.insert(ptsz, 0, stz, axis=0)
+    if segment is None:
+        ptsx = np.insert(ptsx, 0, stx, axis=0)
+        ptsy = np.insert(ptsy, 0, sty, axis=0)
+        ptsz = np.insert(ptsz, 0, stz, axis=0)
+
+    elif segment == 0:
+        ptsx = np.insert(ptsx[0:1, ...], 0, stx, axis=0)
+        ptsy = np.insert(ptsy[0:1, ...], 0, sty, axis=0)
+        ptsz = np.insert(ptsz[0:1, ...], 0, stz, axis=0)
+
+    else:
+        ptsx = ptsx[segment-1:segment+1, ...]
+        ptsy = ptsy[segment-1:segment+1, ...]
+        ptsz = ptsz[segment-1:segment+1, ...]
 
     return ptsx, ptsy, ptsz
 
@@ -714,12 +755,14 @@ def _get_vect(
     key=None,
     key_cam=None,
     norm=None,
+    segment=None,
 ):
 
     # ---------
     # check key
 
     key = _check_key(coll=coll, key=key, key_cam=key_cam)
+    segment = _check_segment(coll, key, segment)
 
     # norm
     norm = ds._generic_check._check_var(
@@ -757,10 +800,10 @@ def _get_vect(
     return vx, vy, vz
 
 
-# ##################################################################
-# ##################################################################
+# ##########################################################
+# ##########################################################
 #                   store
-# ##################################################################
+# ##########################################################
 
 
 def _make_dict(
