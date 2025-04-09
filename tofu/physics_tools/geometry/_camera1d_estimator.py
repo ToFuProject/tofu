@@ -52,6 +52,7 @@ def main(
         collimator,
         collimator_length,
         diverging,
+        kcase,
     ) = _check(
         det_size=det_size,
         ap_size=ap_size,
@@ -71,27 +72,51 @@ def main(
 
     dout = {
         'inputs': {
+            # det
             'det_size': det_size,
+            'det_nb': det_nb,
+            'pitch': pitch,
+            # ap
             'ap_size': ap_size,
             'focal': focal,
-            'det_nb': det_nb,
+            # plot
             'dist': dist,
         }
     }
+    if collimator is True:
+        dout['inputs']['length'] = collimator_length
+
+    # ---------------
+    # compute sensors
+    # ---------------
+
+    dout['sensors'] = _compute_sensors(**dout['inputs'])
 
     # ---------------
     # compute pinhole (ref)
     # ---------------
 
-    dout['pinhole'] = _compute_pinhole(**dout['inputs'])
+    dout['pinhole'] = _compute_pinhole(
+        dinputs=dout['inputs'],
+        dsensors=dout['sensors'],
+    )
 
     # ---------------
     # compute collimator
     # ---------------
 
     if collimator is True:
-        dout['collimator'] = _compute_collimator(
+
+        # pick function
+        if diverging is True:
+            func = _compute_collimator_diverging
+        else:
+            func = _compute_collimator_converging
+
+        # compute
+        dout[kcase] = func(
             dinputs=dout['inputs'],
+            dsensors=dout['sensors'],
             dpinhole=dout['pinhole'],
             # equivalent collimator
             length=collimator_length,
@@ -100,15 +125,28 @@ def main(
 
     # ---------------
     # add text
-    # ---------------
+    # --------------
 
-    _add_text(dout)
+    dout['text'] = {}
+
+    # inputs
+    dout['text'].update(_add_text_inputs(dout, collimator))
+    dout['text'].update(_add_text_pinhole(dout))
+
+    if collimator is True:
+        if diverging is True:
+            dout['text'].update(_add_text_collimator_diverging(dout, kcase))
+        else:
+            dout['text'].update(_add_text_collimator_converging(dout, kcase))
 
     # ---------------
     # plot
     # ---------------
 
-    _plot(dout)
+    _plot(
+        dout=dout,
+        kcase=kcase,
+    )
 
     return dout
 
@@ -141,7 +179,7 @@ def _check(
         det_size, 'det_size',
         types=(int, float),
         sign='>0',
-        default=0.005,
+        default=0.0013,
     ))
 
     # ap_size
@@ -149,7 +187,7 @@ def _check(
         ap_size, 'ap_size',
         types=(int, float),
         sign='>0',
-        default=0.005,
+        default=0.0043,
     ))
 
     # -------------
@@ -171,7 +209,7 @@ def _check(
         pitch, 'pitch',
         types=(int, float),
         sign='>0',
-        default=0.02,
+        default=0.005,
     ))
 
     # -------------
@@ -203,11 +241,11 @@ def _check(
     # collimator
     # -------------
 
-    collimator = float(ds._generic_check._check_var(
+    collimator = ds._generic_check._check_var(
         collimator, 'collimator',
         types=bool,
-        default=collimator_length is not None,
-    ))
+        default=(collimator_length is not None),
+    )
 
     # -------------
     # collimator_length
@@ -217,7 +255,7 @@ def _check(
         collimator_length, 'collimator_length',
         types=(int, float),
         sign='>0',
-        default=focal/2.,
+        default=focal/3.,
     ))
 
     if collimator is False:
@@ -233,6 +271,18 @@ def _check(
         default=False,
     )
 
+    # -------------
+    # kcase
+    # -------------
+
+    if collimator is True:
+        if diverging is True:
+            kcase = 'collimator_diverging'
+        else:
+            kcase = 'collimator_converging'
+    else:
+        kcase = 'pinhole'
+
     return (
         det_size,
         ap_size,
@@ -244,37 +294,23 @@ def _check(
         collimator,
         collimator_length,
         diverging,
+        kcase,
     )
 
 
 # ################################################
 # ################################################
-#           Compute pinhole
+#           Compute detector
 # ################################################
 
 
-def _compute_pinhole(
-    det_size=None,
-    ap_size=None,
-    focal=None,
-    pitch=None,
+def _compute_sensors(
     det_nb=None,
-    dist=None,
-    # equivalent collimator
-    collimator=None,
-    collimator_length=None,
-    diverging=None,
+    det_size=None,
+    pitch=None,
+    # unused
+    **kwdargs,
 ):
-
-    # ---------------
-    # prepare & outputs
-    # ---------------
-
-    dist_plot = dist
-
-    alpha = np.arctan(pitch / focal)
-    beta = 2. * np.arctan((det_size + ap_size) / (2. * focal))
-    R = (beta - alpha) / alpha
 
     # ---------------
     # sensors
@@ -287,6 +323,50 @@ def _compute_pinhole(
 
     x_plot = np.zeros((det_nb*3))
     y_plot = np.array([y_low, y_up, np.full(cy.shape, np.nan)]).T.ravel()
+
+    return {
+        'cy': cy,
+        'y_low': y_low,
+        'y_up': y_up,
+        'x_plot': x_plot,
+        'y_plot': y_plot,
+    }
+
+
+# ################################################
+# ################################################
+#           Compute pinhole
+# ################################################
+
+
+def _compute_pinhole(
+    dinputs=None,
+    dsensors=None,
+):
+
+    # ---------------
+    # extract
+    # ---------------
+
+    # inputs
+    dist = dinputs['dist']
+    focal = dinputs['focal']
+    pitch = dinputs['pitch']
+    det_size = dinputs['det_size']
+    ap_size = dinputs['ap_size']
+
+    # sensors
+    cy = dsensors['cy']
+    y_low = dsensors['y_low']
+    y_up = dsensors['y_up']
+
+    # ---------------
+    # prepare & outputs
+    # ---------------
+
+    alpha = np.arctan(pitch / focal)
+    beta = 2. * np.arctan((det_size + ap_size) / (2. * focal))
+    R = (beta - alpha) / alpha
 
     # ---------------
     # aperture
@@ -308,9 +388,9 @@ def _compute_pinhole(
     vectx = vectx / vectn
     vecty = vecty / vectn
 
-    kplot = dist_plot / vectx
+    kplot = dist / vectx
 
-    los_x = np.r_[0, dist_plot]
+    los_x = np.r_[0, dist]
     los_y = (
         cy[:, None]
         + kplot[:, None] * vecty[:, None] * np.r_[0, 1][None, :]
@@ -320,60 +400,19 @@ def _compute_pinhole(
     # FOV
     # ---------------
 
-    fov_x = np.r_[0, dist_plot]
-
-    # ------
-    # inner
-
-    # vect low
-    vlow_x = apx
-    vlow_y = -0.5*ap_size - y_low
-    vlown = np.sqrt(vlow_x**2 + vlow_y**2)
-    vlow_x, vlow_y = vlow_x/vlown, vlow_y/vlown
-
-    # vect up
-    vup_x = apx
-    vup_y = 0.5*ap_size - y_up
-    vupn = np.sqrt(vup_x**2 + vup_y**2)
-    vup_x, vup_y = vup_x/vupn, vup_y/vupn
-
-    # y
-    klow = dist_plot / vlow_x
-    kup = dist_plot / vup_x
-    fov_in_y_low = (
-        y_low[:, None]
-        + klow[:, None] * vlow_y[:, None] * np.r_[0, 1][None, :]
-    )
-    fov_in_y_up = (
-        y_up[:, None]
-        + kup[:, None] * vup_y[:, None] * np.r_[0, 1][None, :]
-    )
-
-    # ------
-    # outer
-
-    # vect low
-    vlow_x = apx
-    vlow_y = 0.5*ap_size - y_low
-    vlown = np.sqrt(vlow_x**2 + vlow_y**2)
-    vlow_x, vlow_y = vlow_x/vlown, vlow_y/vlown
-
-    # vect up
-    vup_x = apx
-    vup_y = -0.5*ap_size - y_up
-    vupn = np.sqrt(vup_x**2 + vup_y**2)
-    vup_x, vup_y = vup_x/vupn, vup_y/vupn
-
-    # y
-    klow = dist_plot / vlow_x
-    kup = dist_plot / vup_x
-    fov_out_y_low = (
-        y_low[:, None]
-        + klow[:, None] * vlow_y[:, None] * np.r_[0, 1][None, :]
-    )
-    fov_out_y_up = (
-        y_up[:, None]
-        + kup[:, None] * vup_y[:, None] * np.r_[0, 1][None, :]
+    (
+        fov_x,
+        fov_in_y_low, fov_in_y_up,
+        fov_out_y_low, fov_out_y_up,
+    ) = _fov_inner_outer(
+        dist=dist,
+        # det
+        y_low=y_low,
+        y_up=y_up,
+        # ap
+        apx=apx,
+        apy_low=apy_low,
+        apy_up=apy_up,
     )
 
     # ---------------
@@ -381,23 +420,10 @@ def _compute_pinhole(
     # ---------------
 
     dout = {
-        'inputs': {
-            'pitch': pitch,
-            'focal': focal,
-            'det_size': det_size,
-            'ap_size': ap_size,
-        },
         'outputs': {
             'alpha': alpha,
             'beta': beta,
             'R': R,
-        },
-        'sensors': {
-            'cy': cy,
-            'y_low': y_low,
-            'y_up': y_up,
-            'x_plot': x_plot,
-            'y_plot': y_plot,
         },
         'aperture': {
             'cx': apx,
@@ -430,138 +456,637 @@ def _compute_pinhole(
 
 # ################################################
 # ################################################
-#           Compute collimator
+#           Compute collimator - converging
 # ################################################
 
 
-def _compute_collimator(
-    det_size=None,
-    ap_size=None,
-    focal=None,
-    pitch=None,
-    det_nb=None,
-    dist=None,
+def _compute_collimator_converging(
+    dinputs=None,
+    dsensors=None,
+    dpinhole=None,
     # equivalent collimator
     length=None,
     diverging=None,
 ):
 
     # ---------------
-    # prepare & outputs
+    # extract
     # ---------------
 
+    # inputs
+    det_size = dinputs['det_size']
+    det_nb = dinputs['det_nb']
+    dist = dinputs['dist']
 
+    # sensors
+    det_y = dsensors['cy']
+    dety_low = dsensors['y_low']
+    dety_up = dsensors['y_up']
 
+    # pinhole
+    alpha = dpinhole['outputs']['alpha']
+    R = dpinhole['outputs']['R']
+    LOS_x = dpinhole['LOS']['vectx']
+    LOS_y = dpinhole['LOS']['vecty']
 
-    return
+    # ---------------
+    # aperture
+    # ---------------
 
+    # ap_size to preserve overlap
+    # beta = 2arctan((WA + WD) / (2 * length))
+    # R = (beta - alpha) / alpha
+    #
+    # we want:
+    # beta = alpha * (1 + R)
+    # so:
 
-# ################################################
-# ################################################
-#           Add text
-# ################################################
+    beta = alpha * (R + 1)
+    ap_size = 2.*length * np.tan(beta / 2) - det_size
 
+    # dist along LOS
+    kk = length / LOS_x
 
-def _add_text(dout):
+    apx = length
+    apy = det_y + LOS_y * kk
 
-    # -------------
-    # alpha
-    # -------------
+    apy_up = apy + 0.5 * ap_size
+    apy_low = apy - 0.5 * ap_size
 
-    alpha = (
-        r"$\alpha = \arctan\left(\frac{P}{F}\right)$"
+    ap_shape = (2*(det_nb+1) + det_nb,)
+    apx_plot = np.full(ap_shape, apx)
+    apy_plot = np.full(ap_shape, np.nan)
+    apy_plot[0] = min(apy_low[0] - ap_size, det_y[0] - det_size*0.5)
+    apy_plot[-1] = max(apy_up[-1] + ap_size, det_y[-1] + det_size*0.5)
+    for ii in range(det_nb):
+        i0 = 1 + ii*3
+        i1 = 1 + ii*3 + 1
+        i2 = 1 + ii*3 + 2
+        apy_plot[i0] = apy[ii] - 0.5*ap_size
+        apy_plot[i1] = np.nan
+        apy_plot[i2] = apy[ii] + 0.5*ap_size
+
+    # ----------------
+    # LOS
+    # ----------------
+
+    # vectors
+    vectx = apx
+    vecty = apy - det_y
+    vectn = np.sqrt(vectx**2 + vecty**2)
+    vectx = vectx / vectn
+    vecty = vecty / vectn
+
+    # los
+    kplot = dist / vectx
+    los_x = np.r_[0, dist]
+    los_y = (
+        det_y[:, None]
+        + kplot[:, None] * vecty[:, None] * np.r_[0, 1][None, :]
     )
 
+    # ---------------
+    # FOV
+    # ---------------
+
+    (
+        fov_x,
+        fov_in_y_low, fov_in_y_up,
+        fov_out_y_low, fov_out_y_up,
+    ) = _fov_inner_outer(
+        dist=dist,
+        # det
+        y_low=dety_low,
+        y_up=dety_up,
+        # ap
+        apx=apx,
+        apy_low=apy_low,
+        apy_up=apy_up,
+    )
+
+    # ---------------
+    # dout
+    # ---------------
+
+    dout = {
+        'outputs': {
+            'ap_size': ap_size,
+        },
+        'aperture': {
+            'cx': apx,
+            'y_low': apy_low,
+            'y_up': apy_up,
+            'x_plot': apx_plot,
+            'y_plot': apy_plot,
+        },
+        'LOS': {
+            'vectx': vectx,
+            'vecty': vecty,
+            'x': los_x,
+            'y': los_y,
+        },
+        'FOV': {
+            'x': fov_x,
+            'inner': {
+                'y_low': fov_in_y_low,
+                'y_up': fov_in_y_up,
+            },
+            'outer': {
+                'y_low': fov_out_y_low,
+                'y_up': fov_out_y_up,
+            },
+        },
+    }
+
+    return dout
+
+
+# ################################################
+# ################################################
+#           Compute collimator - diverging
+# ################################################
+
+
+def _compute_collimator_diverging(
+    dinputs=None,
+    dsensors=None,
+    dpinhole=None,
+    # equivalent collimator
+    length=None,
+    diverging=None,
+):
+
+    # ---------------
+    # extract
+    # ---------------
+
+    # inputs
+    det_size = dinputs['det_size']
+    det_nb = dinputs['det_nb']
+    dist = dinputs['dist']
+
+    # sensors
+    det_y = dsensors['cy']
+    dety_low = dsensors['y_low']
+    dety_up = dsensors['y_up']
+
+    # pinhole
+    alpha = dpinhole['outputs']['alpha']
+    R = dpinhole['outputs']['R']
+
+    # ---------------
+    # New LOS
+    # ---------------
+
+    los_x = dpinhole['LOS']['x']
+    los_y = dpinhole['LOS']['y']
+    los_y[:, -1] = los_y[::-1, -1]
+
+    vectx = np.diff(los_x).ravel()
+    vecty = np.diff(los_y, axis=1).ravel()
+    vectn = np.sqrt(vectx**2 + vecty**2)
+    vectx = vectx / vectn
+    vecty = vecty / vectn
+
+    # ---------------
+    # aperture positions
+    # ---------------
+
+    apx = length
+    kk = length / vectx
+    apy = det_y + kk * vecty
+
+    # ---------------
+    # aperture
+    # ---------------
+
+    # ap_size to preserve overlap
+    # beta = 2arctan((WA + WD) / (2 * length))
+    # R = (beta - alpha) / alpha
+    #
+    # we want:
+    # beta = alpha * (1 + R)
+    # so:
+
+    beta = alpha * (R + 1)
+    ap_size = 2.*length * np.tan(beta / 2) - det_size
+
+    apy_up = apy + 0.5 * ap_size
+    apy_low = apy - 0.5 * ap_size
+
+    ap_shape = (2*(det_nb+1) + det_nb,)
+    apx_plot = np.full(ap_shape, apx)
+    apy_plot = np.full(ap_shape, np.nan)
+    apy_plot[0] = min(apy_low[0] - ap_size, det_y[0] - det_size*0.5)
+    apy_plot[-1] = max(apy_up[-1] + ap_size, det_y[-1] + det_size*0.5)
+    for ii in range(det_nb):
+        i0 = 1 + ii*3
+        i1 = 1 + ii*3 + 1
+        i2 = 1 + ii*3 + 2
+        apy_plot[i0] = apy[ii] - 0.5*ap_size
+        apy_plot[i1] = np.nan
+        apy_plot[i2] = apy[ii] + 0.5*ap_size
+
+    # ---------------
+    # FOV
+    # ---------------
+
+    (
+        fov_x,
+        fov_in_y_low, fov_in_y_up,
+        fov_out_y_low, fov_out_y_up,
+    ) = _fov_inner_outer(
+        dist=dist,
+        # det
+        y_low=dety_low,
+        y_up=dety_up,
+        # ap
+        apx=apx,
+        apy_low=apy_low,
+        apy_up=apy_up,
+    )
+
+    # ---------------
+    # dout
+    # ---------------
+
+    dout = {
+        'outputs': {
+            'ap_size': ap_size,
+        },
+        'aperture': {
+            'cx': apx,
+            'y_low': apy_low,
+            'y_up': apy_up,
+            'x_plot': apx_plot,
+            'y_plot': apy_plot,
+        },
+        'LOS': {
+            'vectx': vectx,
+            'vecty': vecty,
+            'x': los_x,
+            'y': los_y,
+        },
+        'FOV': {
+            'x': fov_x,
+            'inner': {
+                'y_low': fov_in_y_low,
+                'y_up': fov_in_y_up,
+            },
+            'outer': {
+                'y_low': fov_out_y_low,
+                'y_up': fov_out_y_up,
+            },
+        },
+    }
+
+    return dout
+
+
+# ################################################
+# ################################################
+#           FOV - inner
+# ################################################
+
+
+def _fov_inner_outer(
+    dist=None,
+    # det
+    y_low=None,
+    y_up=None,
+    # ap
+    apx=None,
+    apy_low=None,
+    apy_up=None,
+):
+
+    fov_x = np.r_[0, dist]
+
+    # ------
+    # inner
+
+    # vect low
+    vlow_x = apx
+    vlow_y = apy_low - y_low
+    vlown = np.sqrt(vlow_x**2 + vlow_y**2)
+    vlow_x, vlow_y = vlow_x/vlown, vlow_y/vlown
+
+    # vect up
+    vup_x = apx
+    vup_y = apy_up - y_up
+    vupn = np.sqrt(vup_x**2 + vup_y**2)
+    vup_x, vup_y = vup_x/vupn, vup_y/vupn
+
+    # y
+    klow = dist / vlow_x
+    kup = dist / vup_x
+    fov_in_y_low = (
+        y_low[:, None]
+        + klow[:, None] * vlow_y[:, None] * np.r_[0, 1][None, :]
+    )
+    fov_in_y_up = (
+        y_up[:, None]
+        + kup[:, None] * vup_y[:, None] * np.r_[0, 1][None, :]
+    )
+
+    # ------
+    # outer
+
+    # vect low
+    vlow_x = apx
+    vlow_y = apy_up - y_low
+    vlown = np.sqrt(vlow_x**2 + vlow_y**2)
+    vlow_x, vlow_y = vlow_x/vlown, vlow_y/vlown
+
+    # vect up
+    vup_x = apx
+    vup_y = apy_low - y_up
+    vupn = np.sqrt(vup_x**2 + vup_y**2)
+    vup_x, vup_y = vup_x/vupn, vup_y/vupn
+
+    # y
+    klow = dist / vlow_x
+    kup = dist / vup_x
+    fov_out_y_low = (
+        y_low[:, None]
+        + klow[:, None] * vlow_y[:, None] * np.r_[0, 1][None, :]
+    )
+    fov_out_y_up = (
+        y_up[:, None]
+        + kup[:, None] * vup_y[:, None] * np.r_[0, 1][None, :]
+    )
+
+    return fov_x, fov_in_y_low, fov_in_y_up, fov_out_y_low, fov_out_y_up
+
+
+# ################################################
+# ################################################
+#           Add text - Inputs
+# ################################################
+
+
+def _add_text_inputs(dout, collimator=None):
+
     # -------------
-    # beta
+    # inputs
     # -------------
 
+    P = dout['inputs']['pitch']
+    F = dout['inputs']['focal']
+    WD = dout['inputs']['det_size']
+    WA = dout['inputs']['ap_size']
+
+    inputs = (
+        r"$P = $" + f"{round(P*1000, ndigits=1)} mm\n"
+        + r"$F = $" + f"{round(F*1000, ndigits=1)} mm\n"
+        + r"$W_D = $" + f"{round(WD*1000, ndigits=1)} mm\n"
+        + r"$W_A = $" + f"{round(WA*1000, ndigits=1)} mm\n"
+    )
+
+    if collimator is True:
+        L = dout['inputs']['length']
+        inputs += "\n" + r"$L = $" + f"{round(L*1000, ndigits=1)} mm\n"
+
+    # -------------
+    # store
+    # -------------
+
+    return {
+        'tit_inputs': {
+            'str': "Inputs",
+            'pos': (0.10, 0.45),
+            'fontweight': 'bold',
+            'horizontalalignment': 'center',
+        },
+        'inputs': {
+            'str': inputs,
+            'pos': (0.05, 0.35),
+        },
+    }
+
+
+# ################################################
+# ################################################
+#           Add text - Pinhole
+# ################################################
+
+
+def _add_text_pinhole(dout):
+
+    # -------------
+    # alpha, beta
+    # -------------
+
+    kpin = 'pinhole'
+    alpha_str = round(dout[kpin]['outputs']['alpha']*180/np.pi, ndigits=1)
+    alpha = (
+        r"$\alpha = \arctan\left(\frac{P}{F}\right)$"
+        + f" = {alpha_str} deg"
+    )
+
+    beta_str = round(dout[kpin]['outputs']['beta']*180/np.pi, ndigits=1)
     beta = (
         r"$\beta = 2\arctan\left(\frac{W_A + W_D}{2F}\right)$"
+        + f" = {beta_str} deg"
     )
 
     # -------------
     # overlap rate
     # -------------
 
+    R_str = round(dout[kpin]['outputs']['R']*100, ndigits=1)
     overlap = (
-        "Overap rate:  "
-        + r"$R = \frac{\beta - \alpha}{\alpha}$" + "\n   "
-        + r"$\approx \frac{W_A + W_D - P}{F} \times \frac{F}{P}$" + "\n   "
-        + r"$\approx \frac{W_A + W_D - P}{P}$" + "\n\nOr:   "
+        "Overlap rate:\n    "
+        + r"$R = \frac{\beta - \alpha}{\alpha}$"
+        + r"$\approx \frac{W_A + W_D - P}{P}$"
+        + "  " + r"$\approx$" + f"{R_str} %"
+        + "\nOr:    "
         + r"$W_A \approx P(1 + R) - W_D$"
-    )
-
-    # -------------
-    # inputs
-    # -------------
-
-    inputs = (
-        "Inputs:\n   "
-        + r"$P = $" + f"{dout['inputs']['pitch']} m\n   "
-        + r"$F = $" + f"{dout['inputs']['focal']} m\n   "
-        + r"$W_D = $" + f"{dout['inputs']['det_size']} m\n   "
-        + r"$W_A = $" + f"{dout['inputs']['ap_size']} m"
-    )
-
-    # -------------
-    # outputs
-    # -------------
-
-    alpha_str = round(dout['outputs']['alpha']*180/np.pi, ndigits=1)
-    beta_str = round(dout['outputs']['beta']*180/np.pi, ndigits=1)
-    R_str = round(dout['outputs']['R']*100, ndigits=1)
-
-    outputs = (
-        "Outputs:\n   "
-        + r"$\alpha = $" + f"{alpha_str} deg\n   "
-        + r"$\beta = $" + f"{beta_str} deg\n   "
-        + r"$R = $" + f"{R_str} %"
     )
 
     # -------------
     # Recommendation
     # -------------
 
-    WA = 1.1*dout['inputs']['pitch'] - dout['inputs']['det_size']
+    P = dout['inputs']['pitch']
+    WD = dout['inputs']['det_size']
+    WA_str = round(1.1*P - WD, ndigits=1)
 
     R10 = (
         "To get R = 10 %:\n    "
-        + r"$W_A \approx 1.1P - W_D = $" + f"{WA:3.1e} m"
+        + r"$W_A \approx 1.1P - W_D = $" + f"{WA_str} mm"
+    )
+
+    # -------------
+    # Etendue
+    # -------------
+
+    etendue = (
+        r"$E \approx \frac{(W_A.L_A)(W_D.L_D)}{F^2}$"
     )
 
     # -------------
     # store
     # -------------
 
-    dout['text'] = {
+    return {
+        'tit_pinhole': {
+            'str': 'PINHOLE',
+            'pos': (0.35, 0.45),
+            'fontweight': 'bold',
+            'horizontalalignment': 'center',
+        },
         'alpha': {
             'str': alpha,
-            'pos': (0.10, 0.40),
+            'pos': (0.25, 0.38),
         },
         'beta': {
             'str': beta,
-            'pos': (0.25, 0.40),
+            'pos': (0.25, 0.33),
         },
         'overlap': {
             'str': overlap,
-            'pos': (0.10, 0.30),
-        },
-        'inputs': {
-            'str': inputs,
-            'pos': (0.60, 0.40),
-        },
-        'outputs': {
-            'str': outputs,
-            'pos': (0.80, 0.40),
+            'pos': (0.25, 0.28),
         },
         'R10': {
             'str': R10,
-            'pos': (0.60, 0.15),
+            'pos': (0.25, 0.15),
+        },
+        'etendue': {
+            'str': etendue,
+            'pos': (0.25, 0.08),
         },
     }
 
-    return
+
+# ################################################
+# ################################################
+#           Add text - Collimator - diverging
+# ################################################
+
+
+def _add_text_collimator_diverging(dout, kcase):
+
+    # -------------
+    # Aperture size
+    # -------------
+
+    WD = dout['inputs']['det_size']
+    WA = dout['inputs']['ap_size']
+
+    WA_str = round(dout[kcase]['outputs']['ap_size']*1000, ndigits=2)
+    lim = round(WD / (WD+WA), ndigits=2)
+    WA_str = (
+        r"$W_A^C = 2.L\tan(\frac{\beta}{2}) - W_D$"
+        r"$= \frac{L}{F}(W_A + W_D) - W_D$"
+        + f"= {WA_str} mm"
+        + "\n  Only if "
+        + r"$L \geq F\frac{W_D}{W_A + W_D} \approx$" + f"{lim} F"
+    )
+
+    # -------------
+    # etendue
+    # -------------
+
+    F = dout['inputs']['focal']
+    L = dout['inputs']['length']
+    WAC = dout[kcase]['outputs']['ap_size']
+
+    coef = round((F/L)**2 * WAC/WA, ndigits=2)
+    etendue = (
+        r"$E^C \approx \frac{(W_A^C.L_A^C)(W_D.L_D)}{L^2}$"
+        + r"$= \frac{F^2}{L^2} \frac{W_A^C.L_A^C}{W_A.L_A} E$"
+        + r"$\approx$" + f"{coef}" + r"$\frac{L_A^C}{L_A}E$"
+    )
+
+    # -------------
+    # store
+    # -------------
+
+    return {
+        # titles
+        'tit_collim': {
+            'str': "COLLIMATOR EQUIVALENT\n(DIVERGING)",
+            'pos': (0.80, 0.45),
+            'fontweight': 'bold',
+            'horizontalalignment': 'center',
+        },
+        # collimator
+        'WA': {
+            'str': WA_str,
+            'pos': (0.60, 0.35),
+        },
+        # etendue
+        'etendueC': {
+            'str': etendue,
+            'pos': (0.60, 0.20),
+        },
+    }
+
+
+# ################################################
+# ################################################
+#           Add text - Collimator - converging
+# ################################################
+
+
+def _add_text_collimator_converging(dout, kcase):
+
+    # -------------
+    # Aperture size
+    # -------------
+
+    WD = dout['inputs']['det_size']
+    WA = dout['inputs']['ap_size']
+
+    WA_str = round(dout[kcase]['outputs']['ap_size']*1000, ndigits=2)
+    lim = round(WD / (WD+WA), ndigits=2)
+    WA_str = (
+        r"$W_A^C = 2.L\tan(\frac{\beta}{2}) - W_D$"
+        r"$= \frac{L}{F}(W_A + W_D) - W_D$"
+        + f"= {WA_str} mm"
+        + "\n  Only if "
+        + r"$L \geq F\frac{W_D}{W_A + W_D} \approx$" + f"{lim} F"
+    )
+
+    # -------------
+    # etendue
+    # -------------
+
+    F = dout['inputs']['focal']
+    L = dout['inputs']['length']
+    WAC = dout[kcase]['outputs']['ap_size']
+
+    coef = round((F/L)**2 * WAC/WA, ndigits=2)
+    etendue = (
+        r"$E^C \approx \frac{(W_A^C.L_A^C)(W_D.L_D)}{L^2}$"
+        + r"$= \frac{F^2}{L^2} \frac{W_A^C.L_A^C}{W_A.L_A} E$"
+        + r"$\approx$" + f"{coef}" + r"$\frac{L_A^C}{L_A}E$"
+    )
+
+    # -------------
+    # store
+    # -------------
+
+    return {
+        # titles
+        'tit_collim': {
+            'str': "COLLIMATOR EQUIVALENT\n(CONVERGING)",
+            'pos': (0.80, 0.45),
+            'fontweight': 'bold',
+            'horizontalalignment': 'center',
+        },
+        # collimator
+        'WA': {
+            'str': WA_str,
+            'pos': (0.60, 0.35),
+        },
+        # etendue
+        'etendueC': {
+            'str': etendue,
+            'pos': (0.60, 0.20),
+        },
+    }
 
 
 # ################################################
@@ -570,24 +1095,31 @@ def _add_text(dout):
 # ################################################
 
 
-def _plot(dout):
+def _plot(
+    dout=None,
+    kcase=None,
+):
 
     # ----------------
     # prepare data
     # ----------------
 
+    # for comparison
+    kcase0 = 'pinhole'
+
+    # ----------------
+    # prepare figure
+    # ----------------
+
+    # dmargin
     dmargin = {
         'bottom': 0.1, 'top': 0.9,
         'left': 0.1, 'right': 0.9,
         'wspace': 0.1, 'hspace': 0.1,
     }
 
-    # ----------------
-    # prepare figure
-    # ----------------
-
     # figure
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(13, 9))
     gs = gridspec.GridSpec(ncols=1, nrows=2, **dmargin)
 
     # axes
@@ -599,42 +1131,68 @@ def _plot(dout):
     # plot sensors & aperture
     # ------------------------
 
-    for k0 in ['sensors', 'aperture']:
-        ax.plot(
-            dout[k0]['x_plot'],
-            dout[k0]['y_plot'],
-            c='k',
-            lw=5,
-        )
+    # sensors
+    ax.plot(
+        dout['sensors']['x_plot'],
+        dout['sensors']['y_plot'],
+        c='k',
+        lw=3,
+    )
+
+    # aperture - pinhole
+    ax.plot(
+        dout[kcase0]['aperture']['x_plot'],
+        dout[kcase0]['aperture']['y_plot'],
+        c='k' if kcase == kcase0 else (0.8, 0.8, 0.8, 0.8),
+        lw=3,
+    )
+
+    # apertures
+    ax.plot(
+        dout[kcase]['aperture']['x_plot'],
+        dout[kcase]['aperture']['y_plot'],
+        c='k',
+        lw=3,
+    )
 
     # ------------------------
     # plot LOS and FOV
     # ------------------------
 
-    for ii in range(dout['sensors']['cy'].size):
+    for ii in range(dout[kcase0]['LOS']['y'].shape[0]):
 
-        # LOS
+        # LOS - pinhole
         l0, = ax.plot(
-            dout['LOS']['x'],
-            dout['LOS']['y'][ii],
-            ls='-',
+            dout[kcase0]['LOS']['x'],
+            dout[kcase0]['LOS']['y'][ii],
+            ls='-' if kcase == kcase0 else '--',
             lw=1,
         )
 
+        # LOS - case
+        if dout[kcase].get('LOS') is not None:
+            l0, = ax.plot(
+                dout[kcase]['LOS']['x'],
+                dout[kcase]['LOS']['y'][ii],
+                ls='-',
+                lw=1,
+                c=l0.get_color(),
+            )
+
         # FOV inner
         ax.fill_between(
-            dout['FOV']['x'],
-            dout['FOV']['inner']['y_low'][ii],
-            dout['FOV']['inner']['y_up'][ii],
+            dout[kcase]['FOV']['x'],
+            dout[kcase]['FOV']['inner']['y_low'][ii],
+            dout[kcase]['FOV']['inner']['y_up'][ii],
             fc=l0.get_color(),
             alpha=0.6,
         )
 
         # FOV outer
         ax.fill_between(
-            dout['FOV']['x'],
-            dout['FOV']['outer']['y_low'][ii],
-            dout['FOV']['outer']['y_up'][ii],
+            dout[kcase]['FOV']['x'],
+            dout[kcase]['FOV']['outer']['y_low'][ii],
+            dout[kcase]['FOV']['outer']['y_up'][ii],
             fc=l0.get_color(),
             alpha=0.2,
         )
@@ -643,24 +1201,43 @@ def _plot(dout):
     # text
     # ----------------
 
-    for k0, v0 in dout['text'].items():
+    if dout.get('text') is not None:
+        for k0, v0 in dout['text'].items():
 
-        ax.text(
-            v0['pos'][0],
-            v0['pos'][1],
-            v0['str'],
-            size=14,
-            verticalalignment='top',
-            horizontalalignment='left',
-            transform=fig.transFigure,
+            ax.text(
+                v0['pos'][0],
+                v0['pos'][1],
+                v0['str'],
+                size=14,
+                fontweight=v0.get('fontweight', 'normal'),
+                verticalalignment=v0.get('verticalalignment', 'top'),
+                horizontalalignment=v0.get('horizontalalignment', 'left'),
+                transform=fig.transFigure,
+            )
+
+        # figure vline
+        x0 = 0.5*(
+            dout['text']['tit_inputs']['pos'][0]
+            + dout['text']['tit_pinhole']['pos'][0]
         )
+        fig.add_artist(mlines.Line2D(
+            [x0, x0],
+            [0.05, 0.45],
+            linewidth=2,
+            color='k',
+        ))
 
-    # figure
-    fig.add_artist(mlines.Line2D(
-        [0.5, 0.5],
-        [0.1, 0.4],
-        linewidth=2,
-        color='k',
-    ))
+        # figure vline
+        if kcase != kcase0:
+            x0 = 0.5*(
+                dout['text']['tit_pinhole']['pos'][0]
+                + dout['text']['tit_collim']['pos'][0]
+            )
+            fig.add_artist(mlines.Line2D(
+                [x0, x0],
+                [0.05, 0.45],
+                linewidth=2,
+                color='k',
+            ))
 
     return
