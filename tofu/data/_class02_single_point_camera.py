@@ -354,18 +354,24 @@ def _get_rays_angles(
     segment=None,
     # max tolerance
     tol_radius=None,
+    # verb
+    verb=None,
 ):
 
     # -------------
     # check inputs
     # -------------
 
-    key_single_pt_cam, key_rays, segment, tol_radius = _check_rays_angles(
+    (
+        key_single_pt_cam, key_rays,
+        segment, tol_radius, verb,
+    ) = _check_rays_angles(
         coll=coll,
         key_single_pt_cam=key_single_pt_cam,
         key_rays=key_rays,
         segment=segment,
         tol_radius=tol_radius,
+        verb=verb,
     )
 
     # -------------
@@ -373,8 +379,8 @@ def _get_rays_angles(
     # -------------
 
     wrays = coll._which_rays
-    ref = coll.dobj[wrays][key_single_pt_cam]['ref'][1:]
-    shape = coll.dobj[wrays][key_single_pt_cam]['shape'][1:]
+    ref = coll.dobj[wrays][key_rays]['ref'][1:]
+    shape = coll.dobj[wrays][key_rays]['shape'][1:]
     kang0, kang1 = coll.dobj[wrays][key_single_pt_cam]['angles']
     units = coll.ddata[kang0]['units']
 
@@ -407,6 +413,16 @@ def _get_rays_angles(
     else:
         iok = np.ones(shape, dtype=bool)
 
+    # verb
+    if verb is True:
+        msg = (
+            "Angles computation for rays, seen from single_point_camera2d:\n"
+            f"\t- single_point_camera2d: {key_single_pt_cam}\n"
+            f"\t- key_rays: {key_rays}\n"
+            f"\t- max impact: {np.max(impact)} m\n"
+        )
+        print(msg)
+
     # -------------
     # compute
     # -------------
@@ -431,6 +447,11 @@ def _get_rays_angles(
         ang1[iok] = np.arcsin(vx * e1[0] + vy * e1[1] + vz * e1[2])
         cos1_sin0 = vx * e0[0] + vy * e0[1] + vz * e0[2]
         ang0[iok] = np.arcsin(cos1_sin0 / np.cos(ang1[iok]))
+
+    # adjust units
+    if str(units) == 'deg':
+        ang0 = ang0 * 180/np.pi
+        ang1 = ang1 * 180/np.pi
 
     # -------------
     # output
@@ -477,6 +498,8 @@ def _check_rays_angles(
     segment=None,
     # max tolerance
     tol_radius=None,
+    # verb
+    verb=None,
 ):
 
     # -------------
@@ -533,7 +556,18 @@ def _check_rays_angles(
             sign='>0',
         ))
 
+    # -----------------
+    # verb
+    # -----------------
+
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=bool,
+        default=True,
+    )
+
     return (
         key_single_pt_cam, key_rays,
         segment, tol_radius,
+        verb,
     )

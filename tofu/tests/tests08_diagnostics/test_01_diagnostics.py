@@ -837,12 +837,20 @@ class Test01_Diagnostic():
 
     def test07_add_single_point_camera2d(self):
         self.coll.add_single_point_camera2d(
+            key='ptcam',
             cent=np.r_[3, 0, 0],
             nin=np.r_[-1, 0, 1],
             angle0=25,
             angle1=25,
             config=self.conf_touch,
         )
+
+        # get angles from rays
+        dout = self.coll.get_rays_angles_from_single_point_camera2d(
+            key_single_pt_cam='ptcam',
+            key_rays=list(self.coll.dobj['rays'].keys())[0],
+        )
+        assert isinstance(dout, dict)
 
     def test07_add_rays_from_diagnostic(self):
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):

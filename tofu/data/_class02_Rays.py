@@ -78,6 +78,8 @@ class Rays(Previous):
         key_nseg=None,
         diag=None,
         key_cam=None,
+        # others
+        **kwdargs,
     ):
         """ Add a set of rays
 
@@ -120,6 +122,8 @@ class Rays(Previous):
             key_nseg=key_nseg,
             diag=diag,
             key_cam=key_cam,
+            # kwdargs
+            kwdargs=kwdargs,
         )
 
         # update dicts
@@ -437,6 +441,40 @@ class Rays(Previous):
             ref_angle0=ref_angle0,
             ref_angle1=ref_angle1,
             units_angles=units_angles,
+        )
+
+    # ----------------------
+    # get angles of rasy from single point camera
+    # ----------------------
+
+    def get_rays_angles_from_single_point_camera2d(
+        self,
+        key_single_pt_cam=None,
+        # rays to get angles of
+        key_rays=None,
+        segment=None,
+        # max tolerance
+        tol_radius=None,
+        # verb
+        verb=None,
+    ):
+        """ Compute (angle0, angle1) for chosen rays
+
+        As seen from a single point camera2d
+
+        Optionally disable rays with an impact factor too large vs camera
+
+        """
+        return _single_point_cam._get_rays_angles(
+            coll=self,
+            key_single_pt_cam=key_single_pt_cam,
+            # rays to get angles of
+            key_rays=key_rays,
+            segment=segment,
+            # max tolerance
+            tol_radius=tol_radius,
+            # verb
+            verb=verb,
         )
 
     # ------------------
