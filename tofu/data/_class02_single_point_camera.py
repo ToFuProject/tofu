@@ -1,6 +1,8 @@
 
 
 import numpy as np
+import scipy.spatial as scpsp
+from matplotlib.path import Path
 import datastock as ds
 
 
@@ -33,10 +35,15 @@ _DANGLES = {
 def main(
     coll=None,
     key=None,
+    # from rays
+    key_rays=None,
+    segment=None,
+    # from user-defined
     cent=None,
     nin=None,
     e0=None,
     e1=None,
+    # angles
     angle0=None,
     angle1=None,
     config=None,
@@ -56,10 +63,15 @@ def main(
     key, cent, nin, e0, e1, dangles, strict = _check(
         coll=coll,
         key=key,
+        # from rays
+        key_rays=key_rays,
+        segment=segment,
+        # user-defined
         cent=cent,
         nin=nin,
         e0=e0,
         e1=e1,
+        # angles
         angle0=angle0,
         angle1=angle1,
         strict=strict,
@@ -156,6 +168,10 @@ def main(
 def _check(
     coll=None,
     key=None,
+    # from rays
+    key_rays=None,
+    segment=None,
+    # from user-defined
     cent=None,
     nin=None,
     e0=None,
@@ -184,15 +200,67 @@ def _check(
         excluded=lout,
     )
 
+    # ---------------------
+    # rays vs user-defined
+    # ---------------------
+
+    lc = [
+        key_rays is not None,
+        cent is not None,
+    ]
+    if np.sum(lc) != 1:
+        msg = (
+            "Please provide either key_rays xor cent!\n"
+            f"\t- key_rays: {key_rays}\n"
+            f"\t- cent: {cent}\n"
+        )
+        raise Exception(msg)
+
+    # --------------
+    # key_rays
+    # --------------
+
+    if key_rays is not None:
+
+        # key_rays
+        lok = list(coll.dobj.get(wrays, {}).keys())
+        key_rays = ds._generic_check._check_var(
+            key_rays, 'key_rays',
+            types=str,
+            allowed=lok,
+        )
+
+        # segment
+        nseg = coll.dobj[wrays][key_rays]['shape'][0] - 1
+        segment = ds._generic_check._check_var(
+            segment, 'segment',
+            types=int,
+            default=0,
+            allowed=list(range(nseg)),
+        )
+
+        # derive cent
+        cent, nini = _rays_intersection(
+            coll,
+            key_rays=key_rays,
+            segment=segment,
+        )
+
+        # nin
+        if nin is None:
+            nin = nini
+
     # --------------
     # cent
     # --------------
 
-    cent = ds._generic_check._check_flat1darray(
-        cent, 'cent',
-        dtype=float,
-        size=3,
-    )
+    else:
+
+        cent = ds._generic_check._check_flat1darray(
+            cent, 'cent',
+            dtype=float,
+            size=3,
+        )
 
     # --------------
     # unit vectors
@@ -210,7 +278,6 @@ def _check(
     # angle0, angle1 angles
     # --------------
 
-    # angle0
     dangles = {
         'angle0': _check_angles(
             coll=coll,
@@ -340,6 +407,89 @@ def _check_angles(
     }
 
 
+# ##################################################
+# ##################################################
+#          Get rays intersection
+# ##################################################
+
+
+def _rays_intersection(
+    coll,
+    key_rays=None,
+    segment=None,
+):
+
+    # starting points
+    ptsx, ptsy, ptsz = coll.get_rays_pts(
+        key_rays,
+        segment=segment,
+    )
+    px = ptsx[0, ...]
+    py = ptsy[0, ...]
+    pz = ptsz[0, ...]
+
+    # unit vectors
+    vx, vy, vz = coll.get_rays_vect(
+        key_rays,
+        segment=segment,
+    )
+
+    # intersection
+    interx = np.full(px.shape, np.nan)
+    intery = np.full(px.shape, np.nan)
+    interz = np.full(px.shape, np.nan)
+    for ii, ind in enumerate(np.ndindex(px.shape)):
+
+        if ii == 0:
+            ind0 = ind
+            continue
+
+        # A0M = k0u0
+        # A1N = k1u1
+        # MN = -A0M + A0A1 + A1N
+        # MN = -k0u0 + A0A1 + k1u1
+        # MN.u0 = 0 = -k0 + A0A1.u0 + k1(u0.u1)
+        # MN.u1 = 0 = -k0(u0.u1) + A0A1.u1 + k1
+        #
+        # k0 = A0A1.u0 + k1(u0.u1)
+        # 0 = k1(1 - (u0.u1)^2) - (A0A1.u0)(u0.u1) + A0A1.u1
+        # k1 = ((A0A1.u0)(u0.u1) - A0A1.u1) / (1 - (u0.u1)^2)
+
+        A0A1_x = px[ind] - px[ind0]
+        A0A1_y = py[ind] - py[ind0]
+        A0A1_z = pz[ind] - pz[ind0]
+
+        A0A1_u0 = A0A1_x * vx[ind0] + A0A1_y * vy[ind0] + A0A1_z * vz[ind0]
+        A0A1_u1 = A0A1_x * vx[ind] + A0A1_y * vy[ind] + A0A1_z * vz[ind]
+        u0_u1 = vx[ind0] * vx[ind] + vy[ind0] * vy[ind] + vz[ind0] * vz[ind]
+
+        k1 = ((A0A1_u0) * (u0_u1) - A0A1_u1) / (1. - (u0_u1)**2)
+        k0 = A0A1_u0 + k1 * u0_u1
+
+        # halfway
+        interx[ind] = 0.5 * (
+            px[ind0] + k0 * vx[ind0]
+            + px[ind] + k1 * vx[ind]
+        )
+        intery[ind] = 0.5 * (
+            py[ind0] + k0 * vy[ind0]
+            + py[ind] + k1 * vy[ind]
+        )
+        interz[ind] = 0.5 * (
+            pz[ind0] + k0 * vz[ind0]
+            + pz[ind] + k1 * vz[ind]
+        )
+
+    # --------------
+    # take average
+    # --------------
+
+    cent = np.r_[np.nanmean(interx), np.nanmean(intery), np.nanmean(interz)]
+    nin = np.r_[np.mean(vx), np.mean(vy), np.mean(vz)]
+
+    return cent, nin
+
+
 # ########################################################
 # ########################################################
 #              Get rays angles
@@ -354,6 +504,9 @@ def _get_rays_angles(
     segment=None,
     # max tolerance
     tol_radius=None,
+    # optional indices and convex
+    return_indices=None,
+    convex_axis=None,
     # verb
     verb=None,
 ):
@@ -364,13 +517,17 @@ def _get_rays_angles(
 
     (
         key_single_pt_cam, key_rays,
-        segment, tol_radius, verb,
+        segment, tol_radius,
+        return_indices, convex_axis,
+        verb,
     ) = _check_rays_angles(
         coll=coll,
         key_single_pt_cam=key_single_pt_cam,
         key_rays=key_rays,
         segment=segment,
         tol_radius=tol_radius,
+        return_indices=return_indices,
+        convex_axis=convex_axis,
         verb=verb,
     )
 
@@ -385,6 +542,7 @@ def _get_rays_angles(
     units = coll.ddata[kang0]['units']
 
     # unit vectors
+    nin = coll.dobj[wrays][key_single_pt_cam]['nin']
     e0 = coll.dobj[wrays][key_single_pt_cam]['e0']
     e1 = coll.dobj[wrays][key_single_pt_cam]['e1']
 
@@ -408,11 +566,6 @@ def _get_rays_angles(
 
     impact = np.sqrt(crossx**2 + crossy**2 + crossz**2)
 
-    if tol_radius is not None:
-        iok = impact < tol_radius
-    else:
-        iok = np.ones(shape, dtype=bool)
-
     # verb
     if verb is True:
         msg = (
@@ -431,27 +584,105 @@ def _get_rays_angles(
     ang0 = np.full(shape, np.nan)
     ang1 = np.full(shape, np.nan)
 
-    # compute
-    if np.any(iok):
+    # vect from cent
+    vx = ptsx[1, ...] - cent[0]
+    vy = ptsy[1, ...] - cent[1]
+    vz = ptsz[1, ...] - cent[2]
+    vnorm = np.sqrt(vx**2 + vy**2 + vz**2)
+    vx = vx / vnorm
+    vy = vy / vnorm
+    vz = vz / vnorm
 
-        # vect from cent
-        vx = ptsx[1, iok] - cent[0]
-        vy = ptsy[1, iok] - cent[1]
-        vz = ptsz[1, iok] - cent[2]
-        vnorm = np.sqrt(vx**2 + vy**2 + vz**2)
-        vx = vx / vnorm
-        vy = vy / vnorm
-        vz = vz / vnorm
-
-        # derive angles
-        ang1[iok] = np.arcsin(vx * e1[0] + vy * e1[1] + vz * e1[2])
-        cos1_sin0 = vx * e0[0] + vy * e0[1] + vz * e0[2]
-        ang0[iok] = np.arcsin(cos1_sin0 / np.cos(ang1[iok]))
+    # derive angles
+    sin1 = vx * e1[0] + vy * e1[1] + vz * e1[2]
+    cos1_sin0 = vx * e0[0] + vy * e0[1] + vz * e0[2]
+    cos1_cos0 = vx * nin[0] + vy * nin[1] + vz * nin[2]
+    cos12 = cos1_sin0**2 + cos1_cos0**2
+    cos1 = np.sqrt(cos12)
+    ang1 = np.arctan2(sin1, cos1)
+    ang0 = np.arctan2(cos1_sin0 / cos1, cos1_cos0 / cos1)
 
     # adjust units
     if str(units) == 'deg':
         ang0 = ang0 * 180/np.pi
         ang1 = ang1 * 180/np.pi
+
+    # -------------
+    # indices
+    # -------------
+
+    if return_indices is True:
+
+        bin0 = coll.ddata[kang0]['data']
+        dang0 = bin0[1] - bin0[0]
+        bin0 = 0.5*(bin0[1:] + bin0[:-1])
+        bin0 = np.r_[bin0[0]-dang0, bin0, bin0[-1]+dang0]
+
+        bin1 = coll.ddata[kang0]['data']
+        dang1 = bin1[1] - bin1[0]
+        bin1 = 0.5*(bin1[1:] + bin1[:-1])
+        bin1 = np.r_[bin1[0]-dang1, bin1, bin1[-1]+dang1]
+
+        ind0 = np.searchsorted(bin0, ang0)
+        ind1 = np.searchsorted(bin1, ang1)
+
+        # -------
+        # convex_axis
+
+        if convex_axis is not False:
+
+            # shape_angles
+            shape_angles = coll.dobj[wrays][key_single_pt_cam]['shape'][1:]
+
+            # shape
+            shape_c = tuple([
+                ss for ii, ss in enumerate(shape)
+                if ii not in convex_axis
+            ])
+
+            # unique call
+            if len(shape_c) == 0:
+                sli = tuple([slice(None) for ii in shape])
+                dhull = {
+                    (0,): _convexhull(
+                        shape_angles=shape_angles,
+                        ind0=ind0,
+                        ind1=ind1,
+                        sli=sli,
+                    )
+                }
+
+            else:
+                # initialize
+                dhull = {}
+                sli = np.array([
+                    0 if ii in convex_axis else slice(None)
+                    for ii in range(len(shape))
+                ])
+                isli = np.array(convex_axis, dtype=int)
+
+                i0 = np.arange(shape_angles[0])
+                i1 = np.arange(shape_angles[1])
+                i01_full = np.array([
+                    np.repeat(i0[:, None], i1.size, axis=1).ravel(),
+                    np.repeat(i1[None, :], i0.size, axis=0).ravel(),
+                ]).T
+
+                # loop
+                for ii, ind in enumerate(np.ndindex(shape_c)):
+
+                    # update slice
+                    sli[isli] = ind
+                    slii = tuple(sli)
+
+                    # get convex_axis hull
+                    dhull[ind] = _convexhull(
+                        shape_angles=shape_angles,
+                        ind0=ind0,
+                        ind1=ind1,
+                        sli=slii,
+                        i01_full=i01_full,
+                    )
 
     # -------------
     # output
@@ -479,7 +710,23 @@ def _get_rays_angles(
             'units': 'm',
             'dim': 'distance',
         },
+        'indices': {},
     }
+
+    if return_indices:
+        dout['ind0'] = {
+            'key': f'{key_rays}_{key_single_pt_cam}_ind0',
+            'data': ind0,
+            'ref': ref,
+        }
+        dout['ind1'] = {
+            'key': f'{key_rays}_{key_single_pt_cam}_ind1',
+            'data': ind1,
+            'ref': ref,
+        }
+
+        if convex_axis is not False:
+            dout['hull'] = dhull
 
     return dout
 
@@ -498,6 +745,9 @@ def _check_rays_angles(
     segment=None,
     # max tolerance
     tol_radius=None,
+    # optional indices
+    return_indices=None,
+    convex_axis=None,
     # verb
     verb=None,
 ):
@@ -557,6 +807,47 @@ def _check_rays_angles(
         ))
 
     # -----------------
+    # return_indices
+    # -----------------
+
+    return_indices = ds._generic_check._check_var(
+        return_indices, 'return_indices',
+        types=bool,
+        default=convex_axis not in [None, False],
+    )
+
+    # --------------
+    # convex_axis
+    # --------------
+
+    if np.isscalar(convex_axis) and not isinstance(convex_axis, bool):
+        convex_axis = (int(convex_axis),)
+
+    convex_axis = ds._generic_check._check_var(
+        convex_axis, 'convex_axis',
+        types=(tuple, bool),
+        default=False,
+    )
+
+    # case by case
+    ndim = len(coll.dobj[wrays][key_rays]['shape'][1:])
+    if convex_axis is True:
+        convex_axis = tuple(range(ndim))
+
+    elif convex_axis is not False:
+        convex_axis = ds._generic_check._check_var_iter(
+            convex_axis, 'convex_axis',
+            types=tuple,
+            types_iter=int,
+            allowed=list(range(ndim)) + list(range(-1, -ndim-1, -1)),
+        )
+
+        convex_axis = np.array(convex_axis)
+        ineg = convex_axis < 0
+        convex_axis[ineg] = ndim + convex_axis[ineg]
+        convex_axis = tuple(convex_axis)
+
+    # -----------------
     # verb
     # -----------------
 
@@ -569,5 +860,67 @@ def _check_rays_angles(
     return (
         key_single_pt_cam, key_rays,
         segment, tol_radius,
+        return_indices, convex_axis,
         verb,
     )
+
+
+# ####################################################
+# ####################################################
+#            get ConvexHull
+# ####################################################
+
+
+def _convexhull(
+    shape_angles=None,
+    ind0=None,
+    ind1=None,
+    sli=None,
+    i01_full=None,
+):
+    # ---------------
+    # initialize
+    # ---------------
+
+    ind = np.zeros(shape_angles, dtype=bool)
+
+    # ---------------
+    # get convex hull
+    # ---------------
+
+    ui0 = np.unique(ind0[sli])
+    ui1 = np.unique(ind1[sli])
+    if ui0.size == 1:
+        npts = ui1[-1] - ui1[0] + 1
+        slii = (
+            np.full((npts,), ui0[0]),
+            np.arange(ui1[0], ui1[-1]+1),
+        )
+        ind[slii] = True
+
+    elif ui1.size == 1:
+        npts = ui1[-1] - ui1[0] + 1
+        slii = (
+            np.arange(ui0[0], ui0[-1]+1),
+            np.full((npts,), ui1[0]),
+        )
+        ind[slii] = True
+
+    # ---------------
+    # get convex hull
+    # ---------------
+
+    else:
+        i0_flat = ind0[sli].ravel()
+        i1_flat = ind1[sli].ravel()
+        hull = scpsp.ConvexHull(
+            np.array([i0_flat, i1_flat]).T
+        )
+
+        # get indices of angles in hull
+        path = Path(
+            np.array([i0_flat[hull.vertices], i1_flat[hull.vertices]]).T
+        )
+        ind = path.contains_points(i01_full).reshape(shape_angles)
+
+    return ind

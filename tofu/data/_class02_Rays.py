@@ -400,10 +400,15 @@ class Rays(Previous):
     def add_single_point_camera2d(
         self,
         key=None,
+        # from rays
+        key_rays=None,
+        segment=None,
+        # user-defined
         cent=None,
         nin=None,
         e0=None,
         e1=None,
+        # angles
         angle0=None,
         angle1=None,
         config=None,
@@ -418,19 +423,33 @@ class Rays(Previous):
         """ Add a set of 2d rays from a single point
 
         Rays are sampling a portion of sphere around cent
+
+        cent can be either:
+            - user-defined
+            - derived from intersection of existing rays
+
+        Unit vectors (nin) is also either:
+            - derived from existing rays
+            - user-defined
+
         Portion is defined by 2 angles:
-            - alpha
-            - beta
+            - angle0
+            - angle1
 
         """
 
         return _single_point_cam.main(
             coll=self,
             key=key,
+            # from rays
+            key_rays=key_rays,
+            segment=segment,
+            # user-defined
             cent=cent,
             nin=nin,
             e0=e0,
             e1=e1,
+            # angles
             angle0=angle0,
             angle1=angle1,
             config=config,
@@ -455,6 +474,9 @@ class Rays(Previous):
         segment=None,
         # max tolerance
         tol_radius=None,
+        # optional indices and convex
+        return_indices=None,
+        convex_axis=None,
         # verb
         verb=None,
     ):
@@ -473,6 +495,9 @@ class Rays(Previous):
             segment=segment,
             # max tolerance
             tol_radius=tol_radius,
+            # optional indices and convex
+            return_indices=return_indices,
+            convex_axis=convex_axis,
             # verb
             verb=verb,
         )

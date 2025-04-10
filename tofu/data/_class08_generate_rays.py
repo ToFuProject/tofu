@@ -267,7 +267,7 @@ def _check(
 
         else:
             if len(key_cam) == 1 and isinstance(key_rays, str):
-                key_rays[key_cam[0]] = key_rays
+                key_rays = {key_cam[0]: key_rays}
 
         ncam = len(key_cam)
         c0 = (

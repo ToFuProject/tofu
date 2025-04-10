@@ -836,19 +836,41 @@ class Test01_Diagnostic():
         plt.close('all')
 
     def test07_add_single_point_camera2d(self):
+
         self.coll.add_single_point_camera2d(
             key='ptcam',
-            cent=np.r_[3, 0, 0],
-            nin=np.r_[-1, 0, 1],
-            angle0=25,
-            angle1=25,
+            key_rays='diag5_cam22_los',
+            angle0=55,
+            angle1=55,
             config=self.conf_touch,
+        )
+
+        # add rays
+        dsamp = {'dedge': {'res': 'min'}, 'dsurface': {'nb': 3}}
+        self.coll.add_rays_from_diagnostic(
+            key='diag5',
+            dsampling_pixel=dsamp,
+            dsampling_optics=dsamp,
+            optics=-1,
+            config=self.conf_touch,
+            store=True,
+            strict=None,
+            key_rays='diag5_cam22_rays',
+            overwrite=None,
         )
 
         # get angles from rays
         dout = self.coll.get_rays_angles_from_single_point_camera2d(
             key_single_pt_cam='ptcam',
-            key_rays=list(self.coll.dobj['rays'].keys())[0],
+            key_rays='diag5_cam22_los',
+            return_indices=False,
+        )
+        # get angles from rays
+        dout = self.coll.get_rays_angles_from_single_point_camera2d(
+            key_single_pt_cam='ptcam',
+            key_rays='diag5_cam22_rays',
+            return_indices=True,
+            convex_axis=False,
         )
         assert isinstance(dout, dict)
 

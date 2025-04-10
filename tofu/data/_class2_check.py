@@ -655,7 +655,7 @@ def _check_segment(coll, key, segment):
     if segment is not None:
 
         wrays = coll._which_rays
-        nseg = coll.dobj[wrays][key]['shape'][0] - 1
+        nseg = coll.dobj[wrays][key]['shape'][0]
         lok = list(range(nseg)) + [-1]
         segment = int(ds._generic_check._check_var(
             segment, 'segment',
@@ -663,7 +663,7 @@ def _check_segment(coll, key, segment):
         ))
         if segment not in lok:
             msg = (
-                "Arg semgment for rays '{key}' must be in:\n"
+                f"Arg segment for rays '{key}' must be in:\n"
                 f"\t- allowed: {lok}\n"
                 f"\t- Provided: {segment}\n"
             )
