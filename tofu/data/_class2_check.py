@@ -278,8 +278,9 @@ def _check_inputs(
         )
 
         # lspectro
+        loptics = coll.dobj['diagnostic'][diag]['doptics'][key_cam]['optics']
         lspectro = [
-            oo for oo in coll.dobj['diagnostic'][diag]['doptics'][key_cam]['optics']
+            oo for oo in loptics
             if oo in coll.dobj.get('crystal', {}).keys()
             or oo in coll.dobj.get('grating', {}).keys()
         ]
@@ -403,12 +404,6 @@ def _rays(
             vx = vx / norm
             vy = vy / norm
             vz = vz / norm
-
-            # sca = (
-                # vx[1:, ...] * vx[:-1, ...]
-                # + vy[1:, ...] * vy[:-1, ...]
-                # + vz[1:, ...] * vz[:-1, ...]
-            # )
 
     # -----------------------------
     # compute ray-tracing
@@ -797,6 +792,12 @@ def _get_vect(
         vy = vy / norm
         vz = vz / norm
 
+    # segment
+    if segment is not None:
+        vx = vx[segment, ...]
+        vy = vy[segment, ...]
+        vz = vz[segment, ...]
+
     return vx, vy, vz
 
 
@@ -843,7 +844,6 @@ def _make_dict(
             f"\t- reflections_nb + 1 + len(lspectro) = {ntot}\n"
         )
         raise Exception(msg)
-
 
     assert nseg == reflections_nb + 1 + nextra
 

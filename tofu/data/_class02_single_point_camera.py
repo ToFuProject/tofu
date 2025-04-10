@@ -389,22 +389,12 @@ def _get_rays_angles(
     # get impact factor vs tol_radius
     # -------------
 
-    ptsx, ptsy, ptsz = coll.get_rays_pts(key_rays)
-    ptsx0, ptsx1 = ptsx[segment, ...], ptsx[segment+1, ...]
-    ptsy0, ptsy1 = ptsy[segment, ...], ptsy[segment+1, ...]
-    ptsz0, ptsz1 = ptsz[segment, ...], ptsz[segment+1, ...]
+    ptsx, ptsy, ptsz = coll.get_rays_pts(key_rays, segment=segment)
+    vx, vy, vz = coll.get_rays_vect(key_rays, segment=segment, norm=True)
 
-    p0c_x = (ptsx0 - cent[0])
-    p0c_y = (ptsy0 - cent[1])
-    p0c_z = (ptsz0 - cent[2])
-
-    vx = ptsx1 - ptsx0
-    vy = ptsy1 - ptsy0
-    vz = ptsz1 - ptsz0
-    vn = np.sqrt(vx**2 + vy**2 + vz**2)
-    vx = vx / vn
-    vy = vy / vn
-    vz = vz / vn
+    p0c_x = (ptsx[0, ...] - cent[0])
+    p0c_y = (ptsy[0, ...] - cent[1])
+    p0c_z = (ptsz[0, ...] - cent[2])
 
     crossx = p0c_y * vz - p0c_z * vy
     crossy = p0c_z * vx - p0c_x * vz
@@ -429,9 +419,9 @@ def _get_rays_angles(
     if np.any(iok):
 
         # vect from cent
-        vx = ptsx1[iok] - cent[0]
-        vy = ptsy1[iok] - cent[1]
-        vz = ptsz1[iok] - cent[2]
+        vx = ptsx[1, iok] - cent[0]
+        vy = ptsy[1, iok] - cent[1]
+        vz = ptsz[1, iok] - cent[2]
         vnorm = np.sqrt(vx**2 + vy**2 + vz**2)
         vx = vx / vnorm
         vy = vy / vnorm
@@ -512,6 +502,9 @@ def _check_rays_angles(
             ss in coll.ddata.keys()
             for ss in coll.dobj[wrays][k0].get('angles')
         ])
+        and isinstance(coll.dobj[wrays][k0].get('nin'), np.ndarray)
+        and isinstance(coll.dobj[wrays][k0].get('e0'), np.ndarray)
+        and isinstance(coll.dobj[wrays][k0].get('e1'), np.ndarray)
     ]
     key_single_pt_cam = ds._generic_check._check_var(
         key_single_pt_cam, 'key_single_pt_cam',
@@ -520,8 +513,25 @@ def _check_rays_angles(
     )
 
     # -----------------
+    # segment
+    # -----------------
+
+    segment = int(ds._generic_check._check_var(
+        segment, 'segment',
+        types=(int, float),
+        default=0,
+    ))
+
+    # -----------------
     # tol_radius
     # -----------------
+
+    if tol_radius is not None:
+        tol_radius = float(ds._generic_check._check_var(
+            tol_radius, 'tol_radius',
+            types=(int, float),
+            sign='>0',
+        ))
 
     return (
         key_single_pt_cam, key_rays,
