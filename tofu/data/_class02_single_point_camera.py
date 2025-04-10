@@ -222,21 +222,25 @@ def _check(
 
     if key_rays is not None:
 
+        if isinstance(key_rays, str):
+            key_rays = [key_rays]
+
         # key_rays
         lok = list(coll.dobj.get(wrays, {}).keys())
-        key_rays = ds._generic_check._check_var(
+        key_rays = ds._generic_check._check_var_iter(
             key_rays, 'key_rays',
-            types=str,
+            types=list,
+            types_iter=str,
             allowed=lok,
         )
 
         # segment
-        nseg = coll.dobj[wrays][key_rays]['shape'][0] - 1
+        nseg = [coll.dobj[wrays][kk]['shape'][0] - 1 for kk in key_rays]
         segment = ds._generic_check._check_var(
             segment, 'segment',
             types=int,
             default=0,
-            allowed=list(range(nseg)),
+            allowed=list(range(np.min(nseg))),
         )
 
         # derive cent
@@ -419,75 +423,126 @@ def _rays_intersection(
     segment=None,
 ):
 
-    # starting points
-    ptsx, ptsy, ptsz = coll.get_rays_pts(
-        key_rays,
-        segment=segment,
-    )
-    px = ptsx[0, ...]
-    py = ptsy[0, ...]
-    pz = ptsz[0, ...]
+    # ----------------
+    # prepare
+    # ----------------
 
-    # unit vectors
-    vx, vy, vz = coll.get_rays_vect(
-        key_rays,
-        segment=segment,
-    )
+    wrays = coll._which_rays
+    nrays = len(key_rays)
+    nrays_tot = np.array([
+        np.prod(coll.dobj[wrays][kray]['shape'][1:]) for kray in key_rays
+    ])
 
-    # intersection
-    interx = np.full(px.shape, np.nan)
-    intery = np.full(px.shape, np.nan)
-    interz = np.full(px.shape, np.nan)
-    for ii, ind in enumerate(np.ndindex(px.shape)):
+    cx = np.full((nrays,), np.nan)
+    cy = np.full((nrays,), np.nan)
+    cz = np.full((nrays,), np.nan)
 
-        if ii == 0:
-            ind0 = ind
-            continue
+    ux = np.full((nrays,), np.nan)
+    uy = np.full((nrays,), np.nan)
+    uz = np.full((nrays,), np.nan)
 
-        # A0M = k0u0
-        # A1N = k1u1
-        # MN = -A0M + A0A1 + A1N
-        # MN = -k0u0 + A0A1 + k1u1
-        # MN.u0 = 0 = -k0 + A0A1.u0 + k1(u0.u1)
-        # MN.u1 = 0 = -k0(u0.u1) + A0A1.u1 + k1
-        #
-        # k0 = A0A1.u0 + k1(u0.u1)
-        # 0 = k1(1 - (u0.u1)^2) - (A0A1.u0)(u0.u1) + A0A1.u1
-        # k1 = ((A0A1.u0)(u0.u1) - A0A1.u1) / (1 - (u0.u1)^2)
+    # ----------------
+    # loop on key_rays
+    # ----------------
 
-        A0A1_x = px[ind] - px[ind0]
-        A0A1_y = py[ind] - py[ind0]
-        A0A1_z = pz[ind] - pz[ind0]
+    for ir, kray in enumerate(key_rays):
 
-        A0A1_u0 = A0A1_x * vx[ind0] + A0A1_y * vy[ind0] + A0A1_z * vz[ind0]
-        A0A1_u1 = A0A1_x * vx[ind] + A0A1_y * vy[ind] + A0A1_z * vz[ind]
-        u0_u1 = vx[ind0] * vx[ind] + vy[ind0] * vy[ind] + vz[ind0] * vz[ind]
-
-        k1 = ((A0A1_u0) * (u0_u1) - A0A1_u1) / (1. - (u0_u1)**2)
-        k0 = A0A1_u0 + k1 * u0_u1
-
-        # halfway
-        interx[ind] = 0.5 * (
-            px[ind0] + k0 * vx[ind0]
-            + px[ind] + k1 * vx[ind]
+        # starting points
+        ptsx, ptsy, ptsz = coll.get_rays_pts(
+            kray,
+            segment=segment,
         )
-        intery[ind] = 0.5 * (
-            py[ind0] + k0 * vy[ind0]
-            + py[ind] + k1 * vy[ind]
+        px = ptsx[0, ...]
+        py = ptsy[0, ...]
+        pz = ptsz[0, ...]
+
+        # unit vectors
+        vx, vy, vz = coll.get_rays_vect(
+            kray,
+            segment=segment,
         )
-        interz[ind] = 0.5 * (
-            pz[ind0] + k0 * vz[ind0]
-            + pz[ind] + k1 * vz[ind]
-        )
+
+        # intersection
+        shape = px.shape + px.shape
+        interx = np.full(shape, np.nan)
+        intery = np.full(shape, np.nan)
+        interz = np.full(shape, np.nan)
+        for i0, ind0 in enumerate(np.ndindex(px.shape)):
+            for i1, ind1 in enumerate(np.ndindex(px.shape)):
+
+                if i1 <= i0:
+                    continue
+
+                sli = ind0 + ind1
+                interx[sli], intery[sli], interz[sli] = _intersect_line2line(
+                    px[ind0], py[ind0], pz[ind0],
+                    px[ind1], py[ind1], pz[ind1],
+                    vx[ind0], vy[ind0], vz[ind0],
+                    vx[ind1], vy[ind1], vz[ind1],
+                )
+
+        cx[ir] = np.nanmean(interx)
+        cy[ir] = np.nanmean(intery)
+        cz[ir] = np.nanmean(interz)
+
+        ux[ir] = np.nanmean(vx)
+        uy[ir] = np.nanmean(vy)
+        uz[ir] = np.nanmean(vz)
 
     # --------------
     # take average
     # --------------
 
-    cent = np.r_[np.nanmean(interx), np.nanmean(intery), np.nanmean(interz)]
-    nin = np.r_[np.mean(vx), np.mean(vy), np.mean(vz)]
+    ntot = np.sum(nrays_tot)
+    cent = np.r_[
+        np.sum(cx * nrays_tot) / ntot,
+        np.sum(cy * nrays_tot) / ntot,
+        np.sum(cz * nrays_tot) / ntot,
+    ]
+    nin = np.r_[
+        np.sum(ux * nrays_tot) / ntot,
+        np.sum(uy * nrays_tot) / ntot,
+        np.sum(uz * nrays_tot) / ntot,
+    ]
 
     return cent, nin
+
+
+def _intersect_line2line(
+    px0, py0, pz0,
+    px1, py1, pz1,
+    vx0, vy0, vz0,
+    vx1, vy1, vz1,
+):
+
+    # A0M = k0u0
+    # A1N = k1u1
+    # MN = -A0M + A0A1 + A1N
+    # MN = -k0u0 + A0A1 + k1u1
+    # MN.u0 = 0 = -k0 + A0A1.u0 + k1(u0.u1)
+    # MN.u1 = 0 = -k0(u0.u1) + A0A1.u1 + k1
+    #
+    # k0 = A0A1.u0 + k1(u0.u1)
+    # 0 = k1(1 - (u0.u1)^2) - (A0A1.u0)(u0.u1) + A0A1.u1
+    # k1 = ((A0A1.u0)(u0.u1) - A0A1.u1) / (1 - (u0.u1)^2)
+
+    A0A1_x = px1 - px0
+    A0A1_y = py1 - py0
+    A0A1_z = pz1 - pz0
+
+    A0A1_u0 = A0A1_x * vx0 + A0A1_y * vy0 + A0A1_z * vz0
+    A0A1_u1 = A0A1_x * vx1 + A0A1_y * vy1 + A0A1_z * vz1
+    u0_u1 = vx0 * vx1 + vy0 * vy1 + vz0 * vz1
+
+    k1 = ((A0A1_u0) * (u0_u1) - A0A1_u1) / (1. - (u0_u1)**2)
+    k0 = A0A1_u0 + k1 * u0_u1
+
+    # halfway
+    interx = 0.5 * (px0 + k0 * vx0 + px1 + k1 * vx1)
+    intery = 0.5 * (py0 + k0 * vy0 + py1 + k1 * vy1)
+    interz = 0.5 * (pz0 + k0 * vz0 + pz1 + k1 * vz1)
+
+    return interx, intery, interz
 
 
 # ########################################################
