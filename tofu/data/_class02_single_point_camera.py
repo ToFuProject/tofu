@@ -952,14 +952,14 @@ def _convexhull(
         npts = ui1[-1] - ui1[0] + 1
         slii = (
             np.full((npts,), ui0[0]),
-            np.arange(ui1[0], ui1[-1]+1),
+            np.arange(ui1[0], min(ui1[-1]+1, ind.shape[1])),
         )
         ind[slii] = True
 
     elif ui1.size == 1:
         npts = ui1[-1] - ui1[0] + 1
         slii = (
-            np.arange(ui0[0], ui0[-1]+1),
+            np.arange(ui0[0], min(ui0[-1]+1, ind.shape[0])),
             np.full((npts,), ui1[0]),
         )
         ind[slii] = True
