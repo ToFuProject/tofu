@@ -671,15 +671,19 @@ def _get_rays_angles(
         bin0 = coll.ddata[kang0]['data']
         dang0 = bin0[1] - bin0[0]
         bin0 = 0.5*(bin0[1:] + bin0[:-1])
-        bin0 = np.r_[bin0[0]-dang0, bin0, bin0[-1]+dang0]
+        bin0 = np.r_[bin0[0]-dang0, bin0]
 
         bin1 = coll.ddata[kang0]['data']
         dang1 = bin1[1] - bin1[0]
         bin1 = 0.5*(bin1[1:] + bin1[:-1])
-        bin1 = np.r_[bin1[0]-dang1, bin1, bin1[-1]+dang1]
+        bin1 = np.r_[bin1[0]-dang1, bin1]
 
-        ind0 = np.searchsorted(bin0, ang0)
-        ind1 = np.searchsorted(bin1, ang1)
+        ind0 = np.searchsorted(bin0, ang0) - 1
+        ind1 = np.searchsorted(bin1, ang1) - 1
+
+        # adjust for edges
+        ind0[ind0 < 0] = 0
+        ind1[ind1 < 0] = 0
 
         # -------
         # convex_axis
@@ -957,7 +961,7 @@ def _convexhull(
         ind[slii] = True
 
     elif ui1.size == 1:
-        npts = ui1[-1] - ui1[0] + 1
+        npts = ui0[-1] - ui0[0] + 1
         slii = (
             np.arange(ui0[0], min(ui0[-1]+1, ind.shape[0])),
             np.full((npts,), ui1[0]),
