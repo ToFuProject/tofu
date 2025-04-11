@@ -98,7 +98,7 @@ def main(
     # angles data
 
     for k0, v0 in dangles.items():
-        if v0['key'] not in coll.dref.keys():
+        if v0['key'] not in coll.ddata.keys():
             coll.add_data(**v0)
 
     # -------------
