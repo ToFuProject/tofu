@@ -235,7 +235,7 @@ def _check(
         )
 
         # segment
-        nseg = [coll.dobj[wrays][kk]['shape'][0] - 1 for kk in key_rays]
+        nseg = [coll.dobj[wrays][kk]['shape'][0] for kk in key_rays]
         segment = ds._generic_check._check_var(
             segment, 'segment',
             types=int,
@@ -711,10 +711,13 @@ def _get_rays_angles(
                 # initialize
                 dhull = {}
                 sli = np.array([
-                    0 if ii in convex_axis else slice(None)
+                    slice(None) if ii in convex_axis else 0
                     for ii in range(len(shape))
                 ])
-                isli = np.array(convex_axis, dtype=int)
+                isli = np.array([
+                    ii for ii in range(len(shape))
+                    if ii not in convex_axis
+                ])
 
                 i0 = np.arange(shape_angles[0])
                 i1 = np.arange(shape_angles[1])
@@ -900,7 +903,7 @@ def _check_rays_angles(
         convex_axis = np.array(convex_axis)
         ineg = convex_axis < 0
         convex_axis[ineg] = ndim + convex_axis[ineg]
-        convex_axis = tuple(convex_axis)
+        convex_axis = tuple(sorted(convex_axis))
 
     # -----------------
     # verb
