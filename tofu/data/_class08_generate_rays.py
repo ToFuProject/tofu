@@ -204,6 +204,7 @@ def _check(
                 f"Arg '{kdict}' must be a dict with at least one of:\n"
                 + "\n".join(lstr)
                 + f"\nFed to {kfunc}\n"
+                + f"\nProvided:\n{vdict}\n"
             )
             raise Exception(msg)
 
@@ -267,7 +268,7 @@ def _check(
 
         else:
             if len(key_cam) == 1 and isinstance(key_rays, str):
-                key_rays[key_cam[0]] = key_rays
+                key_rays = {key_cam[0]: key_rays}
 
         ncam = len(key_cam)
         c0 = (

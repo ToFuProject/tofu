@@ -78,6 +78,8 @@ class Rays(Previous):
         key_nseg=None,
         diag=None,
         key_cam=None,
+        # others
+        **kwdargs,
     ):
         """ Add a set of rays
 
@@ -120,6 +122,8 @@ class Rays(Previous):
             key_nseg=key_nseg,
             diag=diag,
             key_cam=key_cam,
+            # kwdargs
+            kwdargs=kwdargs,
         )
 
         # update dicts
@@ -150,20 +154,40 @@ class Rays(Previous):
         self,
         key=None,
         key_cam=None,
+        segment=None,
     ):
-        return _check._get_pts(coll=self, key=key, key_cam=key_cam)
+        """ Return (ptsx, ptsy, ptsz) coordinates for rays
+
+        segment = None => all segments returned, (nseg, ...) array
+        segment = int => (2, ...) array returned
+        """
+        return _check._get_pts(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            segment=segment,
+        )
 
     def get_rays_vect(
         self,
         key=None,
         key_cam=None,
         norm=None,
+        segment=None,
     ):
+        """ Return (vx, vy, vz) coordinates for desired rays
+
+        Optionally (default) normalized
+
+        segment = None => all segments returned, (nseg-1, ...) array
+        segment = int => (...,) array returned
+        """
         return _check._get_vect(
             coll=self,
             key=key,
             key_cam=key_cam,
             norm=norm,
+            segment=segment,
         )
 
     # --------------
@@ -376,10 +400,15 @@ class Rays(Previous):
     def add_single_point_camera2d(
         self,
         key=None,
+        # from rays
+        key_rays=None,
+        segment=None,
+        # user-defined
         cent=None,
         nin=None,
         e0=None,
         e1=None,
+        # angles
         angle0=None,
         angle1=None,
         config=None,
@@ -394,19 +423,33 @@ class Rays(Previous):
         """ Add a set of 2d rays from a single point
 
         Rays are sampling a portion of sphere around cent
+
+        cent can be either:
+            - user-defined
+            - derived from intersection of existing rays
+
+        Unit vectors (nin) is also either:
+            - derived from existing rays
+            - user-defined
+
         Portion is defined by 2 angles:
-            - alpha
-            - beta
+            - angle0
+            - angle1
 
         """
 
         return _single_point_cam.main(
             coll=self,
             key=key,
+            # from rays
+            key_rays=key_rays,
+            segment=segment,
+            # user-defined
             cent=cent,
             nin=nin,
             e0=e0,
             e1=e1,
+            # angles
             angle0=angle0,
             angle1=angle1,
             config=config,
@@ -417,6 +460,46 @@ class Rays(Previous):
             ref_angle0=ref_angle0,
             ref_angle1=ref_angle1,
             units_angles=units_angles,
+        )
+
+    # ----------------------
+    # get angles of rasy from single point camera
+    # ----------------------
+
+    def get_rays_angles_from_single_point_camera2d(
+        self,
+        key_single_pt_cam=None,
+        # rays to get angles of
+        key_rays=None,
+        segment=None,
+        # max tolerance
+        tol_radius=None,
+        # optional indices and convex
+        return_indices=None,
+        convex_axis=None,
+        # verb
+        verb=None,
+    ):
+        """ Compute (angle0, angle1) for chosen rays
+
+        As seen from a single point camera2d
+
+        Optionally disable rays with an impact factor too large vs camera
+
+        """
+        return _single_point_cam._get_rays_angles(
+            coll=self,
+            key_single_pt_cam=key_single_pt_cam,
+            # rays to get angles of
+            key_rays=key_rays,
+            segment=segment,
+            # max tolerance
+            tol_radius=tol_radius,
+            # optional indices and convex
+            return_indices=return_indices,
+            convex_axis=convex_axis,
+            # verb
+            verb=verb,
         )
 
     # ------------------
