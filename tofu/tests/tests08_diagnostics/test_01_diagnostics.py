@@ -204,7 +204,7 @@ def _apertures():
     # kl0 = 0.02 * np.linspace(-1, 1, npix)
     klin = 0.2
     delta = 0.05
-    cents_x = cent[0] - (klin - delta) * nins[:, 0]    #  + kl0 * e0[0]
+    cents_x = cent[0] - (klin - delta) * nins[:, 0]    # + kl0 * e0[0]
     cents_y = cent[1] - (klin - delta) * nins[:, 1]    # + kl0 * e0[1]
     cents_z = cent[2] - (klin - delta) * nins[:, 2]    # + kl0 * e0[2]
 
@@ -542,7 +542,9 @@ def _diagnostics():
 
     # d12: 1d collimator camera, one aperture per pixel
     d12 = {
-        'doptics': tuple(['cam0000'] + [k1 for k1 in [f'lap{ii}' for ii in range(10)]]),
+        'doptics': tuple(
+            ['cam0000'] + [k1 for k1 in [f'lap{ii}' for ii in range(10)]]
+        ),
     }
 
     # d13: 1d collimator-hybrid camera
@@ -550,7 +552,10 @@ def _diagnostics():
         'doptics': {
             'cam00000': {
                 'optics': [f'lap{ii}' for ii in range(10)] + ['ap0'],
-                'paths': np.concatenate((np.eye(10), np.ones((10, 1))), axis=1),
+                'paths': np.concatenate(
+                    (np.eye(10), np.ones((10, 1))),
+                    axis=1,
+                ),
             },
         },
     }
@@ -742,7 +747,10 @@ class Test01_Diagnostic():
         lrays = list(self.coll.dobj['rays'].keys())
         ldiag = [
             k0 for k0, v0 in self.coll.dobj['diagnostic'].items()
-            if any([v1.get('los') is not None for v1 in v0['doptics'].values()])
+            if any([
+                v1.get('los') is not None
+                for v1 in v0['doptics'].values()
+            ])
         ]
         lk = [lrays] + ldiag
         for ii, k0 in enumerate(lk):
@@ -816,7 +824,7 @@ class Test01_Diagnostic():
             if self.coll.dobj['diagnostic'][k0]['spectro']:
                 continue
 
-            if self.coll.dobj['diagnostic'][k0]['doptics'][lcam[0]]['dvos'].get('keym') is None:
+            if doptics[lcam[0]]['dvos'].get('keym') is None:
                 self.coll.compute_diagnostic_vos(
                     # keys
                     key_diag=k0,
@@ -836,13 +844,52 @@ class Test01_Diagnostic():
         plt.close('all')
 
     def test07_add_single_point_camera2d(self):
+
         self.coll.add_single_point_camera2d(
-            cent=np.r_[3, 0, 0],
-            nin=np.r_[-1, 0, 1],
-            angle0=25,
-            angle1=25,
+            key='ptcam',
+            key_rays='diag5_cam22_los',
+            angle0=55,
+            angle1=55,
             config=self.conf_touch,
         )
+
+        # add rays
+        dsamp = {'dedge': {'res': 'min'}, 'dsurface': {'nb': 3}}
+        self.coll.add_rays_from_diagnostic(
+            key='diag5',
+            dsampling_pixel=dsamp,
+            dsampling_optics=dsamp,
+            optics=-1,
+            config=self.conf_touch,
+            store=True,
+            strict=None,
+            key_rays='diag5_cam22_rays',
+            overwrite=None,
+        )
+
+        # get angles from rays
+        dout = self.coll.get_rays_angles_from_single_point_camera2d(
+            key_single_pt_cam='ptcam',
+            key_rays='diag5_cam22_los',
+            return_indices=False,
+        )
+
+        # get angles from rays
+        dout = self.coll.get_rays_angles_from_single_point_camera2d(
+            key_single_pt_cam='ptcam',
+            key_rays='diag5_cam22_rays',
+            return_indices=True,
+            convex_axis=False,
+        )
+
+        # get angles from rays
+        dout = self.coll.get_rays_angles_from_single_point_camera2d(
+            key_single_pt_cam='ptcam',
+            key_rays='diag5_cam22_rays',
+            return_indices=True,
+            convex_axis=(-1, -2),
+        )
+        assert isinstance(dout, dict)
 
     def test07_add_rays_from_diagnostic(self):
         for ii, (k0, v0) in enumerate(self.coll.dobj['diagnostic'].items()):

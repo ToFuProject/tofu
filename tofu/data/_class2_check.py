@@ -8,10 +8,10 @@ import datastock as ds
 from ..geom import CamLOS1D
 
 
-# ################################################################
-# ################################################################
+# ############################################################
+# ############################################################
 #                   Rays
-# ################################################################
+# ############################################################
 
 
 def _start_vect(ax=None, ay=None, az=None, name=None):
@@ -278,8 +278,9 @@ def _check_inputs(
         )
 
         # lspectro
+        loptics = coll.dobj['diagnostic'][diag]['doptics'][key_cam]['optics']
         lspectro = [
-            oo for oo in coll.dobj['diagnostic'][diag]['doptics'][key_cam]['optics']
+            oo for oo in loptics
             if oo in coll.dobj.get('crystal', {}).keys()
             or oo in coll.dobj.get('grating', {}).keys()
         ]
@@ -297,10 +298,10 @@ def _check_inputs(
     )
 
 
-# ################################################################
-# ################################################################
+# ############################################################
+# ############################################################
 #                   Main
-# ################################################################
+# ############################################################
 
 
 def _rays(
@@ -335,6 +336,8 @@ def _rays(
     key_nseg=None,
     diag=None,
     key_cam=None,
+    # kwdargs
+    kwdargs=None,
 ):
 
     # -------------
@@ -403,12 +406,6 @@ def _rays(
             vx = vx / norm
             vy = vy / norm
             vz = vz / norm
-
-            # sca = (
-                # vx[1:, ...] * vx[:-1, ...]
-                # + vy[1:, ...] * vy[:-1, ...]
-                # + vz[1:, ...] * vz[:-1, ...]
-            # )
 
     # -----------------------------
     # compute ray-tracing
@@ -600,13 +597,14 @@ def _rays(
         key_nseg=key_nseg,
         ref=ref,
         shaperef=shaperef,
+        kwdargs=kwdargs,
     )
 
 
-# ##################################################################
-# ##################################################################
+# ###########################################################
+# ###########################################################
 #                   Rays - check key
-# ##################################################################
+# ###########################################################
 
 
 def _check_key(coll=None, key=None, key_cam=None):
@@ -646,10 +644,38 @@ def _check_key(coll=None, key=None, key_cam=None):
     return kray
 
 
-# ##################################################################
-# ##################################################################
+# #########################################################
+# #########################################################
+#                   Rays - check segment
+# #########################################################
+
+
+def _check_segment(coll, key, segment):
+
+    if segment is not None:
+
+        wrays = coll._which_rays
+        nseg = coll.dobj[wrays][key]['shape'][0]
+        lok = list(range(nseg)) + [-1]
+        segment = int(ds._generic_check._check_var(
+            segment, 'segment',
+            types=(int, float),
+        ))
+        if segment not in lok:
+            msg = (
+                f"Arg segment for rays '{key}' must be in:\n"
+                f"\t- allowed: {lok}\n"
+                f"\t- Provided: {segment}\n"
+            )
+            raise Exception(msg)
+
+    return segment
+
+
+# #########################################################
+# #########################################################
 #                   Rays - get start and vect
-# ##################################################################
+# #########################################################
 
 
 def _get_start(
@@ -680,12 +706,14 @@ def _get_pts(
     coll=None,
     key=None,
     key_cam=None,
+    segment=None,
 ):
 
     # ---------
     # check key
 
     key = _check_key(coll=coll, key=key, key_cam=key_cam)
+    segment = _check_segment(coll, key, segment)
 
     # ---------
     # get start
@@ -702,9 +730,20 @@ def _get_pts(
     ptsz = coll.ddata[ptsz]['data']
 
     # concatenate
-    ptsx = np.insert(ptsx, 0, stx, axis=0)
-    ptsy = np.insert(ptsy, 0, sty, axis=0)
-    ptsz = np.insert(ptsz, 0, stz, axis=0)
+    if segment is None:
+        ptsx = np.insert(ptsx, 0, stx, axis=0)
+        ptsy = np.insert(ptsy, 0, sty, axis=0)
+        ptsz = np.insert(ptsz, 0, stz, axis=0)
+
+    elif segment == 0:
+        ptsx = np.insert(ptsx[0:1, ...], 0, stx, axis=0)
+        ptsy = np.insert(ptsy[0:1, ...], 0, sty, axis=0)
+        ptsz = np.insert(ptsz[0:1, ...], 0, stz, axis=0)
+
+    else:
+        ptsx = ptsx[segment-1:segment+1, ...]
+        ptsy = ptsy[segment-1:segment+1, ...]
+        ptsz = ptsz[segment-1:segment+1, ...]
 
     return ptsx, ptsy, ptsz
 
@@ -714,12 +753,14 @@ def _get_vect(
     key=None,
     key_cam=None,
     norm=None,
+    segment=None,
 ):
 
     # ---------
     # check key
 
     key = _check_key(coll=coll, key=key, key_cam=key_cam)
+    segment = _check_segment(coll, key, segment)
 
     # norm
     norm = ds._generic_check._check_var(
@@ -754,13 +795,19 @@ def _get_vect(
         vy = vy / norm
         vz = vz / norm
 
+    # segment
+    if segment is not None:
+        vx = vx[segment, ...]
+        vy = vy[segment, ...]
+        vz = vz[segment, ...]
+
     return vx, vy, vz
 
 
-# ##################################################################
-# ##################################################################
+# ##########################################################
+# ##########################################################
 #                   store
-# ##################################################################
+# ##########################################################
 
 
 def _make_dict(
@@ -782,6 +829,8 @@ def _make_dict(
     key_nseg=None,
     ref=None,
     shaperef=None,
+    # kwdargs
+    kwdargs=None,
 ):
 
     # --------
@@ -800,7 +849,6 @@ def _make_dict(
             f"\t- reflections_nb + 1 + len(lspectro) = {ntot}\n"
         )
         raise Exception(msg)
-
 
     assert nseg == reflections_nb + 1 + nextra
 
@@ -993,6 +1041,7 @@ def _make_dict(
                 'alpha': kalpha,
                 'reflect_dalpha': kdalpha,
                 'reflect_dbeta': kdbeta,
+                **kwdargs,
             },
         },
     }
