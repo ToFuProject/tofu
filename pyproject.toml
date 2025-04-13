@@ -6,3 +6,8 @@ requires = [
        "Cython>=0.26",
        "numpy",
 ]
+
+[project]
+name = "tofu"
+readme = "README.md"
+license = {text = "MIT"}
