@@ -1,12 +1,24 @@
 name: Publish pip bdist to PyPI - linux
 
+#on:
+  #release:
+    #types:
+      #[created]
+  #push:
+    #branches:
+      #- master
+      #- deploy-test
+
 on:
-  release:
-    types:
-      [created]
   push:
-    branches:
+    branches-ignore:
       - master
+      - devel
+      - deploy-test
+  pull_request:
+    branches-ignore:
+      - master
+      - devel
       - deploy-test
 
 jobs:
