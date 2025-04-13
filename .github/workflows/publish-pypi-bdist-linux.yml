@@ -1,13 +1,19 @@
 name: Publish pip bdist to PyPI - linux
 
 on:
-  release:
-    types:
-      [created]
   push:
-    branches:
-      - master
-      - deploy-test
+    branches: [ devel, master ]
+  pull_request:
+    branches: [ devel, master ]
+
+#on:
+  #release:
+    #types:
+      #[created]
+  #push:
+    #branches:
+      #- master
+      #- deploy-test
 
 jobs:
   deploy:
@@ -19,7 +25,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.9'
+        python-version: '3.11'
     - name: Display python version
       run: |
         python -c "import sys; print(sys.version)"
@@ -34,7 +40,7 @@ jobs:
     - name: Build manylinux Python wheels
       uses: RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2010_x86_64
       with:
-        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310'
+        python-versions: 'cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311'
         build-requirements: 'cython numpy'
     - name: Publish wheels to PyPI
       env:
