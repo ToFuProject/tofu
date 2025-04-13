@@ -1,24 +1,12 @@
 name: Publish pip bdist to PyPI - linux
 
-#on:
-  #release:
-    #types:
-      #[created]
-  #push:
-    #branches:
-      #- master
-      #- deploy-test
-
 on:
+  release:
+    types:
+      [created]
   push:
-    branches-ignore:
+    branches:
       - master
-      - devel
-      - deploy-test
-  pull_request:
-    branches-ignore:
-      - master
-      - devel
       - deploy-test
 
 jobs:
@@ -43,4 +31,4 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - run: uv build
-      # - run: uv publish -t ${{ secrets.PYPI_API_TOKEN }}
+    - run: uv publish -t ${{ secrets.PYPI_API_TOKEN }}
