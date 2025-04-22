@@ -10,6 +10,7 @@ import copy
 
 
 _DIDS = {
+    "wall": 'wall',
     "pulse_schedule": 'ps',
     "summary": 'sum',
     'equilibrium': 'eq',
@@ -24,6 +25,24 @@ _DIDS = {
 
 
 _DSHORT = {
+
+    # -----------
+    # wall
+    # -----------
+
+    'wall': {
+        'limiter_r': {
+            'dim': 'distance',
+            'long': 'description_2d[0].limiter.unit[0].outline.r[lim_npts]',
+            'units': 'm',
+            'ref0': 'lim_npts',
+        },
+        'limiter_z': {
+            'dim': 'distance',
+            'long': 'description_2d[0].limiter.unit[0].outline.z[lim_npts]',
+            'units': 'm',
+        },
+    },
 
     # ---------------
     # pulse_schedule
@@ -125,6 +144,12 @@ _DSHORT = {
 
         # -----------
         # boundary
+
+        'a': {
+            'dim': 'distance',
+            'long': 'time_slice[nt].boundary.minor_radius',
+            'units': 'm',
+        },
 
         'sepR': {
             'dim': 'distance',
@@ -437,14 +462,13 @@ def get_dshort():
             for ir in range(nr):
 
                 kr = ss[ss.index('[')+1:ss.index(']')]
+                ss = ss[ss.index(']')+1:]
 
                 if kr.isnumeric():
                     continue
 
                 if kr in lref0 + ['im1d', 'im2d']:
                     ref.append(kr)
-
-                ss = ss[ss.index(']')+1:]
 
             dshort[ids][k0]['ref'] = tuple(ref)
 
