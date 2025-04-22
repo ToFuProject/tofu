@@ -386,7 +386,14 @@ def _add_data_2d(
     # get list of data
     # ------------------
 
-    if ids in ['pulse_schedule', 'summary', 'equilibrium', 'core_profiles']:
+    lids = [
+        'wall',
+        'summary',
+        'pulse_schedule',
+        'equilibrium',
+        'core_profiles',
+    ]
+    if ids in lids:
         ldata = [
             k0 for k0, v0 in dshort[ids].items()
             if '[im2d]' in v0['long']
