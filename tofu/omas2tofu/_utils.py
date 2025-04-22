@@ -116,7 +116,7 @@ def _get_short(
             )
 
             # supposed to be an array
-            nref = dshort[ids][short]['long'].count('[')
+            nref = len(_parse_refs(dshort[ids][short]['long']))
             out = np.array(out)
             if out.ndim != nref:
                 msg = "Something weird..."
@@ -179,7 +179,9 @@ def _short(din=None, elem=None):
         ee = e0[:i0]
         rin = e0[i0+1:i1]
 
-        if rin in ['im2d']:
+        if rin.isnumeric():
+            out = _short(din[ee][int(rin)], e1)
+        elif rin in ['im2d']:
             out = _short(din[ee][0], e1)
         else:
             nn = len(din[ee])
@@ -189,6 +191,24 @@ def _short(din=None, elem=None):
         out = _short(din[e0], e1)
 
     return out
+
+# ############################################
+# ############################################
+#             parse refs
+# ############################################
+
+
+def _parse_refs(long):
+    lref = []
+    ncounts = long.count('[')
+    for ii in range(ncounts):
+        i0 = long.index('[')
+        i1 = long.index(']')
+        rin = long[i0+1:i1]
+        if not rin.isnumeric():
+            lref.append(rin)
+        long = long[i1+1:]
+    return lref
 
 
 # ############################################
