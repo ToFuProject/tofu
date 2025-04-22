@@ -1,9 +1,5 @@
 
 
-# Standard
-import numpy as np
-
-
 # tofu-specific
 import tofu.physics_tools as tfpt
 
@@ -47,5 +43,9 @@ class Test00_Geometry():
         pass
 
     def test01_pinhole_camera_estimator(self):
-        dout = tfpt.geometry.pinhole_camera_estimator()
-        assert isinstance(dout, dict)
+        for col, div in [(False, False), (True, False), (True, True)]:
+            dout = tfpt.geometry.camera1d_estimator(
+                collimator=col,
+                diverging=div,
+            )
+            assert isinstance(dout, dict)

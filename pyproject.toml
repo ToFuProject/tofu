@@ -1,0 +1,8 @@
+[build-system]
+requires = [
+       # <65 necessary for python 3.8 and 3.9 only
+       "setuptools>=40.8.0,<65",
+       "wheel",
+       "Cython>=0.26",
+       "numpy",
+]

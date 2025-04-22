@@ -274,8 +274,6 @@ setup(
         # Indicate who your project is intended for
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Physics",
-        # Pick your license as you wish (should match "license" above)
-        "License :: OSI Approved :: MIT License",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         "Programming Language :: Python :: 3.6",
@@ -326,7 +324,7 @@ setup(
         "Polygon3",
         "cython>=0.26",
         "datastock>=0.0.54",
-        "bsplines2d>=0.0.22",
+        "bsplines2d>=0.0.25",
         "spectrally>=0.0.9",
     ],
     python_requires=">=3.6",
