@@ -521,13 +521,16 @@ def _add_data_2d(
 
             krhopn = [kk for kk in ldata if kk.endswith('rhopn')]
             if len(krhopn) == 0:
-                _add_rhopn_from_psi(
-                    coll=coll,
-                    kpsi=kpsi,
-                    din=din,
-                    ids=ids,
-                    dk2d=dk2d,
-                )
+                try:
+                    _add_rhopn_from_psi(
+                        coll=coll,
+                        kpsi=kpsi,
+                        din=din,
+                        ids=ids,
+                        dk2d=dk2d,
+                    )
+                except Exception:
+                    dfail['2drhopn'] = "failed"
 
     # -----------------
     # toroidal flux
@@ -544,14 +547,17 @@ def _add_data_2d(
 
             krhotn = [kk for kk in ldata if kk.endswith('rhotn')]
             if len(krhotn) == 0:
-                _add_rhotn_from_phi(
-                    coll=coll,
-                    kphi=kphi,
-                    din=din,
-                    ids=ids,
-                    dk2d=dk2d,
-                    kbs=kbs,
-                )
+                try:
+                    _add_rhotn_from_phi(
+                        coll=coll,
+                        kphi=kphi,
+                        din=din,
+                        ids=ids,
+                        dk2d=dk2d,
+                        kbs=kbs,
+                    )
+                except Exception:
+                    dfail['2drhotn'] = "failed"
 
     # -------------
     # dfail
@@ -795,62 +801,67 @@ def _add_mesh_data_1d(
     # identify 1d knots and 2d subkey
     # -------------------------------
 
-    k1d, q1d, k2d = _get_subkey(
-        coll=coll,
-        ids=ids,
-        shape=shape,
-        axis=axis,
-        ddata=ddata,
-        ldata=ldata,
-        lk2d=lk2d,
-    )
+    try:
+        k1d, q1d, k2d = _get_subkey(
+            coll=coll,
+            ids=ids,
+            shape=shape,
+            axis=axis,
+            ddata=ddata,
+            ldata=ldata,
+            lk2d=lk2d,
+        )
+    except Exception:
+        dfail['subkey'] = 'could not identify'
+        k1d, q1d, k2d = None, None, None
 
     # --------------------
     # add mesh
     # --------------------
 
-    km = _utils._make_key(
-        prefix=prefix,
-        ids=ids,
-        short='m1d',
-    )
+    if k1d is not None:
+        km = _utils._make_key(
+            prefix=prefix,
+            ids=ids,
+            short='m1d',
+        )
 
-    lk = ['units', 'dim', 'quant', 'name']
-    coll.add_mesh_1d(
-        key=km,
-        knots=q1d,
-        subkey=k2d,
-        deg=1,
-        **{k0: ddata[k1d].get(k0) for k0 in lk},
-    )
+        lk = ['units', 'dim', 'quant', 'name']
+        coll.add_mesh_1d(
+            key=km,
+            knots=q1d,
+            subkey=k2d,
+            deg=1,
+            **{k0: ddata[k1d].get(k0) for k0 in lk},
+        )
 
-    kbs = f"{km}_bs1"
+        kbs = f"{km}_bs1"
 
-    # ----------------
-    # add data 1d
-    # ----------------
+        # ----------------
+        # add data 1d
+        # ----------------
 
-    for kd in ldata:
+        for kd in ldata:
 
-        if kd == k1d:
-            continue
+            if kd == k1d:
+                continue
 
-        # ----------
-        # ref
+            # ----------
+            # ref
 
-        ref = tuple([
-            kbs if 'im1d' in rr
-            else rr for rr in ddata[kd]['ref']
-        ])
-        ddata[kd]['ref'] = ref
+            ref = tuple([
+                kbs if 'im1d' in rr
+                else rr for rr in ddata[kd]['ref']
+            ])
+            ddata[kd]['ref'] = ref
 
-        axis = ref.index(kbs)
+            axis = ref.index(kbs)
 
-        # -------------
-        # store
-        # -------------
+            # -------------
+            # store
+            # -------------
 
-        coll.add_data(**ddata[kd])
+            coll.add_data(**ddata[kd])
 
     # -------------
     # dfail
