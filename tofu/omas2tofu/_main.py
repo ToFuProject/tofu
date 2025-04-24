@@ -20,14 +20,16 @@ from . import _equilibrium
 
 
 _IDS_ORDER = [
+    'wall',
     'summary',
     'pulse_schedule',
     'equilibrium',
-    # 'core_profiles',
+    'core_profiles',
 ]
 
 
 _DEXTRACT = {
+    'wall': [_common.main],
     'summary': [_common.main],
     'pulse_schedule': [_common.main],
     'equilibrium': [_common.main, _equilibrium.main],
