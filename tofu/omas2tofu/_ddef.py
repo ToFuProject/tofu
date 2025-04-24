@@ -405,8 +405,56 @@ _DSHORT = {
         '1dV': {
             'dim': 'rho',
             'name': 'rhopn',
-            'long': 'profiles_1d[nt].grid.rho_pol_norm[im1d]',
+            'long': 'profiles_1d[nt].grid.volume[im1d]',
             'units': None,
+        },
+        '1dconducpar': {
+            'dim': 'conductivity',
+            'name': 'conducpar',
+            'long': 'profiles_1d[nt].conductivity_parallel[im1d]',
+            'units': 'S/m',
+        },
+        '1djpar': {
+            'dim': 'current density',
+            'name': 'jpar',
+            'long': 'profiles_1d[nt].current_parallel_inside[im1d]',
+            'units': 'A/m2',
+        },
+        '1djtor': {
+            'dim': 'current density',
+            'name': 'jtor',
+            'long': 'profiles_1d[nt].j_tor[im1d]',
+            'units': 'A/m2',
+        },
+        '1djtot': {
+            'dim': 'current density',
+            'name': 'jtot',
+            'long': 'profiles_1d[nt].j_total[im1d]',
+            'units': 'A/m2',
+        },
+        '1dq': {
+            'dim': 'safety factor',
+            'name': 'q',
+            'long': 'profiles_1d[nt].q[im1d]',
+            'units': None,
+        },
+        '1dpth': {
+            'dim': 'pressure',
+            'name': 'pth',
+            'long': 'profiles_1d[nt].pressure_thermal[im1d]',
+            'units': 'Pa',
+        },
+        '1dne': {
+            'dim': 'density',
+            'name': 'ne',
+            'long': 'profiles_1d[nt].electrons.density[im1d]',
+            'units': '1/m3',
+        },
+        '1dTe': {
+            'dim': 'temperature',
+            'name': 'Te',
+            'long': 'profiles_1d[nt].electrons.temperature[im1d]',
+            'units': 'eV',
         },
     },
 }
