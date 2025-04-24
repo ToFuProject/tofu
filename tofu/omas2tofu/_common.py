@@ -4,6 +4,7 @@ import warnings
 
 
 import numpy as np
+from matplotlib.path import Path
 
 
 from . import _utils
@@ -393,18 +394,21 @@ def _add_data_2d(
         'equilibrium',
         'core_profiles',
     ]
-    if ids in lids:
-        ldata = [
-            k0 for k0, v0 in dshort[ids].items()
-            if '[im2d]' in v0['long']
-            and 'grid' not in dshort[ids][k0]['long']
-        ]
+    if ids not in lids:
+        msg = f"Not sure how to deal with 2d data for ids '{ids}'"
+        raise Exception(msg)
+
+    ldata = [
+        k0 for k0, v0 in dshort[ids].items()
+        if '[im2d]' in v0['long']
+        and 'grid' not in dshort[ids][k0]['long']
+    ]
 
     # -------------
     # loop on data
     # -------------
 
-    lk2d = []
+    dk2d = {}
     dfail = {}
     for kd in ldata:
 
@@ -492,7 +496,7 @@ def _add_data_2d(
         coll.add_data(**ddatai[kd])
 
         # store in list
-        lk2d.append(ddatai[kd]['key'])
+        dk2d[kd] = ddatai[kd]['key']
 
     # -------------
     # update ldata and complete
@@ -500,21 +504,54 @@ def _add_data_2d(
 
     ldata = [kk for kk in ldata if kk not in dfail.keys()]
     lpsi = [kk for kk in ldata if 'psi' in kk]
+    lphi = [kk for kk in ldata if 'phi' in kk]
 
     # -----------------
     # poloidal flux
 
     if len(lpsi) > 0:
+        kpsi = [kk for kk in lpsi if kk.endswith('2dpsi')]
+        if len(kpsi) == 1:
+            kpsi = kpsi[0]
 
-        kpsin = [kk for kk in lpsi if kk.endswith('psin')]
-        if len(kpsin) == 0:
-            pass
-            # _add_psin_from_psi()
+            kpsin = [kk for kk in lpsi if kk.endswith('psin')]
+            if len(kpsin) == 0:
+                pass
+                # _add_psin_from_psi()
 
-        krhopn = [kk for kk in ldata if kk.endswith('rhopn')]
-        if len(krhopn) == 0:
-            pass
-            # _add_rhopn_from_psin()
+            krhopn = [kk for kk in ldata if kk.endswith('rhopn')]
+            if len(krhopn) == 0:
+                _add_rhopn_from_psi(
+                    coll=coll,
+                    kpsi=kpsi,
+                    din=din,
+                    ids=ids,
+                    dk2d=dk2d,
+                )
+
+    # -----------------
+    # toroidal flux
+
+    if len(lphi) > 0:
+        kphi = [kk for kk in lphi if kk.endswith('2dphi')]
+        if len(kphi) == 1:
+            kphi = kphi[0]
+
+            kphin = [kk for kk in lphi if kk.endswith('phin')]
+            if len(kphin) == 0:
+                pass
+                # _add_psin_from_psi()
+
+            krhotn = [kk for kk in ldata if kk.endswith('rhotn')]
+            if len(krhotn) == 0:
+                _add_rhotn_from_phi(
+                    coll=coll,
+                    kphi=kphi,
+                    din=din,
+                    ids=ids,
+                    dk2d=dk2d,
+                    kbs=kbs,
+                )
 
     # -------------
     # dfail
@@ -528,7 +565,129 @@ def _add_data_2d(
         )
         raise Exception(msg)
 
-    return dfail, lk2d
+    return dfail, list(dk2d.values())
+
+
+def _add_rhopn_from_psi(
+    coll=None,
+    kpsi=None,
+    din=None,
+    ids=None,
+    dk2d=None,
+):
+    """
+
+    """
+
+    if ids != 'equilibrium':
+        return
+
+    # ---------
+    # extract
+
+    psi = coll.ddata[dk2d[kpsi]]['data']
+    psi0 = np.array([
+        ts['global_quantities']['psi_axis']
+        for ts in din[ids]['time_slice']
+    ])[:, None, None]
+    psi1 = np.array([
+        ts['global_quantities']['psi_boundary']
+        for ts in din[ids]['time_slice']
+    ])[:, None, None]
+
+    # ---------
+    # compute
+
+    rhopn = np.sqrt((psi - psi0) / (psi1 - psi0))
+
+    # ---------
+    # add data
+
+    key = dk2d[kpsi].replace('psi', 'rhopn')
+    coll.add_data(
+        key=key,
+        data=rhopn,
+        ref=coll.ddata[dk2d[kpsi]]['ref'],
+        units=None,
+        dim='rho',
+        quant='rhopn',
+        name='rhopn',
+    )
+
+    dk2d['rhotpn'] = key
+
+    return
+
+
+def _add_rhotn_from_phi(
+    coll=None,
+    kphi=None,
+    din=None,
+    ids=None,
+    dk2d=None,
+    kbs=None,
+):
+    """
+
+    """
+
+    if ids != 'equilibrium':
+        return
+
+    # ---------
+    # extract
+
+    phi = coll.ddata[dk2d[kphi]]['data']
+    phi1 = np.array([
+        ts['profiles_1d']['phi'][-1]
+        for ts in din[ids]['time_slice']
+    ])[:, None, None]
+
+    # ---------
+    # compute
+
+    rhotn = np.sqrt(phi / phi1)
+
+    # --------------------------
+    # set pts outside sep to nan
+
+    wbs = coll._which_bsplines
+    ksepR = [kk for kk in coll.ddata.keys() if kk.endswith('sepR')]
+    ksepZ = [kk for kk in coll.ddata.keys() if kk.endswith('sepZ')]
+    if len(ksepR) == len(ksepZ) == 1:
+        sepR = coll.ddata[ksepR[0]]['data']
+        sepZ = coll.ddata[ksepZ[0]]['data']
+        assert sepR.shape[0] == len(din[ids]['time_slice'])
+        kx0, kx1 = coll.dobj[wbs][kbs]['apex']
+        x0 = coll.ddata[kx0]['data']
+        x1 = coll.ddata[kx1]['data']
+        pts = np.array([
+            np.repeat(x0[:, None], x1.size, axis=1).ravel(),
+            np.repeat(x1[None, :], x0.size, axis=0).ravel(),
+        ]).T
+        for ii in range(sepR.shape[0]):
+            path = Path(np.array([sepR[ii, :], sepZ[ii, :]]).T)
+            iout = ~path.contains_points(pts).reshape((x0.size, x1.size))
+            sli = (ii, iout)
+            rhotn[sli] = np.nan
+
+    # ---------
+    # add data
+
+    key = dk2d[kphi].replace('phi', 'rhotn')
+    coll.add_data(
+        key=key,
+        data=rhotn,
+        ref=coll.ddata[dk2d[kphi]]['ref'],
+        units=None,
+        dim='rho',
+        quant='rhotn',
+        name='rhotn',
+    )
+
+    dk2d['rhotn'] = key
+
+    return
 
 
 # ###########################################################
@@ -747,14 +906,17 @@ def _get_subkey(
         raise Exception(msg)
 
     k1d = l1d[0]
-    q1d = ddata[l1d[0]]['data'][sli].ravel()
+    key_1d = ddata[k1d]['key']
+    q1d = ddata[k1d]['data'][sli].ravel()
 
     # ------------------
     # Identify 2d subkey
     # ------------------
 
     k2d_name = [
-        kk for kk in lk2d if ddata[k1d]['name'] == coll.ddata[kk]['name']
+        kk for kk in lk2d
+        if ddata[k1d]['name'] == coll.ddata[kk]['name']
+        or ddata[k1d]['quant'] == coll.ddata[kk]['quant']
     ]
 
     if len(k2d_name) > 1:
@@ -774,23 +936,21 @@ def _get_subkey(
 
         k2dn = k2d_name[0]
 
+    elif ids in _DSUBKEY.keys():
+        k1d, q1d, k2dn = _DSUBKEY[ids](
+            coll=coll,
+            ids=ids,
+            shape=shape,
+            axis=axis,
+            ddata=ddata,
+            ldata=ldata,
+            lk2d=lk2d,
+            k1d=k1d,
+            key_1d=key_1d,
+            q1d=q1d,
+        )
+
     else:
-
-        if ids in _DSUBKEY.keys():
-            print(ids, lk2d, k2d_name)
-            k1d, q1d, k2dn = _DSUBKEY[ids](
-                coll=coll,
-                ids=ids,
-                shape=shape,
-                axis=axis,
-                ddata=ddata,
-                ldata=ldata,
-                lk2d=lk2d,
-                k1d=k1d,
-                q1d=q1d,
-            )
-
-        else:
-            raise NotImplementedError(ids)
+        raise NotImplementedError(ids)
 
     return k1d, q1d, k2dn
