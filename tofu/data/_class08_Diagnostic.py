@@ -1412,6 +1412,7 @@ class Diagnostic(Previous):
     def plot_diagnostic_geometrical_coverage(
         self,
         key=None,
+        key_cam=None,
         # mesh sampling
         key_mesh=None,
         res_RZ=None,
@@ -1434,6 +1435,8 @@ class Diagnostic(Previous):
         ----------
         key : str, optional
             key to the diagnostic
+        key_cam: str / list, optional
+            Use to reduce the plot to a subset of the diagnostic's cameras
         key_mesh : str, optional
             key to the mesh used for sampling the cross-section
         res_RZ : float / list, optional
@@ -1453,6 +1456,7 @@ class Diagnostic(Previous):
         return _plot_coverage.main(
             coll=self,
             key=key,
+            key_cam=key_cam,
             # mesh sampling
             key_mesh=key_mesh,
             res_RZ=res_RZ,

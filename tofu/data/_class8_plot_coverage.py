@@ -30,6 +30,7 @@ from . import _class8_vos_utilities as _vos_utils
 def main(
     coll=None,
     key=None,
+    key_cam=None,
     # observation directions
     observation_directions=None,
     # mesh sampling
@@ -52,9 +53,15 @@ def main(
     # check inputs
     # -------------
 
-    key, is_vos, observation_directions, keym, res_RZ, nan0, dcolor = _check(
+    (
+        key, is_vos, lcam, dvos,
+        observation_directions, keym,
+        res_RZ, nan0, dcolor,
+    ) = _check(
         coll=coll,
         key=key,
+        key_cam=key_cam,
+        dvos=None,
         observation_directions=observation_directions,
         key_mesh=key_mesh,
         res_RZ=res_RZ,
@@ -69,6 +76,7 @@ def main(
     dpoly, ndet, extent = _compute(
         coll=coll,
         key=key,
+        lcam=lcam,
         is_vos=is_vos,
         keym=keym,
         res_RZ=res_RZ,
@@ -88,6 +96,7 @@ def main(
     dax = _plot(
         coll=coll,
         key=key,
+        lcam=lcam,
         # data
         is_vos=is_vos,
         ndet=ndet,
@@ -116,6 +125,8 @@ def main(
 def _check(
     coll=None,
     key=None,
+    key_cam=None,
+    dvos=None,
     observation_directions=None,
     key_mesh=None,
     res_RZ=None,
@@ -129,7 +140,7 @@ def _check(
 
     lok_vos = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if all([
+        if any([
             v1.get('dvos', {}).get('keym') is not None
             for v1 in v0['doptics'].values()
         ])
@@ -144,11 +155,36 @@ def _check(
         allowed=lok + lok_vos,
     )
 
-    lcam = coll.dobj['diagnostic'][key]['camera']
+    # ------------------
+    # key_cam
+    # ------------------
+
     is_vos = key in lok_vos
+    lcam = coll.dobj['diagnostic'][key]['camera']
+    doptics = coll.dobj['diagnostic'][key]['doptics']
+    if is_vos:
+        lcam = [
+            kk for kk in lcam
+            if doptics[kk]['dvos'].get('keym') is not None
+        ]
+
+    if isinstance(key_cam, str):
+        key_cam = [key_cam]
+
+    key_cam = ds._generic_check._check_var_iter(
+        key_cam, 'key_cam',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=coll.dobj['diagnostic'][key]['camera'],
+    )
+
+    lcam = [kcam for kcam in lcam if kcam in key_cam]
+
+    # ------------------
+    # dvos
+    # ------------------
 
     # is 3d ?
-    doptics = coll.dobj['diagnostic'][key]['doptics']
     # is_3d = doptics[lcam[0]]['dvos'].get('indr_3d') is not None
 
     # ------------------------
@@ -166,19 +202,20 @@ def _check(
     # key mesh
     # -------------
 
-    doptics = coll.dobj['diagnostic'][key]['doptics']
     if is_vos:
 
         # key_mesh unicity
-        lmesh = set([v0['dvos']['keym'] for v0 in doptics.values()])
+        lmesh = set([doptics[kcam]['dvos']['keym'] for kcam in lcam])
 
         # res unicity
-        lres_RZ = set([tuple(v0['dvos']['res_RZ']) for v0 in doptics.values()])
+        lres_RZ = set([
+            tuple(doptics[kcam]['dvos']['res_RZ']) for kcam in lcam
+        ])
 
         if len(lmesh) != 1 or len(lres_RZ) != 1:
             msg = (
-                "Non-unique mesh or res_RZ for vos of diag '{key}':\n"
-
+                f"Non-unique mesh or res_RZ for vos of diag '{key}':\n"
+                f"For lcam: {lcam}\n"
             )
             raise Exception(msg)
 
@@ -186,7 +223,11 @@ def _check(
         res_RZ = list(list(lres_RZ)[0])
 
     else:
-        pass
+        keym = ds._generic_check._check_var(
+            keym, 'keym',
+            types=str,
+            allowed=list(coll.dobj.get(coll._which_mesh, {}).keys()),
+        )
 
     # -----------
     # nan0 => set 0 to nan
@@ -205,7 +246,7 @@ def _check(
     if dcolor is None:
         prop_cycle = plt.rcParams['axes.prop_cycle']
         colors = prop_cycle.by_key()['color']
-        dcolor = {k0: colors[ii%len(colors)] for ii, k0 in enumerate(lcam)}
+        dcolor = {k0: colors[ii % len(colors)] for ii, k0 in enumerate(lcam)}
 
     if mcolors.is_color_like(dcolor):
         dcolor = {k0: dcolor for k0 in lcam}
@@ -236,7 +277,11 @@ def _check(
             alpha = 0.5
         dcolor[k0] = mcolors.to_rgba(v0, alpha=alpha)
 
-    return key, is_vos, observation_directions, keym, res_RZ, nan0, dcolor
+    return (
+        key, is_vos, lcam, dvos,
+        observation_directions,
+        keym, res_RZ, nan0, dcolor,
+    )
 
 
 # ################################################################
@@ -248,6 +293,7 @@ def _check(
 def _compute(
     coll=None,
     key=None,
+    lcam=None,
     is_vos=None,
     keym=None,
     res_RZ=None,
@@ -299,8 +345,9 @@ def _compute(
     ndet = np.zeros(shape, dtype=float)
 
     if is_vos:
-        for kcam, v0 in doptics.items():
+        for kcam in lcam:
 
+            v0 = doptics[kcam]
             kindr, kindz = v0['dvos']['ind_cross']
 
             shape_poly = coll.ddata[kindr]['data'].shape
@@ -336,7 +383,7 @@ def _compute(
     # ---------------
 
     dpoly = {}
-    for ii, (kcam, v0) in enumerate(doptics.items()):
+    for kcam in lcam:
 
         # concatenate all vos
         pr, pz = _vos_utils._get_overall_polygons(
@@ -366,6 +413,7 @@ def _compute(
 def _plot(
     coll=None,
     key=None,
+    lcam=None,
     # data
     ndet=None,
     extent=None,
@@ -409,8 +457,6 @@ def _plot(
     # ----------------
 
     # directions of observation
-
-
 
     # ----------------
     # prepare figure
@@ -484,7 +530,8 @@ def _plot(
         else:
             for cax in lcax:
                 plt.colorbar(im, cax=cax)
-                # cax.set_ylabel("nb. of detectors", size=14, fontweight='bold')
+                # ylab = "nb. of detectors"
+                # cax.set_ylabel(ylab, size=14, fontweight='bold')
 
     # ---------------
     # plot spans
