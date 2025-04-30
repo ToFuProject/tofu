@@ -31,6 +31,8 @@ def main(
     coll=None,
     key=None,
     key_cam=None,
+    # plot_hor
+    plot_hor=None,
     # observation directions
     observation_directions=None,
     # mesh sampling
@@ -55,6 +57,7 @@ def main(
 
     (
         key, is_vos, lcam, dvos,
+        plot_hor,
         observation_directions, keym,
         res_RZ, nan0, dcolor,
     ) = _check(
@@ -62,6 +65,7 @@ def main(
         key=key,
         key_cam=key_cam,
         dvos=None,
+        plot_hor=plot_hor,
         observation_directions=observation_directions,
         key_mesh=key_mesh,
         res_RZ=res_RZ,
@@ -113,6 +117,54 @@ def main(
         vmax=vmax,
     )
 
+    # ------------
+    # plot_hor
+    # ------------
+
+    if plot_hor is True:
+        # -----------
+        # compute
+
+        dpoly_hor, ndet_hor, ndet_x, ndet_y = _compute_hor(
+            coll=coll,
+            key=key,
+            lcam=lcam,
+            is_vos=is_vos,
+            keym=keym,
+            res_RZ=res_RZ,
+            dcolor=dcolor,
+        )
+
+        # ------------
+        # nan0
+
+        if nan0 is True:
+            ndet_hor[ndet_hor == 0] = np.nan
+
+        # --------
+        # plot
+
+        dax = _plot_hor(
+            coll=coll,
+            key=key,
+            lcam=lcam,
+            # data
+            is_vos=is_vos,
+            ndet=ndet_hor,
+            ndet_x=ndet_x,
+            ndet_y=ndet_y,
+            dpoly=dpoly,
+            # plotting options
+            config=config,
+            dax=dax,
+            fs=fs,
+            dmargin=dmargin,
+            tit=tit,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
     return dpoly, ndet, dax
 
 
@@ -127,6 +179,7 @@ def _check(
     key=None,
     key_cam=None,
     dvos=None,
+    plot_hor=None,
     observation_directions=None,
     key_mesh=None,
     res_RZ=None,
@@ -181,11 +234,18 @@ def _check(
     lcam = [kcam for kcam in lcam if kcam in key_cam]
 
     # ------------------
-    # dvos
+    # is_3d vs plot_hor
     # ------------------
 
     # is 3d ?
-    # is_3d = doptics[lcam[0]]['dvos'].get('indr_3d') is not None
+    is_3d = doptics[lcam[0]]['dvos'].get('indr_3d') is not None
+
+    plot_hor = ds._generic_check._check_var(
+        plot_hor, 'plot_hor',
+        types=bool,
+        default=False,
+        allowed=[False, True] if is_3d else [False],
+    )
 
     # ------------------------
     # observation_directions
@@ -279,6 +339,7 @@ def _check(
 
     return (
         key, is_vos, lcam, dvos,
+        plot_hor,
         observation_directions,
         keym, res_RZ, nan0, dcolor,
     )
@@ -291,6 +352,126 @@ def _check(
 
 
 def _compute(
+    coll=None,
+    key=None,
+    lcam=None,
+    is_vos=None,
+    keym=None,
+    res_RZ=None,
+    dcolor=None,
+):
+
+    # ---------------
+    # prepare
+    # ---------------
+
+    doptics = coll.dobj['diagnostic'][key]['doptics']
+
+    # ---------------
+    # mesh sampling
+    # ---------------
+
+    # ----------------
+    # initial sampling
+
+    dsamp = coll.get_sample_mesh(
+        key=keym,
+        res=res_RZ,
+        mode='abs',
+        grid=False,
+        store=False,
+    )
+
+    R = dsamp['x0']['data']
+    Z = dsamp['x1']['data']
+
+    # --------------------
+    # derive shape, extent
+
+    # shape
+    shape = (R.size, Z.size)
+
+    # extent
+    extent = (
+        R[0] - 0.5*(R[1] - R[0]),
+        R[-1] + 0.5*(R[-1] - R[-2]),
+        Z[0] - 0.5*(Z[1] - Z[0]),
+        Z[-1] + 0.5*(Z[-1] - Z[-2]),
+    )
+
+    # ---------------
+    # ndet for vos
+    # ---------------
+
+    ndet = np.zeros(shape, dtype=float)
+
+    if is_vos:
+        for kcam in lcam:
+
+            v0 = doptics[kcam]
+            kindr, kindz = v0['dvos']['ind_cross']
+
+            shape_poly = coll.ddata[kindr]['data'].shape
+            lind = [range(ss) for ss in shape_poly[:-1]]
+
+            sli0 = np.asarray(list(shape_poly[:-1]) + [slice(None)])
+            sli = np.asarray(list(shape_poly[:-1]) + [slice(None)])
+
+            for ii, ij in enumerate(itt.product(*lind)):
+
+                # get rid of -1
+                sli0[:-1] = ij
+                sli[-1] = coll.ddata[kindr]['data'][tuple(sli0)] >= 0
+
+                # get indices to incremente
+                sli[:-1] = ij
+                ind = (
+                    coll.ddata[kindr]['data'][tuple(sli)],
+                    coll.ddata[kindz]['data'][tuple(sli)],
+                )
+
+                ndet[ind] += 1
+
+    # -----------------
+    # ndet for non-vos
+    # -----------------
+
+    else:
+        raise NotImplementedError()
+
+    # ---------------
+    # dpoly
+    # ---------------
+
+    dpoly = {}
+    for kcam in lcam:
+
+        # concatenate all vos
+        pr, pz = _vos_utils._get_overall_polygons(
+            coll=coll,
+            doptics=doptics,
+            key_cam=kcam,
+            poly='pcross',
+            convexHull=False,
+        )
+
+        # store
+        dpoly[kcam] = {
+            'pr': pr,
+            'pz': pz,
+            'color': dcolor[kcam],
+        }
+
+    return dpoly, ndet, extent
+
+
+# ################################################################
+# ################################################################
+#                           Compute_hor
+# ################################################################
+
+
+def _compute_hor(
     coll=None,
     key=None,
     lcam=None,
@@ -560,6 +741,175 @@ def _plot(
             lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
             for ax in lax:
                 config.plot(lax=ax, proj='cross', dLeg=False)
+
+    # --------------
+    # add tit
+    # --------------
+
+    if tit is not False:
+        fig.suptitle(tit, size=14, fontweight='bold')
+
+    return dax
+
+
+# ################################################################
+# ################################################################
+#                   plot_hor
+# ################################################################
+
+
+def _plot_hor(
+    coll=None,
+    key=None,
+    lcam=None,
+    # data
+    ndet=None,
+    ndet_x=None,
+    ndet_y=None,
+    dpoly=None,
+    # plotting options
+    config=None,
+    is_vos=None,
+    dax=None,
+    fs=None,
+    dmargin=None,
+    tit=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
+):
+
+    # ----------------
+    # check input
+    # ----------------
+
+    # tit
+    if tit is not False:
+        titdef = f"Geometrical coverage of diag '{key}' - horizontal"
+        tit = ds._generic_check._check_var(
+            tit, 'tit',
+            types=str,
+            default=titdef,
+        )
+
+    if cmap is None:
+        cmap = plt.cm.viridis   # Greys
+
+    if vmin is None:
+        vmin = 0
+
+    if vmax is None:
+        vmax = np.nanmax(ndet)
+
+    # ----------------
+    # prepare data
+    # ----------------
+
+    # directions of observation
+
+    # ----------------
+    # prepare figure
+    # ----------------
+
+    if dax is None:
+        if fs is None:
+            fs = (14, 7)
+
+        if dmargin is None:
+            dmargin = {
+                'left': 0.05, 'right': 0.95,
+                'bottom': 0.06, 'top': 0.90,
+                'hspace': 0.20, 'wspace': 0.40,
+            }
+
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(ncols=16, nrows=1, **dmargin)
+
+        # ax0 = spans
+        ax0 = fig.add_subplot(gs[0, :6], aspect='equal', adjustable='box')
+        ax0.set_ylabel('X (m)', size=12, fontweight='bold')
+        ax0.set_xlabel('Y (m)', size=12, fontweight='bold')
+        ax0.set_title("spans", size=14, fontweight='bold')
+
+        # ax1 = nb of detectors
+        ax1 = fig.add_subplot(gs[0, 9:-1], sharex=ax0, sharey=ax0)
+        ax1.set_ylabel('X (m)', size=12, fontweight='bold')
+        ax1.set_xlabel('Y (m)', size=12, fontweight='bold')
+        ax1.set_title("nb. of detectors", size=14, fontweight='bold')
+
+        # colorbar
+        cax = fig.add_subplot(gs[0, -1], frameon=False)
+
+        dax = {
+            'span': {'handle': ax0, 'type': 'span'},
+            'ndet': {'handle': ax1, 'type': 'ndet'},
+            'cax': {'handle': cax, 'type': 'span_colorbar'},
+        }
+
+    # --------------------
+    # check / format dax
+
+    dax = ds._generic_check._check_dax(dax)
+    fig = list(dax.values())[0]['handle'].figure
+
+    # ---------------
+    # plot ndet
+    # ---------------
+
+    ktype = 'ndet'
+    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
+    for ax in lax:
+
+        # plot
+        im = ax.scatter(
+            ndet_x,
+            ndet_y,
+            s=8,
+            c=ndet,
+            m='s',
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
+        # colorbar
+        ktype2 = 'span_colorbar'
+        lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
+        if len(lcax) == 0:
+            plt.colorbar(im)
+        else:
+            for cax in lcax:
+                plt.colorbar(im, cax=cax)
+                # ylab = "nb. of detectors"
+                # cax.set_ylabel(ylab, size=14, fontweight='bold')
+
+    # ---------------
+    # plot spans
+    # ---------------
+
+    ktype = 'span'
+    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
+    for ax in lax:
+
+        for k0, v0 in dpoly.items():
+            ax.fill(
+                v0['pr'],
+                v0['pz'],
+                fc=v0['color'],
+                label=k0,
+            )
+
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=12)
+
+    # --------------
+    # add config
+    # --------------
+
+    if config is not None:
+        for ktype in ['span', 'ndet']:
+            lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
+            for ax in lax:
+                config.plot(lax=ax, proj='hor', dLeg=False)
 
     # --------------
     # add tit
