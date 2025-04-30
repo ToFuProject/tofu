@@ -59,6 +59,7 @@ def main(
     # saving
     pfe_save=None,
     overwrite=None,
+    verb=None,
 ):
     """ Export a set of LOS to a stp file (for CAD compatibility)
 
@@ -116,7 +117,7 @@ def main(
         chain,
         curve,
         iso,
-        pfe_save, overwrite,
+        pfe_save, overwrite, verb,
     ) = _check(
         coll=coll,
         key=key,
@@ -136,6 +137,7 @@ def main(
         # saving
         pfe_save=pfe_save,
         overwrite=overwrite,
+        verb=verb,
     )
 
     fname = os.path.split(pfe_save)[-1][:-4]
@@ -202,6 +204,7 @@ def main(
         msg=msg_header + "\n" + msg_data,
         pfe_save=pfe_save,
         overwrite=overwrite,
+        verb=verb,
     )
 
     return
@@ -232,6 +235,7 @@ def _check(
     # saving
     pfe_save=None,
     overwrite=None,
+    verb=None,
 ):
 
     # --------------
@@ -480,6 +484,16 @@ def _check(
         default=False,
     )
 
+    # ----------------
+    # verb
+    # ----------------
+
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=bool,
+        default=True,
+    )
+
     return (
         key, key_cam, key_rays,
         ptsx, ptsy, ptsz,
@@ -492,7 +506,7 @@ def _check(
         chain,
         curve,
         iso,
-        pfe_save, overwrite,
+        pfe_save, overwrite, verb,
     )
 
 
@@ -857,7 +871,7 @@ def _get_dcolor(dptsx=None, color=None):
             prop_cycle = plt.rcParams['axes.prop_cycle']
             colors = prop_cycle.by_key()['color']
             dcolor = {
-                k0: colors[ii%len(colors)]
+                k0: colors[ii % len(colors)]
                 for ii, k0 in enumerate(dptsx.keys())
             }
 
@@ -869,6 +883,7 @@ def _get_dcolor(dptsx=None, color=None):
                 "If str, arg 'color' must be either:\n"
                 "\t- 'camera': assign a color to each camera\n"
                 "\t- color-like: assign the same color to each camera\n"
+                f"Provided: {color}\n"
             )
             raise Exception(msg)
 
@@ -918,6 +933,7 @@ def _save(
     msg=None,
     pfe_save=None,
     overwrite=None,
+    verb=None,
 ):
 
     # -------------
@@ -941,8 +957,9 @@ def _save(
     # --------------
     # verb
 
-    msg = f"Saved to:\n\t{pfe_save}"
-    print(msg)
+    if verb is True:
+        msg = f"Saved to:\n\t{pfe_save}"
+        print(msg)
 
     return
 

@@ -5,14 +5,10 @@
 # import copy
 
 
-# Common
-import numpy as np
-import datastock as ds
-
-
 # tofu
 from ._class02_Rays import Rays as Previous
 from . import _class3_check as _check
+from . import _class03_save2stp as _save2stp
 
 
 __all__ = ['Aperture']
@@ -128,4 +124,39 @@ class Aperture(Previous):
             coll=self,
             which=which,
             key=key,
+        )
+
+    # ----------------
+    # save as stp file
+    # ----------------
+
+    def save_optics_to_stp(
+        self,
+        keys=None,
+        # options
+        factor=None,
+        color=None,
+        chain=None,
+        # saving
+        pfe=None,
+        overwrite=None,
+        verb=None,
+    ):
+        """ Save the selected optics 3d outlines to a stp file
+
+        Optionally chain them to be a single POLYLINE
+
+        """
+
+        return _save2stp.main(
+            coll=self,
+            keys=keys,
+            # options
+            factor=factor,
+            color=color,
+            chain=chain,
+            # saving
+            pfe=pfe,
+            overwrite=overwrite,
+            verb=verb,
         )
