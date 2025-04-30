@@ -371,17 +371,30 @@ def _check(
 
     chain = ds._generic_check._check_var(
         chain, 'chain',
-        types=(bool, str),
+        types=(bool, str, tuple, int),
         default=False,
-        allowed=[True, False, 'pixel'],
     )
 
-    if chain is not False and not (key_cam is not None or key_rays is not None):
-        msg = (
-            "Arg chain can only used if key_cam or key_rays is known!\n"
-            f"\t- chain: {chain}\n"
-        )
-        raise Exception(msg)
+    if isinstance(chain, int) and chain is not True:
+        chain = (chain,)
+    if isinstance(chain, tuple):
+        if not all([isinstance(cc, int) for cc in chain]):
+            msg = (
+                "Arg chain, if a tuple, must consist of ints!\n"
+                f"Provided: {chain}\n"
+            )
+            raise Exception(msg)
+
+        ndim = len(coll.dobj['rays'][key]['shape'])
+        chain = tuple([cc if cc >= 0 else ndim + cc for cc in chain])
+
+    elif chain is not False:
+        if not (key_cam is not None or key_rays is not None):
+            msg = (
+                "Arg chain can only used if key_cam or key_rays is known!\n"
+                f"\t- chain: {chain}\n"
+            )
+            raise Exception(msg)
 
     # ---------------
     # curve
@@ -679,6 +692,28 @@ def _extract(
                         -1,
                         0,
                     )
+
+                elif isinstance(chain, tuple):
+
+                    if 0 not in chain:
+                        chain = (0,) + chain
+
+                    shape0 = ptsx.shape
+                    prod = np.prod([shape0[cc] for cc in chain])
+                    shape = tuple([
+                        ss for ii, ss in enumerate(shape0)
+                        if ii not in chain
+                    ]) + (prod,)
+
+                    ndim = ptsx.ndim
+                    end = [ndim-1-ii for ii in range(len(chain))]
+                    ptsx = np.moveaxis(ptsx, chain, end)
+                    ptsy = np.moveaxis(ptsy, chain, end)
+                    ptsz = np.moveaxis(ptsz, chain, end)
+
+                    dptsx[k0] = np.moveaxis(ptsx.reshape(shape), -1, 0)
+                    dptsy[k0] = np.moveaxis(ptsy.reshape(shape), -1, 0)
+                    dptsz[k0] = np.moveaxis(ptsz.reshape(shape), -1, 0)
 
                 else:
                     raise NotImplementedError(f"{chain}")
