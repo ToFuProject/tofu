@@ -505,19 +505,14 @@ def _compute_hor(
     R = dsamp['x0']['data']
     Z = dsamp['x1']['data']
 
-    # --------------------
-    # derive shape, extent
+    # ------------
+    # phi sampling
 
-    # shape
-    shape = (R.size, Z.size)
+    indr = np.arange(R.size)
+    indphi =
 
-    # extent
-    extent = (
-        R[0] - 0.5*(R[1] - R[0]),
-        R[-1] + 0.5*(R[-1] - R[-2]),
-        Z[0] - 0.5*(Z[1] - Z[0]),
-        Z[-1] + 0.5*(Z[-1] - Z[-2]),
-    )
+    ndet_x =
+    ndet_y =
 
     # ---------------
     # ndet for vos
@@ -529,28 +524,28 @@ def _compute_hor(
         for kcam in lcam:
 
             v0 = doptics[kcam]
-            kindr, kindz = v0['dvos']['ind_cross']
+            shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
+            axis_cam = tuple([ii for ii in range(len(shape_cam))])
 
-            shape_poly = coll.ddata[kindr]['data'].shape
-            lind = [range(ss) for ss in shape_poly[:-1]]
+            # extract
+            indr_3d = v0['dvos']['indr_3d']
+            indz_3d = v0['dvos']['indz_3d']
+            phi_3d = v0['dvos']['phi_3d']
+            sang_3d = coll.ddata[v0['dvos']['sang_3d']]['data']
 
-            sli0 = np.asarray(list(shape_poly[:-1]) + [slice(None)])
-            sli = np.asarray(list(shape_poly[:-1]) + [slice(None)])
+            # ind
+            ndeti = np.nansum(sang_3d > 0., axis=axis_cam)
 
-            for ii, ij in enumerate(itt.product(*lind)):
+            ind0 = np.zeros(indr_3d.shape, dtype=bool)
+            ind1 = np.zeros(indr_3d.shape, dtype=bool)
+            for ir in np.unique(indr_3d):
+                ind0[...] = (indr_3d == ir)
+                ind1[...] = False
+                for phi in np.unique(phi_3d[ind0]):
+                    ind1[ind0] = (phi_3d[ind0] == phi)
 
-                # get rid of -1
-                sli0[:-1] = ij
-                sli[-1] = coll.ddata[kindr]['data'][tuple(sli0)] >= 0
-
-                # get indices to incremente
-                sli[:-1] = ij
-                ind = (
-                    coll.ddata[kindr]['data'][tuple(sli)],
-                    coll.ddata[kindz]['data'][tuple(sli)],
-                )
-
-                ndet[ind] += 1
+                    sli =
+                    ndet[sli] += np.nansum(ndeti[ind1])
 
     # -----------------
     # ndet for non-vos
@@ -567,18 +562,18 @@ def _compute_hor(
     for kcam in lcam:
 
         # concatenate all vos
-        pr, pz = _vos_utils._get_overall_polygons(
+        px, py = _vos_utils._get_overall_polygons(
             coll=coll,
             doptics=doptics,
             key_cam=kcam,
-            poly='pcross',
+            poly='phor',
             convexHull=False,
         )
 
         # store
         dpoly[kcam] = {
-            'pr': pr,
-            'pz': pz,
+            'px': pr,
+            'py': pz,
             'color': dcolor[kcam],
         }
 
