@@ -475,6 +475,7 @@ class Diagnostic(Previous):
 
     def compute_diagnostic_vos(
         self,
+        version='old',
         key_diag=None,
         key_cam=None,
         key_mesh=None,
@@ -522,6 +523,7 @@ class Diagnostic(Previous):
 
         return _vos.compute_vos(
             coll=self,
+            version=version,
             key_diag=key_diag,
             key_cam=key_cam,
             key_mesh=key_mesh,

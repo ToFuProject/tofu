@@ -24,8 +24,6 @@ from . import _class8_vos_utilities as _utilities
 
 
 def _vos(
-    func_RZphi_from_ind=None,
-    func_ind_from_domain=None,
     # ressources
     coll=None,
     doptics=None,
@@ -85,35 +83,26 @@ def _vos(
     if user_limits is not None:
 
         if user_limits.get('pcross_user') is not None:
-
-            # margin poly cross
-            pc0, pc1 = _utilities._get_poly_margin(
-                # polygon
-                p0=user_limits['pcross_user'][0, :],
-                p1=user_limits['pcross_user'][1, :],
-                # margin
-                margin=margin_poly,
+            xx, yy, zz, dind, ir, iz, iphi, dV = _vos_points(
+                # polygons
+                pcross0=user_limits['pcross_user'][0, :],
+                pcross1=user_limits['pcross_user'][1, :],
+                phor0=user_limits['phor_user'][0, :],
+                phor1=user_limits['phor_user'][1, :],
+                margin_poly=margin_poly,
+                dphi=np.r_[-np.pi, np.pi],
+                # sampling
+                dsamp=dsamp,
+                x0f=x0f,
+                x1f=x1f,
+                x0u=x0u,
+                x1u=x1u,
+                res=res_phi,
+                dx0=dx0,
+                dx1=dx1,
+                # shape
+                sh=sh,
             )
-
-            # margin poly hor
-            ph0, ph1 = _utilities._get_poly_margin(
-                # polygon
-                p0=user_limits['phor_user'][0, :],
-                p1=user_limits['phor_user'][1, :],
-                # margin
-                margin=margin_poly,
-            )
-
-            # indices
-            ind_pts = func_ind_from_domain(
-                pcross0=pc0,
-                pcross1=pc1,
-                phor0=ph0,
-                phor1=ph1,
-            )
-
-            # coordinates
-            rr, zz, pp, dV = func_RZphi_from_ind(ind_pts)
 
             shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
             shape = np.r_[0, shape]
@@ -128,6 +117,7 @@ def _vos(
             # phor
             phor0 = user_limits['phor0'][key_cam]
             phor1 = user_limits['phor1'][key_cam]
+            dphi = user_limits['dphi'][key_cam]
 
         else:
             msg = (
@@ -148,6 +138,7 @@ def _vos(
         kph0, kph1 = doptics[key_cam]['dvos']['phor']
         phor0 = coll.ddata[kph0]['data']
         phor1 = coll.ddata[kph1]['data']
+        dphi = doptics[key_cam]['dvos']['dphi']
 
     # pinhole?
     pinhole = doptics[key_cam]['pinhole']
@@ -234,16 +225,32 @@ def _vos(
                     lang_tor_cross.append(pts_cross)
                 continue
 
-            ind_pts = func_ind_from_domain(
+            xx, yy, zz, dind, ir, iz, iphi, dV = _vos_points(
+                # polygons
                 pcross0=pcross0[sli_poly],
                 pcross1=pcross1[sli_poly],
                 phor0=phor0[sli_poly],
                 phor1=phor1[sli_poly],
+                margin_poly=margin_poly,
+                dphi=dphi[sli_poly],
+                # sampling
+                dsamp=dsamp,
+                x0f=x0f,
+                x1f=x1f,
+                x0u=x0u,
+                x1u=x1u,
+                res=res_phi,
+                dx0=dx0,
+                dx1=dx1,
+                # shape
+                sh=sh,
+                # debug
+                debug=debugi,
+                ii=ii,
+                ind=ind,
             )
 
-            rr, zz, pp, dV = func_RZphi_from_ind(ind_pts)
-
-        if rr is None or rr.size == 0:
+        if xx is None:
             pts_cross = np.zeros((0,), dtype=float)
             lpcross.append((None, None))
             lphor.append((None, None))
@@ -254,22 +261,6 @@ def _vos(
                 lang_pol_cross.append(pts_cross)
                 lang_tor_cross.append(pts_cross)
             continue
-
-        xx = rr * np.cos(pp)
-        yy = rr * np.sin(pp)
-
-        # ---- legacy -----
-        iru = np.unique(ind_pts[0, :])
-        dind = {
-            i0: {
-                'dV': dV[ind_pts[0, :] == i0][0],
-                'iz': np.unique(ind_pts[1, ind_pts[0, :] == i0]),
-                'indrz': ind_pts[0, :] == i0,
-                'phi': pp[ind_pts[0, :] == i0],
-            }
-            for ii, i0 in enumerate(iru)
-        }
-        # --- end legacy -----
 
         # --------------
         # re-initialize
@@ -362,7 +353,7 @@ def _vos(
         ipt = 0
         for i0, v0 in dind.items():
             for i1 in v0['iz']:
-                ind1 = dind[i0]['indrz'] & (ind_pts[1, :] == i1)
+                ind1 = dind[i0]['indrz'] & (iz == i1)
                 totii = np.sum(out[0, ind1]) * v0['dV']
                 sang_cross[ipt] = totii
                 indr_cross[ipt] = i0
@@ -372,8 +363,7 @@ def _vos(
                     tor = np.arctan2(yy[ind1], xx[ind1])
                     ang_pol = np.arctan2(
                         vectz[0, ind1],
-                        vectx[0, ind1]*np.cos(tor)
-                        + vecty[0, ind1]*np.sin(tor),
+                        vectx[0, ind1]*np.cos(tor) + vecty[0, ind1]*np.sin(tor),
                     )
                     ang_tor = np.arccos(
                         vectx[0, ind1] * (-np.sin(tor))
@@ -387,15 +377,15 @@ def _vos(
         for i0, v0 in dind.items():
             dsang_hor[i0] = np.zeros((v0['phi'].size,))
             for i1 in range(v0['phi'].size):
-                ind1 = dind[i0]['indrz'] & (ind_pts[2, :] == i1)
+                ind1 = dind[i0]['indrz'] & (iphi == i1)
                 dsang_hor[i0][i1] = np.sum(out[0, ind1]) * v0['dV']
 
         # update 3d
         if keep3d is True and np.any(bool_cross):
             indsa = out[0, :] > 0.
 
-            indr_3d = ind_pts[0, indsa]
-            indz_3d = ind_pts[1, indsa]
+            indr_3d = ir[indsa]
+            indz_3d = iz[indsa]
             phi_3d = np.arctan2(yy[indsa], xx[indsa])
             sang_3d = out[0, indsa] * dV[indsa]
 
@@ -524,6 +514,7 @@ def _vos(
     # extract
     lk = ['lsang_cross', 'lindr_cross', 'lindz_cross']
     sang_cross, indr_cross, indz_cross = [dout.get(k0) for k0 in lk]
+
 
     if lang_pol_cross is not None:
         dout = _harmonize_reshape_others(

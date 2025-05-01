@@ -11,6 +11,7 @@ import datastock as ds
 import datetime as dtm      # DB
 
 
+from . import _class8_vos_broadband as _vos_broadband_old
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
 from . import _class8_los_angles
@@ -23,6 +24,7 @@ from . import _class8_los_angles
 
 
 def compute_vos(
+    version=None,
     # resources
     coll=None,
     key_diag=None,
@@ -121,10 +123,27 @@ def compute_vos(
     # -----------
     # prepare
 
+    func_RZphi_from_ind = None
+    func_ind_from_domain = None
     if spectro:
         func = _vos_spectro._vos
     else:
-        func = _vos_broadband._vos
+        if version == 'old':
+            func = _vos_broadband_old._vos
+
+        else:
+            (
+                func_RZphi_from_ind,
+                func_ind_from_domain,
+            ) = coll.get_sample_mesh_3d_func(
+                key=key_mesh,
+                res=res_RZ,
+                mode='abs',
+                res_phi=res_phi,
+            )
+            func = _vos_broadband._vos
+
+    import pdb; pdb.set_trace()     # DB
 
     # ------------
     # sample mesh
@@ -181,7 +200,6 @@ def compute_vos(
         x1u=x1u,
     )
 
-
     # timing
     if timing:
         t1 = dtm.datetime.now()     # DB
@@ -196,72 +214,75 @@ def compute_vos(
     dvos, dref = {}, {}
     for k0 in dcompute.keys():
 
-            # ------------------
-            # call relevant func
+        # ------------------
+        # call relevant func
 
-            (
-                dvos[k0], dref[k0],
-                dt11, dt22,
-                dt111, dt222, dt333,
-                dt1111, dt2222, dt3333, dt4444,
-            ) = func(
-                # ressources
-                coll=coll,
-                doptics=doptics,
-                key_diag=key_diag,
-                key_cam=k0,
-                dsamp=dsamp,
-                # inputs sample points
-                x0u=x0u,
-                x1u=x1u,
-                x0f=x0f,
-                x1f=x1f,
-                x0l=x0l,
-                x1l=x1l,
-                dx0=dx0,
-                dx1=dx1,
-                # options
-                sh=sh,
-                res_RZ=res_RZ,
-                res_phi=res_phi,
-                lamb=lamb,
-                res_lamb=res_lamb,
-                res_rock_curve=res_rock_curve,
-                n0=n0,
-                n1=n1,
-                convexHull=convexHull,
-                bool_cross=bool_cross,
-                # user-defined limits
-                user_limits=user_limits,
-                # keep3d
-                keep3d=keep3d,
-                return_vector=return_vector,
-                # parameters
-                margin_poly=margin_poly,
-                config=config,
-                visibility=visibility,
-                verb=verb,
-                # debug
-                debug=debug,
-                # timing
-                timing=timing,
-                dt11=dt11,
-                dt111=dt111,
-                dt1111=dt1111,
-                dt2222=dt2222,
-                dt3333=dt3333,
-                dt4444=dt4444,
-                dt222=dt222,
-                dt333=dt333,
-                dt22=dt22,
-            )
+        (
+            dvos[k0], dref[k0],
+            dt11, dt22,
+            dt111, dt222, dt333,
+            dt1111, dt2222, dt3333, dt4444,
+        ) = func(
+            # new version
+            func_RZphi_from_ind=func_RZphi_from_ind,
+            func_ind_from_domain=func_ind_from_domain,
+            # ressources
+            coll=coll,
+            doptics=doptics,
+            key_diag=key_diag,
+            key_cam=k0,
+            dsamp=dsamp,
+            # inputs sample points
+            x0u=x0u,
+            x1u=x1u,
+            x0f=x0f,
+            x1f=x1f,
+            x0l=x0l,
+            x1l=x1l,
+            dx0=dx0,
+            dx1=dx1,
+            # options
+            sh=sh,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            lamb=lamb,
+            res_lamb=res_lamb,
+            res_rock_curve=res_rock_curve,
+            n0=n0,
+            n1=n1,
+            convexHull=convexHull,
+            bool_cross=bool_cross,
+            # user-defined limits
+            user_limits=user_limits,
+            # keep3d
+            keep3d=keep3d,
+            return_vector=return_vector,
+            # parameters
+            margin_poly=margin_poly,
+            config=config,
+            visibility=visibility,
+            verb=verb,
+            # debug
+            debug=debug,
+            # timing
+            timing=timing,
+            dt11=dt11,
+            dt111=dt111,
+            dt1111=dt1111,
+            dt2222=dt2222,
+            dt3333=dt3333,
+            dt4444=dt4444,
+            dt222=dt222,
+            dt333=dt333,
+            dt22=dt22,
+        )
 
-            dvos[k0]['keym'] = key_mesh
-            dvos[k0]['res_RZ'] = res_RZ
-            dvos[k0]['res_phi'] = res_phi
-            if spectro is True:
-                dvos[k0]['res_lamb'] = res_lamb
-                dvos[k0]['res_rock_curve'] = res_rock_curve
+        dvos[k0]['keym'] = key_mesh
+        dvos[k0]['res_RZ'] = res_RZ
+        dvos[k0]['res_phi'] = res_phi
+        if spectro is True:
+            dvos[k0]['res_lamb'] = res_lamb
+            dvos[k0]['res_rock_curve'] = res_rock_curve
 
     # timing
     if timing:
@@ -569,7 +590,6 @@ def _user_limits_err(user_limits, lc=None):
     raise Exception(msg)
 
 
-
 def _get_user_limits(
     coll=None,
     user_limits=None,
@@ -698,7 +718,6 @@ def _get_user_limits(
         for kcam in key_cam:
             kpc0, kpc1 = doptics[kcam]['dvos']['pcross']
 
-            shape = coll.ddata[kpc0]['data'].shape
             pcross0 = coll.ddata[kpc0]['data']
             pcross1 = coll.ddata[kpc1]['data']
 
@@ -788,7 +807,6 @@ def _store(
     else:
         lk = ['sang_cross', 'ang_pol_cross', 'ang_tor_cross', 'sang_3d']
 
-
     # ------------
     # store
 
@@ -848,7 +866,8 @@ def _store(
                     coll.add_ref(**v1)
                 elif v1['size'] != coll.dref[v1['key']]['size']:
                     msg = (
-                        f"Mismatch between new vs existing size ref {k1} '{v1['key']}'"
+                        f"Mismatch between new vs existing size for ref\n"
+                        f"\t- ref {k1} '{v1['key']}'"
                         f"\t- existing size = {coll.dref[k1]['size']}\n"
                         f"\t- new size      = {v1['size']}\n"
                     )
@@ -884,7 +903,10 @@ def _store(
         doptics[k0]['dvos']['keym'] = v0['keym']
         doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
         doptics[k0]['dvos']['res_phi'] = v0['res_phi']
-        doptics[k0]['dvos']['ind_cross'] = (v0['indr_cross']['key'], v0['indz_cross']['key'])
+        doptics[k0]['dvos']['ind_cross'] = (
+            v0['indr_cross']['key'],
+            v0['indz_cross']['key'],
+        )
 
         # 3d
         doptics[k0]['dvos']['indr_3d'] = v0.get('indr_3d', {}).get('key')
@@ -1085,9 +1107,6 @@ def get_dvos_xyz(coll=None, key_diag=None, key_cam=None, dvos=None):
 
     for k0, v0 in dvos.items():
 
-        # mesh
-        keym = v0['keym']
-
         # sample
         dsamp = coll.get_sample_mesh(
             key=v0['keym'],
@@ -1110,16 +1129,19 @@ def get_dvos_xyz(coll=None, key_diag=None, key_cam=None, dvos=None):
         x0u = dsamp['x0']['data']
         x1u = dsamp['x1']['data']
 
+        cos = np.cos(v0['phi_3d']['data'])
+        sin = np.sin(v0['phi_3d']['data'])
+
         # store
         ref = v0['indr_3d']['ref']
         dvos[k0].update({
             'ptsx_3d': {
-                'data': x0u[v0['indr_3d']['data']] * np.cos(v0['phi_3d']['data']),
+                'data': x0u[v0['indr_3d']['data']] * cos,
                 'ref': ref,
                 'units': 'm',
             },
             'ptsy_3d': {
-                'data': x0u[v0['indr_3d']['data']] * np.sin(v0['phi_3d']['data']),
+                'data': x0u[v0['indr_3d']['data']] * sin,
                 'ref': ref,
                 'units': 'm',
             },
