@@ -121,7 +121,7 @@ def main(
     # plot_hor
     # ------------
 
-    if plot_hor is True:
+    if False:  # plot_hor is True:
         # -----------
         # compute
 
@@ -509,10 +509,10 @@ def _compute_hor(
     # phi sampling
 
     indr = np.arange(R.size)
-    indphi =
+    # indphi =
 
-    ndet_x =
-    ndet_y =
+    # ndet_x =
+    # ndet_y =
 
     # ---------------
     # ndet for vos
@@ -544,7 +544,7 @@ def _compute_hor(
                 for phi in np.unique(phi_3d[ind0]):
                     ind1[ind0] = (phi_3d[ind0] == phi)
 
-                    sli =
+                    # sli =
                     ndet[sli] += np.nansum(ndeti[ind1])
 
     # -----------------
