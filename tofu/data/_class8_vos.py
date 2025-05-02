@@ -912,7 +912,7 @@ def _store(
         # 3d
         doptics[k0]['dvos']['indr_3d'] = v0.get('indr_3d', {}).get('key')
         doptics[k0]['dvos']['indz_3d'] = v0.get('indz_3d', {}).get('key')
-        doptics[k0]['dvos']['iphi_3d'] = v0.get('iphi_3d', {}).get('key')
+        doptics[k0]['dvos']['indphi_3d'] = v0.get('indphi_3d', {}).get('key')
         doptics[k0]['dvos']['sang_3d'] = v0.get('sang_3d', {}).get('key')
         doptics[k0]['dvos']['dV_3d'] = v0.get('dV_3d', {}).get('key')
 
@@ -977,7 +977,7 @@ def _check_get_dvos(
 
         lk_opt = [
             'sang_3d',
-            'indr_3d', 'indz_3d', 'phi_3d',
+            'indr_3d', 'indz_3d', 'indphi_3d',
             'vectx_3d', 'vecty_3d', 'vectz_3d'
         ]
 
@@ -1079,6 +1079,8 @@ def _check_get_dvos(
 # ###############################################################
 
 
+
+# DEPRECATED ?
 def get_dvos_xyz(coll=None, key_diag=None, key_cam=None, dvos=None):
 
     # ---------

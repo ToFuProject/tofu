@@ -59,7 +59,8 @@ def main(
         key, is_vos, lcam, dvos,
         plot_hor,
         observation_directions, keym,
-        res_RZ, nan0, dcolor,
+        res_RZ, res_phi,
+        nan0, dcolor,
     ) = _check(
         coll=coll,
         key=key,
@@ -132,6 +133,7 @@ def main(
             is_vos=is_vos,
             keym=keym,
             res_RZ=res_RZ,
+            res_phi=res_phi,
             dcolor=dcolor,
         )
 
@@ -272,7 +274,12 @@ def _check(
             tuple(doptics[kcam]['dvos']['res_RZ']) for kcam in lcam
         ])
 
-        if len(lmesh) != 1 or len(lres_RZ) != 1:
+        # res_phi unicity
+        lres_phi = set([
+            tuple(doptics[kcam]['dvos']['res_phi']) for kcam in lcam
+        ])
+
+        if len(lmesh) != 1 or len(lres_RZ) != 1 or len(lres_phi) != 1:
             msg = (
                 f"Non-unique mesh or res_RZ for vos of diag '{key}':\n"
                 f"For lcam: {lcam}\n"
@@ -281,6 +288,7 @@ def _check(
 
         keym = list(lmesh)[0]
         res_RZ = list(list(lres_RZ)[0])
+        res_phi = list(list(lres_phi)[0])
 
     else:
         keym = ds._generic_check._check_var(
@@ -341,7 +349,8 @@ def _check(
         key, is_vos, lcam, dvos,
         plot_hor,
         observation_directions,
-        keym, res_RZ, nan0, dcolor,
+        keym, res_RZ, res_phi,
+        nan0, dcolor,
     )
 
 
@@ -478,6 +487,7 @@ def _compute_hor(
     is_vos=None,
     keym=None,
     res_RZ=None,
+    res_phi=None,
     dcolor=None,
 ):
 
@@ -488,71 +498,75 @@ def _compute_hor(
     doptics = coll.dobj['diagnostic'][key]['doptics']
 
     # ---------------
-    # mesh sampling
+    # mesh func
     # ---------------
 
-    # ----------------
-    # initial sampling
-
-    dsamp = coll.get_sample_mesh(
+    (
+        func_RZphi_from_ind,
+        func_ind_from_domain,
+    ) = coll.get_sample_mesh_3d_func(
         key=keym,
         res=res_RZ,
         mode='abs',
-        grid=False,
-        store=False,
+        res_phi=res_phi,
     )
 
-    R = dsamp['x0']['data']
-    Z = dsamp['x1']['data']
+    # ---------------------
+    # unique R, phi indices
+    # ---------------------
 
-    # ------------
-    # phi sampling
+    indrpu = []
+    for kcam, v0 in doptics.items():
+        kindr = v0['dvos']['indr_3d']
+        kindphi = v0['dvos']['indphi_3d']
+        indr = coll.ddata[kindr]['data']
+        indphi = coll.ddata[kindphi]['data']
 
-    indr = np.arange(R.size)
-    # indphi =
+        iok = np.isfinite(indr) & (indr >= 0)
+        indrpu.append(
+            np.unique([indr[iok].ravel(), indphi[iok].ravel()], axis=1)
+        )
 
-    # ndet_x =
-    # ndet_y =
+    indrpuT = np.unique(np.concatenate(tuple(indrpu), axis=1), axis=1).T
 
-    # ---------------
-    # ndet for vos
-    # ---------------
+    # ------------------------
+    # Get solid angle and ndet
+    # ------------------------
 
-    ndet = np.zeros(shape, dtype=float)
+    sang = np.zeros((indrpu.shape[1],), np.nan)
+    ndet = np.zeros((indrpu.shape[1],), np.nan)
+    for kcam, v0 in doptics.items():
 
-    if is_vos:
-        for kcam in lcam:
+        # keys
+        kindr = v0['dvos']['indr_3d']
+        kindphi = v0['dvos']['indphi_3d']
+        ksang = v0['dvos']['sang_3d']
+        kdV = v0['dvos']['dV_3d']
 
-            v0 = doptics[kcam]
-            shape_cam = coll.dobj['camera'][kcam]['dgeom']['shape']
-            axis_cam = tuple([ii for ii in range(len(shape_cam))])
+        # data
+        indr = coll.ddata[kindr]['data']
+        indphi = coll.ddata[kindphi]['data']
+        sangi = coll.ddata[ksang]['data']
+        dV = coll.ddata[kdV]['data']
 
-            # extract
-            indr_3d = v0['dvos']['indr_3d']
-            indz_3d = v0['dvos']['indz_3d']
-            phi_3d = v0['dvos']['phi_3d']
-            sang_3d = coll.ddata[v0['dvos']['sang_3d']]['data']
+        iok = np.isfinite(indr) & (indr >= 0)
+        for ii, (ir, ip) in enumerate(indrpuT):
+            ind = (indr == ir) & (indphi == ip) & iok
+            sang[ii] += np.sum(sangi[ind]) / dV[ind]
+            ndet[ii] += np.sum(np.ayn(ind, axis=-1))
 
-            # ind
-            ndeti = np.nansum(sang_3d > 0., axis=axis_cam)
+    # ------------------
+    # R, phi coordinates
+    # ------------------
 
-            ind0 = np.zeros(indr_3d.shape, dtype=bool)
-            ind1 = np.zeros(indr_3d.shape, dtype=bool)
-            for ir in np.unique(indr_3d):
-                ind0[...] = (indr_3d == ir)
-                ind1[...] = False
-                for phi in np.unique(phi_3d[ind0]):
-                    ind1[ind0] = (phi_3d[ind0] == phi)
+    rr, zz, pp, dV = func_RZphi_from_ind(
+        indr=indrpuT[:, 0],
+        indz=indrpuT[:, 0],
+        indphi=indrpuT[:, 1],
+    )
 
-                    # sli =
-                    ndet[sli] += np.nansum(ndeti[ind1])
-
-    # -----------------
-    # ndet for non-vos
-    # -----------------
-
-    else:
-        raise NotImplementedError()
+    xx = rr * np.cos(pp)
+    yy = rr * np.sin(pp)
 
     # ---------------
     # dpoly
@@ -572,12 +586,12 @@ def _compute_hor(
 
         # store
         dpoly[kcam] = {
-            'px': pr,
-            'py': pz,
+            'px': px,
+            'py': py,
             'color': dcolor[kcam],
         }
 
-    return dpoly, ndet, extent
+    return dpoly, ndet, sang, xx, yy
 
 
 # ################################################################
