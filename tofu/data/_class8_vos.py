@@ -11,7 +11,7 @@ import datastock as ds
 import datetime as dtm      # DB
 
 
-from . import _class8_vos_broadband as _vos_broadband_old
+from . import _class8_vos_broadband_old as _vos_broadband_old
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
 from . import _class8_los_angles
@@ -142,8 +142,6 @@ def compute_vos(
                 res_phi=res_phi,
             )
             func = _vos_broadband._vos
-
-    import pdb; pdb.set_trace()     # DB
 
     # ------------
     # sample mesh
@@ -791,7 +789,7 @@ def _store(
 
     lk_com = [
         'indr_cross', 'indz_cross',
-        'indr_3d', 'indz_3d', 'phi_3d',
+        'indr_3d', 'indz_3d', 'indphi_3d',
         'vectx_3d', 'vecty_3d', 'vectz_3d',
     ]
 
@@ -805,7 +803,10 @@ def _store(
             'dV', 'etendlen',
         ]
     else:
-        lk = ['sang_cross', 'ang_pol_cross', 'ang_tor_cross', 'sang_3d']
+        lk = [
+            'sang_cross', 'ang_pol_cross', 'ang_tor_cross',
+            'sang_3d', 'dV_3d',
+        ]
 
     # ------------
     # store
@@ -911,8 +912,9 @@ def _store(
         # 3d
         doptics[k0]['dvos']['indr_3d'] = v0.get('indr_3d', {}).get('key')
         doptics[k0]['dvos']['indz_3d'] = v0.get('indz_3d', {}).get('key')
-        doptics[k0]['dvos']['phi_3d'] = v0.get('phi_3d', {}).get('key')
+        doptics[k0]['dvos']['iphi_3d'] = v0.get('iphi_3d', {}).get('key')
         doptics[k0]['dvos']['sang_3d'] = v0.get('sang_3d', {}).get('key')
+        doptics[k0]['dvos']['dV_3d'] = v0.get('dV_3d', {}).get('key')
 
         # vect
         doptics[k0]['dvos']['vectx_3d'] = v0.get('vectx_3d', {}).get('key')

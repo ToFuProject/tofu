@@ -188,7 +188,7 @@ def _vos(
         # common
         lpcross, lphor, lsang_cross, lindr_cross, lindz_cross,
         # keep3d
-        lindr_3d, lindz_3d, lphi_3d, lsang_3d,
+        lindr_3d, lindz_3d, liphi_3d, lsang_3d, ldV_3d,
         # return_vector
         lang_tor_cross, lang_pol_cross, lvectx, lvecty, lvectz
     ) = _initialize_lists(
@@ -234,16 +234,36 @@ def _vos(
                     lang_tor_cross.append(pts_cross)
                 continue
 
+            # margin poly cross
+            pc0, pc1 = _utilities._get_poly_margin(
+                # polygon
+                p0=pcross0[sli_poly],
+                p1=pcross1[sli_poly],
+                # margin
+                margin=margin_poly,
+            )
+
+            # margin poly hor
+            ph0, ph1 = _utilities._get_poly_margin(
+                # polygon
+                p0=phor0[sli_poly],
+                p1=phor1[sli_poly],
+                # margin
+                margin=margin_poly,
+            )
+
             ind_pts = func_ind_from_domain(
-                pcross0=pcross0[sli_poly],
-                pcross1=pcross1[sli_poly],
-                phor0=phor0[sli_poly],
-                phor1=phor1[sli_poly],
+                pcross0=pc0,
+                pcross1=pc1,
+                phor0=ph0,
+                phor1=ph1,
+                debug=debugi,
+                debug_msg=f"kcam = {key_cam}, ind = {ind}",
             )
 
             rr, zz, pp, dV = func_RZphi_from_ind(ind_pts)
 
-        if rr is None or rr.size == 0:
+        if rr is None:
             pts_cross = np.zeros((0,), dtype=float)
             lpcross.append((None, None))
             lphor.append((None, None))
@@ -265,7 +285,7 @@ def _vos(
                 'dV': dV[ind_pts[0, :] == i0][0],
                 'iz': np.unique(ind_pts[1, ind_pts[0, :] == i0]),
                 'indrz': ind_pts[0, :] == i0,
-                'phi': pp[ind_pts[0, :] == i0],
+                'iphi': np.unique(ind_pts[2, ind_pts[0, :] == i0]),
             }
             for ii, i0 in enumerate(iru)
         }
@@ -385,24 +405,26 @@ def _vos(
 
         # update horizontal
         for i0, v0 in dind.items():
-            dsang_hor[i0] = np.zeros((v0['phi'].size,))
-            for i1 in range(v0['phi'].size):
+            dsang_hor[i0] = np.zeros((v0['iphi'].size,))
+            for iii, i1 in enumerate(v0['iphi']):
                 ind1 = dind[i0]['indrz'] & (ind_pts[2, :] == i1)
-                dsang_hor[i0][i1] = np.sum(out[0, ind1]) * v0['dV']
+                dsang_hor[i0][iii] = np.sum(out[0, ind1]) * v0['dV']
 
         # update 3d
-        if keep3d is True and np.any(bool_cross):
-            indsa = out[0, :] > 0.
+        if keep3d is True:
+            if np.any(bool_cross):
+                indsa = out[0, :] > 0.
 
-            indr_3d = ind_pts[0, indsa]
-            indz_3d = ind_pts[1, indsa]
-            phi_3d = np.arctan2(yy[indsa], xx[indsa])
-            sang_3d = out[0, indsa] * dV[indsa]
+                indr_3d = ind_pts[0, indsa]
+                indz_3d = ind_pts[1, indsa]
+                iphi_3d = ind_pts[2, indsa]
+                sang_3d = out[0, indsa] * dV[indsa]
+                dV_3d = dV[indsa]
 
-            if vectx is not None:
-                vx = vectx[0, indsa]
-                vy = vecty[0, indsa]
-                vz = vectz[0, indsa]
+                if vectx is not None:
+                    vx = vectx[0, indsa]
+                    vy = vecty[0, indsa]
+                    vz = vectz[0, indsa]
 
         # ----- DEBUG --------
         if debugi:
@@ -477,7 +499,8 @@ def _vos(
             lsang_3d.append(sang_3d)
             lindr_3d.append(indr_3d)
             lindz_3d.append(indz_3d)
-            lphi_3d.append(phi_3d)
+            liphi_3d.append(iphi_3d)
+            ldV_3d.append(dV_3d)
 
             if lvectx is not None:
                 lvectx.append(vx)
@@ -545,7 +568,8 @@ def _vos(
         lsang_3d=lsang_3d,
         lindr_3d=lindr_3d,
         lindz_3d=lindz_3d,
-        lphi_3d=lphi_3d,
+        liphi_3d=liphi_3d,
+        ldV_3d=ldV_3d,
         # vect
         lvectx=lvectx,
         lvecty=lvecty,
@@ -558,12 +582,12 @@ def _vos(
 
     # extract
     lk = [
-        'lsang_3d', 'lindr_3d', 'lindz_3d', 'lphi_3d',
+        'lsang_3d', 'lindr_3d', 'lindz_3d', 'liphi_3d', 'ldV_3d',
         'lvectx', 'lvecty', 'lvectz',
     ]
 
     (
-     sang_3d, indr_3d, indz_3d, phi_3d,
+     sang_3d, indr_3d, indz_3d, indphi_3d, dV_3d,
      vectx, vecty, vectz,
      ) = [dout.get(k0) for k0 in lk]
 
@@ -586,8 +610,9 @@ def _vos(
         knpts_3d = f'{key_cam}_vos_npts_3d'
         kir_3d = f'{key_cam}_vos_ir_3d'
         kiz_3d = f'{key_cam}_vos_iz_3d'
-        kphi_3d = f'{key_cam}_vos_phi_3d'
+        kiphi_3d = f'{key_cam}_vos_iphi_3d'
         ksa_3d = f'{key_cam}_vos_sa_3d'
+        kdV_3d = f'{key_cam}_vos_dV_3d'
         ref_3d = tuple(list(ref_cam) + [knpts_3d])
 
         if lvectx is not None:
@@ -698,9 +723,9 @@ def _vos(
                 'units': '',
                 'dim': 'index',
             },
-            'phi_3d': {
-                'key': kphi_3d,
-                'data': phi_3d,
+            'indphi_3d': {
+                'key': kiphi_3d,
+                'data': indphi_3d,
                 'ref': ref_3d,
                 'units': '',
                 'dim': 'index',
@@ -711,6 +736,13 @@ def _vos(
                 'ref': ref_3d,
                 'units': 'sr.m3',
                 'dim': 'sang',
+            },
+            'dV_3d': {
+                'key': kdV_3d,
+                'data': dV_3d,
+                'ref': ref_3d,
+                'units': 'm3',
+                'dim': 'volume',
             },
         })
 
@@ -767,13 +799,15 @@ def _initialize_lists(
     if keep3d is True:
         lindr_3d = []
         lindz_3d = []
-        lphi_3d = []
+        liphi_3d = []
         lsang_3d = []
+        ldV_3d = []
     else:
         lindr_3d = None
         lindz_3d = None
-        lphi_3d = None
+        liphi_3d = None
         lsang_3d = None
+        ldV_3d = None
 
     if return_vector is True:
         lang_tor_cross = []
@@ -795,7 +829,7 @@ def _initialize_lists(
 
     return (
         lpcross, lphor, lsang_cross, lindr_cross, lindz_cross,
-        lindr_3d, lindz_3d, lphi_3d, lsang_3d,
+        lindr_3d, lindz_3d, liphi_3d, lsang_3d, ldV_3d,
         lang_tor_cross, lang_pol_cross, lvectx, lvecty, lvectz,
     )
 
