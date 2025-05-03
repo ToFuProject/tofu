@@ -105,7 +105,7 @@ def _vos(
             )
 
             # indices
-            ind_pts = func_ind_from_domain(
+            ind3dr, ind3dz, ind3dphi = func_ind_from_domain(
                 pcross0=pc0,
                 pcross1=pc1,
                 phor0=ph0,
@@ -113,7 +113,7 @@ def _vos(
             )
 
             # coordinates
-            rr, zz, pp, dV = func_RZphi_from_ind(ind_pts)
+            rr, zz, pp, dV = func_RZphi_from_ind(ind3dr, ind3dz, ind3dphi)
 
             shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
             shape = np.r_[0, shape]
@@ -252,7 +252,7 @@ def _vos(
                 margin=margin_poly,
             )
 
-            ind_pts = func_ind_from_domain(
+            ind3dr, ind3dz, ind3dphi = func_ind_from_domain(
                 pcross0=pc0,
                 pcross1=pc1,
                 phor0=ph0,
@@ -261,7 +261,7 @@ def _vos(
                 debug_msg=f"kcam = {key_cam}, ind = {ind}",
             )
 
-            rr, zz, pp, dV = func_RZphi_from_ind(ind_pts)
+            rr, zz, pp, dV = func_RZphi_from_ind(ind3dr, ind3dz, ind3dphi)
 
         if rr is None:
             pts_cross = np.zeros((0,), dtype=float)
@@ -279,13 +279,13 @@ def _vos(
         yy = rr * np.sin(pp)
 
         # ---- legacy -----
-        iru = np.unique(ind_pts[0, :])
+        iru = np.unique(ind3dr)
         dind = {
             i0: {
-                'dV': dV[ind_pts[0, :] == i0][0],
-                'iz': np.unique(ind_pts[1, ind_pts[0, :] == i0]),
-                'indrz': ind_pts[0, :] == i0,
-                'iphi': np.unique(ind_pts[2, ind_pts[0, :] == i0]),
+                'dV': dV[ind3dr == i0][0],
+                'iz': np.unique(ind3dz[ind3dr == i0]),
+                'indrz': ind3dr == i0,
+                'iphi': np.unique(ind3dphi[ind3dr == i0]),
             }
             for ii, i0 in enumerate(iru)
         }
@@ -382,7 +382,7 @@ def _vos(
         ipt = 0
         for i0, v0 in dind.items():
             for i1 in v0['iz']:
-                ind1 = dind[i0]['indrz'] & (ind_pts[1, :] == i1)
+                ind1 = dind[i0]['indrz'] & (ind3dz == i1)
                 totii = np.sum(out[0, ind1]) * v0['dV']
                 sang_cross[ipt] = totii
                 indr_cross[ipt] = i0
@@ -407,7 +407,7 @@ def _vos(
         for i0, v0 in dind.items():
             dsang_hor[i0] = np.zeros((v0['iphi'].size,))
             for iii, i1 in enumerate(v0['iphi']):
-                ind1 = dind[i0]['indrz'] & (ind_pts[2, :] == i1)
+                ind1 = dind[i0]['indrz'] & (ind3dphi == i1)
                 dsang_hor[i0][iii] = np.sum(out[0, ind1]) * v0['dV']
 
         # update 3d
@@ -415,9 +415,9 @@ def _vos(
             if np.any(bool_cross):
                 indsa = out[0, :] > 0.
 
-                indr_3d = ind_pts[0, indsa]
-                indz_3d = ind_pts[1, indsa]
-                iphi_3d = ind_pts[2, indsa]
+                indr_3d = ind3dr[indsa]
+                indz_3d = ind3dz[indsa]
+                iphi_3d = ind3dphi[indsa]
                 sang_3d = out[0, indsa] * dV[indsa]
                 dV_3d = dV[indsa]
 
