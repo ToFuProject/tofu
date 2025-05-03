@@ -264,7 +264,7 @@ def _check(
     # ------------------
 
     # is 3d ?
-    is_3d = doptics[lcam[0]]['dvos'].get('indr_3d') is not None
+    is_3d = doptics[lcam[0]]['dvos'].get('ind_3d') is not None
 
     plot_cross = ds._generic_check._check_var(
         plot_cross, 'plot_cross',
@@ -533,8 +533,7 @@ def _compute_hor(
 
     indrpu = []
     for kcam, v0 in doptics.items():
-        kindr = v0['dvos']['indr_3d']
-        kindphi = v0['dvos']['indphi_3d']
+        kindr, _, kindphi = v0['dvos']['ind_3d']
         indr = coll.ddata[kindr]['data']
         indphi = coll.ddata[kindphi]['data']
 
@@ -555,8 +554,7 @@ def _compute_hor(
     for kcam, v0 in doptics.items():
 
         # keys
-        kindr = v0['dvos']['indr_3d']
-        kindphi = v0['dvos']['indphi_3d']
+        kindr, _, kindphi = v0['dvos']['ind_3d']
         ksang = v0['dvos']['sang_3d']
         kdV = v0['dvos']['dV_3d']
 
