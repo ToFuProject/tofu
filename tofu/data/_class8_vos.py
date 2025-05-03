@@ -816,6 +816,47 @@ def _store(
     for k0, v0 in dvos.items():
 
         # ----------------
+        # add ref of sang
+
+        for k1, v1 in dref[k0].items():
+            if v1['key'] in coll.dref.keys():
+                if overwrite is True:
+                    coll.remove_ref(v1['key'], propagate=True)
+                    coll.add_ref(**v1)
+                elif v1['size'] != coll.dref[v1['key']]['size']:
+                    msg = (
+                        f"Mismatch between new vs existing size for ref\n"
+                        f"\t- ref {k1} '{v1['key']}'\n"
+                        f"\t- existing size = {coll.dref[v1['key']]['size']}\n"
+                        f"\t- new size      = {v1['size']}\n"
+                    )
+                    raise Exception(msg)
+                else:
+                    pass
+            else:
+                coll.add_ref(**v1)
+
+        # ----------------
+        # add data
+
+        for k1 in lk_com + lk:
+
+            if k1 not in v0.keys():
+                continue
+
+            if v0[k1]['key'] in coll.ddata.keys():
+                if overwrite is True:
+                    coll.remove_data(key=v0[k1]['key'])
+                else:
+                    msg = (
+                        f"Not overwriting existing data '{v0[k1]['key']}'\n"
+                        "To force update use overwrite = True\n"
+                    )
+                    raise Exception(msg)
+
+            coll.add_data(**v0[k1])
+
+        # ----------------
         # pcross replacement
 
         if replace_poly and v0.get('pcross0') is not None:
@@ -857,47 +898,6 @@ def _store(
                     coll._ddata[kph0]['data'] = v0['phor0']['data']
                     coll._ddata[kph1]['data'] = v0['phor1']['data']
 
-        # ----------------
-        # add ref of sang
-
-        for k1, v1 in dref[k0].items():
-            if v1['key'] in coll.dref.keys():
-                if overwrite is True:
-                    coll.remove_ref(v1['key'], propagate=True)
-                    coll.add_ref(**v1)
-                elif v1['size'] != coll.dref[v1['key']]['size']:
-                    msg = (
-                        f"Mismatch between new vs existing size for ref\n"
-                        f"\t- ref {k1} '{v1['key']}'"
-                        f"\t- existing size = {coll.dref[k1]['size']}\n"
-                        f"\t- new size      = {v1['size']}\n"
-                    )
-                    raise Exception(msg)
-                else:
-                    pass
-            else:
-                coll.add_ref(**v1)
-
-        # ----------------
-        # add data
-
-        for k1 in lk_com + lk:
-
-            if k1 not in v0.keys():
-                continue
-
-            if v0[k1]['key'] in coll.ddata.keys():
-                if overwrite is True:
-                    coll.remove_data(key=v0[k1]['key'])
-                else:
-                    msg = (
-                        f"Not overwriting existing data '{v0[k1]['key']}'\n"
-                        "To force update use overwrite = True"
-                    )
-                    raise Exception(msg)
-
-            coll.add_data(**v0[k1])
-
         # ---------------
         # add in doptics
 
@@ -910,16 +910,20 @@ def _store(
         )
 
         # 3d
-        doptics[k0]['dvos']['indr_3d'] = v0.get('indr_3d', {}).get('key')
-        doptics[k0]['dvos']['indz_3d'] = v0.get('indz_3d', {}).get('key')
-        doptics[k0]['dvos']['indphi_3d'] = v0.get('indphi_3d', {}).get('key')
+        doptics[k0]['dvos']['ind_3d'] = (
+            v0.get('indr_3d', {}).get('key'),
+            v0.get('indz_3d', {}).get('key'),
+            v0.get('indphi_3d', {}).get('key'),
+        )
         doptics[k0]['dvos']['sang_3d'] = v0.get('sang_3d', {}).get('key')
         doptics[k0]['dvos']['dV_3d'] = v0.get('dV_3d', {}).get('key')
 
         # vect
-        doptics[k0]['dvos']['vectx_3d'] = v0.get('vectx_3d', {}).get('key')
-        doptics[k0]['dvos']['vecty_3d'] = v0.get('vecty_3d', {}).get('key')
-        doptics[k0]['dvos']['vectz_3d'] = v0.get('vectz_3d', {}).get('key')
+        doptics[k0]['dvos']['vect_3d'] =(
+            v0.get('vectx_3d', {}).get('key'),
+            v0.get('vecty_3d', {}).get('key'),
+            v0.get('vectz_3d', {}).get('key'),
+        )
 
         # spectro
         if spectro:
