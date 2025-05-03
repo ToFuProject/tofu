@@ -88,7 +88,7 @@ def main(
         func_ind_from_domain,
     ) = coll.get_sample_mesh_3d_func(
         key=keym,
-        res=res_RZ,
+        res_RZ=res_RZ,
         mode='abs',
         res_phi=res_phi,
     )
