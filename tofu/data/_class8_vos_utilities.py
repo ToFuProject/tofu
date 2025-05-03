@@ -34,7 +34,7 @@ def _get_poly_margin(
     margin = float(ds._generic_check._check_var(
         margin, 'margin',
         types=(float, int),
-        default=0.3,
+        default=0.4,
         sign='>0'
     ))
 
