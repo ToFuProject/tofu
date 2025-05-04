@@ -832,6 +832,7 @@ class Test01_Diagnostic():
                     # resolution
                     res_RZ=0.03,
                     res_phi=0.04,
+                    keep3d=ii%2 == 0,
                     # spectro
                     n0=5,
                     n1=5,
@@ -839,6 +840,10 @@ class Test01_Diagnostic():
                     visibility=False,
                     store=True,
                 )
+            print()   # DB
+            print(k0)
+            print(self.coll.dobj['diagnostic'][k0]['doptics'])
+
             _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
 
         plt.close('all')

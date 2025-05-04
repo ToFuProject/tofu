@@ -260,7 +260,10 @@ def _check(
     # ------------------
 
     # is 3d ?
-    is_3d = doptics[lcam[0]]['dvos'].get('ind_3d') is not None
+    is_3d = (
+        doptics[lcam[0]]['dvos'].get('ind_3d') is not None
+        and all([kk is not None for kk in doptics[lcam[0]]['dvos']['ind_3d']])
+    )
 
     plot_cross = ds._generic_check._check_var(
         plot_cross, 'plot_cross',
