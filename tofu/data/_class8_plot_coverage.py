@@ -6,10 +6,6 @@ Created on Wed Feb 14 08:12:28 2024
 """
 
 
-# Built-in
-import itertools as itt
-
-
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
