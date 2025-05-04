@@ -12,6 +12,6 @@ Polygon3
 
 ######## Requirements with Version Specifier ########
 datastock>=0.0.54
-bsplines2d>=0.0.25
+bsplines2d>=0.0.26
 spectrally>=0.0.9
 Cython>=0.26
