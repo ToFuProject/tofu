@@ -98,7 +98,7 @@ def main(
 
     if plot_cross is True:
 
-        dpoly, ndet, sang, extent = _compute_cross(
+        dpoly, ndet, dphi, sang, extent = _compute_cross(
             coll=coll,
             key=key,
             lcam=lcam,
@@ -126,6 +126,7 @@ def main(
             # data
             is_vos=is_vos,
             ndet=ndet,
+            dphi=dphi,
             sang=sang,
             extent=extent,
             dpoly=dpoly,
@@ -148,7 +149,7 @@ def main(
         # -----------
         # compute
 
-        dpoly, ndet, sang, xx, yy = _compute_hor(
+        dpoly, ndet, dz, sang, xx, yy = _compute_hor(
             coll=coll,
             key=key,
             lcam=lcam,
@@ -171,6 +172,7 @@ def main(
             # data
             is_vos=is_vos,
             ndet=ndet,
+            dz=dz,
             sang=sang,
             xx=xx,
             yy=yy,
@@ -443,16 +445,26 @@ def _compute_cross(
     sang = np.zeros(shape, dtype=float)
     ndet = np.zeros(shape, dtype=float)
 
+    d3d = {
+        kcam: doptics[kcam]['dvos'].get('ind_3d', [None])[0] is not None
+        for kcam in lcam
+    }
+    if any([vv is True for vv in d3d.values()]):
+        dphi = np.zeros(shape, dtype=float)
+    else:
+        dphi = None
+
     if is_vos:
         for kcam in lcam:
 
             v0 = doptics[kcam]
+
             kindr, kindz = v0['dvos']['ind_cross']
             ksang = v0['dvos']['sang_cross']
             indr = coll.ddata[kindr]['data']
             indz = coll.ddata[kindz]['data']
             sangi = coll.ddata[ksang]['data']
-            axis = tuple([ii for ii in range(0, sangi.ndim-1)])
+            res_phi = v0['dvos']['res_phi']
 
             for ii, ind in enumerate(np.ndindex(sangi.shape[:-1])):
                 iok = np.isfinite(sangi[ind + (slice(None),)])
@@ -460,13 +472,17 @@ def _compute_cross(
                 sang[indr[sli], indz[sli]] += sangi[sli]
                 ndet[indr[sli], indz[sli]] += 1
 
+                if d3d[kcam] is True:
+                    dphi[indr[sli], indz[sli]] += res_phi
+
         if nan0 is True:
             iout = ndet == 0
             sang[iout] = np.nan
             ndet[iout] = np.nan
+            if dphi is not None:
+                dphi[iout] = np.nan
         else:
             ndet = ndet.astype(int)
-
 
     # -----------------
     # ndet for non-vos
@@ -498,12 +514,12 @@ def _compute_cross(
             'color': dcolor[kcam],
         }
 
-    return dpoly, ndet, sang, extent
+    return dpoly, ndet, dphi, sang, extent
 
 
 # ################################################################
 # ################################################################
-#                           Compute_hor
+#                   Compute_hor
 # ################################################################
 
 
@@ -550,15 +566,20 @@ def _compute_hor(
 
     sang = np.zeros((indrpuT.shape[0],), dtype=float)
     ndet = np.zeros((indrpuT.shape[0],), dtype=float)
+    dz = np.zeros((indrpuT.shape[0],), dtype=float)
+    dindz = {}
+
     for kcam, v0 in doptics.items():
 
         # keys
-        kindr, _, kindphi = v0['dvos']['ind_3d']
+        kindr, kindz, kindphi = v0['dvos']['ind_3d']
         ksang = v0['dvos']['sang_3d']
         kdV = v0['dvos']['dV_3d']
+        res_Z = v0['dvos']['res_RZ'][1]
 
         # data
         indr = coll.ddata[kindr]['data']
+        indz = coll.ddata[kindz]['data']
         indphi = coll.ddata[kindphi]['data']
         sangi = coll.ddata[ksang]['data']
         dV = coll.ddata[kdV]['data']
@@ -568,6 +589,18 @@ def _compute_hor(
             ind = (indr == ir) & (indphi == ip) & iok
             sang[ii] += np.sum(sangi[ind] / dV[ind])
             ndet[ii] += np.sum(np.any(ind, axis=-1))
+
+            # vertical depth without duplicates
+            if (ir, ip) not in dindz.keys():
+                dindz[(ir, ip)] = {'iz': np.empty((0,)), 'ii': ii}
+
+            dindz[(ir, ip)]['iz'] = np.append(
+                dindz[(ir, ip)]['iz'],
+                indz[ind],
+            )
+
+    for irp, vv in dindz.items():
+        dz[vv['ii']] = np.unique(vv['iz']).size * res_Z
 
     # ------------------
     # nan0
@@ -616,7 +649,7 @@ def _compute_hor(
             'color': dcolor[kcam],
         }
 
-    return dpoly, ndet, sang, xx, yy
+    return dpoly, ndet, dz, sang, xx, yy
 
 
 # ################################################################
@@ -631,6 +664,7 @@ def _plot_cross(
     lcam=None,
     # data
     ndet=None,
+    dphi=None,
     sang=None,
     extent=None,
     dpoly=None,
@@ -684,7 +718,7 @@ def _plot_cross(
     if dax.get('ndet_cross') is None:
 
         if fs is None:
-            fs = (14, 7)
+            fs = (16, 7)
 
         if dmargin is None:
             dmargin = {
@@ -695,7 +729,7 @@ def _plot_cross(
 
         Na, Ni, Nc = 7, 3, 1
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=(3*Na+2*Ni+2*Nc), nrows=8, **dmargin)
+        gs = gridspec.GridSpec(ncols=(4*Na+3*Ni+3*Nc), nrows=8, **dmargin)
 
         # ax0 = spans
         ax0 = fig.add_subplot(gs[:, :Na], aspect='equal', adjustable='box')
@@ -718,7 +752,7 @@ def _plot_cross(
         # colorbar ndet
         cax_ndet = fig.add_subplot(gs[1:-1, 2*Na+Ni], frameon=False)
 
-        # ax1 = nb of detectors
+        # ax2 = dphi
         ax2 = fig.add_subplot(
             gs[:, 2*Na+2*Ni+Nc:3*Na+2*Ni+Nc],
             aspect='equal',
@@ -728,7 +762,22 @@ def _plot_cross(
         )
         ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
         ax2.set_xlabel('R (m)', size=12, fontweight='bold')
-        ax2.set_title(
+        ax2.set_title("toroidal depth", size=14, fontweight='bold')
+
+        # colorbar ndet
+        cax_dphi = fig.add_subplot(gs[1:-1, 3*Na+2*Ni+Nc], frameon=False)
+
+        # ax3 = sang
+        ax3 = fig.add_subplot(
+            gs[:, 3*Na+3*Ni+2*Nc: 4*Na+3*Ni+2*Nc],
+            aspect='equal',
+            sharex=ax0,
+            sharey=ax0,
+            adjustable='box',
+        )
+        ax3.set_ylabel('Z (m)', size=12, fontweight='bold')
+        ax3.set_xlabel('R (m)', size=12, fontweight='bold')
+        ax3.set_title(
             "Cumulated integrated solid angle (sr.m3)",
             size=14,
             fontweight='bold',
@@ -741,7 +790,9 @@ def _plot_cross(
             'span_cross': {'handle': ax0, 'type': 'span_cross'},
             'ndet_cross': {'handle': ax1, 'type': 'ndet_cross'},
             'cax_ndet_cross': {'handle': cax_ndet, 'type': 'cbar_ndet_cross'},
-            'sang_cross': {'handle': ax2, 'type': 'sang_cross'},
+            'dphi_cross': {'handle': ax2, 'type': 'dphi_cross'},
+            'cax_dphi_cross': {'handle': cax_dphi, 'type': 'cbar_dphi_cross'},
+            'sang_cross': {'handle': ax3, 'type': 'sang_cross'},
             'cax_sang_cross': {'handle': cax_sang, 'type': 'cbar_sang_cross'},
         })
 
@@ -800,6 +851,40 @@ def _plot_cross(
                 # cax.set_ylabel(ylab, size=14, fontweight='bold')
 
     # ---------------
+    # plot dphi
+    # ---------------
+
+    if dphi is not None:
+        ktype = 'dphi_cross'
+        lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
+        for ax in lax:
+
+            # plot
+            im = ax.imshow(
+                dphi.T,
+                extent=extent,
+                origin='lower',
+                interpolation='bilinear',
+                cmap=cmap,
+                vmin=0,
+                vmax=None,
+            )
+
+            # colorbar
+            ktype2 = 'cbar_dphi_cross'
+            lcax = [
+                v0['handle'] for v0 in dax.values()
+                if ktype2 in v0['type']
+            ]
+            if len(lcax) == 0:
+                plt.colorbar(im)
+            else:
+                for cax in lcax:
+                    plt.colorbar(im, cax=cax)
+                    # ylab = "nb. of detectors"
+                    # cax.set_ylabel(ylab, size=14, fontweight='bold')
+
+    # ---------------
     # plot sang
     # ---------------
 
@@ -834,7 +919,7 @@ def _plot_cross(
     # --------------
 
     if config is not None:
-        for ktype in ['span_cross', 'ndet_cross', 'sang_cross']:
+        for ktype in ['span_cross', 'ndet_cross', 'dphi_cross', 'sang_cross']:
             lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
             for ax in lax:
                 config.plot(lax=ax, proj='cross', dLeg=False)
@@ -861,6 +946,7 @@ def _plot_hor(
     lcam=None,
     # data
     ndet=None,
+    dz=None,
     sang=None,
     xx=None,
     yy=None,
@@ -921,7 +1007,7 @@ def _plot_hor(
 
     if dax.get('ndet_hor') is None:
         if fs is None:
-            fs = (15, 7)
+            fs = (16, 7)
 
         if dmargin is None:
             dmargin = {
@@ -932,7 +1018,7 @@ def _plot_hor(
 
         Na, Ni, Nc = 7, 3, 1
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=(3*Na+2*Ni+2*Nc), nrows=8, **dmargin)
+        gs = gridspec.GridSpec(ncols=(4*Na+3*Ni+3*Nc), nrows=8, **dmargin)
 
         # ax0 = spans
         ax0 = fig.add_subplot(gs[:, :Na], aspect='equal', adjustable='box')
@@ -955,7 +1041,7 @@ def _plot_hor(
         # colorbar ndet
         cax_ndet = fig.add_subplot(gs[1:-1, 2*Na+Ni], frameon=False)
 
-        # ax1 = nb of detectors
+        # ax2 = dz
         ax2 = fig.add_subplot(
             gs[:, 2*Na+2*Ni+Nc:3*Na+2*Ni+Nc],
             aspect='equal',
@@ -966,6 +1052,26 @@ def _plot_hor(
         ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
         ax2.set_xlabel('R (m)', size=12, fontweight='bold')
         ax2.set_title(
+            "Vertical depth (m)",
+            size=14,
+            fontweight='bold',
+        )
+
+        # colorbar
+        cax_dz = fig.add_subplot(gs[1:-1, 3*Na+2*Ni+Nc], frameon=False)
+        cax_dz.set_title('m', size=12)
+
+        # ax3 = sang
+        ax3 = fig.add_subplot(
+            gs[:, 3*Na+3*Ni+2*Nc:4*Na+3*Ni+2*Nc],
+            aspect='equal',
+            sharex=ax0,
+            sharey=ax0,
+            adjustable='box',
+        )
+        ax3.set_ylabel('Z (m)', size=12, fontweight='bold')
+        ax3.set_xlabel('R (m)', size=12, fontweight='bold')
+        ax3.set_title(
             "Integrated solid angle (sr)",
             size=14,
             fontweight='bold',
@@ -978,7 +1084,9 @@ def _plot_hor(
             'span_hor': {'handle': ax0, 'type': 'span_hor'},
             'ndet_hor': {'handle': ax1, 'type': 'ndet_hor'},
             'cax_ndet_hor': {'handle': cax_ndet, 'type': 'cbar_ndet_hor'},
-            'sang_hor': {'handle': ax2, 'type': 'sang_hor'},
+            'dz_hor': {'handle': ax2, 'type': 'dz_hor'},
+            'cax_dz_hor': {'handle': cax_dz, 'type': 'cbar_dz_hor'},
+            'sang_hor': {'handle': ax3, 'type': 'sang_hor'},
             'cax_sang_hor': {'handle': cax_sang, 'type': 'cbar_sang_hor'},
         })
 
@@ -1038,6 +1146,37 @@ def _plot_hor(
                 # cax.set_ylabel(ylab, size=14, fontweight='bold')
 
     # ---------------
+    # plot dz
+    # ---------------
+
+    ktype = 'dz_hor'
+    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
+    for ax in lax:
+
+        # plot
+        im = ax.scatter(
+            xx,
+            yy,
+            c=dz,
+            s=markersize,
+            marker=marker,
+            cmap=cmap,
+            vmin=0,
+            vmax=None,
+        )
+
+        # colorbar
+        ktype2 = 'cbar_dz_hor'
+        lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
+        if len(lcax) == 0:
+            plt.colorbar(im)
+        else:
+            for cax in lcax:
+                plt.colorbar(im, cax=cax)
+                # ylab = "nb. of detectors"
+                # cax.set_ylabel(ylab, size=14, fontweight='bold')
+
+    # ---------------
     # plot sang
     # ---------------
 
@@ -1073,7 +1212,7 @@ def _plot_hor(
     # --------------
 
     if config is not None:
-        for ktype in ['span_hor', 'ndet_hor', 'sang_hor']:
+        for ktype in ['span_hor', 'ndet_hor', 'dz_hor', 'sang_hor']:
             lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
             for ax in lax:
                 config.plot(lax=ax, proj='hor', dLeg=False)
