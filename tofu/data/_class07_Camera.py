@@ -47,9 +47,7 @@ class Camera(Previous):
             'dgeom.pix_nb',
             'dgeom.outline',
             'dgeom.cent',
-            'dgeom.cents',
-            'dmat.qeff_energy',
-            'dmat.qeff',
+            # 'dgeom.cents',
             # 'dmisc.color',
         ],
     })
