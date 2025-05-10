@@ -547,7 +547,8 @@ def _compute_hor(
     # ---------------------
 
     indrpu = []
-    for kcam, v0 in doptics.items():
+    for kcam in lcam:
+        v0 = doptics[kcam]
         kindr, _, kindphi = v0['dvos']['ind_3d']
         indr = coll.ddata[kindr]['data']
         indphi = coll.ddata[kindphi]['data']
@@ -569,7 +570,8 @@ def _compute_hor(
     dz = np.zeros((indrpuT.shape[0],), dtype=float)
     dindz = {}
 
-    for kcam, v0 in doptics.items():
+    for kcam in lcam:
+        v0 = doptics[kcam]
 
         # keys
         kindr, kindz, kindphi = v0['dvos']['ind_3d']
