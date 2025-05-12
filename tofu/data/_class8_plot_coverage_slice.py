@@ -37,8 +37,13 @@ def main(
     margin_perp=None,
     vect=None,
     segment=None,
+    # mesh slice
+    key_mesh=None,
     phi=None,
     Z=None,
+    DR=None,
+    DZ=None,
+    Dphi=None,
     config=None,
     # solid angle
     n0=None,
@@ -73,7 +78,7 @@ def main(
         parallel, is2d, spectro, doptics,
         lop_pre, lop_post,
         res, margin_par, margin_perp,
-        vect, segment, phi, Z,
+        vect, segment, phi, Z, key_mesh,
         verb, plot,
         indref, indplot,
         plot_config,
@@ -89,8 +94,13 @@ def main(
         margin_perp=margin_perp,
         vect=vect,
         segment=segment,
+        # mesh slice
+        key_mesh=key_mesh,
         phi=phi,
         Z=Z,
+        DR=DR,
+        DZ=DZ,
+        Dphi=Dphi,
         # bool
         verb=verb,
         plot=plot,
@@ -131,7 +141,29 @@ def main(
         )
 
     else:
-        pass
+
+        dpts = coll.get_sample_mesh_3d_slice(
+            key=key_mesh,
+            res=res,
+            phi=phi,
+            Z=Z,
+            DR=DR,
+            DZ=DZ,
+            Dphi=Dphi,
+            reshape_2d=True,
+            plot=False,
+            dax=None,
+            color=None,
+        )
+
+        ptsx = dpts['pts_r']['data'] * np.cos(dpts['pts_phi']['data'])
+        ptsy = dpts['pts_r']['data'] * np.sin(dpts['pts_phi']['data'])
+        ptsz = dpts['pts_z']['data']
+
+        los_ref, pt_ref, klos = None, None, None
+        e0, e1 = None, None
+        x0, x1 = None, None
+        dS = None
 
     # ----------
     # compute
@@ -219,6 +251,27 @@ def main(
                 **dout,
             )
 
+        elif phi is not None:
+            _plot_from_cross(
+                coll=coll,
+                # extra
+                indplot=indplot,
+                dax=dax,
+                plot_config=plot_config,
+                fs=fs,
+                dmargin=dmargin,
+                vmin_cam0=vmin_cam0,
+                vmax_cam0=vmax_cam0,
+                vmin_cam=vmin_cam,
+                vmax_cam=vmax_cam,
+                vmin_cam_lamb=vmin_cam_lamb,
+                vmax_cam_lamb=vmax_cam_lamb,
+                vmin_plane=vmin_plane,
+                vmax_plane=vmax_plane,
+                # dout
+                **dout,
+            )
+
     return dout
 
 
@@ -240,8 +293,13 @@ def _check(
     margin_perp=None,
     vect=None,
     segment=None,
+    # mesh slice
+    key_mesh=None,
     phi=None,
     Z=None,
+    DR=None,
+    DZ=None,
+    Dphi=None,
     # bool
     verb=None,
     plot=None,
@@ -411,6 +469,24 @@ def _check(
         raise Exception(msg)
 
     # -----------
+    # any(phi, Z)
+    # -----------
+
+    if any(lc):
+
+        # key_mesh
+        wm = coll._whcih_mesh
+        lok = list(coll.dobj.get(wm, {}).keys())
+        key_mesh = ds._generic_check._check_var(
+            key_mesh, 'key_mesh',
+            types=str,
+            allowed=lok,
+        )
+
+    else:
+        key_mesh = None
+
+    # -----------
     # phi
     # -----------
 
@@ -498,7 +574,7 @@ def _check(
         parallel, is2d, spectro, doptics,
         lop_pre, lop_post,
         res, margin_par, margin_perp,
-        vect, segment, phi, Z,
+        vect, segment, phi, Z, key_mesh,
         verb, plot,
         indref, indplot,
         plot_config,
@@ -683,20 +759,6 @@ def _plane_from_LOS(
         x0, x1,
         dS,
     )
-
-
-# ###############################################################
-# ###############################################################
-#               Plane vs config
-# ###############################################################
-
-
-def _plane_vs_config(
-
-):
-
-
-    return ptsx, ptsy, ptsz
 
 
 # ###############################################################
@@ -974,7 +1036,7 @@ def _spectro(
 
 # ###############################################################
 # ###############################################################
-#                   Plot
+#                   Plot from LOS
 # ###############################################################
 
 
@@ -1698,11 +1760,19 @@ def _get_dax(
         # create
 
         # geometry
-        ax0 = fig.add_subplot(gs[:2, :2], aspect='equal', adjustable='datalim')
+        ax0 = fig.add_subplot(
+            gs[:2, :2],
+            aspect='equal',
+            adjustable='datalim',
+        )
         ax0.set_xlabel('X (m)')
         ax0.set_ylabel('Y (m)')
 
-        ax1 = fig.add_subplot(gs[2:4, :2], aspect='equal', adjustable='datalim')
+        ax1 = fig.add_subplot(
+            gs[2:4, :2],
+            aspect='equal',
+            adjustable='datalim',
+        )
         ax1.set_xlabel('R (m)')
         ax1.set_ylabel('Z (m)')
 
@@ -1715,11 +1785,19 @@ def _get_dax(
         ax30 = fig.add_subplot(gs[:2, 2:4], aspect='equal')
         ax30.set_ylabel('x1 (m)')
         ax30.set_xlabel('x0 (m)')
-        ax30.set_title('etendue\nw/o rock. curve', size=12, fontweight='bold')
+        ax30.set_title(
+            'etendue\nw/o rock. curve',
+            size=12,
+            fontweight='bold',
+        )
 
         ax31 = fig.add_subplot(gs[:2, 4:6], sharex=ax30, sharey=ax30)
         ax31.set_xlabel('x0 (m)')
-        ax31.set_title('integral\nw/o rock. curve', size=12, fontweight='bold')
+        ax31.set_title(
+            'integral\nw/o rock. curve',
+            size=12,
+            fontweight='bold',
+        )
 
         ax32 = fig.add_subplot(gs[:2, 6:], sharex=ax30, sharey=ax30)
         ax32.set_xlabel('x0 (m)')
@@ -1729,11 +1807,19 @@ def _get_dax(
         ax40 = fig.add_subplot(gs[2:4, 2:4], aspect='equal')
         ax40.set_ylabel('x1 (m)')
         ax40.set_xlabel('x0 (m)')
-        ax40.set_title('etendue\nwith rock. curve', size=12, fontweight='bold')
+        ax40.set_title(
+            'etendue\nwith rock. curve',
+            size=12,
+            fontweight='bold',
+        )
 
         ax41 = fig.add_subplot(gs[2:4, 4:6], sharex=ax30, sharey=ax30)
         ax41.set_xlabel('x0 (m)')
-        ax41.set_title('integral\nwith rock. curve', size=12, fontweight='bold')
+        ax41.set_title(
+            'integral\nwith rock. curve',
+            size=12,
+            fontweight='bold',
+        )
 
         ax42 = fig.add_subplot(gs[2:4, 6:], sharex=ax30, sharey=ax30)
         ax42.set_xlabel('x0 (m)')
@@ -1743,11 +1829,19 @@ def _get_dax(
         ax50 = fig.add_subplot(gs[4:6, 2:4], aspect='equal')
         ax50.set_ylabel('x1 (m)')
         ax50.set_xlabel('x0 (m)')
-        ax50.set_title('etendue * dlamb\nwith rock. curve', size=12, fontweight='bold')
+        ax50.set_title(
+            'etendue * dlamb\nwith rock. curve',
+            size=12,
+            fontweight='bold',
+        )
 
         ax51 = fig.add_subplot(gs[4:6, 4:6], sharex=ax30, sharey=ax30)
         ax51.set_xlabel('x0 (m)')
-        ax51.set_title('integral * dlamb\nwith rock. curve', size=12, fontweight='bold')
+        ax51.set_title(
+            'integral * dlamb\nwith rock. curve',
+            size=12,
+            fontweight='bold',
+        )
 
         ax52 = fig.add_subplot(gs[4:6, 6:], sharex=ax30, sharey=ax30)
         ax52.set_xlabel('x0 (m)')

@@ -24,7 +24,7 @@ from . import _class8_vos as _vos
 from . import _class8_vos_spectro_nobin_at_lamb as _vos_nobin_at_lamb
 from . import _class8_los_angles as _los_angles
 from . import _class08_generate_rays as _generate_rays
-from . import _class8_plane_perp_to_los as _planeperp
+from . import _class8_plot_coverage_slice as _coverage_slice
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_compute_signal_moments as _signal_moments
 from . import _class8_reverse_ray_tracing as _reverse_rt
@@ -461,7 +461,7 @@ class Diagnostic(Previous):
         compute contribution of each point to the signal
         """
 
-        return _planeperp._plot(
+        return _coverage_slice.main(
             coll=self,
             # extra
             indplot=indplot,
