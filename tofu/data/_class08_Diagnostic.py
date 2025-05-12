@@ -325,6 +325,10 @@ class Diagnostic(Previous):
         res=None,
         margin_par=None,
         margin_perp=None,
+        vect=None,
+        segment=None,
+        phi=None,
+        Z=None,
         config=None,
         # solid angle
         n0=None,
@@ -365,6 +369,10 @@ class Diagnostic(Previous):
             res=res,
             margin_par=margin_par,
             margin_perp=margin_perp,
+            vect=vect,
+            segment=segment,
+            phi=phi,
+            Z=Z,
             config=config,
             # solid angle
             n0=n0,
