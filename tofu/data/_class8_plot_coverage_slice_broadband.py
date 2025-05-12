@@ -9,7 +9,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from mpl_toolkits.mplot3d import Axes3D
 import datastock as ds
 
 
@@ -17,815 +16,16 @@ import datastock as ds
 from ..geom import _comp_solidangles
 from . import _class8_plot
 from . import _generic_check
+from . import _class8_plot_coverage_slice_utils as _utils
 
 
-# ###############################################################
-# ###############################################################
-#                   Main
-# ###############################################################
+# #####################################################
+# #####################################################
+#                   Compute
+# #####################################################
 
 
-def main(
-    coll=None,
-    key_diag=None,
-    key_cam=None,
-    indch=None,
-    indref=None,
-    # parameters
-    res=None,
-    margin_par=None,
-    margin_perp=None,
-    vect=None,
-    segment=None,
-    # mesh slice
-    key_mesh=None,
-    phi=None,
-    Z=None,
-    DR=None,
-    DZ=None,
-    Dphi=None,
-    config=None,
-    # solid angle
-    n0=None,
-    n1=None,
-    # lamb
-    res_lamb=None,
-    # bool
-    verb=None,
-    plot=None,
-    # plotting
-    indplot=None,
-    dax=None,
-    plot_config=None,
-    fs=None,
-    dmargin=None,
-    vmin_cam0=None,
-    vmax_cam0=None,
-    vmin_cam=None,
-    vmax_cam=None,
-    vmin_cam_lamb=None,
-    vmax_cam_lamb=None,
-    vmin_plane=None,
-    vmax_plane=None,
-):
-
-    # ------------
-    # check inputs
-    # ------------
-
-    (
-        key_diag, key_cam, indch, indref,
-        parallel, is2d, spectro, doptics,
-        lop_pre, lop_post,
-        res, margin_par, margin_perp,
-        vect, segment, phi, Z, key_mesh,
-        verb, plot,
-        indref, indplot,
-        plot_config,
-    ) = _check(
-        coll=coll,
-        key_diag=key_diag,
-        key_cam=key_cam,
-        indch=indch,
-        indref=indref,
-        # parameters
-        res=res,
-        margin_par=margin_par,
-        margin_perp=margin_perp,
-        vect=vect,
-        segment=segment,
-        # mesh slice
-        key_mesh=key_mesh,
-        phi=phi,
-        Z=Z,
-        DR=DR,
-        DZ=DZ,
-        Dphi=Dphi,
-        # bool
-        verb=verb,
-        plot=plot,
-        # plotting
-        indplot=indplot,
-        plot_config=plot_config,
-        config=config,
-    )
-
-    # -----------------
-    # get plane pts
-    # -----------------
-
-    if vect is not None:
-        (
-            ptsx, ptsy, ptsz,
-            los_ref, pt_ref, klos,
-            e0, e1,
-            x0, x1,
-            dS,
-        ) = _plane_from_LOS(
-            # resource
-            coll=coll,
-            doptics=doptics,
-            key_cam=key_cam,
-            indref=indref,
-            spectro=spectro,
-            lop_post=lop_post,
-            parallel=parallel,
-            vect=vect,
-            segment=segment,
-            # plane params
-            res=res,
-            margin_par=margin_par,
-            margin_perp=margin_perp,
-            # options
-            indch=indch,
-        )
-
-    else:
-
-        dpts = coll.get_sample_mesh_3d_slice(
-            key=key_mesh,
-            res=res,
-            phi=phi,
-            Z=Z,
-            DR=DR,
-            DZ=DZ,
-            Dphi=Dphi,
-            reshape_2d=True,
-            plot=False,
-            dax=None,
-            color=None,
-        )
-
-        ptsx = dpts['pts_r']['data'] * np.cos(dpts['pts_phi']['data'])
-        ptsy = dpts['pts_r']['data'] * np.sin(dpts['pts_phi']['data'])
-        ptsz = dpts['pts_z']['data']
-
-        los_ref, pt_ref, klos = None, None, None
-        e0, e1 = None, None
-        x0, x1 = None, None
-        dS = None
-
-    # ----------
-    # compute
-    # ----------
-
-    if spectro:
-        dout = _spectro(
-            coll=coll,
-            key_diag=key_diag,
-            key_cam=key_cam,
-            # pts
-            ptsx=ptsx,
-            ptsy=ptsy,
-            ptsz=ptsz,
-            # solid angle
-            n0=n0,
-            n1=n1,
-            # res
-            res_lamb=res_lamb,
-        )
-
-    else:
-        dout = _nonspectro(
-            coll=coll,
-            key_cam=key_cam,
-            doptics=doptics,
-            par=parallel,
-            is2d=is2d,
-            # points
-            # pts
-            ptsx=ptsx,
-            ptsy=ptsy,
-            ptsz=ptsz,
-            config=config,
-        )
-
-    # -------------
-    # format output
-    # -------------
-
-    dout.update({
-        'key_diag': key_diag,
-        'key_cam': key_cam,
-        'is2d': is2d,
-        'spectro': spectro,
-        'indch': indch,
-        'indref': indref,
-        'los_ref': los_ref,
-        'pt_ref': pt_ref,
-        'klos': klos,
-        'e0': e0,
-        'e1': e1,
-        'ptsx': ptsx,
-        'ptsy': ptsy,
-        'ptsz': ptsz,
-        'x0': x0,
-        'x1': x1,
-        'dS': dS,
-        'vect': vect,
-    })
-
-    # -------
-    # plot
-    # -------
-
-    if plot is True:
-        if vect is not None:
-            _plot_from_los(
-                coll=coll,
-                # extra
-                indplot=indplot,
-                dax=dax,
-                plot_config=plot_config,
-                fs=fs,
-                dmargin=dmargin,
-                vmin_cam0=vmin_cam0,
-                vmax_cam0=vmax_cam0,
-                vmin_cam=vmin_cam,
-                vmax_cam=vmax_cam,
-                vmin_cam_lamb=vmin_cam_lamb,
-                vmax_cam_lamb=vmax_cam_lamb,
-                vmin_plane=vmin_plane,
-                vmax_plane=vmax_plane,
-                # dout
-                **dout,
-            )
-
-        elif phi is not None:
-            _plot_from_cross(
-                coll=coll,
-                # extra
-                indplot=indplot,
-                dax=dax,
-                plot_config=plot_config,
-                fs=fs,
-                dmargin=dmargin,
-                vmin_cam0=vmin_cam0,
-                vmax_cam0=vmax_cam0,
-                vmin_cam=vmin_cam,
-                vmax_cam=vmax_cam,
-                vmin_cam_lamb=vmin_cam_lamb,
-                vmax_cam_lamb=vmax_cam_lamb,
-                vmin_plane=vmin_plane,
-                vmax_plane=vmax_plane,
-                # dout
-                **dout,
-            )
-
-    return dout
-
-
-# ###############################################################
-# ###############################################################
-#                   Check
-# ###############################################################
-
-
-def _check(
-    coll=None,
-    key_diag=None,
-    key_cam=None,
-    indch=None,
-    indref=None,
-    # parameters
-    res=None,
-    margin_par=None,
-    margin_perp=None,
-    vect=None,
-    segment=None,
-    # mesh slice
-    key_mesh=None,
-    phi=None,
-    Z=None,
-    DR=None,
-    DZ=None,
-    Dphi=None,
-    # bool
-    verb=None,
-    plot=None,
-    # plotting
-    indplot=None,
-    plot_config=None,
-    config=None,
-):
-
-    # ----------
-    # keys
-    # ----------
-
-    key_diag, key_cam = coll.get_diagnostic_cam(
-        key=key_diag,
-        key_cam=key_cam,
-    )
-
-    if len(key_cam) > 1:
-        msg = f"Please select a key_cam!\n\tkey_cam: {key_cam}"
-        raise Exception(msg)
-
-    key_cam = key_cam[0]
-    spectro = coll.dobj['diagnostic'][key_diag]['spectro']
-    is2d = coll.dobj['diagnostic'][key_diag]['is2d']
-    parallel = coll.dobj['camera'][key_cam]['dgeom']['parallel']
-    doptics = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]
-
-    if spectro and not is2d:
-        msg = "Only implemented for 2d spectro"
-        raise Exception(msg)
-
-    if is2d:
-        n0, n1 = coll.dobj['camera'][key_cam]['dgeom']['shape']
-    else:
-        nch = coll.dobj['camera'][key_cam]['dgeom']['shape'][0]
-
-    # -----------------
-    # loptics
-    # -----------------
-
-    if spectro:
-        optics, cls_optics = coll.get_optics_cls(doptics['optics'])
-        ispectro = cls_optics.index('crystal')
-        lop_pre = doptics['optics'][:ispectro]
-        lop_post = doptics['optics'][ispectro+1:]
-
-    else:
-        lop_pre = doptics['optics']
-        lop_post = []
-
-    # -----------------
-    # indch
-    # -----------------
-
-    if indch is not None:
-        if spectro or is2d:
-            indch = ds._generic_check._check_flat1darray(
-                indch, 'indch',
-                dtype=int,
-                size=2,
-                sign='>0',
-            )
-            indch[0] = indch[0] % n0
-            indch[1] = indch[1] % n1
-
-        else:
-            indch = int(ds._generic_check._check_var(
-                indch, 'indch',
-                types=(float, int),
-            )) % nch
-
-    # -----------------
-    # indref
-    # -----------------
-
-    if indref is not None:
-        if spectro or is2d:
-            indref = ds._generic_check._check_flat1darray(
-                indref, 'indref',
-                dtype=int,
-                size=2,
-                sign='>=0',
-            )
-            indref[0] = indref[0] % n0
-            indref[1] = indref[1] % n1
-
-        else:
-            indref = int(ds._generic_check._check_var(
-                indref, 'indref',
-                types=(float, int),
-                sign='>=0',
-            )) % nch
-
-            if indch is not None:
-                indref = indch
-
-    # ----------
-    # res
-    # ----------
-
-    if res is None:
-        res = 0.001
-
-    if isinstance(res, (int, float)):
-        res = np.r_[res, res]
-
-    res = ds._generic_check._check_flat1darray(
-        res, 'res',
-        dtype=float,
-        size=2,
-        sign='>0.',
-    )
-
-    # -----------
-    # margin_par
-    # -----------
-
-    margin_par = float(ds._generic_check._check_var(
-        margin_par, 'margin_par',
-        types=(int, float),
-        default=0.5,
-    ))
-
-    # -----------
-    # margin_perp
-    # -----------
-
-    if margin_perp is None:
-        margin_perp = 0.02
-
-    if isinstance(margin_perp, (float, int)):
-        margin_perp = [margin_perp, margin_perp]
-
-    margin_perp = ds._generic_check._check_flat1darray(
-        margin_perp, 'margin_perp',
-        dtype=float,
-        size=2,
-        sign='>=0',
-    )
-
-    # -----------
-    # vect
-    # -----------
-
-    vect = ds._generic_check._check_var(
-        vect, 'vect',
-        types=str,
-        default='nin',
-        allowed=['nin', 'e0', 'e1'],
-    )
-
-    # -----------
-    # vect vs phi, Z
-    # -----------
-
-    lc = [
-        Z is not None,
-        phi is not None,
-    ]
-    if np.sum(lc) > 1:
-        msg = (
-            "Provide Z xor phi xor None\n"
-            f"\t- phi = {phi}\n"
-            f"\t- Z = {Z}\n"
-        )
-        raise Exception(msg)
-
-    # -----------
-    # any(phi, Z)
-    # -----------
-
-    if any(lc):
-
-        # key_mesh
-        wm = coll._whcih_mesh
-        lok = list(coll.dobj.get(wm, {}).keys())
-        key_mesh = ds._generic_check._check_var(
-            key_mesh, 'key_mesh',
-            types=str,
-            allowed=lok,
-        )
-
-    else:
-        key_mesh = None
-
-    # -----------
-    # phi
-    # -----------
-
-    if phi is not None:
-        phi = float(ds._generic_check._check_var(
-            phi, 'phi',
-            types=(float, int),
-        ))
-        vect = None
-
-    # -----------
-    # Z
-    # -----------
-
-    if Z is not None:
-        Z = float(ds._generic_check._check_var(
-            Z, 'Z',
-            types=(float, int),
-        ))
-        vect = None
-
-    # -----------
-    # segment
-    # -----------
-
-    defseg = -1 if spectro else 0
-    segment = int(ds._generic_check._check_var(
-        segment, 'segment',
-        types=(int, float),
-        default=defseg,
-    ))
-
-    # -----------
-    # verb
-    # -----------
-
-    verb = ds._generic_check._check_var(
-        verb, 'verb',
-        types=bool,
-        default=True,
-    )
-
-    # -----------
-    # plot
-    # -----------
-
-    plot = ds._generic_check._check_var(
-        plot, 'plot',
-        types=bool,
-        default=True,
-    )
-
-    # ------------------
-    # get indref for los
-    # ------------------
-
-    if indref is None:
-        if spectro or is2d or indch is None:
-            etend = coll.ddata[doptics['etendue']]['data']
-            indref = np.nanargmax(etend)
-
-            if is2d:
-                n0, n1 = etend.shape
-                indref = np.r_[indref // n1, indref % n1].astype(int)
-
-        else:
-            indref = indch
-
-    # -----------
-    # indplot
-    # -----------
-
-    if indplot is None:
-        indplot = indref
-
-    # -----------
-    # plot_config
-    # -----------
-
-    if plot is True and plot_config is None:
-        plot_config = config
-
-    return (
-        key_diag, key_cam, indch, indref,
-        parallel, is2d, spectro, doptics,
-        lop_pre, lop_post,
-        res, margin_par, margin_perp,
-        vect, segment, phi, Z, key_mesh,
-        verb, plot,
-        indref, indplot,
-        plot_config,
-    )
-
-
-# ###############################################################
-# ###############################################################
-#               Plane vs LOS
-# ###############################################################
-
-
-def _plane_from_LOS(
-    # resource
-    coll=None,
-    doptics=None,
-    key_cam=None,
-    indref=None,
-    spectro=None,
-    lop_post=None,
-    parallel=None,
-    segment=None,
-    vect=None,
-    # plane params
-    res=None,
-    margin_par=None,
-    margin_perp=None,
-    # options
-    indch=None,
-):
-
-    # ----------
-    # los_ref
-    # ----------
-
-    klos = doptics['los']
-
-    # start_ref
-    ptsx, ptsy, ptsz = coll.get_rays_pts(
-        key=klos,
-        segment=segment,
-    )
-    ipts = (0, indref)
-    pt_ref = np.r_[ptsx[ipts], ptsy[ipts], ptsz[ipts]]
-
-    # los_ref
-    vx, vy, vz = coll.get_rays_vect(
-        key=klos,
-        norm=True,
-        segment=segment,
-    )
-    los_ref = np.r_[vx[indref], vy[indref], vz[indref]]
-
-    # -----------------
-    # furthest aperture
-    # -----------------
-
-    if spectro:
-        if len(lop_post) > 0:
-            poly = lop_post[-1]
-        else:
-            kmax = 0.
-    else:
-        if len(doptics['optics']) > 0:
-            poly = doptics['optics'][-1]
-        else:
-            kmax = 0.
-
-    # poly => sca
-    if poly is not None:
-        px, py, pz = coll.get_optics_poly(poly)
-        poly = np.array([px, py, pz])
-        kmax = np.max(np.sum(
-            (poly - pt_ref[:, None])*los_ref[:, None],
-            axis=0,
-        ))
-
-    # get length along los
-    klos = kmax + margin_par
-
-    # get pt plane
-    pt_plane = pt_ref + klos * los_ref
-
-    # -------------------------------------
-    # create plane perpendicular to los_ref
-    # -------------------------------------
-
-    if parallel:
-        # e0_cam = coll.dobj['camera'][key_cam]['dgeom']['e0']
-        e1_cam = coll.dobj['camera'][key_cam]['dgeom']['e1']
-    else:
-        # ke0x, ke0y, ke0z = coll.dobj['camera'][key_cam]['dgeom']['e0']
-        ke1x, ke1y, ke1z = coll.dobj['camera'][key_cam]['dgeom']['e1']
-        e1_cam = np.r_[
-            coll.ddata[ke1x]['data'][indref],
-            coll.ddata[ke1y]['data'][indref],
-            coll.ddata[ke1z]['data'][indref],
-        ]
-
-    e0 = np.cross(e1_cam, los_ref)
-    e0 = e0 / np.linalg.norm(e0)
-
-    e1 = np.cross(los_ref, e0)
-    e1 = e1 / np.linalg.norm(e1)
-
-    # -------------------------------------
-    # create plane perpendicular to los_ref
-    # -------------------------------------
-
-    # get limits of plane
-    if indch is None:
-        # kk = vx[-1, ...]
-
-        x0, x1, iok = _get_intersect_los_plane(
-            cent=pt_plane,
-            nin=los_ref,
-            e0=e0,
-            e1=e1,
-            ptx=ptsx[0, ...],
-            pty=ptsy[0, ...],
-            ptz=ptsz[0, ...],
-            vx=vx,
-            vy=vy,
-            vz=vz,
-        )
-
-    else:
-        x0 = np.r_[0]
-        x1 = np.r_[0]
-
-    # dx0, dx1
-    dx0 = [
-        np.nanmin(x0) - margin_perp[0],
-        np.nanmax(x0) + margin_perp[0],
-    ]
-    dx1 = [
-        np.nanmin(x1) - margin_perp[1],
-        np.nanmax(x1) + margin_perp[1],
-    ]
-
-    # -------------
-    # vect
-    # -------------
-
-    if vect == 'nin':
-        pass
-
-    elif vect == 'e0':
-        e0 = los_ref
-        dx0 = [kmax + margin_perp[0], klos]
-        pt_plane = pt_ref
-
-    else:
-        e1 = los_ref
-        dx1 = [kmax + margin_perp[1], klos]
-        pt_plane = pt_ref
-
-    # ---------------
-    # create 2d grid
-    # ---------------
-
-    nx0 = int(np.ceil((dx0[1] - dx0[0]) / res[0])) + 2
-    nx1 = int(np.ceil((dx1[1] - dx1[0]) / res[1])) + 2
-
-    x0 = np.linspace(dx0[0], dx0[1], nx0)
-    x1 = np.linspace(dx1[0], dx1[1], nx1)
-
-    dS = (x0[1] - x0[0]) * (x1[1] - x1[0])
-
-    x0f = np.repeat(x0[:, None], nx1, axis=1)
-    x1f = np.repeat(x1[None, :], nx0, axis=0)
-
-    # derive 3d pts
-    ptsx = pt_plane[0] + x0f*e0[0] + x1f*e1[0]
-    ptsy = pt_plane[1] + x0f*e0[1] + x1f*e1[1]
-    ptsz = pt_plane[2] + x0f*e0[2] + x1f*e1[2]
-
-    return (
-        ptsx, ptsy, ptsz,
-        los_ref, pt_ref, klos,
-        e0, e1,
-        x0, x1,
-        dS,
-    )
-
-
-# ###############################################################
-# ###############################################################
-#              get intersection los vs plane
-# ###############################################################
-
-
-def _get_intersect_los_plane(
-    cent=None,
-    nin=None,
-    e0=None,
-    e1=None,
-    ptx=None,
-    pty=None,
-    ptz=None,
-    vx=None,
-    vy=None,
-    vz=None,
-):
-
-    # ---------------
-    # prepare output
-
-    shape = vx.shape
-    kk = np.full(shape, np.nan)
-
-    # ------------
-    # compute kk
-
-    sca0 = vx * nin[0] + vy * nin[1] + vz * nin[2]
-    sca1 = (
-        (cent[0] - ptx) * nin[0]
-        + (cent[1] - pty) * nin[1]
-        + (cent[2] - ptz) * nin[2]
-    )
-
-    iok = np.abs(sca1) > 1e-6
-    kk[iok] = sca1[iok] / sca0[iok]
-
-    # --------------
-    # 3d coordinates
-
-    xx = ptx + kk * vx
-    yy = pty + kk * vy
-    zz = ptz + kk * vz
-
-    # -----------------
-    # local coordinates
-
-    dx = xx - cent[0]
-    dy = yy - cent[1]
-    dz = zz - cent[2]
-
-    x0 = dx * e0[0] + dy * e0[1] + dz * e0[2]
-    x1 = dx * e1[0] + dy * e1[1] + dz * e1[2]
-
-    return x0, x1, iok
-
-
-# ###############################################################
-# ###############################################################
-#                   non-spectro
-# ###############################################################
-
-
-def _nonspectro(
+def _compute(
     coll=None,
     key_cam=None,
     doptics=None,
@@ -836,6 +36,9 @@ def _nonspectro(
     ptsy=None,
     ptsz=None,
     config=None,
+    visibility=None,
+    # unused
+    **kwdargs,
 ):
 
     # -----------------
@@ -868,21 +71,22 @@ def _nonspectro(
 
     if pinhole is True:
 
+        sh = cx.shape
         det = {
             'cents_x': cx,
             'cents_y': cy,
             'cents_z': cz,
             'outline_x0': coll.ddata[k0]['data'],
             'outline_x1': coll.ddata[k1]['data'],
-            'nin_x': np.full(cx.shape, dvect['nin_x']) if par else dvect['nin_x'],
-            'nin_y': np.full(cx.shape, dvect['nin_y']) if par else dvect['nin_y'],
-            'nin_z': np.full(cx.shape, dvect['nin_z']) if par else dvect['nin_z'],
-            'e0_x': np.full(cx.shape, dvect['e0_x']) if par else dvect['e0_x'],
-            'e0_y': np.full(cx.shape, dvect['e0_y']) if par else dvect['e0_y'],
-            'e0_z': np.full(cx.shape, dvect['e0_z']) if par else dvect['e0_z'],
-            'e1_x': np.full(cx.shape, dvect['e1_x']) if par else dvect['e1_x'],
-            'e1_y': np.full(cx.shape, dvect['e1_y']) if par else dvect['e1_y'],
-            'e1_z': np.full(cx.shape, dvect['e1_z']) if par else dvect['e1_z'],
+            'nin_x': np.full(sh, dvect['nin_x']) if par else dvect['nin_x'],
+            'nin_y': np.full(sh, dvect['nin_y']) if par else dvect['nin_y'],
+            'nin_z': np.full(sh, dvect['nin_z']) if par else dvect['nin_z'],
+            'e0_x': np.full(sh, dvect['e0_x']) if par else dvect['e0_x'],
+            'e0_y': np.full(sh, dvect['e0_y']) if par else dvect['e0_y'],
+            'e0_z': np.full(sh, dvect['e0_z']) if par else dvect['e0_z'],
+            'e1_x': np.full(sh, dvect['e1_x']) if par else dvect['e1_x'],
+            'e1_y': np.full(sh, dvect['e1_y']) if par else dvect['e1_y'],
+            'e1_z': np.full(sh, dvect['e1_z']) if par else dvect['e1_z'],
         }
 
         sang = _comp_solidangles.calc_solidangle_apertures(
@@ -897,7 +101,7 @@ def _nonspectro(
             config=config,
             # parameters
             summed=False,
-            visibility=False,
+            visibility=visibility,
             return_vector=False,
             return_flat_pts=False,
             return_flat_det=False,
@@ -946,13 +150,14 @@ def _nonspectro(
                 config=config,
                 # parameters
                 summed=False,
-                visibility=False,
+                visibility=visibility,
                 return_vector=False,
                 return_flat_pts=False,
                 return_flat_det=False,
             )
 
-    axis = tuple([ii for ii in range(len(sang.shape[:-2]))])
+    axis = tuple([ii for ii in range(len(cx.shape))])
+
     return {
         'sang0': {
             'data': sang,
@@ -967,77 +172,134 @@ def _nonspectro(
     }
 
 
-# ###############################################################
-# ###############################################################
-#                   Spectro
-# ###############################################################
+# #######################################################
+# #######################################################
+#       Check plot args
+# #######################################################
 
 
-def _spectro(
+def _check_plot(
     coll=None,
     key_diag=None,
     key_cam=None,
+    vect=None,
     is2d=None,
-    # pts
-    ptsx=None,
-    ptsy=None,
-    ptsz=None,
-    # solid angle
-    n0=None,
-    n1=None,
-    # res
-    res_lamb=None,
+    spectro=None,
+    sang0=None,
+    sang=None,
+    ndet=None,
+    sang_lamb=None,
+    x0=None,
+    x1=None,
+    dS=None,
+    pt_ref=None,
+    los_ref=None,
+    indref=None,
+    indplot=None,
+    dvminmax=None,
 ):
 
-    # ------------
+    # ---------
     # prepare
+    # ---------
 
-    dout = coll.get_raytracing_from_pts(
-        key=key_diag,
-        key_cam=key_cam,
-        # mesh
-        key_mesh=None,
-        res_RZ=None,
-        res_phi=None,
-        # points
-        ptsx=ptsx,
-        ptsy=ptsy,
-        ptsz=ptsz,
-        # solid angle
-        n0=n0,
-        n1=n1,
-        # others
-        res_rock_curve=None,
-        lamb0=None,
-        res_lamb=res_lamb,
-        plot=False,
-        plot_pixels=None,
-        plot_config=None,
-        vmin=None,
-        vmax=None,
-        append=False,
+    doptics = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]
+    shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
+
+    # ---------
+    # integral
+    # ---------
+
+    if sang0 is not None and dS is not None:
+        etend_plane0 = np.nansum(
+            np.nansum(sang0['data'], axis=-1),
+            axis=-1,
+        ) * dS
+    else:
+        etend_plane0 = None
+
+    etend_plane = None
+    etend = None
+    if vect == 'nin':
+        ketend = doptics['etendue']
+        etend0 = coll.ddata[ketend]['data']
+    else:
+        etend0 = None
+
+    etend_lamb = None
+    etend_plane_lamb = None
+
+    # ---------
+    # extent
+    # ---------
+
+    # cam
+    extent_cam = None
+    if is2d:
+        extent_cam = None
+        sli = (indplot[0], indplot[1], slice(None), slice(None))
+    else:
+        sli = (indplot, slice(None), slice(None))
+
+    axis = tuple([ii for ii in range(len(shape_cam))])
+
+    # extent_plane
+    if x0 is not None:
+        dx0 = 0.5*(x0[1] - x0[0])
+        dx1 = 0.5*(x1[1] - x1[0])
+        extent_plane = (
+            x0.min() - dx0,
+            x0.max() + dx0,
+            x1.min() - dx1,
+            x1.max() + dx1,
+        )
+    else:
+        extent_plane = None
+
+    # --------
+    # vminmax
+    # --------
+
+    dvminmax = _utils._check_dvminmax(
+        dvminmax=dvminmax,
+        etend0=etend0,
+        etend_plane0=etend_plane0,
+        etend=etend,
+        etend_plane=etend_plane,
+        etend_lamb=etend_lamb,
+        etend_plane_lamb=etend_plane_lamb,
+        sang0=sang0,
+        sang=sang,
+        ndet=ndet,
     )
 
-    dout['sang0'] = {
-        'data': dout['sang0'],
-        'units': 'sr',
-    }
-    dout['sang'] = {
-        'data': dout['sang'],
-        'units': 'sr',
-    }
-    dout['sang_lamb'] = {
-        'data': dout['sang_lamb'],
-        'units': 'sr.m',
-    }
+    # --------
+    # los_ref
 
-    return dout
+    if pt_ref is not None:
+        add = np.linspace(0, 1, 20)
+        los_refr = np.hypot(
+            pt_ref[0] + add * los_ref[0],
+            pt_ref[1] + add * los_ref[1],
+        )
+        los_refz = pt_ref[2] + add * los_ref[2]
+    else:
+        los_refr, los_refz = None, None
+
+    return (
+        etend0, etend, etend_lamb,
+        etend_plane0, etend_plane, etend_plane_lamb,
+        sli, axis,
+        extent_cam, extent_plane,
+        dvminmax,
+        los_refr, los_refz,
+    )
 
 
-# ###############################################################
-# ###############################################################
-#                   Plot from LOS
-# ###############################################################
+# #########################################################
+# #########################################################
+#             Plot from LOS
+# #########################################################
 
 
 def _plot_from_los(
@@ -1070,14 +332,7 @@ def _plot_from_los(
     plot_config=None,
     fs=None,
     dmargin=None,
-    vmin_cam0=None,
-    vmax_cam0=None,
-    vmin_cam=None,
-    vmax_cam=None,
-    vmin_cam_lamb=None,
-    vmax_cam_lamb=None,
-    vmin_plane=None,
-    vmax_plane=None,
+    dvminmax=None,
     **kwdargs,
 ):
 
@@ -1089,16 +344,13 @@ def _plot_from_los(
         etend_plane0, etend_plane, etend_plane_lamb,
         sli, axis,
         extent_cam, extent_plane,
-        vmin_cam0, vmax_cam0,
-        vmin_cam, vmax_cam,
-        vmin_cam_lamb, vmax_cam_lamb,
-        vmin_plane0, vmax_plane0,
-        vmin_plane, vmax_plane,
+        dvminmax,
         los_refr, los_refz,
     ) = _check_plot(
         coll=coll,
         key_diag=key_diag,
         key_cam=key_cam,
+        vect=vect,
         is2d=is2d,
         spectro=spectro,
         sang0=sang0,
@@ -1111,14 +363,7 @@ def _plot_from_los(
         los_ref=los_ref,
         indref=indref,
         indplot=indplot,
-        vmin_cam=vmin_cam,
-        vmax_cam=vmax_cam,
-        vmin_cam0=vmin_cam0,
-        vmax_cam0=vmax_cam0,
-        vmin_cam_lamb=vmin_cam_lamb,
-        vmax_cam_lamb=vmax_cam_lamb,
-        vmin_plane=vmin_plane,
-        vmax_plane=vmax_plane,
+        dvminmax=dvminmax,
     )
 
     # --------------
@@ -1149,7 +394,7 @@ def _plot_from_los(
     # pepare dax
 
     if dax is None:
-        dax = _get_dax(
+        dax = _get_dax_los(
             is2d=is2d,
             spectro=spectro,
             fs=fs,
@@ -1173,8 +418,8 @@ def _plot_from_los(
             c=sang_tot_plot,
             s=4,
             marker='.',
-            vmin=vmin_plane,
-            vmax=vmax_plane,
+            vmin=dvminmax.get('plane', {}).get('min'),
+            vmax=dvminmax.get('plane', {}).get('max'),
         )
 
         # los_ref
@@ -1197,8 +442,8 @@ def _plot_from_los(
             c=sang_tot_plot,
             s=4,
             marker='.',
-            vmin=vmin_plane,
-            vmax=vmax_plane,
+            vmin=dvminmax.get('plane', {}).get('min'),
+            vmax=dvminmax.get('plane', {}).get('max'),
         )
 
         # los_ref
@@ -1222,8 +467,8 @@ def _plot_from_los(
             c=sang_tot_plot,
             s=4,
             marker='.',
-            vmin=vmin_plane,
-            vmax=vmax_plane,
+            vmin=dvminmax.get('plane', {}).get('min'),
+            vmax=dvminmax.get('plane', {}).get('max'),
         )
 
         # los_ref
@@ -1251,11 +496,11 @@ def _plot_from_los(
                 extent=extent_cam,
                 origin='lower',
                 interpolation='nearest',
-                vmin=vmin_cam0,
-                vmax=vmax_cam0,
+                vmin=dvminmax.get('cam0', {}).get('min'),
+                vmax=dvminmax.get('cam0', {}).get('max'),
             )
 
-            _add_marker(ax, indref, indplot)
+            _utils._add_marker(ax, indref, indplot)
 
         else:
             # per-pixel etendue
@@ -1308,11 +553,11 @@ def _plot_from_los(
                 extent=extent_cam,
                 origin='lower',
                 interpolation='nearest',
-                vmin=vmin_cam0,
-                vmax=vmax_cam0,
+                vmin=dvminmax.get('cam0', {}).get('min'),
+                vmax=dvminmax.get('cam0', {}).get('max'),
             )
 
-            _add_marker(ax, indref, indplot)
+            _utils._add_marker(ax, indref, indplot)
             plt.colorbar(im, ax=[ax, dax['cam_plane0']['handle']])
 
     kax = 'cam_diff0'
@@ -1335,7 +580,7 @@ def _plot_from_los(
             )
 
             # ref pixel
-            _add_marker(ax, indref, indplot)
+            _utils._add_marker(ax, indref, indplot)
             plt.colorbar(imdiff, ax=ax)
 
     # -------------------------------------
@@ -1351,12 +596,12 @@ def _plot_from_los(
             extent=extent_cam,
             origin='lower',
             interpolation='nearest',
-            vmin=vmin_cam,
-            vmax=vmax_cam,
+            vmin=dvminmax.get('cam', {}).get('min'),
+            vmax=dvminmax.get('cam', {}).get('max'),
         )
 
         # ref pixel
-        _add_marker(ax, indref, indplot)
+        _utils._add_marker(ax, indref, indplot)
 
     kax = 'cam_etend'
     if dax.get(kax) is not None:
@@ -1368,12 +613,12 @@ def _plot_from_los(
             extent=extent_cam,
             origin='lower',
             interpolation='nearest',
-            vmin=vmin_cam,
-            vmax=vmax_cam,
+            vmin=dvminmax.get('cam', {}).get('min'),
+            vmax=dvminmax.get('cam', {}).get('max'),
         )
 
         # ref pixel
-        _add_marker(ax, indref, indplot)
+        _utils._add_marker(ax, indref, indplot)
         plt.colorbar(im, ax=[ax, dax['cam_plane']['handle']])
 
     kax = 'cam_diff'
@@ -1394,7 +639,7 @@ def _plot_from_los(
         )
 
         # ref pixel
-        _add_marker(ax, indref, indplot)
+        _utils._add_marker(ax, indref, indplot)
         plt.colorbar(imdiff, ax=ax)
 
     # -----------------------------------------------
@@ -1410,12 +655,12 @@ def _plot_from_los(
             extent=extent_cam,
             origin='lower',
             interpolation='nearest',
-            vmin=vmin_cam_lamb,
-            vmax=vmax_cam_lamb,
+            vmin=dvminmax.get('cam_lamb', {}).get('min'),
+            vmax=dvminmax.get('cam_lamb', {}).get('max'),
         )
 
         # ref pixel
-        _add_marker(ax, indref, indplot)
+        _utils._add_marker(ax, indref, indplot)
 
     kax = 'cam_etend_lamb'
     if dax.get(kax) is not None:
@@ -1427,12 +672,12 @@ def _plot_from_los(
             extent=extent_cam,
             origin='lower',
             interpolation='nearest',
-            vmin=vmin_cam_lamb,
-            vmax=vmax_cam_lamb,
+            vmin=dvminmax.get('cam_lamb', {}).get('min'),
+            vmax=dvminmax.get('cam_lamb', {}).get('max'),
         )
 
         # ref pixel
-        _add_marker(ax, indref, indplot)
+        _utils._add_marker(ax, indref, indplot)
         plt.colorbar(im0, ax=[ax, dax['cam_plane_lamb']['handle']])
 
     kax = 'cam_diff_lamb'
@@ -1453,7 +698,7 @@ def _plot_from_los(
         )
 
         # ref pixel
-        _add_marker(ax, indref, indplot)
+        _utils._add_marker(ax, indref, indplot)
         plt.colorbar(imdiff, ax=ax)
 
     # -------------------------------------------
@@ -1469,8 +714,8 @@ def _plot_from_los(
             extent=extent_plane,
             origin='lower',
             interpolation='nearest',
-            vmin=vmin_plane0,
-            vmax=vmax_plane0,
+            vmin=dvminmax.get('plane0', {}).get('min'),
+            vmax=dvminmax.get('plane0', {}).get('max'),
         )
 
         ax.axhline(x1[ix1], c='w', ls='--', lw=0.5)
@@ -1491,8 +736,8 @@ def _plot_from_los(
             extent=extent_plane,
             origin='lower',
             interpolation='nearest',
-            vmin=vmin_plane,
-            vmax=vmax_plane,
+            vmin=dvminmax.get('plane', {}).get('min'),
+            vmax=dvminmax.get('plane', {}).get('max'),
         )
 
         plt.colorbar(im, ax=ax, label='solid angle (sr)')
@@ -1546,185 +791,204 @@ def _plot_from_los(
     return dax
 
 
-def _check_plot(
+# #########################################################
+# #########################################################
+#             Plot from mesh
+# #########################################################
+
+
+def _plot_from_mesh(
     coll=None,
     key_diag=None,
     key_cam=None,
-    is2d=None,
-    spectro=None,
+    # params
+    phi=None,
+    Z=None,
+    # dout
+    ptsx=None,
+    ptsy=None,
+    ptsz=None,
     sang0=None,
-    sang=None,
-    sang_lamb=None,
-    x0=None,
-    x1=None,
-    dS=None,
-    pt_ref=None,
-    los_ref=None,
-    indref=None,
-    indplot=None,
-    vmin_cam=None,
-    vmax_cam=None,
-    vmin_cam0=None,
-    vmax_cam0=None,
-    vmin_cam_lamb=None,
-    vmax_cam_lamb=None,
-    vmin_plane=None,
-    vmax_plane=None,
-    vmin_plane0=None,
-    vmax_plane0=None,
+    ndet=None,
+    # extra
+    dax=None,
+    plot_config=None,
+    fs=None,
+    dmargin=None,
+    dvminmax=None,
+    **kwdargs,
 ):
 
-    # ---------
+    # ------------
     # prepare
-    # ---------
 
-    doptics = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]
-
-    # ---------
-    # data
-    # ---------
-
-    if is2d is True:
-        # sang['data']
-        pass
-    else:
-        pass
-
-    # ---------
-    # integral
-    # ---------
-
-    if spectro:
-        etend_plane0 = np.nansum(
-            np.nansum(sang0['data'], axis=-1),
-            axis=-1
-        ) * dS
-        etend_plane = np.nansum(
-            np.nansum(sang['data'], axis=-1),
-            axis=-1,
-        ) * dS
-
-        ketend = doptics['etendue0']
-        etend0 = coll.ddata[ketend]['data']
-        ketend = doptics['etendue']
-        etend = coll.ddata[ketend]['data']
-
-        dlamb = coll.get_diagnostic_data(
-            key_diag,
-            key_cam=key_cam,
-            data='dlamb',
-        )[0][key_cam]
-
-        etend_lamb = etend * dlamb
-        etend_plane_lamb = sang_lamb['data'] * dS
-
-    else:
-        etend_plane0 = np.nansum(
-            np.nansum(sang0['data'], axis=-1),
-            axis=-1,
-        ) * dS
-        etend_plane = None
-
-        ketend = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]['etendue']
-        etend0 = coll.ddata[ketend]['data']
-        etend = None
-
-        etend_lamb = None
-        etend_plane_lamb = None
-
-    # ---------
-    # extent
-
-    # cam
-    extent_cam = None
-    if is2d:
-        extent_cam = None
-        sli = (indplot[0], indplot[1], slice(None), slice(None))
-        axis = (0, 1)
-    else:
-        sli = (indplot, slice(None), slice(None))
-        axis = 0
-
-    # extent_plane
-    dx0 = 0.5*(x0[1] - x0[0])
-    dx1 = 0.5*(x1[1] - x1[0])
-    extent_plane = (
-        x0.min() - dx0,
-        x0.max() + dx0,
-        x1.min() - dx1,
-        x1.max() + dx1,
-    )
-
-    # ----------
-    # vmin, vmax
-
-    if vmin_cam0 is None:
-        vmin_cam0 = min(
-            np.nanmin(etend0), np.nanmin(etend_plane0)
-        )
-    if vmax_cam0 is None:
-        vmax_cam0 = max(
-            np.nanmax(etend0), np.nanmax(etend_plane0)
-        )
-
-    if spectro:
-        if vmin_cam is None:
-            vmin_cam = min(
-                np.nanmin(etend), np.nanmin(etend_plane)
-            )
-        if vmax_cam is None:
-            vmax_cam = max(
-                np.nanmax(etend), np.nanmax(etend_plane)
-            )
-        if vmin_cam_lamb is None:
-            vmin_cam_lamb = min(
-                np.nanmin(etend_lamb), np.nanmin(etend_plane_lamb)
-            )
-        if vmax_cam_lamb is None:
-            vmax_cam_lamb = max(
-                np.nanmax(etend_lamb), np.nanmax(etend_plane_lamb)
-            )
-
-    else:
-        vmin_cam, vmax_cam = None, None
-        vmin_cam_lamb, vmax_cam_lamb = None, None
-
-    if vmin_plane0 is None:
-        vmin_plane0 = np.nanmin(sang0['data'])
-    if vmax_plane0 is None:
-        vmax_plane0 = np.nanmax(sang0['data'])
-
-    if sang is not None:
-        if vmin_plane is None:
-            vmin_plane = np.nanmin(sang['data'])
-        if vmax_plane is None:
-            vmax_plane = np.nanmax(sang['data'])
-
-    # --------
-    # los_ref
-
-    add = np.linspace(0, 1, 20)
-    los_refr = np.hypot(
-        pt_ref[0] + add * los_ref[0],
-        pt_ref[1] + add * los_ref[1],
-    )
-    los_refz = pt_ref[2] + add * los_ref[2]
-
-    return (
+    (
         etend0, etend, etend_lamb,
         etend_plane0, etend_plane, etend_plane_lamb,
         sli, axis,
         extent_cam, extent_plane,
-        vmin_cam0, vmax_cam0,
-        vmin_cam, vmax_cam,
-        vmin_cam_lamb, vmax_cam_lamb,
-        vmin_plane0, vmax_plane0,
-        vmin_plane, vmax_plane,
+        dvminmax,
         los_refr, los_refz,
+    ) = _check_plot(
+        coll=coll,
+        key_diag=key_diag,
+        key_cam=key_cam,
+        vect=None,
+        sang0=sang0,
+        ndet=ndet,
+        dvminmax=dvminmax,
     )
 
+    # --------------
+    # prepare
+    # --------------
 
-def _get_dax(
+    # tit
+    tit = (
+        "Solid angle subtended from points in the plasma by:\n"
+        f"{key_diag} - {key_cam}"
+    )
+
+    sang_tot = np.sum(sang0['data'], axis=axis)
+
+    # --------------
+    # prepare
+
+    dplot = coll.get_diagnostic_dplot(
+        key=key_diag,
+        key_cam=key_cam,
+        optics=None,
+        elements='o',
+    )
+
+    # --------------
+    # pepare dax
+    # --------------
+
+    if dax is None:
+        dax = _get_dax_mesh(
+            phi=phi,
+            Z=Z,
+            # options
+            fs=fs,
+            dmargin=dmargin,
+        )
+
+    dax = _generic_check._check_dax(dax=dax, main='cross')
+
+    # --------------
+    # points - hor
+    # --------------
+
+    # ----
+    # sang
+
+    kax = 'hor_sang'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # pts
+        im = ax.scatter(
+            ptsx,
+            ptsy,
+            c=sang_tot,
+            s=4,
+            marker='.',
+            vmin=dvminmax.get('plane', {}).get('min'),
+            vmax=dvminmax.get('plane', {}).get('max'),
+        )
+
+        kaxc = f'{kax}_cbar'
+        if dax.get(kaxc) is not None:
+            plt.colorbar(im, cax=dax[kaxc]['handle'])
+
+    # -----
+    # ndet
+
+    kax = 'hor_ndet'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # pts
+        im = ax.scatter(
+            ptsx,
+            ptsy,
+            c=ndet['data'],
+            s=4,
+            marker='.',
+            vmin=dvminmax.get('ndet', {}).get('min'),
+            vmax=dvminmax.get('ndet', {}).get('max'),
+        )
+
+        kaxc = f'{kax}_cbar'
+        if dax.get(kaxc) is not None:
+            plt.colorbar(im, cax=dax[kaxc]['handle'])
+
+    # --------------
+    # points - 3d
+    # --------------
+
+    kax = '3d'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # pts
+        im = ax.scatter(
+            ptsx,
+            ptsy,
+            ptsz,
+            c=sang_tot,
+            s=4,
+            marker='.',
+            vmin=dvminmax.get('plane', {}).get('min'),
+            vmax=dvminmax.get('plane', {}).get('max'),
+        )
+
+    # ----------
+    # diag geom
+    # ----------
+
+    _class8_plot._plot_diag_geom(
+        dax=dax,
+        key_cam=key_cam,
+        dplot=dplot,
+        is2d=coll.dobj['diagnostic'][key_diag]['is2d'],
+    )
+
+    # -------
+    # config
+
+    if plot_config.__class__.__name__ == 'Config':
+
+        kax = 'cross'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj=kax, dLeg=False)
+
+        kax = 'hor'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj=kax, dLeg=False)
+
+    # ------------
+    # figure title
+
+    list(dax.values())[0]['handle'].figure.suptitle(
+        tit,
+        size=14,
+        fontweight='bold',
+    )
+
+    return dax
+
+
+# ############################################################
+# ############################################################
+#                 dax for LOS
+# ############################################################
+
+
+def _get_dax_los(
     is2d=None,
     spectro=None,
     fs=None,
@@ -1753,234 +1017,185 @@ def _get_dax(
 
     fig = plt.figure(figsize=fs)
 
-    if spectro is True:
-        gs = gridspec.GridSpec(ncols=8, nrows=8, **dmargin)
+    nn = 4
+    gs = gridspec.GridSpec(ncols=5*nn+1, nrows=6, **dmargin)
 
-        # --------
-        # create
+    # --------
+    # create
 
-        # geometry
-        ax0 = fig.add_subplot(
-            gs[:2, :2],
-            aspect='equal',
-            adjustable='datalim',
-        )
-        ax0.set_xlabel('X (m)')
-        ax0.set_ylabel('Y (m)')
+    ax0 = fig.add_subplot(gs[:3, :2*nn], aspect='equal', adjustable='datalim')
+    ax0.set_xlabel('X (m)', size=12, fontweight='bold')
+    ax0.set_ylabel('Y (m)', size=12, fontweight='bold')
 
-        ax1 = fig.add_subplot(
-            gs[2:4, :2],
-            aspect='equal',
-            adjustable='datalim',
-        )
-        ax1.set_xlabel('R (m)')
-        ax1.set_ylabel('Z (m)')
+    ax1 = fig.add_subplot(gs[3:, :2*nn], aspect='equal', adjustable='datalim')
+    ax1.set_xlabel('R (m)', size=12, fontweight='bold')
+    ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
 
-        ax2 = fig.add_subplot(gs[4:, :2], projection='3d')
-        ax2.set_xlabel('X (m)')
-        ax2.set_ylabel('Y (m)')
-        ax2.set_ylabel('Z (m)')
+    ax2 = fig.add_subplot(gs[:2, 2*nn+1:3*nn+1], projection='3d')
+    ax2.set_xlabel('X (m)', size=12, fontweight='bold')
+    ax2.set_ylabel('Y (m)', size=12, fontweight='bold')
+    ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
 
-        # images for etend0
-        ax30 = fig.add_subplot(gs[:2, 2:4], aspect='equal')
-        ax30.set_ylabel('x1 (m)')
-        ax30.set_xlabel('x0 (m)')
-        ax30.set_title(
-            'etendue\nw/o rock. curve',
-            size=12,
-            fontweight='bold',
-        )
+    # etendue
+    if vect == 'nin':
+        if is2d is True:
+            ax30 = fig.add_subplot(gs[2:4, 2*nn:3*nn], aspect='equal')
+            ax30.set_ylabel('x1 (m)')
+            ax30.set_xlabel('x0 (m)')
+            ax30.set_title('integral', size=12, fontweight='bold')
 
-        ax31 = fig.add_subplot(gs[:2, 4:6], sharex=ax30, sharey=ax30)
-        ax31.set_xlabel('x0 (m)')
-        ax31.set_title(
-            'integral\nw/o rock. curve',
-            size=12,
-            fontweight='bold',
-        )
+            ax31 = fig.add_subplot(
+                gs[2:4, 3*nn:4*nn],
+                sharex=ax30,
+                sharey=ax30,
+            )
+            ax31.set_xlabel('x0 (m)')
+            ax31.set_title('etendue', size=12, fontweight='bold')
 
-        ax32 = fig.add_subplot(gs[:2, 6:], sharex=ax30, sharey=ax30)
-        ax32.set_xlabel('x0 (m)')
-        ax32.set_title('difference', size=12, fontweight='bold')
+            ax32 = fig.add_subplot(
+                gs[2:4, 4*nn:-1],
+                sharex=ax30,
+                sharey=ax30,
+            )
+            ax32.set_xlabel('x0 (m)')
+            ax32.set_title('difference', size=12, fontweight='bold')
 
-        # images for etend
-        ax40 = fig.add_subplot(gs[2:4, 2:4], aspect='equal')
-        ax40.set_ylabel('x1 (m)')
-        ax40.set_xlabel('x0 (m)')
-        ax40.set_title(
-            'etendue\nwith rock. curve',
-            size=12,
-            fontweight='bold',
-        )
+        else:
+            ax30 = fig.add_subplot(gs[:2, 3*nn+2:])
+            ax30.set_xlabel('channel', size=12, fontweight='bold')
+            ax30.set_ylabel('Etendue (m2.sr)', size=12, fontweight='bold')
 
-        ax41 = fig.add_subplot(gs[2:4, 4:6], sharex=ax30, sharey=ax30)
-        ax41.set_xlabel('x0 (m)')
-        ax41.set_title(
-            'integral\nwith rock. curve',
-            size=12,
-            fontweight='bold',
-        )
+    ax4 = fig.add_subplot(
+        gs[2:4, 2*nn+1:-1],
+        aspect='equal',
+        adjustable='datalim',
+    )
+    ax4.set_ylabel('x1 (m)', size=12, fontweight='bold')
+    ax4.set_xlabel('x0 (m)', size=12, fontweight='bold')
 
-        ax42 = fig.add_subplot(gs[2:4, 6:], sharex=ax30, sharey=ax30)
-        ax42.set_xlabel('x0 (m)')
-        ax42.set_title('difference', size=12, fontweight='bold')
+    ax4c = fig.add_subplot(gs[2:4, -1])
 
-        # images for etend * dlamb
-        ax50 = fig.add_subplot(gs[4:6, 2:4], aspect='equal')
-        ax50.set_ylabel('x1 (m)')
-        ax50.set_xlabel('x0 (m)')
-        ax50.set_title(
-            'etendue * dlamb\nwith rock. curve',
-            size=12,
-            fontweight='bold',
-        )
+    ax5 = fig.add_subplot(gs[4:, 2*nn+1:-1], sharex=ax4)
+    ax5.set_ylabel('sang (sr)', size=12, fontweight='bold')
+    ax5.set_xlabel('x0 (m)', size=12, fontweight='bold')
 
-        ax51 = fig.add_subplot(gs[4:6, 4:6], sharex=ax30, sharey=ax30)
-        ax51.set_xlabel('x0 (m)')
-        ax51.set_title(
-            'integral * dlamb\nwith rock. curve',
-            size=12,
-            fontweight='bold',
-        )
-
-        ax52 = fig.add_subplot(gs[4:6, 6:], sharex=ax30, sharey=ax30)
-        ax52.set_xlabel('x0 (m)')
-        ax52.set_title('difference', size=12, fontweight='bold')
-
-        # plane
-        ax60 = fig.add_subplot(
-            gs[-2:, 2:5],
-            aspect='equal',
-            adjustable='datalim',
-        )
-        ax60.set_ylabel('x1 (m)')
-        ax60.set_xlabel('x0 (m)')
-
-        ax61 = fig.add_subplot(
-            gs[-2:, 5:],
-            aspect='equal',
-            adjustable='datalim',
-        )
-        ax61.set_ylabel('x1 (m)')
-        ax61.set_xlabel('x0 (m)')
-
-        # dict
-        dax = {
-            'cross': {'handle': ax0, 'type': 'cross'},
-            'hor': {'handle': ax1, 'type': 'hor'},
-            '3d': {'handle': ax2, 'type': '3d'},
-            'cam_etend0': {'handle': ax30, 'type': 'camera'},
-            'cam_plane0': {'handle': ax31, 'type': 'camera'},
-            'cam_diff0': {'handle': ax32, 'type': 'camera'},
-            'cam_etend': {'handle': ax40, 'type': 'camera'},
-            'cam_plane': {'handle': ax41, 'type': 'camera'},
-            'cam_diff': {'handle': ax42, 'type': 'camera'},
-            'cam_etend_lamb': {'handle': ax50, 'type': 'camera'},
-            'cam_plane_lamb': {'handle': ax51, 'type': 'camera'},
-            'cam_diff_lamb': {'handle': ax52, 'type': 'camera'},
-            'plane0': {'handle': ax60, 'type': 'misc'},
-            'plane': {'handle': ax61, 'type': 'misc'},
-        }
-
-    else:
-        nn = 4
-        gs = gridspec.GridSpec(ncols=5*nn+1, nrows=6, **dmargin)
-
-        # --------
-        # create
-
-        ax0 = fig.add_subplot(gs[:3, :2*nn], aspect='equal', adjustable='datalim')
-        ax0.set_xlabel('X (m)', size=12, fontweight='bold')
-        ax0.set_ylabel('Y (m)', size=12, fontweight='bold')
-
-        ax1 = fig.add_subplot(gs[3:, :2*nn], aspect='equal', adjustable='datalim')
-        ax1.set_xlabel('R (m)', size=12, fontweight='bold')
-        ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
-
-        ax2 = fig.add_subplot(gs[:2, 2*nn+1:3*nn+1], projection='3d')
-        ax2.set_xlabel('X (m)', size=12, fontweight='bold')
-        ax2.set_ylabel('Y (m)', size=12, fontweight='bold')
-        ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
-
-        # etendue
-        if vect == 'nin':
-            if is2d is True:
-                ax30 = fig.add_subplot(gs[2:4, 2*nn:3*nn], aspect='equal')
-                ax30.set_ylabel('x1 (m)')
-                ax30.set_xlabel('x0 (m)')
-                ax30.set_title('integral', size=12, fontweight='bold')
-
-                ax31 = fig.add_subplot(
-                    gs[2:4, 3*nn:4*nn],
-                    sharex=ax30,
-                    sharey=ax30,
-                )
-                ax31.set_xlabel('x0 (m)')
-                ax31.set_title('etendue', size=12, fontweight='bold')
-
-                ax32 = fig.add_subplot(
-                    gs[2:4, 4*nn:-1],
-                    sharex=ax30,
-                    sharey=ax30,
-                )
-                ax32.set_xlabel('x0 (m)')
-                ax32.set_title('difference', size=12, fontweight='bold')
-
-            else:
-                ax30 = fig.add_subplot(gs[:2, 3*nn+2:])
-                ax30.set_xlabel('channel', size=12, fontweight='bold')
-                ax30.set_ylabel('Etendue (m2.sr)', size=12, fontweight='bold')
-
-        ax4 = fig.add_subplot(
-            gs[2:4, 2*nn+1:-1],
-            aspect='equal',
-            adjustable='datalim',
-        )
-        ax4.set_ylabel('x1 (m)', size=12, fontweight='bold')
-        ax4.set_xlabel('x0 (m)', size=12, fontweight='bold')
-
-        ax4c = fig.add_subplot(gs[2:4, -1])
-
-        ax5 = fig.add_subplot(gs[4:, 2*nn+1:-1], sharex=ax4)
-        ax5.set_ylabel('sang (sr)', size=12, fontweight='bold')
-        ax5.set_xlabel('x0 (m)', size=12, fontweight='bold')
-
-        # dict
-        dax = {
-            'cross': {'handle': ax0, 'type': 'cross'},
-            'hor': {'handle': ax1, 'type': 'hor'},
-            '3d': {'handle': ax2, 'type': '3d'},
-            'plane0': {'handle': ax4, 'type': 'misc'},
-            'colorbar': {'handle': ax4c, 'type': 'misc'},
-            'slice': {'handle': ax5, 'type': 'misc'},
-        }
-        if vect == 'nin':
-            dax['cam_plane0'] = {'handle': ax30, 'type': 'camera'}
-            if is2d is True:
-                dax['cam_etend0'] = {'handle': ax31, 'type': 'camera'}
-                dax['cam_diff0'] = {'handle': ax32, 'type': 'camera'}
+    # dict
+    dax = {
+        'cross': {'handle': ax0, 'type': 'cross'},
+        'hor': {'handle': ax1, 'type': 'hor'},
+        '3d': {'handle': ax2, 'type': '3d'},
+        'plane0': {'handle': ax4, 'type': 'misc'},
+        'colorbar': {'handle': ax4c, 'type': 'misc'},
+        'slice': {'handle': ax5, 'type': 'misc'},
+    }
+    if vect == 'nin':
+        dax['cam_plane0'] = {'handle': ax30, 'type': 'camera'}
+        if is2d is True:
+            dax['cam_etend0'] = {'handle': ax31, 'type': 'camera'}
+            dax['cam_diff0'] = {'handle': ax32, 'type': 'camera'}
 
     return dax  # , cax
 
 
-def _add_marker(ax=None, indref=None, indplot=None):
+# ############################################################
+# ############################################################
+#                 dax for mesh
+# ############################################################
 
-    # ref pixel
-    ax.plot(
-        [indref[0]],
-        [indref[1]],
-        marker='s',
-        markerfacecolor='None',
-        markeredgecolor='k',
-        ms=4,
+
+def _get_dax_mesh(
+    phi=None,
+    Z=None,
+    # options
+    fs=None,
+    dmargin=None,
+):
+
+    # ----------
+    # check
+    # ----------
+
+    if fs is None:
+        fs = (18, 8)
+
+    dmargin = ds._generic_check._check_var(
+        dmargin, 'dmargin',
+        types=dict,
+        default={
+            'bottom': 0.05, 'top': 0.90,
+            'left': 0.05, 'right': 0.95,
+            'wspace': 0.40, 'hspace': 0.5,
+        },
     )
 
-    # plot pixel
-    ax.plot(
-        [indplot[0]],
-        [indplot[1]],
-        marker='s',
-        markerfacecolor='None',
-        markeredgecolor='g',
-        ms=4,
+    # ------------
+    # prepare data
+    # ------------
+
+    if phi is None:
+        xlab = 'X (m)'
+        ylab = 'Y (m)'
+        tit_sang = f"sang at Z = {round(Z, ndigits=2)} m"
+        tit_ndet = f"ndet at Z = {round(Z, ndigits=2)} m"
+    else:
+        xlab = 'R (m)'
+        ylab = 'Z (m)'
+        tit_sang = f"sang at phi = {round(phi*180./np.pi, ndigits=0)} deg"
+        tit_ndet = f"ndet at phi = {round(phi*180./np.pi, ndigits=0)} deg"
+
+    # ------------
+    # prepare fig
+    # ------------
+
+    fig = plt.figure(figsize=fs)
+
+    na, ni, nc = 4, 2, 1
+    gs = gridspec.GridSpec(ncols=na*3+ni*2+nc*2, nrows=1, **dmargin)
+
+    # ------------
+    # create axes
+    # ------------
+
+    # ax0
+    ax0 = fig.add_subplot(
+        gs[:, na+ni:2*na+ni],
+        aspect='equal',
+        adjustable='datalim',
     )
+    ax0.set_xlabel(xlab, size=12, fontweight='bold')
+    ax0.set_ylabel(ylab, size=12, fontweight='bold')
+    ax0.set_title(tit_sang, size=12, fontweight='bold')
+
+    # ax0c
+    ax0c = fig.add_subplot(gs[:, 2*na+ni])
+
+    # ax1
+    ax1 = fig.add_subplot(
+        gs[:, 2*na+2*ni+nc:3*na+2*ni+nc],
+        aspect='equal',
+        adjustable='datalim',
+    )
+    ax1.set_xlabel(xlab, size=12, fontweight='bold')
+    ax1.set_ylabel(ylab, size=12, fontweight='bold')
+    ax1.set_title(tit_ndet, size=12, fontweight='bold')
+
+    # ax1c
+    ax1c = fig.add_subplot(gs[:, 3*na+2*ni+nc])
+
+    # ax2
+    ax2 = fig.add_subplot(gs[:, :na], aspect='equal', projection='3d')
+    ax2.set_xlabel('X (m)', size=12, fontweight='bold')
+    ax2.set_ylabel('Y (m)', size=12, fontweight='bold')
+    ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
+
+    # dict
+    dax = {
+        '3d': {'handle': ax2, 'type': '3d'},
+    }
+    if phi is None:
+        dax['hor_sang'] = {'handle': ax0, 'type': 'hor'}
+        dax['hor_ndet'] = {'handle': ax1, 'type': 'hor'}
+        dax['hor_sang_cbar'] = {'handle': ax0c, 'type': 'cbar'}
+        dax['hor_ndet_cbar'] = {'handle': ax1c, 'type': 'cbar'}
+
+    return dax

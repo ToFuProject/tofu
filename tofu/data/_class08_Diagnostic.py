@@ -315,7 +315,7 @@ class Diagnostic(Previous):
         if return_dcompute is True:
             return dcompute
 
-    def compute_diagnostic_solidangle_from_plane(
+    def plot_diagnostic_geometrical_coverage_slice(
         self,
         key_diag=None,
         key_cam=None,
@@ -327,8 +327,13 @@ class Diagnostic(Previous):
         margin_perp=None,
         vect=None,
         segment=None,
+        # mesh slice
+        key_mesh=None,
         phi=None,
         Z=None,
+        DR=None,
+        DZ=None,
+        Dphi=None,
         config=None,
         # solid angle
         n0=None,
@@ -344,14 +349,7 @@ class Diagnostic(Previous):
         plot_config=None,
         fs=None,
         dmargin=None,
-        vmin_cam0=None,
-        vmax_cam0=None,
-        vmin_cam=None,
-        vmax_cam=None,
-        vmin_cam_lamb=None,
-        vmax_cam_lamb=None,
-        vmin_plane=None,
-        vmax_plane=None,
+        dvminmax=None,
     ):
         """ Creates a plane perpendicular to los
         compute contribution of each point to the signal
@@ -359,7 +357,7 @@ class Diagnostic(Previous):
         return dout
         """
 
-        return _planeperp.main(
+        return _coverage_slice.main(
             coll=self,
             key_diag=key_diag,
             key_cam=key_cam,
@@ -371,8 +369,13 @@ class Diagnostic(Previous):
             margin_perp=margin_perp,
             vect=vect,
             segment=segment,
+            # mesh slice
+            key_mesh=key_mesh,
             phi=phi,
             Z=Z,
+            DR=DR,
+            DZ=DZ,
+            Dphi=Dphi,
             config=config,
             # solid angle
             n0=n0,
@@ -388,14 +391,8 @@ class Diagnostic(Previous):
             plot_config=plot_config,
             fs=fs,
             dmargin=dmargin,
-            vmin_cam0=vmin_cam0,
-            vmax_cam0=vmax_cam0,
-            vmin_cam=vmin_cam,
-            vmax_cam=vmax_cam,
-            vmin_cam_lamb=vmin_cam_lamb,
-            vmax_cam_lamb=vmax_cam_lamb,
-            vmin_plane=vmin_plane,
-            vmax_plane=vmax_plane,
+            # vmin vmax
+            dvminmax=dvminmax,
         )
 
     # -----------------
@@ -436,50 +433,8 @@ class Diagnostic(Previous):
         )
 
     # -----------------
-    # solid angle from plane
+    # compute vos
     # -----------------
-
-    def plot_diagnostic_solidangle_from_plane(
-        self,
-        dout=None,
-        # plotting
-        indplot=None,
-        dax=None,
-        plot_config=None,
-        fs=None,
-        dmargin=None,
-        vmin_cam0=None,
-        vmax_cam0=None,
-        vmin_cam=None,
-        vmax_cam=None,
-        vmin_cam_lamb=None,
-        vmax_cam_lamb=None,
-        vmin_plane=None,
-        vmax_plane=None,
-    ):
-        """ Creates a plane perpendicular to los
-        compute contribution of each point to the signal
-        """
-
-        return _coverage_slice.main(
-            coll=self,
-            # extra
-            indplot=indplot,
-            dax=dax,
-            plot_config=plot_config,
-            fs=fs,
-            dmargin=dmargin,
-            vmin_cam0=vmin_cam0,
-            vmax_cam0=vmax_cam0,
-            vmin_cam=vmin_cam,
-            vmax_cam=vmax_cam,
-            vmin_cam_lamb=vmin_cam_lamb,
-            vmax_cam_lamb=vmax_cam_lamb,
-            vmin_plane=vmin_plane,
-            vmax_plane=vmax_plane,
-            # dout
-            **dout,
-        )
 
     def compute_diagnostic_vos(
         self,
