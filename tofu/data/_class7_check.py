@@ -1084,7 +1084,7 @@ def _get_extent(
     # check key
     # ----------
 
-    wcam = coll.__which_cam
+    wcam = coll._which_cam
     lok = list(coll.dobj.get(wcam, {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',

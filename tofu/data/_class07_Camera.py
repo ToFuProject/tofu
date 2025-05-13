@@ -24,7 +24,7 @@ __all__ = ['Camera']
 
 class Camera(Previous):
 
-    __which_cam = 'camera'
+    _which_cam = 'camera'
     _ddef = copy.deepcopy(Previous._ddef)
     _ddef['params']['ddata'].update({
           'camera': {'cls': str, 'def': ''},
