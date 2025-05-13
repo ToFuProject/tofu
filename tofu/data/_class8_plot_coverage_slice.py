@@ -66,7 +66,7 @@ def main(
 
     (
         key_diag, key_cam, indch, indref,
-        parallel, is2d, spectro, doptics,
+        is2d, spectro, doptics,
         lop_pre, lop_post,
         res, margin_par, margin_perp,
         vect, segment, phi, Z, key_mesh,
@@ -119,11 +119,11 @@ def main(
             # resource
             coll=coll,
             doptics=doptics,
-            key_cam=key_cam,
+            key_cam=key_cam[0],
             indref=indref,
             spectro=spectro,
             lop_post=lop_post,
-            parallel=parallel,
+            parallel=coll.dobj['camera'][key_cam[0]]['dgeom']['parallel'],
             vect=vect,
             segment=segment,
             # plane params
@@ -187,7 +187,6 @@ def main(
         key_diag=key_diag,
         key_cam=key_cam,
         doptics=doptics,
-        par=parallel,
         is2d=is2d,
         # pts
         ptsx=ptsx,
@@ -227,7 +226,6 @@ def main(
         'dS': dS,
         'vect': vect,
         'Z': Z,
-        'Z': Z,
         'phi': phi,
     })
 
@@ -238,6 +236,18 @@ def main(
     if plot is True:
         _plot(
             coll=coll,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # phi, Z
+            phi=phi,
+            Z=Z,
+            vect=vect,
+            # pts
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # dout
+            dout=dout,
             # extra
             indplot=indplot,
             dax=dax,
@@ -245,8 +255,6 @@ def main(
             fs=fs,
             dmargin=dmargin,
             dvminmax=dvminmax,
-            # dout
-            **dout,
         )
 
     return dout
@@ -292,89 +300,76 @@ def _check(
     # keys
     # ----------
 
+    # key, key_cam
     key_diag, key_cam = coll.get_diagnostic_cam(
         key=key_diag,
         key_cam=key_cam,
     )
 
-    if len(key_cam) > 1:
-        msg = f"Please select a key_cam!\n\tkey_cam: {key_cam}"
-        raise Exception(msg)
-
-    key_cam = key_cam[0]
+    # properties
     spectro = coll.dobj['diagnostic'][key_diag]['spectro']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
-    parallel = coll.dobj['camera'][key_cam]['dgeom']['parallel']
-    doptics = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]
 
-    if spectro and not is2d:
-        msg = "Only implemented for 2d spectro"
-        raise Exception(msg)
+    # safety check vs spectro
+    if spectro:
 
-    if is2d:
-        n0, n1 = coll.dobj['camera'][key_cam]['dgeom']['shape']
+        if len(key_cam) > 1:
+            msg = (
+                "Spectrometer: please select a single key_cam!\n"
+                f"\tkey_cam: {key_cam}\n"
+            )
+            raise Exception(msg)
+
+        if not is2d:
+            msg = "Only implemented for 2d spectro"
+            raise Exception(msg)
+        kcam = key_cam[0]
+
+    # doptics
+    if spectro:
+        doptics = coll.dobj['diagnostic'][key_diag]['doptics'][kcam]
     else:
-        nch = coll.dobj['camera'][key_cam]['dgeom']['shape'][0]
+        doptics = coll.dobj['diagnostic'][key_diag]['doptics']
 
     # -----------------
     # loptics
     # -----------------
 
     if spectro:
-        optics, cls_optics = coll.get_optics_cls(doptics['optics'])
+        optics, cls_optics = coll.get_optics_cls(doptics[kcam]['optics'])
         ispectro = cls_optics.index('crystal')
-        lop_pre = doptics['optics'][:ispectro]
-        lop_post = doptics['optics'][ispectro+1:]
+        lop_pre = doptics[kcam]['optics'][:ispectro]
+        lop_post = doptics[kcam]['optics'][ispectro+1:]
 
     else:
-        lop_pre = doptics['optics']
-        lop_post = []
+        lop_pre = None
+        lop_post = None
 
     # -----------------
     # indch
     # -----------------
 
     if indch is not None:
-        if spectro or is2d:
-            indch = ds._generic_check._check_flat1darray(
-                indch, 'indch',
-                dtype=int,
-                size=2,
-                sign='>0',
-            )
-            indch[0] = indch[0] % n0
-            indch[1] = indch[1] % n1
-
-        else:
-            indch = int(ds._generic_check._check_var(
-                indch, 'indch',
-                types=(float, int),
-            )) % nch
+        indch = _check_index(
+            coll=coll,
+            key_cam=key_cam,
+            ind=indch,
+            ind_name='indch',
+        )
 
     # -----------------
     # indref
     # -----------------
 
     if indref is not None:
-        if spectro or is2d:
-            indref = ds._generic_check._check_flat1darray(
-                indref, 'indref',
-                dtype=int,
-                size=2,
-                sign='>=0',
-            )
-            indref[0] = indref[0] % n0
-            indref[1] = indref[1] % n1
-
-        else:
-            indref = int(ds._generic_check._check_var(
-                indref, 'indref',
-                types=(float, int),
-                sign='>=0',
-            )) % nch
-
-            if indch is not None:
-                indref = indch
+        indref = _check_index(
+            coll=coll,
+            key_cam=key_cam,
+            ind=indref,
+            ind_name='indref',
+        )
+        if indch is not None:
+            indref = indch
 
     # ----------
     # res
@@ -487,6 +482,9 @@ def _check(
         ))
         vect = None
 
+    if vect is not None:
+        assert len(key_cam) == 1
+
     # -----------
     # segment
     # -----------
@@ -532,9 +530,9 @@ def _check(
     # get indref for los
     # ------------------
 
-    if indref is None:
+    if indref is None and vect is not None:
         if spectro or is2d or indch is None:
-            etend = coll.ddata[doptics['etendue']]['data']
+            etend = coll.ddata[doptics[key_cam[0]]['etendue']]['data']
             indref = np.nanargmax(etend)
 
             if is2d:
@@ -560,7 +558,7 @@ def _check(
 
     return (
         key_diag, key_cam, indch, indref,
-        parallel, is2d, spectro, doptics,
+        is2d, spectro, doptics,
         lop_pre, lop_post,
         res, margin_par, margin_perp,
         vect, segment, phi, Z, key_mesh,
@@ -569,6 +567,33 @@ def _check(
         indref, indplot,
         plot_config,
     )
+
+
+def _check_index(coll=None, key_cam=None, ind=None, ind_name=None):
+
+    # safety
+    if len(key_cam) > 1:
+        msg = (
+            "indch cannot be provided for multiple key_cam!\n"
+            f"\t- {ind_name}: {ind}\n"
+            f"\t- key_cam: {key_cam}\n"
+        )
+        raise Exception(msg)
+
+    if isinstance(ind, (float, int)):
+        ind = (int(ind),)
+
+    shape_cam = coll.dobj['camera'][key_cam[0]]['dgeom']['shape']
+    ind = ds._generic_check._check_flat1darray(
+        ind, ind_name,
+        dtype=int,
+        size=len(shape_cam),
+    )
+
+    return tuple([
+        ind[ii] % shape_cam[ii]
+        for ii in range(len(ind))
+    ])
 
 
 # ###############################################################

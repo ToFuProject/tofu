@@ -38,7 +38,11 @@ def _compute(
     n1=None,
     # res
     res_lamb=None,
+    # unused
+    **kwdargs,
 ):
+
+    key_cam = key_cam[0]
 
     # ------------
     # prepare
