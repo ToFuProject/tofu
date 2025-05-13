@@ -15,10 +15,10 @@ from . import _class8_plot_coverage_slice_broadband as _broadband
 from . import _class8_plot_coverage_slice_spectro as _spectro
 
 
-# ###############################################################
-# ###############################################################
-#                   Main
-# ###############################################################
+# ##########################################################
+# ##########################################################
+#              Main
+# ##########################################################
 
 
 def main(
@@ -119,11 +119,10 @@ def main(
             # resource
             coll=coll,
             doptics=doptics,
-            key_cam=key_cam[0],
+            key_cam=key_cam,
             indref=indref,
             spectro=spectro,
             lop_post=lop_post,
-            parallel=coll.dobj['camera'][key_cam[0]]['dgeom']['parallel'],
             vect=vect,
             segment=segment,
             # plane params
@@ -610,7 +609,6 @@ def _plane_from_LOS(
     indref=None,
     spectro=None,
     lop_post=None,
-    parallel=None,
     segment=None,
     vect=None,
     # plane params
@@ -625,7 +623,9 @@ def _plane_from_LOS(
     # los_ref
     # ----------
 
-    klos = doptics['los']
+    kcam = key_cam[0]
+    klos = doptics[kcam]['los']
+    parallel = coll.dobj['camera'][kcam]['dgeom']['parallel']
 
     # start_ref
     ptsx, ptsy, ptsz = coll.get_rays_pts(
@@ -653,8 +653,8 @@ def _plane_from_LOS(
         else:
             kmax = 0.
     else:
-        if len(doptics['optics']) > 0:
-            poly = doptics['optics'][-1]
+        if len(doptics[kcam]['optics']) > 0:
+            poly = doptics[kcam]['optics'][-1]
         else:
             kmax = 0.
 
@@ -679,10 +679,10 @@ def _plane_from_LOS(
 
     if parallel:
         # e0_cam = coll.dobj['camera'][key_cam]['dgeom']['e0']
-        e1_cam = coll.dobj['camera'][key_cam]['dgeom']['e1']
+        e1_cam = coll.dobj['camera'][kcam]['dgeom']['e1']
     else:
         # ke0x, ke0y, ke0z = coll.dobj['camera'][key_cam]['dgeom']['e0']
-        ke1x, ke1y, ke1z = coll.dobj['camera'][key_cam]['dgeom']['e1']
+        ke1x, ke1y, ke1z = coll.dobj['camera'][kcam]['dgeom']['e1']
         e1_cam = np.r_[
             coll.ddata[ke1x]['data'][indref],
             coll.ddata[ke1y]['data'][indref],

@@ -164,20 +164,24 @@ def _compute(
                     return_flat_det=False,
                 )
 
-        axis = tuple([ii for ii in range(len(cx.shape))])
+        axis_cam = tuple([ii for ii in range(cx.ndim)])
+        axis_plane = tuple([ii for ii in range(cx.ndim, sang.ndim)])
 
         dout[kcam] = {
-            'sang0': {
+            'sang': {
                 'data': sang,
                 'ref': ref,
                 'units': 'sr',
             },
             'ndet': {
-                'data': np.sum(sang > 0., axis=axis),
+                'data': np.sum(sang > 0., axis=axis_cam),
                 'units': '',
-                'ref': ref[-2:],
+                'ref': tuple([
+                    rr for ii, rr in enumerate(ref) if ii in axis_plane
+                ]),
             },
-            'axis': axis,
+            'axis_cam': axis_cam,
+            'axis_plane': axis_plane,
         }
 
     return dout
@@ -189,17 +193,12 @@ def _compute(
 # #######################################################
 
 
-def _check_plot(
+def _check_plot_los(
     coll=None,
     key_diag=None,
     key_cam=None,
     vect=None,
-    is2d=None,
-    spectro=None,
-    sang0=None,
-    sang=None,
-    ndet=None,
-    sang_lamb=None,
+    dout=None,
     x0=None,
     x1=None,
     dS=None,
@@ -215,44 +214,34 @@ def _check_plot(
     # ---------
 
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
-    shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
+
+    kcam = key_cam[0]
+    is2d = coll.dobj['camera'][kcam]['dgeom']['nd'] == '2d'
+    sang = dout[kcam]['sang']['data']
+    ndet = dout[kcam]['ndet']['data']
+    sang_tot = np.sum(sang, axis=dout[kcam]['axis_cam'])
 
     # ---------
-    # integral
+    # etendue
     # ---------
 
-    if sang0 is not None and dS is not None:
-        etend_plane0 = np.nansum(
-            np.nansum(sang0['data'], axis=-1),
-            axis=-1,
-        ) * dS
-    else:
-        etend_plane0 = None
-
-    etend_plane = None
-    etend = None
     if vect == 'nin':
         ketend = doptics['etendue']
-        etend0 = coll.ddata[ketend]['data']
-    else:
-        etend0 = None
+        etend = coll.ddata[ketend]['data']
 
-    etend_lamb = None
-    etend_plane_lamb = None
+        etend_plane = np.nansum(
+            np.nansum(sang, axis=dout[kcam]['axis_plane'])
+        ) * dS
+    else:
+        etend = None
+        etend_plane = None
 
     # ---------
     # extent
     # ---------
 
     # cam
-    extent_cam = None
-    if is2d:
-        extent_cam = None
-        sli = (indplot[0], indplot[1], slice(None), slice(None))
-    else:
-        sli = (indplot, slice(None), slice(None))
-
-    axis = tuple([ii for ii in range(len(shape_cam))])
+    extent_cam = coll.get_camera_extent(kcam)
 
     # extent_plane
     if x0 is not None:
@@ -273,15 +262,10 @@ def _check_plot(
 
     dvminmax = _utils._check_dvminmax(
         dvminmax=dvminmax,
-        etend0=etend0,
-        etend_plane0=etend_plane0,
         etend=etend,
         etend_plane=etend_plane,
-        etend_lamb=etend_lamb,
-        etend_plane_lamb=etend_plane_lamb,
-        sang0=sang0,
-        sang=sang,
-        ndet=ndet,
+        sang={'data': sang_tot},
+        ndet={'data': ndet},
     )
 
     # --------
@@ -298,9 +282,9 @@ def _check_plot(
         los_refr, los_refz = None, None
 
     return (
-        etend0, etend, etend_lamb,
-        etend_plane0, etend_plane, etend_plane_lamb,
-        sli, axis,
+        is2d,
+        sang_tot, sang, ndet,
+        etend, etend_plane,
         extent_cam, extent_plane,
         dvminmax,
         los_refr, los_refz,
@@ -317,26 +301,26 @@ def _plot_from_los(
     coll=None,
     key_diag=None,
     key_cam=None,
-    # dout
-    is2d=None,
-    spectro=None,
+    # indices
     indch=None,
     indref=None,
     los_ref=None,
     pt_ref=None,
     klos=None,
+    # vect
     e0=None,
     e1=None,
+    vect=None,
+    # pts
     ptsx=None,
     ptsy=None,
     ptsz=None,
+    # plane
     x0=None,
     x1=None,
     dS=None,
-    vect=None,
-    sang0=None,
-    sang=None,
-    sang_lamb=None,
+    # dout
+    dout=None,
     # extra
     indplot=None,
     dax=None,
@@ -351,25 +335,22 @@ def _plot_from_los(
     # prepare
 
     (
-        etend0, etend, etend_lamb,
-        etend_plane0, etend_plane, etend_plane_lamb,
-        sli, axis,
+        is2d,
+        sang_tot, sang, ndet,
+        etend, etend_plane,
+        etend, etend_plane,
         extent_cam, extent_plane,
         dvminmax,
         los_refr, los_refz,
-    ) = _check_plot(
+    ) = _check_plot_los(
         coll=coll,
         key_diag=key_diag,
         key_cam=key_cam,
         vect=vect,
-        is2d=is2d,
-        spectro=spectro,
-        sang0=sang0,
-        sang=sang,
-        sang_lamb=sang_lamb,
         x0=x0,
         x1=x1,
         dS=dS,
+        dout=dout,
         pt_ref=pt_ref,
         los_ref=los_ref,
         indref=indref,
@@ -382,8 +363,6 @@ def _plot_from_los(
     # --------------
 
     ix1 = int(x1.size/2)
-    # sang_plot = sang0['data'][sli].ravel()
-    sang_tot_plot = np.sum(sang0['data'], axis=axis)
 
     # tit
     tit = (
@@ -407,7 +386,6 @@ def _plot_from_los(
     if dax is None:
         dax = _get_dax_los(
             is2d=is2d,
-            spectro=spectro,
             fs=fs,
             dmargin=dmargin,
             vect=vect,
@@ -426,7 +404,7 @@ def _plot_from_los(
         ax.scatter(
             np.hypot(ptsx, ptsy).ravel(),
             ptsz.ravel(),
-            c=sang_tot_plot,
+            c=sang_tot,
             s=4,
             marker='.',
             vmin=dvminmax.get('plane', {}).get('min'),
@@ -450,7 +428,7 @@ def _plot_from_los(
         ax.scatter(
             ptsx.ravel(),
             ptsy.ravel(),
-            c=sang_tot_plot,
+            c=sang_tot,
             s=4,
             marker='.',
             vmin=dvminmax.get('plane', {}).get('min'),
@@ -475,7 +453,7 @@ def _plot_from_los(
             ptsx.ravel(),
             ptsy.ravel(),
             ptsz.ravel(),
-            c=sang_tot_plot,
+            c=sang_tot,
             s=4,
             marker='.',
             vmin=dvminmax.get('plane', {}).get('min'),
@@ -552,67 +530,8 @@ def _plot_from_los(
 
             ax.legend()
 
-    kax = 'cam_etend0'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        if is2d is True:
-
-            # plane-specific etendue
-            im0 = ax.imshow(
-                etend0.T,
-                extent=extent_cam,
-                origin='lower',
-                interpolation='nearest',
-                vmin=dvminmax.get('cam0', {}).get('min'),
-                vmax=dvminmax.get('cam0', {}).get('max'),
-            )
-
-            _utils._add_marker(ax, indref, indplot)
-            plt.colorbar(im, ax=[ax, dax['cam_plane0']['handle']])
-
-    kax = 'cam_diff0'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        if is2d is True:
-
-            # plane-specific etendue
-            diff = (etend_plane0 - etend0).T
-            err = np.nanmax(np.abs(diff))
-            imdiff = ax.imshow(
-                diff,
-                extent=extent_cam,
-                origin='lower',
-                interpolation='nearest',
-                vmin=-err,
-                vmax=err,
-                cmap=plt.cm.seismic,
-            )
-
-            # ref pixel
-            _utils._add_marker(ax, indref, indplot)
-            plt.colorbar(imdiff, ax=ax)
-
-    # -------------------------------------
-    # integral per pixel with rocking curve
-
-    kax = 'cam_plane'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        # plane-specific etendue
-        im = ax.imshow(
-            etend_plane.T,
-            extent=extent_cam,
-            origin='lower',
-            interpolation='nearest',
-            vmin=dvminmax.get('cam', {}).get('min'),
-            vmax=dvminmax.get('cam', {}).get('max'),
-        )
-
-        # ref pixel
-        _utils._add_marker(ax, indref, indplot)
+    # ------------
+    # camera
 
     kax = 'cam_etend'
     if dax.get(kax) is not None:
@@ -638,65 +557,6 @@ def _plot_from_los(
 
         # plane-specific etendue
         diff = (etend_plane - etend).T
-        err = np.nanmax(np.abs(diff))
-        imdiff = ax.imshow(
-            diff,
-            extent=extent_cam,
-            origin='lower',
-            interpolation='nearest',
-            vmin=-err,
-            vmax=err,
-            cmap=plt.cm.seismic,
-        )
-
-        # ref pixel
-        _utils._add_marker(ax, indref, indplot)
-        plt.colorbar(imdiff, ax=ax)
-
-    # -----------------------------------------------
-    # integral per pixel with rocking curve and dlamb
-
-    kax = 'cam_plane_lamb'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        # plane-specific etendue
-        im = ax.imshow(
-            etend_plane_lamb.T,
-            extent=extent_cam,
-            origin='lower',
-            interpolation='nearest',
-            vmin=dvminmax.get('cam_lamb', {}).get('min'),
-            vmax=dvminmax.get('cam_lamb', {}).get('max'),
-        )
-
-        # ref pixel
-        _utils._add_marker(ax, indref, indplot)
-
-    kax = 'cam_etend_lamb'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        # plane-specific etendue
-        im0 = ax.imshow(
-            etend_lamb.T,
-            extent=extent_cam,
-            origin='lower',
-            interpolation='nearest',
-            vmin=dvminmax.get('cam_lamb', {}).get('min'),
-            vmax=dvminmax.get('cam_lamb', {}).get('max'),
-        )
-
-        # ref pixel
-        _utils._add_marker(ax, indref, indplot)
-        plt.colorbar(im0, ax=[ax, dax['cam_plane_lamb']['handle']])
-
-    kax = 'cam_diff_lamb'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        # plane-specific etendue
-        diff = (etend_plane_lamb - etend_lamb).T
         err = np.nanmax(np.abs(diff))
         imdiff = ax.imshow(
             diff,
@@ -1053,12 +913,12 @@ def _check_plot_mesh(
     # ---------
 
     for ii, kcam in enumerate(key_cam):
-        axis = dout[kcam]['axis']
+        axis_cam = dout[kcam]['axis_cam']
         if ii == 0:
-            sang_tot = np.sum(dout[kcam]['sang0']['data'], axis=axis)
-            ndet_tot = dout[kcam]['ndet']['data']
+            sang_tot = np.sum(dout[kcam]['sang']['data'], axis=axis_cam)
+            ndet_tot = dout[kcam]['ndet']['data'].astype(float)
         else:
-            sang_tot += np.sum(dout[kcam]['sang0']['data'], axis=axis)
+            sang_tot += np.sum(dout[kcam]['sang']['data'], axis=axis_cam)
             ndet_tot += dout[kcam]['ndet']['data']
 
     ndet_tot[ndet_tot == 0] = np.nan
@@ -1258,7 +1118,7 @@ def _get_dax_mesh(
     ax0 = fig.add_subplot(
         gs[:, na+ni:2*na+ni],
         aspect='equal',
-        adjustable='datalim',
+        adjustable='box',
     )
     ax0.set_xlabel(xlab, size=12, fontweight='bold')
     ax0.set_ylabel(ylab, size=12, fontweight='bold')
@@ -1271,7 +1131,9 @@ def _get_dax_mesh(
     ax1 = fig.add_subplot(
         gs[:, 2*na+2*ni+nc:3*na+2*ni+nc],
         aspect='equal',
-        adjustable='datalim',
+        adjustable='box',
+        sharex=ax0,
+        sharey=ax0,
     )
     ax1.set_xlabel(xlab, size=12, fontweight='bold')
     ax1.set_ylabel(ylab, size=12, fontweight='bold')
