@@ -202,8 +202,9 @@ def _vos(
 
     shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
     npix = int(np.prod(shape_cam))
-    linds = [range(ss) for ss in shape_cam]
-    for ii, ind in enumerate(itt.product(*linds)):
+    douti = {}
+    indok = np.ones(shape_cam, dtype=bool)
+    for ii, ind in enumerate(np.ndindex(shape_cam)):
 
         debugi = debug if isinstance(debug, bool) else debug(ind)
 
@@ -223,15 +224,7 @@ def _vos(
         if user_limits is None or user_limits.get('pcross_user') is None:
 
             if np.isnan(pcross0[sli_poly0]):
-                pts_cross = np.zeros((0,), dtype=float)
-                lpcross.append((None, None))
-                lphor.append((None, None))
-                lsang_cross.append(pts_cross)
-                lindr_cross.append(pts_cross)
-                lindz_cross.append(pts_cross)
-                if return_vector is True:
-                    lang_pol_cross.append(pts_cross)
-                    lang_tor_cross.append(pts_cross)
+                indok[ind] = False
                 continue
 
             # margin poly cross
@@ -264,15 +257,7 @@ def _vos(
             rr, zz, pp, dV = func_RZphi_from_ind(ind3dr, ind3dz, ind3dphi)
 
         if rr is None:
-            pts_cross = np.zeros((0,), dtype=float)
-            lpcross.append((None, None))
-            lphor.append((None, None))
-            lsang_cross.append(pts_cross)
-            lindr_cross.append(pts_cross)
-            lindz_cross.append(pts_cross)
-            if return_vector is True:
-                lang_pol_cross.append(pts_cross)
-                lang_tor_cross.append(pts_cross)
+            indok[ind] = False
             continue
 
         xx = rr * np.cos(pp)
@@ -486,26 +471,36 @@ def _vos(
         # -----------
         # replace
 
-        lpcross.append((pc0, pc1))
-        lphor.append((ph0, ph1))
-        lsang_cross.append(sang_cross)
-        lindr_cross.append(indr_cross)
-        lindz_cross.append(indz_cross)
+        douti[ind] = {
+            'pcross0': pc0,
+            'pcross1': pc1,
+            'phor0': ph0,
+            'phor1': ph1,
+            'sang_cross': sang_cross,
+            'indr_cross': indr_cross,
+            'indz_cross': indz_cross,
+        }
         if lang_pol_cross is not None:
-            lang_pol_cross.append(ang_pol_cross)
-            lang_tor_cross.append(ang_tor_cross)
+            douti[ind].update({
+                'ang_pol_cross': ang_pol_cross,
+                'ang_tor_cross': ang_tor_cross,
+            })
 
         if keep3d is True:
-            lsang_3d.append(sang_3d)
-            lindr_3d.append(indr_3d)
-            lindz_3d.append(indz_3d)
-            liphi_3d.append(iphi_3d)
-            ldV_3d.append(dV_3d)
+            douti[ind].update({
+                'sang_3d': sang_3d,
+                'indr_3d': indr_3d,
+                'indz_3d': indz_3d,
+                'iphi_3d': iphi_3d,
+                'dV_3d': dV_3d,
+            })
 
             if lvectx is not None:
-                lvectx.append(vx)
-                lvecty.append(vy)
-                lvectz.append(vz)
+                douti[ind].update({
+                    'vectx_3d': vx,
+                    'vecty_3d': vy,
+                    'vectz_3d': vz,
+                })
 
         if timing:
             t333 = dtm.datetime.now()     # DB
@@ -518,9 +513,16 @@ def _vos(
     if timing:
         t22 = dtm.datetime.now()     # DB
 
+    dout = _harmonize_reshape(
+        douti=douti,
+        indok=indok,
+    )
+
+
     pcross0, pcross1 = _harmonize_reshape_pcross(
-        lpcross=lpcross,
-        shape=shape_cam,
+        douti=douti,
+        indok=indok,
+        key='pcross',
     )
 
     phor0, phor1 = _harmonize_reshape_pcross(
@@ -542,6 +544,7 @@ def _vos(
         npix=npix,
         is2d=is2d,
         shape=shape_cam,
+        indok=indok,
     )
 
     # extract
@@ -1297,6 +1300,7 @@ def _get_deti(
 # ###########################################################
 
 
+# DEPRECATED
 def _harmonize_reshape_pcross(
     lpcross=None,
     shape=None,
@@ -1355,10 +1359,12 @@ def _harmonize_reshape_pcross(
 # ###########################################################
 
 
+# DEPRECATED
 def _harmonize_reshape_others(
     npix=None,
     is2d=None,
     shape=None,
+    indok=None,
     **kwdargs,
 ):
 
@@ -1389,7 +1395,7 @@ def _harmonize_reshape_others(
     # list of sizes and max size
     lnpts = dnpts[lkey[0]]
     nmax = np.max(lnpts)
-    shape_max = tuple(list(shape) + [nmax])
+    shape_max = shape + (nmax,)
 
     # ------------------
     # prepare
@@ -1407,7 +1413,107 @@ def _harmonize_reshape_others(
         # fill
         linds = [range(ss) for ss in shape]
         for ii, ind in enumerate(itt.product(*linds)):
-            sli = tuple(list(ind) + [np.arange(lnpts[ii])])
+            sli = ind + (np.arange(lnpts[ii]),)
+            dout[k0][sli] = kwdargs[k0][ii]
+
+    return dout
+
+
+# ###########################################################
+# ###########################################################
+#               Harmonize and reshape others
+# ###########################################################
+
+
+def _harmonize_reshape(
+    douti=None,
+    indok=None,
+):
+
+    # -----------------------------
+    # extract all keys
+    # -----------------------------
+
+    lkeys = [tuple(sorted(v0.keys())) for v0 in douti.values()]
+    skeys = set(lkeys)
+    if len(skeys) != 1:
+        msg = (
+            "Something weird: all pixels don't have the same fields!\n"
+            f"\t- skeys: {skeys}\n"
+        )
+        raise Exception(msg)
+
+    keys = list(skeys)[0]
+
+    if len(keys) == 0:
+        return {}
+
+    # -----------------------------
+    # get max sizes
+    # -----------------------------
+
+    dnpts = {
+        key: np.max([v0[key].size for v0 in douti.values()])
+        for key in keys
+    }
+
+    # safety checks - pcross
+    if dnpts['pcross0'] != dnpts['pcross1']:
+        msg = "pcross0 and pcross1 have different max size!"
+        raise Exception(msg)
+
+    # safety checks - phor
+    if dnpts['phor0'] != dnpts['phor1']:
+        msg = "phor0 and phor1 have different max size!"
+        raise Exception(msg)
+
+    # safety checks - cross
+    lk = [k0 for k0 in dnpts.keys() if k0.endswith('_cross')]
+    ssize = [dnpts[k0] for k0 in lk]
+    if len(set(ssize)) != 1:
+        msg = "some '_cross' fields have different max size!"
+        raise Exception(msg)
+
+    # safety checks - 3d
+    lk = [k0 for k0 in dnpts.keys() if k0.endswith('_3d')]
+    ssize = [dnpts[k0] for k0 in lk]
+    if len(set(ssize)) != 1:
+        msg = "some '_3d' fields have different max size!"
+        raise Exception(msg)
+
+    # -----------------------------
+    # initialize
+    # -----------------------------
+
+    dout = {
+        key: np.full()
+        for key in keys
+    }
+
+
+
+    # list of sizes and max size
+    lnpts = dnpts[lkey[0]]
+    nmax = np.max(lnpts)
+    shape_max = shape + (nmax,)
+
+    # ------------------
+    # prepare
+    # ------------------
+
+    dout = {}
+    for k0 in lkey:
+
+        # initialize
+        if 'ind' in k0:
+            dout[k0] = -np.ones(shape_max, dtype=int)
+        else:
+            dout[k0] = np.full(shape_max, np.nan)
+
+        # fill
+        linds = [range(ss) for ss in shape]
+        for ii, ind in enumerate(itt.product(*linds)):
+            sli = ind + (np.arange(lnpts[ii]),)
             dout[k0][sli] = kwdargs[k0][ii]
 
     return dout
