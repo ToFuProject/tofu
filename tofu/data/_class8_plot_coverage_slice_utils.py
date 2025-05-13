@@ -94,7 +94,7 @@ def _check_dvminmax(
 
     if ndet is not None:
 
-        vmin = np.nanmin(ndet['data'])
+        vmin = max(np.nanmin(ndet['data']), 1)
         vmax = np.nanmax(ndet['data'])
         dvminmax['ndet'] = {
             'min': dvminmax.get('ndet', {}).get('min', vmin),
