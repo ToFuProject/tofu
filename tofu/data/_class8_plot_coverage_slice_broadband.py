@@ -226,12 +226,10 @@ def _check_plot_los(
     # ---------
 
     if vect == 'nin':
-        ketend = doptics['etendue']
+        ketend = doptics[kcam]['etendue']
         etend = coll.ddata[ketend]['data']
 
-        etend_plane = np.nansum(
-            np.nansum(sang, axis=dout[kcam]['axis_plane'])
-        ) * dS
+        etend_plane = np.nansum(sang, axis=dout[kcam]['axis_plane']) * dS
     else:
         etend = None
         etend_plane = None
@@ -337,8 +335,7 @@ def _plot_from_los(
     (
         is2d,
         sang_tot, sang, ndet,
-        etend, etend_plane,
-        etend, etend_plane,
+        etend0, etend_plane0,
         extent_cam, extent_plane,
         dvminmax,
         los_refr, los_refz,
@@ -470,8 +467,8 @@ def _plot_from_los(
             lw=1.,
         )
 
-    # ------------------
-    # integral per pixel
+    # --------------------
+    # etendue cam vs plane
 
     kax = 'cam_plane0'
     if dax.get(kax) is not None:
@@ -531,32 +528,36 @@ def _plot_from_los(
             ax.legend()
 
     # ------------
-    # camera
+    # camera etend0
 
-    kax = 'cam_etend'
+    kax = 'cam_etend0'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         # plane-specific etendue
-        im0 = ax.imshow(
-            etend.T,
+        imdiff = ax.imshow(
+            etend0.T,
             extent=extent_cam,
             origin='lower',
             interpolation='nearest',
-            vmin=dvminmax.get('cam', {}).get('min'),
-            vmax=dvminmax.get('cam', {}).get('max'),
+            vmin=dvminmax.get('cam0', {}).get('min'),
+            vmax=dvminmax.get('cam0', {}).get('max'),
+            cmap=plt.cm.seismic,
         )
 
         # ref pixel
         _utils._add_marker(ax, indref, indplot)
-        plt.colorbar(im, ax=[ax, dax['cam_plane']['handle']])
+        plt.colorbar(imdiff, ax=ax)
 
-    kax = 'cam_diff'
+    # ------------
+    # camera diff
+
+    kax = 'cam_diff0'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         # plane-specific etendue
-        diff = (etend_plane - etend).T
+        diff = (etend_plane0 - etend0).T
         err = np.nanmax(np.abs(diff))
         imdiff = ax.imshow(
             diff,
@@ -575,43 +576,45 @@ def _plot_from_los(
     # -------------------------------------------
     # sang per plane point for selected pixel
 
-    kax = 'plane0'
+    kax = 'sang'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         im = ax.imshow(
-            sang_tot_plot.T,
-            # sang0['data'][sli].T,
+            sang_tot.T,
             extent=extent_plane,
             origin='lower',
             interpolation='nearest',
-            vmin=dvminmax.get('plane0', {}).get('min'),
-            vmax=dvminmax.get('plane0', {}).get('max'),
+            vmin=dvminmax.get('sang', {}).get('min'),
+            vmax=dvminmax.get('sang', {}).get('max'),
         )
 
         ax.axhline(x1[ix1], c='w', ls='--', lw=0.5)
 
         plt.colorbar(
             im,
-            ax=ax,
-            cax=dax.get('colorbar', {}).get('handle'),
+            cax=dax.get('sang_cbar', {}).get('handle'),
             label='solid angle (sr)',
         )
 
-    kax = 'plane'
+    kax = 'ndet'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         im = ax.imshow(
-            sang['data'][sli].T,
+            ndet.T,
             extent=extent_plane,
             origin='lower',
             interpolation='nearest',
-            vmin=dvminmax.get('plane', {}).get('min'),
-            vmax=dvminmax.get('plane', {}).get('max'),
+            vmin=dvminmax.get('ndet', {}).get('min'),
+            vmax=dvminmax.get('ndet', {}).get('max'),
         )
 
-        plt.colorbar(im, ax=ax, label='solid angle (sr)')
+        plt.colorbar(
+            im,
+            cax=dax.get('ndet_cbar', {}).get('handle'),
+            label='ndet',
+        )
 
     # -------------------------------------------
     # slice through sang 2d map
@@ -622,7 +625,13 @@ def _plot_from_los(
 
         ax.plot(
             x0,
-            sang0['data'][..., ix1].T.reshape((x0.size, -1)),
+            sang[..., ix1].T.reshape((x0.size, -1)),
+        )
+        ax.plot(
+            x0,
+            sang_tot[..., ix1],
+            lw=2,
+            c='k',
         )
 
     # ----------
@@ -954,15 +963,15 @@ def _get_dax_los(
     # check
 
     if fs is None:
-        fs = (16, 10)
+        fs = (18, 13)
 
     dmargin = ds._generic_check._check_var(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.05, 'top': 0.92,
-            'left': 0.05, 'right': 0.95,
-            'wspace': 0.4, 'hspace': 0.5,
+            'bottom': 0.05, 'top': 0.94,
+            'left': 0.05, 'right': 0.98,
+            'wspace': 0.4, 'hspace': 0.7,
         },
     )
 
@@ -971,77 +980,110 @@ def _get_dax_los(
 
     fig = plt.figure(figsize=fs)
 
-    nn = 4
-    gs = gridspec.GridSpec(ncols=5*nn+1, nrows=6, **dmargin)
+    nca_left = 4
+    nca_right = 3
+    ncb = 1
+    nci = 1
+    ncols = nca_left + nci*(2+2) + nca_right*3 + ncb
 
-    # --------
-    # create
+    gs = gridspec.GridSpec(ncols=ncols, nrows=12, **dmargin)
 
-    ax0 = fig.add_subplot(gs[:3, :2*nn], aspect='equal', adjustable='datalim')
+    # ------------
+    # create axes
+    # ------------
+
+    # hor
+    sli = (slice(8, 12), slice(0, nca_left))
+    ax0 = fig.add_subplot(gs[sli], aspect='equal', adjustable='datalim')
     ax0.set_xlabel('X (m)', size=12, fontweight='bold')
     ax0.set_ylabel('Y (m)', size=12, fontweight='bold')
 
-    ax1 = fig.add_subplot(gs[3:, :2*nn], aspect='equal', adjustable='datalim')
+    # cross
+    sli = (slice(4, 8), slice(0, nca_left))
+    ax1 = fig.add_subplot(gs[sli], aspect='equal', adjustable='datalim')
     ax1.set_xlabel('R (m)', size=12, fontweight='bold')
     ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
 
-    ax2 = fig.add_subplot(gs[:2, 2*nn+1:3*nn+1], projection='3d')
+    # 3d
+    sli = (slice(0, 4), slice(0, nca_left))
+    ax2 = fig.add_subplot(gs[sli], projection='3d')
     ax2.set_xlabel('X (m)', size=12, fontweight='bold')
     ax2.set_ylabel('Y (m)', size=12, fontweight='bold')
     ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
 
     # etendue
+    i0 = nca_left + 2*nci
     if vect == 'nin':
         if is2d is True:
-            ax30 = fig.add_subplot(gs[2:4, 2*nn:3*nn], aspect='equal')
+
+            # etend0
+            sli = (slice(0, 3), slice(i0, i0 + nca_right))
+            ax30 = fig.add_subplot(gs[sli], aspect='equal')
             ax30.set_ylabel('x1 (m)')
             ax30.set_xlabel('x0 (m)')
             ax30.set_title('integral', size=12, fontweight='bold')
 
-            ax31 = fig.add_subplot(
-                gs[2:4, 3*nn:4*nn],
-                sharex=ax30,
-                sharey=ax30,
-            )
+            # etend
+            i0 = nca_left + 3*nci + nca_right
+            sli = (slice(0, 3), slice(i0, i0 + nca_right))
+            ax31 = fig.add_subplot(gs[sli], sharex=ax30, sharey=ax30)
             ax31.set_xlabel('x0 (m)')
             ax31.set_title('etendue', size=12, fontweight='bold')
 
-            ax32 = fig.add_subplot(
-                gs[2:4, 4*nn:-1],
-                sharex=ax30,
-                sharey=ax30,
-            )
+            # diff
+            i0 = nca_left + 4*nci + 2*nca_right
+            sli = (slice(0, 3), slice(i0, i0 + nca_right))
+            ax32 = fig.add_subplot(gs[sli], sharex=ax30, sharey=ax30)
             ax32.set_xlabel('x0 (m)')
             ax32.set_title('difference', size=12, fontweight='bold')
 
         else:
-            ax30 = fig.add_subplot(gs[:2, 3*nn+2:])
+            # etend
+            sli = (slice(0, 3), slice(i0, None))
+            ax30 = fig.add_subplot(gs[sli])
             ax30.set_xlabel('channel', size=12, fontweight='bold')
             ax30.set_ylabel('Etendue (m2.sr)', size=12, fontweight='bold')
 
-    ax4 = fig.add_subplot(
-        gs[2:4, 2*nn+1:-1],
-        aspect='equal',
-        adjustable='datalim',
-    )
+    # sang
+    sli = (slice(3, 6), slice(i0, -1))
+    ax4 = fig.add_subplot(gs[sli], aspect='equal', adjustable='datalim')
     ax4.set_ylabel('x1 (m)', size=12, fontweight='bold')
-    ax4.set_xlabel('x0 (m)', size=12, fontweight='bold')
 
-    ax4c = fig.add_subplot(gs[2:4, -1])
+    # sang cbar
+    sli = (slice(3, 6), -1)
+    ax4c = fig.add_subplot(gs[sli])
 
-    ax5 = fig.add_subplot(gs[4:, 2*nn+1:-1], sharex=ax4)
+    # slice
+    sli = (slice(6, 9), slice(i0, -1))
+    ax5 = fig.add_subplot(gs[sli], sharex=ax4)
     ax5.set_ylabel('sang (sr)', size=12, fontweight='bold')
-    ax5.set_xlabel('x0 (m)', size=12, fontweight='bold')
+
+    # ndet
+    sli = (slice(9, None), slice(i0, -1))
+    ax6 = fig.add_subplot(
+        gs[sli],
+        sharex=ax4,
+        sharey=ax4,
+    )
+    ax6.set_ylabel('x1 (m)', size=12, fontweight='bold')
+    ax6.set_xlabel('x0 (m)', size=12, fontweight='bold')
+
+    # ndet cbar
+    sli = (slice(9, None), -1)
+    ax6c = fig.add_subplot(gs[sli])
 
     # dict
     dax = {
         'cross': {'handle': ax0, 'type': 'cross'},
         'hor': {'handle': ax1, 'type': 'hor'},
         '3d': {'handle': ax2, 'type': '3d'},
-        'plane0': {'handle': ax4, 'type': 'misc'},
-        'colorbar': {'handle': ax4c, 'type': 'misc'},
+        'sang': {'handle': ax4, 'type': 'misc'},
+        'sang_cbar': {'handle': ax4c, 'type': 'cbar'},
         'slice': {'handle': ax5, 'type': 'misc'},
+        'ndet': {'handle': ax6, 'type': 'misc'},
+        'ndet_cbar': {'handle': ax6c, 'type': 'cbar'},
     }
+
     if vect == 'nin':
         dax['cam_plane0'] = {'handle': ax30, 'type': 'camera'}
         if is2d is True:

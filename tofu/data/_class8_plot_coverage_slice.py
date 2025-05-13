@@ -241,12 +241,22 @@ def main(
             phi=phi,
             Z=Z,
             vect=vect,
+            # plane
+            x0=x0,
+            x1=x1,
+            dS=dS,
             # pts
             ptsx=ptsx,
             ptsy=ptsy,
             ptsz=ptsz,
             # dout
             dout=dout,
+            # indices
+            indch=indch,
+            indref=indref,
+            los_ref=los_ref,
+            pt_ref=pt_ref,
+            klos=klos,
             # extra
             indplot=indplot,
             dax=dax,
