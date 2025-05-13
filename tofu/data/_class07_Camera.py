@@ -5,11 +5,6 @@
 import copy
 
 
-# Common
-import numpy as np
-import datastock as ds
-
-
 # tofu
 from ._class06_Grating import Grating as Previous
 from . import _class3_check
@@ -29,6 +24,7 @@ __all__ = ['Camera']
 
 class Camera(Previous):
 
+    __which_cam = 'camera'
     _ddef = copy.deepcopy(Previous._ddef)
     _ddef['params']['ddata'].update({
           'camera': {'cls': str, 'def': ''},
@@ -339,6 +335,13 @@ class Camera(Previous):
     def get_camera_cents_xyz(self, key=None):
         """ Return cents_x, cents_y, cents_z """
         return _check.get_camera_cents_xyz(
+            coll=self,
+            key=key,
+        )
+
+    def get_camera_extent(self, key=None):
+        """ Return the extent of a 2d camera """
+        return _check._get_extent(
             coll=self,
             key=key,
         )

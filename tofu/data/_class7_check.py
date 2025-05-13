@@ -9,6 +9,7 @@ import datastock as ds
 from . import _utils_surface3d
 from . import _class4_check
 
+
 from ..geom._comp_solidangles import _check_polygon_2d
 
 
@@ -1072,3 +1073,47 @@ def get_camera_cents_xyz(coll=None, key=None):
         )
 
     return cx, cy, cz
+
+
+def _get_extent(
+    coll=None,
+    key=None,
+):
+
+    # ----------
+    # check key
+    # ----------
+
+    wcam = coll.__which_cam
+    lok = list(coll.dobj.get(wcam, {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    is2d = coll.dobj[wcam][key]['dgeom']['nd'] == '2d'
+
+    # ----------
+    # cents
+    # ----------
+
+    if is2d:
+        kc0, kc1 = coll.dobj[wcam][key]['dgeom']['cents']
+        c0 = coll.ddata[kc0]['data']
+        c1 = coll.ddata[kc1]['data']
+
+        d0 = 0.5*(c0[1] - c0[0])
+        d1 = 0.5*(c1[1] - c1[0])
+
+        extent = (
+            c0[0] - d0,
+            c0[-1] + d0,
+            c1[0] - d1,
+            c1[-1] + d1,
+        )
+
+    else:
+        extent = None
+
+    return extent
