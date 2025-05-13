@@ -925,6 +925,54 @@ def _plot_from_mesh(
             plt.colorbar(im, cax=dax[kaxc]['handle'])
 
     # --------------
+    # points - cross
+    # --------------
+
+    # ----
+    # sang
+
+    kax = 'cross_sang'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # pts
+        im = ax.scatter(
+            np.hypot(ptsx, ptsy),
+            ptsz,
+            c=sang_tot,
+            s=4,
+            marker='.',
+            vmin=dvminmax.get('plane', {}).get('min'),
+            vmax=dvminmax.get('plane', {}).get('max'),
+        )
+
+        kaxc = f'{kax}_cbar'
+        if dax.get(kaxc) is not None:
+            plt.colorbar(im, cax=dax[kaxc]['handle'])
+
+    # -----
+    # ndet
+
+    kax = 'cross_ndet'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # pts
+        im = ax.scatter(
+            np.hypot(ptsx, ptsy),
+            ptsz,
+            c=ndet['data'],
+            s=4,
+            marker='.',
+            vmin=dvminmax.get('ndet', {}).get('min'),
+            vmax=dvminmax.get('ndet', {}).get('max'),
+        )
+
+        kaxc = f'{kax}_cbar'
+        if dax.get(kaxc) is not None:
+            plt.colorbar(im, cax=dax[kaxc]['handle'])
+
+    # --------------
     # points - 3d
     # --------------
 
@@ -960,15 +1008,17 @@ def _plot_from_mesh(
 
     if plot_config.__class__.__name__ == 'Config':
 
-        kax = 'cross'
-        if dax.get(kax) is not None:
+        axtype = 'cross'
+        lax = [kax for kax, vax in dax.items() if vax['type'] == axtype]
+        for kax in lax:
             ax = dax[kax]['handle']
-            plot_config.plot(lax=ax, proj=kax, dLeg=False)
+            plot_config.plot(lax=ax, proj=axtype, dLeg=False)
 
-        kax = 'hor'
-        if dax.get(kax) is not None:
+        axtype = 'hor'
+        lax = [kax for kax, vax in dax.items() if vax['type'] == axtype]
+        for kax in lax:
             ax = dax[kax]['handle']
-            plot_config.plot(lax=ax, proj=kax, dLeg=False)
+            plot_config.plot(lax=ax, proj=axtype, dLeg=False)
 
     # ------------
     # figure title
@@ -1135,11 +1185,15 @@ def _get_dax_mesh(
     if phi is None:
         xlab = 'X (m)'
         ylab = 'Y (m)'
+        xlab2 = 'R (m)'
+        ylab2 = 'Z (m)'
         tit_sang = f"sang at Z = {round(Z, ndigits=2)} m"
         tit_ndet = f"ndet at Z = {round(Z, ndigits=2)} m"
     else:
         xlab = 'R (m)'
         ylab = 'Z (m)'
+        xlab2 = 'X (m)'
+        ylab2 = 'Y (m)'
         tit_sang = f"sang at phi = {round(phi*180./np.pi, ndigits=0)} deg"
         tit_ndet = f"ndet at phi = {round(phi*180./np.pi, ndigits=0)} deg"
 
@@ -1150,7 +1204,7 @@ def _get_dax_mesh(
     fig = plt.figure(figsize=fs)
 
     na, ni, nc = 4, 2, 1
-    gs = gridspec.GridSpec(ncols=na*3+ni*2+nc*2, nrows=1, **dmargin)
+    gs = gridspec.GridSpec(ncols=na*3+ni*2+nc*2, nrows=2, **dmargin)
 
     # ------------
     # create axes
@@ -1183,10 +1237,15 @@ def _get_dax_mesh(
     ax1c = fig.add_subplot(gs[:, 3*na+2*ni+nc])
 
     # ax2
-    ax2 = fig.add_subplot(gs[:, :na], aspect='equal', projection='3d')
+    ax2 = fig.add_subplot(gs[0, :na], aspect='equal', projection='3d')
     ax2.set_xlabel('X (m)', size=12, fontweight='bold')
     ax2.set_ylabel('Y (m)', size=12, fontweight='bold')
-    ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
+    ax2.set_zlabel('Z (m)', size=12, fontweight='bold')
+
+    # ax3
+    ax3 = fig.add_subplot(gs[1, :na], aspect='equal')
+    ax3.set_xlabel(xlab2, size=12, fontweight='bold')
+    ax3.set_ylabel(ylab2, size=12, fontweight='bold')
 
     # dict
     dax = {
@@ -1197,5 +1256,12 @@ def _get_dax_mesh(
         dax['hor_ndet'] = {'handle': ax1, 'type': 'hor'}
         dax['hor_sang_cbar'] = {'handle': ax0c, 'type': 'cbar'}
         dax['hor_ndet_cbar'] = {'handle': ax1c, 'type': 'cbar'}
+        dax['cross_sang'] = {'handle': ax3, 'type': 'cross'}
+    else:
+        dax['cross_sang'] = {'handle': ax0, 'type': 'cross'}
+        dax['cross_ndet'] = {'handle': ax1, 'type': 'cross'}
+        dax['cross_sang_cbar'] = {'handle': ax0c, 'type': 'cbar'}
+        dax['cross_ndet_cbar'] = {'handle': ax1c, 'type': 'cbar'}
+        dax['hor_sang'] = {'handle': ax3, 'type': 'hor'}
 
     return dax

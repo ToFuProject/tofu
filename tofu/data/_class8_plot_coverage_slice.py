@@ -145,6 +145,7 @@ def main(
             DZ=DZ,
             Dphi=Dphi,
             reshape_2d=True,
+            adjust_phi=True,
             plot=False,
             dax=None,
             color=None,
