@@ -27,6 +27,7 @@ from . import _class8_plot_coverage_slice_utils as _utils
 
 def _compute(
     coll=None,
+    key_diag=None,
     key_cam=None,
     doptics=None,
     is2d=None,
@@ -41,7 +42,13 @@ def _compute(
 ):
 
     dout = {}
-    for kcam in key_cam:
+    for icam, kcam in enumerate(key_cam):
+
+        msg = (
+            f"coverage slice for diag '{key_diag}', cam '{kcam}'"
+            f" ({icam+1} / {len(key_cam)})"
+        )
+        print(msg)
 
         # -----------------
         # prepare apertures
@@ -696,6 +703,7 @@ def _plot_from_mesh(
     fs=None,
     dmargin=None,
     dvminmax=None,
+    markersize=None,
     **kwdargs,
 ):
 
@@ -703,13 +711,14 @@ def _plot_from_mesh(
     # prepare
 
     (
-        sang_tot, ndet_tot, dvminmax
+        sang_tot, ndet_tot, dvminmax, markersize,
     ) = _check_plot_mesh(
         coll=coll,
         key_diag=key_diag,
         key_cam=key_cam,
         dout=dout,
         dvminmax=dvminmax,
+        markersize=markersize,
     )
 
     # --------------
@@ -763,7 +772,7 @@ def _plot_from_mesh(
             ptsx,
             ptsy,
             c=sang_tot,
-            s=4,
+            s=markersize,
             marker='.',
             vmin=dvminmax.get('plane', {}).get('min'),
             vmax=dvminmax.get('plane', {}).get('max'),
@@ -785,7 +794,7 @@ def _plot_from_mesh(
             ptsx,
             ptsy,
             c=ndet_tot,
-            s=4,
+            s=markersize,
             marker='.',
             vmin=dvminmax.get('ndet', {}).get('min'),
             vmax=dvminmax.get('ndet', {}).get('max'),
@@ -811,7 +820,7 @@ def _plot_from_mesh(
             np.hypot(ptsx, ptsy),
             ptsz,
             c=sang_tot,
-            s=4,
+            s=markersize,
             marker='.',
             vmin=dvminmax.get('plane', {}).get('min'),
             vmax=dvminmax.get('plane', {}).get('max'),
@@ -833,7 +842,7 @@ def _plot_from_mesh(
             np.hypot(ptsx, ptsy),
             ptsz,
             c=ndet_tot,
-            s=4,
+            s=markersize,
             marker='.',
             vmin=dvminmax.get('ndet', {}).get('min'),
             vmax=dvminmax.get('ndet', {}).get('max'),
@@ -857,7 +866,7 @@ def _plot_from_mesh(
             ptsy,
             ptsz,
             c=sang_tot,
-            s=4,
+            s=markersize,
             marker='.',
             vmin=dvminmax.get('plane', {}).get('min'),
             vmax=dvminmax.get('plane', {}).get('max'),
@@ -915,6 +924,7 @@ def _check_plot_mesh(
     key_cam=None,
     dout=None,
     dvminmax=None,
+    markersize=None,
 ):
 
     # ---------
@@ -942,7 +952,18 @@ def _check_plot_mesh(
         ndet={'data': ndet_tot},
     )
 
-    return sang_tot, ndet_tot, dvminmax
+    # --------
+    # markersize
+    # --------
+
+    markersize = float(ds._generic_check._check_var(
+        markersize, 'markersize',
+        types=(float, int),
+        default=6,
+        sign='>=0',
+    ))
+
+    return sang_tot, ndet_tot, dvminmax, markersize
 
 
 # ############################################################

@@ -40,6 +40,7 @@ def main(
     DR=None,
     DZ=None,
     Dphi=None,
+    adjust_phi=None,
     # solid angle
     config=None,
     visibility=None,
@@ -58,6 +59,7 @@ def main(
     fs=None,
     dmargin=None,
     dvminmax=None,
+    markersize=None,
 ):
 
     # ------------
@@ -70,6 +72,7 @@ def main(
         lop_pre, lop_post,
         res, margin_par, margin_perp,
         vect, segment, phi, Z, key_mesh,
+        adjust_phi,
         visibility,
         verb, plot,
         indref, indplot,
@@ -93,6 +96,7 @@ def main(
         DR=DR,
         DZ=DZ,
         Dphi=Dphi,
+        adjust_phi=adjust_phi,
         # solid angle
         config=config,
         visibility=visibility,
@@ -133,6 +137,8 @@ def main(
             indch=indch,
         )
 
+        indr, indz, indphi = None, None, None
+
     else:
 
         dpts = coll.get_sample_mesh_3d_slice(
@@ -144,7 +150,7 @@ def main(
             DZ=DZ,
             Dphi=Dphi,
             reshape_2d=True,
-            adjust_phi=True,
+            adjust_phi=adjust_phi,
             plot=False,
             dax=None,
             color=None,
@@ -153,6 +159,10 @@ def main(
         ptsx = dpts['pts_r']['data'] * np.cos(dpts['pts_phi']['data'])
         ptsy = dpts['pts_r']['data'] * np.sin(dpts['pts_phi']['data'])
         ptsz = dpts['pts_z']['data']
+
+        indr = dpts['indr']['data']
+        indz = dpts['indz']['data']
+        indphi = dpts['indphi']['data']
 
         los_ref, pt_ref, klos = None, None, None
         e0, e1 = None, None
@@ -217,9 +227,13 @@ def main(
         'klos': klos,
         'e0': e0,
         'e1': e1,
+        # pts
         'ptsx': ptsx,
         'ptsy': ptsy,
         'ptsz': ptsz,
+        'indr': indr,
+        'indz': indz,
+        'indphi': indphi,
         'x0': x0,
         'x1': x1,
         'dS': dS,
@@ -264,6 +278,7 @@ def main(
             fs=fs,
             dmargin=dmargin,
             dvminmax=dvminmax,
+            markersize=markersize,
         )
 
     return dout
@@ -294,6 +309,7 @@ def _check(
     DR=None,
     DZ=None,
     Dphi=None,
+    adjust_phi=None,
     # solid angle
     config=None,
     visibility=None,
@@ -495,6 +511,16 @@ def _check(
         assert len(key_cam) == 1
 
     # -----------
+    # adjust_phi
+    # -----------
+
+    adjust_phi = ds._generic_check._check_var(
+        adjust_phi, 'adjust_phi',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
     # segment
     # -----------
 
@@ -571,6 +597,7 @@ def _check(
         lop_pre, lop_post,
         res, margin_par, margin_perp,
         vect, segment, phi, Z, key_mesh,
+        adjust_phi,
         visibility,
         verb, plot,
         indref, indplot,

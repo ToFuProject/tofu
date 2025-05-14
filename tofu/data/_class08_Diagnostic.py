@@ -335,6 +335,7 @@ class Diagnostic(Previous):
         DR=None,
         DZ=None,
         Dphi=None,
+        adjust_phi=None,
         config=None,
         # solid angle
         n0=None,
@@ -351,6 +352,7 @@ class Diagnostic(Previous):
         fs=None,
         dmargin=None,
         dvminmax=None,
+        markersize=None,
     ):
         """ Creates a plane perpendicular to los
         compute contribution of each point to the signal
@@ -377,6 +379,7 @@ class Diagnostic(Previous):
             DR=DR,
             DZ=DZ,
             Dphi=Dphi,
+            adjust_phi=adjust_phi,
             config=config,
             # solid angle
             n0=n0,
@@ -394,6 +397,7 @@ class Diagnostic(Previous):
             dmargin=dmargin,
             # vmin vmax
             dvminmax=dvminmax,
+            markersize=markersize,
         )
 
     # -----------------
