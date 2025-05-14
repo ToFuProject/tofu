@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-import itertools as itt
-
-
 import datetime as dtm      # DB
 import numpy as np
-import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
-from matplotlib.path import Path
 import matplotlib.pyplot as plt
-# import datastock as ds
 
 
 from ..geom import _comp_solidangles
@@ -19,7 +13,7 @@ from . import _class8_vos_utilities as _utilities
 
 # ###########################################################
 # ###########################################################
-#               Main old
+#               Main
 # ###########################################################
 
 
@@ -29,6 +23,7 @@ def _vos(
     # ressources
     coll=None,
     doptics=None,
+    key_diag=None,
     key_cam=None,
     dsamp=None,
     # inputs
@@ -158,7 +153,6 @@ def _vos(
 
     dgeom = coll.dobj['camera'][key_cam]['dgeom']
     par = dgeom['parallel']
-    is2d = dgeom['nd'] == '2d'
     cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
     dvect = coll.get_camera_unit_vectors(key=key_cam)
     outline = dgeom['outline']
@@ -180,22 +174,6 @@ def _vos(
         t11 = dtm.datetime.now()     # DB
         dt11 += (t11-t00).total_seconds()
 
-    # -----------------
-    # initialize lists
-    # -----------------
-
-    (
-        # common
-        lpcross, lphor, lsang_cross, lindr_cross, lindz_cross,
-        # keep3d
-        lindr_3d, lindz_3d, liphi_3d, lsang_3d, ldV_3d,
-        # return_vector
-        lang_tor_cross, lang_pol_cross, lvectx, lvecty, lvectz
-    ) = _initialize_lists(
-        return_vector=return_vector,
-        keep3d=keep3d,
-    )
-
     # ----------------
     # loop on pixels
     # ----------------
@@ -211,8 +189,8 @@ def _vos(
         # -----------------
         # slices
 
-        sli_poly = tuple([slice(None)] + list(ind))
-        sli_poly0 = tuple([0] + list(ind))
+        sli_poly = (slice(None),) + ind
+        sli_poly0 = (0,) + ind
 
         # -----------------
         # get volume limits
@@ -288,8 +266,9 @@ def _vos(
         indr_cross = np.zeros((npts_cross,), dtype=int)
         indz_cross = np.zeros((npts_cross,), dtype=int)
         if return_vector is True:
-            ang_pol_cross = np.zeros((npts_cross,), dtype=float)
-            ang_tor_cross = np.zeros((npts_cross,), dtype=float)
+            vectx_cross = np.zeros((npts_cross,), dtype=float)
+            vecty_cross = np.zeros((npts_cross,), dtype=float)
+            vectz_cross = np.zeros((npts_cross,), dtype=float)
 
         if verb is True:
             msg = (
@@ -374,18 +353,15 @@ def _vos(
                 indz_cross[ipt] = i1
                 bool_cross[i0 + 1, i1 + 1] = sang_cross[ipt] > 0.
                 if vectx is not None:
-                    tor = np.arctan2(yy[ind1], xx[ind1])
-                    ang_pol = np.arctan2(
-                        vectz[0, ind1],
-                        vectx[0, ind1]*np.cos(tor)
-                        + vecty[0, ind1]*np.sin(tor),
-                    )
-                    ang_tor = np.arccos(
-                        vectx[0, ind1] * (-np.sin(tor))
-                        + vecty[0, ind1] * np.cos(tor)
-                    )
-                    ang_pol_cross[ipt] = np.sum(out[0, ind1] * ang_pol) / totii
-                    ang_tor_cross[ipt] = np.sum(out[0, ind1] * ang_tor) / totii
+                    vectx_cross[ipt] = np.sum(
+                        out[0, ind1] * vectx[0, ind1] * v0['dV']
+                    ) / totii
+                    vecty_cross[ipt] = np.sum(
+                        out[0, ind1] * vecty[0, ind1] * v0['dV']
+                    ) / totii
+                    vectz_cross[ipt] = np.sum(
+                        out[0, ind1] * vectz[0, ind1] * v0['dV']
+                    ) / totii
                 ipt += 1
 
         # update horizontal
@@ -407,13 +383,12 @@ def _vos(
                 dV_3d = dV[indsa]
 
                 if vectx is not None:
-                    vx = vectx[0, indsa]
-                    vy = vecty[0, indsa]
-                    vz = vectz[0, indsa]
+                    vectx_3d = vectx[0, indsa]
+                    vecty_3d = vecty[0, indsa]
+                    vectz_3d = vectz[0, indsa]
 
         # ----- DEBUG --------
         if debugi:
-            import matplotlib.pyplot as plt
             fig = plt.figure()
             fig.suptitle(f"pixel ind = {ind}", size=14, fontweight='bold')
             ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
@@ -480,10 +455,11 @@ def _vos(
             'indr_cross': indr_cross,
             'indz_cross': indz_cross,
         }
-        if lang_pol_cross is not None:
+        if vectx is not None:
             douti[ind].update({
-                'ang_pol_cross': ang_pol_cross,
-                'ang_tor_cross': ang_tor_cross,
+                'vectx_cross': vectx_cross,
+                'vecty_cross': vecty_cross,
+                'vectz_cross': vectz_cross,
             })
 
         if keep3d is True:
@@ -495,11 +471,11 @@ def _vos(
                 'dV_3d': dV_3d,
             })
 
-            if lvectx is not None:
+            if vectx is not None:
                 douti[ind].update({
-                    'vectx_3d': vx,
-                    'vecty_3d': vy,
-                    'vectz_3d': vz,
+                    'vectx_3d': vectx_3d,
+                    'vecty_3d': vecty_3d,
+                    'vectz_3d': vectz_3d,
                 })
 
         if timing:
@@ -513,518 +489,24 @@ def _vos(
     if timing:
         t22 = dtm.datetime.now()     # DB
 
-    dout = _harmonize_reshape(
+    ddata, dref = _utilities._harmonize_reshape(
         douti=douti,
         indok=indok,
+        key_diag=key_diag,
+        key_cam=key_cam,
+        ref_cam=coll.dobj['camera'][key_cam]['dgeom']['ref'],
     )
-
-
-    pcross0, pcross1 = _harmonize_reshape_pcross(
-        douti=douti,
-        indok=indok,
-        key='pcross',
-    )
-
-    phor0, phor1 = _harmonize_reshape_pcross(
-        lpcross=lphor,
-        shape=shape_cam,
-    )
-
-    # --------------------------------------
-    # harmonize and reshape sang, indr, indz
-    # --------------------------------------
-
-    # cross
-    dout = _harmonize_reshape_others(
-        # cross
-        lsang_cross=lsang_cross,
-        lindr_cross=lindr_cross,
-        lindz_cross=lindz_cross,
-        # params
-        npix=npix,
-        is2d=is2d,
-        shape=shape_cam,
-        indok=indok,
-    )
-
-    # extract
-    lk = ['lsang_cross', 'lindr_cross', 'lindz_cross']
-    sang_cross, indr_cross, indz_cross = [dout.get(k0) for k0 in lk]
-
-    if lang_pol_cross is not None:
-        dout = _harmonize_reshape_others(
-            lang_pol_cross=lang_pol_cross,
-            lang_tor_cross=lang_tor_cross,
-            # params
-            npix=npix,
-            is2d=is2d,
-            shape=shape_cam,
-        )
-        lk = ['lang_pol_cross', 'lang_tor_cross']
-        ang_pol_cross, ang_tor_cross = [dout.get(k0) for k0 in lk]
-
-    # -------
-    # 3d
-
-    dout = _harmonize_reshape_others(
-        # 3d
-        lsang_3d=lsang_3d,
-        lindr_3d=lindr_3d,
-        lindz_3d=lindz_3d,
-        liphi_3d=liphi_3d,
-        ldV_3d=ldV_3d,
-        # vect
-        lvectx=lvectx,
-        lvecty=lvecty,
-        lvectz=lvectz,
-        # params
-        npix=npix,
-        is2d=is2d,
-        shape=shape_cam,
-    )
-
-    # extract
-    lk = [
-        'lsang_3d', 'lindr_3d', 'lindz_3d', 'liphi_3d', 'ldV_3d',
-        'lvectx', 'lvecty', 'lvectz',
-    ]
-
-    (
-     sang_3d, indr_3d, indz_3d, indphi_3d, dV_3d,
-     vectx, vecty, vectz,
-     ) = [dout.get(k0) for k0 in lk]
-
-    # --------------
-    # prepare output
-    # --------------
-
-    knpts_cross = f'{key_cam}_vos_npts_cross'
-    kir_cross = f'{key_cam}_vos_ir_cross'
-    kiz_cross = f'{key_cam}_vos_iz_cross'
-    ksa_cross = f'{key_cam}_vos_sa_cross'
-    ref_cam = coll.dobj['camera'][key_cam]['dgeom']['ref']
-    ref_cross = tuple(list(ref_cam) + [knpts_cross])
-
-    if lang_pol_cross is not None:
-        kap_cross = f'{key_cam}_vos_ang_pol_cross'
-        kat_cross = f'{key_cam}_vos_ang_tor_cross'
-
-    if keep3d:
-        knpts_3d = f'{key_cam}_vos_npts_3d'
-        kir_3d = f'{key_cam}_vos_ir_3d'
-        kiz_3d = f'{key_cam}_vos_iz_3d'
-        kiphi_3d = f'{key_cam}_vos_iphi_3d'
-        ksa_3d = f'{key_cam}_vos_sa_3d'
-        kdV_3d = f'{key_cam}_vos_dV_3d'
-        ref_3d = tuple(list(ref_cam) + [knpts_3d])
-
-        if lvectx is not None:
-            kvectx = f'{key_cam}_vos_vx'
-            kvecty = f'{key_cam}_vos_vy'
-            kvectz = f'{key_cam}_vos_vz'
-
-    # ----------------
-    # format output
-    # ----------------
-
-    # dref
-    dref = {
-        'npts_cross': {
-            'key': knpts_cross,
-            'size': indr_cross.shape[-1],
-        },
-    }
-
-    if keep3d is True:
-        dref['npts_3d'] = {
-            'key': knpts_3d,
-            'size': indr_3d.shape[1],
-        }
-
-    # ddata - polygons
-    dout = {
-        'pcross0': {
-            'data': pcross0,
-            'units': 'm',
-            'dim': 'distance',
-        },
-        'pcross1': {
-            'data': pcross1,
-            'units': 'm',
-            'dim': 'distance',
-        },
-        'phor0': {
-            'data': phor0,
-            'units': 'm',
-            'dim': 'distance',
-        },
-        'phor1': {
-            'data': phor1,
-            'units': 'm',
-            'dim': 'distance',
-        },
-    }
-
-    # ddata - cross indices
-    dout.update({
-        'indr_cross': {
-            'key': kir_cross,
-            'data': indr_cross,
-            'ref': ref_cross,
-            'units': '',
-            'dim': 'index',
-        },
-        'indz_cross': {
-            'key': kiz_cross,
-            'data': indz_cross,
-            'ref': ref_cross,
-            'units': '',
-            'dim': 'index',
-        },
-        'sang_cross': {
-            'key': ksa_cross,
-            'data': sang_cross,
-            'ref': ref_cross,
-            'units': 'sr.m3',
-            'dim': 'sang',
-        },
-    })
-
-    # return_vect
-    if lang_pol_cross is not None:
-        dout.update({
-            'ang_pol_cross': {
-                'key': kap_cross,
-                'data': ang_pol_cross,
-                'ref': ref_cross,
-                'units': 'rad',
-                'dim': 'angle',
-            },
-            'ang_tor_cross': {
-                'key': kat_cross,
-                'data': ang_tor_cross,
-                'ref': ref_cross,
-                'units': 'rad',
-                'dim': 'angle',
-            },
-        })
-
-    # keep3d
-    if keep3d is True:
-        dout.update({
-            'indr_3d': {
-                'key': kir_3d,
-                'data': indr_3d,
-                'ref': ref_3d,
-                'units': '',
-                'dim': 'index',
-            },
-            'indz_3d': {
-                'key': kiz_3d,
-                'data': indz_3d,
-                'ref': ref_3d,
-                'units': '',
-                'dim': 'index',
-            },
-            'indphi_3d': {
-                'key': kiphi_3d,
-                'data': indphi_3d,
-                'ref': ref_3d,
-                'units': '',
-                'dim': 'index',
-            },
-            'sang_3d': {
-                'key': ksa_3d,
-                'data': sang_3d,
-                'ref': ref_3d,
-                'units': 'sr.m3',
-                'dim': 'sang',
-            },
-            'dV_3d': {
-                'key': kdV_3d,
-                'data': dV_3d,
-                'ref': ref_3d,
-                'units': 'm3',
-                'dim': 'volume',
-            },
-        })
-
-        if lvectx is not None:
-            dout.update({
-                'vectx_3d': {
-                    'key': kvectx,
-                    'data': vectx,
-                    'ref': ref_3d,
-                    'units': '',
-                },
-                'vecty_3d': {
-                    'key': kvecty,
-                    'data': vecty,
-                    'ref': ref_3d,
-                    'units': '',
-                },
-                'vectz_3d': {
-                    'key': kvectz,
-                    'data': vectz,
-                    'ref': ref_3d,
-                    'units': '',
-                },
-            })
 
     if timing:
         t33 = dtm.datetime.now()
         dt22 += (t33 - t22).total_seconds()
 
     return (
-        dout, dref,
+        ddata, dref,
         dt11, dt22,
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,
     )
-
-
-# ###########################################################
-# ###########################################################
-#               Iniialize lists
-# ###########################################################
-
-
-def _initialize_lists(
-    return_vector=None,
-    keep3d=None,
-):
-
-    lpcross = []
-    lphor = []
-    lsang_cross = []
-    lindr_cross = []
-    lindz_cross = []
-    if keep3d is True:
-        lindr_3d = []
-        lindz_3d = []
-        liphi_3d = []
-        lsang_3d = []
-        ldV_3d = []
-    else:
-        lindr_3d = None
-        lindz_3d = None
-        liphi_3d = None
-        lsang_3d = None
-        ldV_3d = None
-
-    if return_vector is True:
-        lang_tor_cross = []
-        lang_pol_cross = []
-        if keep3d is True:
-            lvectx = []
-            lvecty = []
-            lvectz = []
-        else:
-            lvectx = None
-            lvecty = None
-            lvectz = None
-    else:
-        lang_tor_cross = None
-        lang_pol_cross = None
-        lvectx = None
-        lvecty = None
-        lvectz = None
-
-    return (
-        lpcross, lphor, lsang_cross, lindr_cross, lindz_cross,
-        lindr_3d, lindz_3d, liphi_3d, lsang_3d, ldV_3d,
-        lang_tor_cross, lang_pol_cross, lvectx, lvecty, lvectz,
-    )
-
-
-# ###########################################################
-# ###########################################################
-#               get points
-# ###########################################################
-
-
-def _vos_points(
-    # polygons
-    pcross0=None,
-    pcross1=None,
-    phor0=None,
-    phor1=None,
-    margin_poly=None,
-    dphi=None,
-    # sampling
-    dsamp=None,
-    x0f=None,
-    x1f=None,
-    x0u=None,
-    x1u=None,
-    res=None,
-    dx0=None,
-    dx1=None,
-    # shape
-    sh=None,
-    # debug
-    debug=None,
-    ii=None,
-    ind=None,
-):
-
-    # ---------------------
-    # get polygons - cross
-    # ---------------------
-
-    # ---------------------
-    # get cross-section polygon with margin
-
-    pc0, pc1 = _utilities._get_poly_margin(
-        # polygon
-        p0=pcross0,
-        p1=pcross1,
-        # margin
-        margin=margin_poly,
-    )
-
-    pcross = Path(np.array([pc0, pc1]).T)
-
-    # ------------
-    # get indices
-    # ------------
-
-    # indices
-    index = (
-        dsamp['ind']['data']
-        & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
-    )
-
-    # R and Z indices
-    ir, iz = index.nonzero()
-    iru = np.unique(ir)
-
-    # ---------------------------
-    # get polygons - cross dphi_r
-    # ---------------------------
-
-    # get cross-section polygon with margin
-    ph0, ph1 = _utilities._get_poly_margin(
-        # polygon
-        p0=phor0,
-        p1=phor1,
-        # margin
-        margin=margin_poly,
-    )
-
-    # ------------
-    # get dphi_r
-    # ------------
-
-    # phi_r
-    dphi_r = _utilities._get_dphi_from_R_phor(
-        R=x0u[iru],
-        phor0=ph0,
-        phor1=ph1,
-        phimin=dphi[0],
-        phimax=dphi[1],
-        res=res,
-    )
-
-    # get nphi
-    iok = np.all(np.isfinite(dphi_r), axis=0)
-    dphi_r = dphi_r[:, iok]
-    iru = iru[iok]
-
-    # ------------
-    # safety check
-    # ------------
-
-    if iru.size == 0:
-        return None, None, None, None, None, None, None, None
-
-    # ------------
-    # go on
-    # ------------
-
-    nphi_r = (
-        np.ceil(x0u[iru]*(dphi_r[1, :] - dphi_r[0, :]) / res).astype(int)
-        + 1
-    )
-    ddphi_r = np.diff(dphi_r, axis=0)[0, :] / (nphi_r - 1)
-
-    # ------------
-    # get indices
-    # ------------
-
-    # get indices
-    lind = [ir == i0 for i0 in iru]
-    ln = [i0.sum() for i0 in lind]
-
-    indrz = np.concatenate([
-        np.tile(i0.nonzero()[0], nphi_r[ii]) for ii, i0 in enumerate(lind)
-    ])
-
-    # get phi
-    lphi = [
-        np.linspace(dphi_r[0, ii], dphi_r[1, ii], nn)
-        for ii, nn in enumerate(nphi_r)
-    ]
-    phi = np.concatenate(tuple([
-        np.repeat(phii, ln[ii]) for ii, phii in enumerate(lphi)
-    ]))
-    iphi = np.concatenate(tuple([
-        np.repeat(np.arange(0, nn), ln[ii]) for ii, nn in enumerate(nphi_r)
-    ]))
-
-    dV = np.concatenate(tuple([
-        np.repeat(dx0 * dx1 * x0u[i0] * ddphi_r[ii], ln[ii] * nphi_r[ii])
-        for ii, i0 in enumerate(iru)
-    ]))
-
-    # -------------
-    # derive coords
-    # -------------
-
-    # coordinates
-    rr = x0u[ir[indrz]]
-    xx = rr * np.cos(phi)
-    yy = rr * np.sin(phi)
-    zz = x1u[iz[indrz]]
-
-    # ----------------
-    # get indices dict
-    # ----------------
-
-    dind = {
-        i0: {
-            'dV': dx0 * dx1 * x0u[i0] * ddphi_r[ii],
-            'iz': np.unique(iz[lind[ii]]),
-            'indrz': ir[indrz] == i0,
-            'phi': lphi[ii],
-        }
-        for ii, i0 in enumerate(iru)
-    }
-
-    # ----------------
-    # debug
-    # ----------------
-
-    if debug is True:
-
-        fig = plt.figure(figsize=(14, 8))
-        fig.suptitle(f"pixel ind = {ind}", size=14, fontweight='bold')
-
-        ax0 = fig.add_subplot(1, 2, 1, aspect='equal')
-        ax0.set_xlabel("R (m)", size=12, fontweight='bold')
-        ax0.set_ylabel("Z (m)", size=12, fontweight='bold')
-
-        ax1 = fig.add_subplot(1, 2, 2, aspect='equal')
-        ax1.set_xlabel("X (m)", size=12, fontweight='bold')
-        ax1.set_ylabel("Y (m)", size=12, fontweight='bold')
-
-        ax0.fill(pc0, pc1, fc=(0.5, 0.5, 0.5, 0.5))
-        ax1.fill(ph0, ph1, fc=(0.5, 0.5, 0.5, 0.5))
-
-        ax0.plot(np.hypot(xx, yy), zz, '.')
-        ax1.plot(xx, yy, '.')
-
-    return xx, yy, zz, dind, ir[indrz], iz[indrz], iphi, dV
 
 
 # ###########################################################
@@ -1085,174 +567,6 @@ def _get_phor2(xx=None, yy=None, out=None, res=None, debug=False):
     return phx, phy
 
 
-# DEPRECATED ?
-# def _get_phor(dind=None, dsang_hor=None, x0=None, res=None):
-
-#     # ------------
-#     # get phi map
-
-#     dphi = np.min([
-#         (v0['phi'][1] - v0['phi'][0]) for v0 in dind.values()
-#         if v0['phi'].size >= 2
-#     ])
-
-#     phi_min = np.min([np.min(v0['phi']) for v0 in dind.values()])
-#     phi_max = np.max([np.max(v0['phi']) for v0 in dind.values()])
-
-#     nphi = int(np.ceil((phi_max - phi_min) / dphi))
-#     phi = np.linspace(phi_min - dphi, phi_max + dphi, nphi + 2)
-
-#     # --------------
-#     # get sang map
-
-#     nr = x0.size
-#     bool_hor = np.zeros((nr, nphi + 2), dtype=float)
-
-#     for ii, (i0, v0) in enumerate(dind.items()):
-
-#         bool_hor[i0 + 1, :] = scpinterp.UnivariateSpline(
-#             v0['phi'],
-#             dsang_hor[i0],
-#             w=None,
-#             bbox=[None, None],
-#             k=1,
-#             s=None,
-#             ext=0,
-#             check_finite=False,
-#         )(phi) > 0
-#     bool_hor[:, 0] = 0.
-#     bool_hor[:, -1] = 0.
-
-#     # ----------------
-#     # convert to x, y
-
-#     rf = np.repeat(x0[:, None], nphi+2, axis=1)
-#     phif = np.repeat(phi[None, :], nr, axis=0)
-
-#     xf = rf * np.cos(phif)
-#     yf = rf * np.sin(phif)
-
-#     xmin, xmax = xf.min(), xf.max()
-#     ymin, ymax = yf.min(), yf.max()
-
-#     res = min(res, dphi*x0[0])
-#     nx = int(np.ceil((xmax - xmin) / res))
-#     ny = int(np.ceil((ymax - ymin) / res))
-
-#     xx = np.linspace(np.min(xf), np.max(xf), nx)
-#     yy = np.linspace(np.min(xf), np.max(xf), ny)
-#     rr = np.hypot(xx[:, None], yy[None, :])
-#     pp = np.arctan2(yy[None, :], xx[:, None])
-
-#     bool_xy = np.zeros((nx, ny), dtype=float)
-
-#     iok = (rr > x0[0]) & (rr < x0[-1])
-#     bool_xy[iok] = scpinterp.RectBivariateSpline(
-#         x0,
-#         phi,
-#         bool_hor,
-#         kx=1,
-#         ky=1,
-#         s=0,
-#     )(rr[iok], pp[iok], grid=False)
-
-#     # --------------------------
-#     # get phor in (r, phi) space
-
-#     phx, phy = _utilities._get_polygons(
-#         bool_cross=bool_xy,
-#         x0=xx,
-#         x1=yy,
-#         res=res,
-#     )
-
-#     return phx, phy
-
-
-# ###########################################################
-# ###########################################################
-#               Pixel
-# ###########################################################
-
-
-# def _vos_pixel(
-#     x0=None,
-#     x1=None,
-#     ind=None,
-#     npts=None,
-#     dphi=None,
-#     deti=None,
-#     lap=None,
-#     res=None,
-#     config=None,
-#     visibility=None,
-#     # output
-#     key_cam=None,
-#     sli=None,
-#     ii=None,
-#     bool_cross=None,
-#     sang=None,
-#     indr=None,
-#     indz=None,
-#     # timing
-#     timing=None,
-#     dt1111=None,
-#     dt2222=None,
-#     dt3333=None,
-#     dt4444=None,
-# ):
-
-
-#     out = _comp_solidangles.calc_solidangle_apertures(
-#         # observation points
-#         pts_x=xx,
-#         pts_y=yy,
-#         pts_z=zz,
-#         # polygons
-#         apertures=lap,
-#         detectors=deti,
-#         # possible obstacles
-#         config=config,
-#         # parameters
-#         summed=False,
-#         visibility=visibility,
-#         return_vector=False,
-#         return_flat_pts=None,
-#         return_flat_det=None,
-#         timing=timing,
-#     )
-
-#     # ------------
-#     # get indices
-
-#     if timing:
-#         t0 = dtm.datetime.now()     # DB
-#         out, dt1, dt2, dt3 = out
-
-#     ipt = 0
-#     for ii, i0 in enumerate(iru):
-#         ind0 = irf == i0
-#         for i1 in izru[ii]:
-#             ind = ind0 & (izf == i1)
-#             bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
-#             sang[ipt] = np.sum(out[0, ind])
-#             indr[ipt] = i0
-#             indz[ipt] = i1
-#             ipt += 1
-#     assert ipt == npts
-
-#     # timing
-#     if timing:
-#         dt4444 += (dtm.datetime.now() - t0).total_seconds()
-#         dt1111 += dt1
-#         dt2222 += dt2
-#         dt3333 += dt3
-
-#         return dt1111, dt2222, dt3333, dt4444
-#     else:
-#         return
-
-
 # ###########################################################
 # ###########################################################
 #               Detector
@@ -1292,228 +606,3 @@ def _get_deti(
     }
 
     return det
-
-
-# ###########################################################
-# ###########################################################
-#               Harmonize and reshape pcross
-# ###########################################################
-
-
-# DEPRECATED
-def _harmonize_reshape_pcross(
-    lpcross=None,
-    shape=None,
-):
-
-    # ------------------
-    # get max nb of pts
-    # ------------------
-
-    # list if nb of pts
-    ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
-    nmax = np.max(ln)
-
-    # initialize
-    sh2 = tuple([nmax] + list(shape))
-    pcross0 = np.full(sh2, np.nan)
-    pcross1 = np.full(sh2, np.nan)
-
-    # ----------------
-    # loop on pixels
-    # ---------------
-
-    linds = [range(ss) for ss in shape]
-    for ii, ind in enumerate(itt.product(*linds)):
-
-        nn = ln[ii]
-        if nn == 0:
-            continue
-
-        sli = tuple([slice(None)] + list(ind))
-
-        if nmax > nn:
-            ind = np.r_[0, np.linspace(0.1, 0.9, nmax - nn), np.arange(1, nn)]
-            pcross0[sli] = scpinterp.interp1d(
-                range(0, nn),
-                lpcross[ii][0],
-                kind='linear',
-            )(ind)
-
-            pcross1[sli] = scpinterp.interp1d(
-                range(0, nn),
-                lpcross[ii][1],
-                kind='linear',
-            )(ind)
-
-        else:
-            pcross0[sli] = lpcross[ii][0]
-            pcross1[sli] = lpcross[ii][1]
-
-    return pcross0, pcross1
-
-
-# ###########################################################
-# ###########################################################
-#               Harmonize and reshape others
-# ###########################################################
-
-
-# DEPRECATED
-def _harmonize_reshape_others(
-    npix=None,
-    is2d=None,
-    shape=None,
-    indok=None,
-    **kwdargs,
-):
-
-    # -----------------------------
-    # check all input args have the same list of sizes
-    # -----------------------------
-
-    dnpts = {
-        k0: [v1.size for v1 in v0] for k0, v0 in kwdargs.items()
-        if v0 is not None
-    }
-    lkey = list(dnpts.keys())
-
-    if not all([np.allclose(v0, dnpts[lkey[0]]) for v0 in dnpts.values()]):
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dnpts.items()]
-        msg = (
-            "All input args must have the same list of sizes!\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
-
-    # ------
-    # trival
-
-    if len(lkey) == 0:
-        return {}
-
-    # list of sizes and max size
-    lnpts = dnpts[lkey[0]]
-    nmax = np.max(lnpts)
-    shape_max = shape + (nmax,)
-
-    # ------------------
-    # prepare
-    # ------------------
-
-    dout = {}
-    for k0 in lkey:
-
-        # initialize
-        if 'ind' in k0:
-            dout[k0] = -np.ones(shape_max, dtype=int)
-        else:
-            dout[k0] = np.full(shape_max, np.nan)
-
-        # fill
-        linds = [range(ss) for ss in shape]
-        for ii, ind in enumerate(itt.product(*linds)):
-            sli = ind + (np.arange(lnpts[ii]),)
-            dout[k0][sli] = kwdargs[k0][ii]
-
-    return dout
-
-
-# ###########################################################
-# ###########################################################
-#               Harmonize and reshape others
-# ###########################################################
-
-
-def _harmonize_reshape(
-    douti=None,
-    indok=None,
-):
-
-    # -----------------------------
-    # extract all keys
-    # -----------------------------
-
-    lkeys = [tuple(sorted(v0.keys())) for v0 in douti.values()]
-    skeys = set(lkeys)
-    if len(skeys) != 1:
-        msg = (
-            "Something weird: all pixels don't have the same fields!\n"
-            f"\t- skeys: {skeys}\n"
-        )
-        raise Exception(msg)
-
-    keys = list(skeys)[0]
-
-    if len(keys) == 0:
-        return {}
-
-    # -----------------------------
-    # get max sizes
-    # -----------------------------
-
-    dnpts = {
-        key: np.max([v0[key].size for v0 in douti.values()])
-        for key in keys
-    }
-
-    # safety checks - pcross
-    if dnpts['pcross0'] != dnpts['pcross1']:
-        msg = "pcross0 and pcross1 have different max size!"
-        raise Exception(msg)
-
-    # safety checks - phor
-    if dnpts['phor0'] != dnpts['phor1']:
-        msg = "phor0 and phor1 have different max size!"
-        raise Exception(msg)
-
-    # safety checks - cross
-    lk = [k0 for k0 in dnpts.keys() if k0.endswith('_cross')]
-    ssize = [dnpts[k0] for k0 in lk]
-    if len(set(ssize)) != 1:
-        msg = "some '_cross' fields have different max size!"
-        raise Exception(msg)
-
-    # safety checks - 3d
-    lk = [k0 for k0 in dnpts.keys() if k0.endswith('_3d')]
-    ssize = [dnpts[k0] for k0 in lk]
-    if len(set(ssize)) != 1:
-        msg = "some '_3d' fields have different max size!"
-        raise Exception(msg)
-
-    # -----------------------------
-    # initialize
-    # -----------------------------
-
-    dout = {
-        key: np.full()
-        for key in keys
-    }
-
-
-
-    # list of sizes and max size
-    lnpts = dnpts[lkey[0]]
-    nmax = np.max(lnpts)
-    shape_max = shape + (nmax,)
-
-    # ------------------
-    # prepare
-    # ------------------
-
-    dout = {}
-    for k0 in lkey:
-
-        # initialize
-        if 'ind' in k0:
-            dout[k0] = -np.ones(shape_max, dtype=int)
-        else:
-            dout[k0] = np.full(shape_max, np.nan)
-
-        # fill
-        linds = [range(ss) for ss in shape]
-        for ii, ind in enumerate(itt.product(*linds)):
-            sli = ind + (np.arange(lnpts[ii]),)
-            dout[k0][sli] = kwdargs[k0][ii]
-
-    return dout

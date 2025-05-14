@@ -14,13 +14,13 @@ import datetime as dtm      # DB
 from . import _class8_vos_broadband_old as _vos_broadband_old
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
-from . import _class8_los_angles
+from . import _class8_vos_utilities as _vos_utilities
 
 
-# ###############################################################
-# ###############################################################
-#                       Main
-# ###############################################################
+# ########################################################
+# ########################################################
+#                Main
+# ########################################################
 
 
 def compute_vos(
@@ -275,13 +275,6 @@ def compute_vos(
             dt22=dt22,
         )
 
-        dvos[k0]['keym'] = key_mesh
-        dvos[k0]['res_RZ'] = res_RZ
-        dvos[k0]['res_phi'] = res_phi
-        if spectro is True:
-            dvos[k0]['res_lamb'] = res_lamb
-            dvos[k0]['res_rock_curve'] = res_rock_curve
-
     # timing
     if timing:
         t2 = dtm.datetime.now()     # DB
@@ -303,14 +296,19 @@ def compute_vos(
 
     if store is True:
 
-        _store(
+        _vos_utilities._store(
             coll=coll,
             key_diag=key_diag,
             dvos=dvos,
             dref=dref,
-            spectro=spectro,
             overwrite=overwrite,
             replace_poly=replace_poly,
+            # mesh / res
+            keym=key_mesh,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            res_lamb=res_lamb if spectro else None,
+            res_rock_curve=res_rock_curve if spectro else None,
         )
 
     return dvos, dref
@@ -759,189 +757,10 @@ def _get_user_limits(
     return user_limits
 
 
-# ###########################################################
-# ###########################################################
-#               store
-# ###########################################################
-
-
-def _store(
-    coll=None,
-    key_diag=None,
-    dvos=None,
-    dref=None,
-    spectro=None,
-    overwrite=None,
-    replace_poly=None,
-):
-
-    # ------------
-    # check inputs
-
-    replace_poly = ds._generic_check._check_var(
-        replace_poly, 'replace_poly',
-        types=bool,
-        default=True,
-    )
-
-    # ----------------------
-    # prepare what to store
-
-    lk_com = [
-        'indr_cross', 'indz_cross',
-        'indr_3d', 'indz_3d', 'indphi_3d',
-        'vectx_3d', 'vecty_3d', 'vectz_3d',
-    ]
-
-    if spectro is True:
-        lk = [
-            'lamb',
-            'ph', 'cos', 'ncounts',
-            'phi_min', 'phi_max',
-            # optional
-            'phi_mean',
-            'dV', 'etendlen',
-        ]
-    else:
-        lk = [
-            'sang_cross', 'ang_pol_cross', 'ang_tor_cross',
-            'sang_3d', 'dV_3d',
-        ]
-
-    # ------------
-    # store
-
-    doptics = coll._dobj['diagnostic'][key_diag]['doptics']
-
-    for k0, v0 in dvos.items():
-
-        # ----------------
-        # add ref of sang
-
-        for k1, v1 in dref[k0].items():
-            if v1['key'] in coll.dref.keys():
-                if overwrite is True:
-                    coll.remove_ref(v1['key'], propagate=True)
-                    coll.add_ref(**v1)
-                elif v1['size'] != coll.dref[v1['key']]['size']:
-                    msg = (
-                        f"Mismatch between new vs existing size for ref\n"
-                        f"\t- ref {k1} '{v1['key']}'\n"
-                        f"\t- existing size = {coll.dref[v1['key']]['size']}\n"
-                        f"\t- new size      = {v1['size']}\n"
-                    )
-                    raise Exception(msg)
-                else:
-                    pass
-            else:
-                coll.add_ref(**v1)
-
-        # ----------------
-        # add data
-
-        for k1 in lk_com + lk:
-
-            if k1 not in v0.keys():
-                continue
-
-            if v0[k1]['key'] in coll.ddata.keys():
-                if overwrite is True:
-                    coll.remove_data(key=v0[k1]['key'])
-                else:
-                    msg = (
-                        f"Not overwriting existing data '{v0[k1]['key']}'\n"
-                        "To force update use overwrite = True\n"
-                    )
-                    raise Exception(msg)
-
-            coll.add_data(**v0[k1])
-
-        # ----------------
-        # pcross replacement
-
-        if replace_poly and v0.get('pcross0') is not None:
-
-            if v0.get('phor0') is None:
-                phor0, phor1 = None, None
-            else:
-                phor0, phor1 = v0['phor0']['data'], v0['phor1']['data']
-
-            # re-use previous keys
-            if doptics[k0].get('dvos') is None:
-
-                _class8_los_angles._vos_from_los_store(
-                    coll=coll,
-                    key=key_diag,
-                    key_cam=k0,
-                    pcross0=v0['pcross0']['data'],
-                    pcross1=v0['pcross1']['data'],
-                    phor0=phor0,
-                    phor1=phor1,
-                    dphi=None,
-                )
-
-            else:
-                kpc0, kpc1 = doptics[k0]['dvos']['pcross']
-                kr = coll.ddata[kpc0]['ref'][0]
-
-                # safety check
-                shape_pcross = v0['pcross0']['data'].shape
-                if coll.ddata[kpc0]['data'].shape[1:] != shape_pcross[1:]:
-                    msg = "Something is wrong"
-                    raise Exception(msg)
-
-                coll._dref[kr]['size'] = shape_pcross[0]
-                coll._ddata[kpc0]['data'] = v0['pcross0']['data']
-                coll._ddata[kpc1]['data'] = v0['pcross1']['data']
-                if phor0 is not None:
-                    kph0, kph1 = doptics[k0]['dvos']['phor']
-                    coll._ddata[kph0]['data'] = v0['phor0']['data']
-                    coll._ddata[kph1]['data'] = v0['phor1']['data']
-
-        # ---------------
-        # add in doptics
-
-        doptics[k0]['dvos']['keym'] = v0['keym']
-        doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
-        doptics[k0]['dvos']['res_phi'] = v0['res_phi']
-        doptics[k0]['dvos']['ind_cross'] = (
-            v0['indr_cross']['key'],
-            v0['indz_cross']['key'],
-        )
-
-        # 3d
-        doptics[k0]['dvos']['ind_3d'] = (
-            v0.get('indr_3d', {}).get('key'),
-            v0.get('indz_3d', {}).get('key'),
-            v0.get('indphi_3d', {}).get('key'),
-        )
-        doptics[k0]['dvos']['sang_3d'] = v0.get('sang_3d', {}).get('key')
-        doptics[k0]['dvos']['dV_3d'] = v0.get('dV_3d', {}).get('key')
-
-        # vect
-        doptics[k0]['dvos']['vect_3d'] =(
-            v0.get('vectx_3d', {}).get('key'),
-            v0.get('vecty_3d', {}).get('key'),
-            v0.get('vectz_3d', {}).get('key'),
-        )
-
-        # spectro
-        if spectro:
-            doptics[k0]['dvos']['res_lamb'] = v0['res_lamb']
-            doptics[k0]['dvos']['res_rock_curve'] = v0['res_rock_curve']
-
-        # -----------------
-        # add data keys to doptics
-
-        for k1 in lk:
-            if k1 in v0.keys():
-                doptics[k0]['dvos'][k1] = v0[k1]['key']
-
-
-# ###############################################################
-# ###############################################################
-#                       get / check
-# ###############################################################
+# #######################################################
+# #######################################################
+#               get / check
+# #######################################################
 
 
 def _check_get_dvos(
@@ -1077,11 +896,10 @@ def _check_get_dvos(
     return key_diag, dvos, isstore
 
 
-# ###############################################################
-# ###############################################################
-#                       get vos to 3d
-# ###############################################################
-
+# #########################################################
+# #########################################################
+#                 get vos to 3d
+# #########################################################
 
 
 # DEPRECATED ?
