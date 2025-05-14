@@ -661,7 +661,7 @@ def _store_dvos(
     # overwrite ref
     for k0, v0 in dref.items():
         for k1 in v0.keys():
-            ispoly = 'pc_n' in k1 or 'ph_n' in k1
+            ispoly = 'pcross_npts' in k1 or 'phor_n' in k1
             doverwrite[k1] = {
                 'bool': replace_poly if ispoly else overwrite,
                 'msg': 'replace_poly' if ispoly else 'overwrite',
@@ -701,11 +701,7 @@ def _store_dvos(
                     )
                     raise Exception(msg)
 
-            try:
-                coll.add_ref(**v1)
-            except Exception as err:
-                import pdb; pdb.set_trace()     # DB
-                pass
+            coll.add_ref(**v1)
 
         # ----------------
         # add data
