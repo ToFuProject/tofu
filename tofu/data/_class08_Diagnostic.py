@@ -24,6 +24,7 @@ from . import _class8_vos as _vos
 from . import _class8_vos_spectro_nobin_at_lamb as _vos_nobin_at_lamb
 from . import _class8_los_angles as _los_angles
 from . import _class08_generate_rays as _generate_rays
+from . import _class8_sang_vect as _sang_vect
 from . import _class8_plot_coverage_slice as _coverage_slice
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_compute_signal_moments as _signal_moments
@@ -315,6 +316,46 @@ class Diagnostic(Previous):
 
         if return_dcompute is True:
             return dcompute
+
+    # -----------------
+    # compute sang, vect for any pts
+    # -----------------
+
+    def compute_diagnostic_sang_vect_from_pts(
+        self,
+        # resources
+        key_diag=None,
+        key_cam=None,
+        # pts
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # options
+        visibility=None,
+        config=None,
+        return_vect=None,
+    ):
+        """ Return as dict of sang, vect, dV for any set of pts (full 3d)
+
+        """
+        return _sang_vect.main(
+            coll=self,
+            # resources
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # pts
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # options
+            visibility=visibility,
+            config=config,
+            return_vect=return_vect,
+        )
+
+    # -----------------
+    # geometrical coverage slicing
+    # -----------------
 
     def plot_diagnostic_geometrical_coverage_slice(
         self,
