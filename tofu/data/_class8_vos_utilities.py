@@ -49,6 +49,12 @@ for nd in ['cross', '3d']:
             'dim': 'distance',
         }
 
+    for vv in ['r', 'z', 'phi']:
+        _DUNITS[f'ind{vv}_{nd}'] = {
+            'units': '',
+            'dim': 'index',
+        }
+
 
 # ###############################################
 # ###############################################
@@ -456,17 +462,23 @@ def _harmonize_reshape(
 
     keys = list(skeys)[0]
 
-    if len(keys) == 0:
-        return {}
-
     # -----------------------------
     # get max sizes
     # -----------------------------
 
     dnpts = {
-        key: np.max([v0[key].size for v0 in douti.values()])
+        key: np.max([
+            v0[key].size for v0 in douti.values()
+            if v0.get(key) is not None
+        ])
         for key in keys
     }
+
+    dnpts = {k0: v0 for k0, v0 in dnpts.items() if v0 > 0}
+    keys = [kk for kk in keys if dnpts.get(kk) is not None]
+
+    if len(keys) == 0:
+        return {}
 
     # safety checks - pcross
     if dnpts['pcross0'] != dnpts['pcross1']:
@@ -558,7 +570,11 @@ def _harmonize_reshape(
         if key in lpoly:
 
             for ind in zip(*indok.nonzero()):
-                nn = douti[ind][key].size
+                nn = 0 if douti[ind][key] is None else douti[ind][key].size
+
+                if nn == 0:
+                    continue
+
                 sli = ind + (slice(0, dnpts[key]),)
                 if nn < dnpts[key]:
                     indi = np.r_[
@@ -581,6 +597,8 @@ def _harmonize_reshape(
         else:
             for ind in zip(*indok.nonzero()):
                 nn = douti[ind][key].size
+                if nn == 0:
+                    continue
                 sli = ind + (slice(0, nn),)
                 ddata[key]['data'][sli] = douti[ind][key]
 
@@ -632,20 +650,22 @@ def _store_dvos(
 
     # overwrite data
     doverwrite = {}
-    for k0 in dvos.keys():
-        ispoly = 'pcross' in k0 or 'phor' in k0
-        doverwrite[k0] = {
-            'bool': replace_poly if ispoly else overwrite,
-            'msg': 'replace_poly' if ispoly else 'overwrite',
-        }
+    for k0, v0 in dvos.items():
+        for k1 in v0.keys():
+            ispoly = 'pcross' in k1 or 'phor' in k1
+            doverwrite[k1] = {
+                'bool': replace_poly if ispoly else overwrite,
+                'msg': 'replace_poly' if ispoly else 'overwrite',
+            }
 
     # overwrite ref
-    for k0 in dref.keys():
-        ispoly = 'pc_n' in k0 or 'ph_n' in k0
-        doverwrite[k0] = {
-            'bool': replace_poly if ispoly else overwrite,
-            'msg': 'replace_poly' if ispoly else 'overwrite',
-        }
+    for k0, v0 in dref.items():
+        for k1 in v0.keys():
+            ispoly = 'pc_n' in k1 or 'ph_n' in k1
+            doverwrite[k1] = {
+                'bool': replace_poly if ispoly else overwrite,
+                'msg': 'replace_poly' if ispoly else 'overwrite',
+            }
 
     # tuples
     dtuples = {
@@ -668,7 +688,8 @@ def _store_dvos(
 
         for k1, v1 in dref[k0].items():
             if v1['key'] in coll.dref.keys():
-                if doverwrite[k1] is True:
+                over = doverwrite[k1]
+                if over['bool'] is True:
                     coll.remove_ref(v1['key'], propagate=True)
                 elif v1['size'] != coll.dref[v1['key']]['size']:
                     msg = (
@@ -676,10 +697,15 @@ def _store_dvos(
                         f"\t- ref {k1} '{v1['key']}'\n"
                         f"\t- existing size = {coll.dref[v1['key']]['size']}\n"
                         f"\t- new size      = {v1['size']}\n"
-                        "To force update use overwrite = True\n"
+                        f"To force update use {over['msg']} = True\n"
                     )
                     raise Exception(msg)
-            coll.add_ref(**v1)
+
+            try:
+                coll.add_ref(**v1)
+            except Exception as err:
+                import pdb; pdb.set_trace()     # DB
+                pass
 
         # ----------------
         # add data
@@ -687,12 +713,13 @@ def _store_dvos(
         for k1, v1 in v0.items():
 
             if v1['key'] in coll.ddata.keys():
-                if doverwrite[k1] is True:
+                over = doverwrite[k1]
+                if over['bool'] is True:
                     coll.remove_data(key=v1['key'])
                 else:
                     msg = (
                         f"Not overwriting existing data '{v0[k1]['key']}'\n"
-                        "To force update use overwrite = True\n"
+                        f"To force update use {over['msg']} = True\n"
                     )
                     raise Exception(msg)
 
@@ -744,6 +771,5 @@ def _store_dvos(
 
         if res_rock_curve is not None:
             doptics[k0]['dvos']['res_rock_curve'] = res_rock_curve
-
 
     return

@@ -296,7 +296,7 @@ def compute_vos(
 
     if store is True:
 
-        _vos_utilities._store(
+        _vos_utilities._store_dvos(
             coll=coll,
             key_diag=key_diag,
             dvos=dvos,

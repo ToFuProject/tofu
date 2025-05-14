@@ -259,7 +259,15 @@ def _vos(
 
         bool_cross[...] = False
         npts_tot = xx.size
-        npts_cross = np.sum([v0['iz'].size for v0 in dind.values()])
+        npts_cross = int(np.sum([v0['iz'].size for v0 in dind.values()]))
+
+        # safety check
+        assert npts_tot >= npts_cross
+
+        if npts_cross == 0:
+            assert npts_tot == 0
+            indok[ind] = False
+            continue
 
         dsang_hor = {}
         sang_cross = np.zeros((npts_cross,), dtype=float)
@@ -467,7 +475,7 @@ def _vos(
                 'sang_3d': sang_3d,
                 'indr_3d': indr_3d,
                 'indz_3d': indz_3d,
-                'iphi_3d': iphi_3d,
+                'indphi_3d': iphi_3d,
                 'dV_3d': dV_3d,
             })
 
