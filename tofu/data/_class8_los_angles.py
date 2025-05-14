@@ -225,20 +225,12 @@ def _vos_from_los(
         or oo in coll.dobj.get('grating', {}).keys()
     ]
 
-    dgeom = coll.dobj['camera'][key_cam]['dgeom']
-    par = dgeom['parallel']
-
-    if par:
-        dx, dy, dz = coll.get_camera_dxyz(
-            key=key_cam,
-            include_center=True,
-        )
-
-    else:
-        out0 = coll.ddata[dgeom['outline'][0]]['data']
-        out1 = coll.ddata[dgeom['outline'][1]]['data']
-        ke0 = dgeom['e0']
-        ke1 = dgeom['e1']
+    # delta around cents, shape (shape_cam, npts)
+    dx, dy, dz = coll.get_camera_dxyz(
+        key=key_cam,
+        include_center=True,
+        kout=[0.5, 1],
+    )
 
     if pinhole is True:
         iref = v0['iref']
@@ -261,13 +253,6 @@ def _vos_from_los(
         if pinhole is False:
             iref = v0['iref'][ind]
 
-        if not par:
-            e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
-            e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
-            dx = out0 * e0[0] + out1 * e1[0]
-            dy = out0 * e0[1] + out1 * e1[1]
-            dz = out0 * e0[2] + out1 * e1[2]
-
         # -----------------------
         # get start / end points
 
@@ -277,9 +262,9 @@ def _vos_from_los(
             cx=v0['cx'][ind],
             cy=v0['cy'][ind],
             cz=v0['cz'][ind],
-            dx=dx,  # np.r_[0],
-            dy=dy,  # np.r_[0],
-            dz=dz,  # np.r_[0],
+            dx=dx[sli],  # np.r_[0],
+            dy=dy[sli],  # np.r_[0],
+            dz=dz[sli],  # np.r_[0],
             # end points
             x0=np.r_[v0['x0'][sli], v0['cents0'][ind]],
             x1=np.r_[v0['x1'][sli], v0['cents1'][ind]],
