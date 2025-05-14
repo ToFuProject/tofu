@@ -189,8 +189,8 @@ def _vos(
         # -----------------
         # slices
 
-        sli_poly = (slice(None),) + ind
-        sli_poly0 = (0,) + ind
+        sli_poly = ind + (slice(None),)
+        sli_poly0 = ind + (0,)
 
         # -----------------
         # get volume limits
