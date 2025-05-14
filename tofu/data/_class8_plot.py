@@ -1063,6 +1063,7 @@ def _prepare_vos(
     # vos
 
     # vos on cams
+    wcam = coll._which_cam
     for k0, v0 in dcamref.items():
 
         krxy = f'{k0}_xy2'
@@ -1081,21 +1082,33 @@ def _prepare_vos(
                 ph1 = coll.ddata[doptics[k0]['dvos']['phor'][1]]['data']
                 phref = coll.ddata[doptics[k0]['dvos']['phor'][0]]['ref']
 
-            if pcref[0] not in coll2.dref.keys():
-                coll2.add_ref(key=pcref[0], size=pc0.shape[0])
+            # axis / ref
+            ref_cam = coll.dobj[wcam][k0]['dgeom']['ref']
+            ref_pts_c = [rr for rr in pcref if rr not in ref_cam][0]
+            if ph0 is not None:
+                ref_pts_h = [rr for rr in phref if rr not in ref_cam][0]
+            axis_pts = pcref.index(ref_pts_c)
 
-            dref_vos[k0] = (pcref[1:],)
+            # add ref to coll2 if missing
+            if ref_pts_c not in coll2.dref.keys():
+                coll2.add_ref(key=ref_pts_c, size=pc0.shape[axis_pts])
+                if ph0 is not None and ref_pts_h not in coll2.dref.keys():
+                    coll2.add_ref(key=ref_pts_h, size=ph0.shape[axis_pts])
 
-            ref = tuple(list(pcref[::-1]) + [krxy])
+            dref_vos[k0] = ref_cam
+
+            # add data as 2d poly
+            ref = pcref[::-1] + (krxy,)
             pcxy = np.array([pc0, pc1]).T
+
             coll2.add_data(key=f'{k0}_vos_cross', data=pcxy, ref=ref)
             if ph0 is not None:
-                ref = tuple(list(phref[::-1]) + [krxy])
+                ref = phref[::-1] + (krxy,)
                 phxy = np.array([ph0, ph1]).T
                 coll2.add_data(key=f'{k0}_vos_hor', data=phxy, ref=ref)
 
             # store
-            dvos_n[k0] = pc0.shape[0]
+            dvos_n[k0] = pc0.shape[axis_pts]
 
     return dvos_n, dref_vos
 
