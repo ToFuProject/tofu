@@ -11,7 +11,6 @@ import datastock as ds
 import datetime as dtm      # DB
 
 
-from . import _class8_vos_broadband_old as _vos_broadband_old
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
 from . import _class8_vos_utilities as _vos_utilities
@@ -24,7 +23,6 @@ from . import _class8_vos_utilities as _vos_utilities
 
 
 def compute_vos(
-    version=None,
     # resources
     coll=None,
     key_diag=None,
@@ -128,20 +126,16 @@ def compute_vos(
     if spectro:
         func = _vos_spectro._vos
     else:
-        if version == 'old':
-            func = _vos_broadband_old._vos
-
-        else:
-            (
-                func_RZphi_from_ind,
-                func_ind_from_domain,
-            ) = coll.get_sample_mesh_3d_func(
-                key=key_mesh,
-                res_RZ=res_RZ,
-                mode='abs',
-                res_phi=res_phi,
-            )
-            func = _vos_broadband._vos
+        (
+            func_RZphi_from_ind,
+            func_ind_from_domain,
+        ) = coll.get_sample_mesh_3d_func(
+            key=key_mesh,
+            res_RZ=res_RZ,
+            mode='abs',
+            res_phi=res_phi,
+        )
+        func = _vos_broadband._vos
 
     # ------------
     # sample mesh
