@@ -314,14 +314,27 @@ class Camera(Previous):
     # utilities
     # ---------------
 
-    def get_camera_unit_vectors(self, key=None):
-        """ Return unit vectors components as dict """
+    def get_camera_unit_vectors(
+        self,
+        key=None,
+        broadcast=None,
+    ):
+        """ Return a dict of unit vectors components
+
+        If broadcast=True, forces to match the shape of camera
+        """
         return _check.get_camera_unitvectors(
             coll=self,
             key=key,
+            broadcast=broadcast,
         )
 
-    def get_camera_dxyz(self, key=None, include_center=None):
+    def get_camera_dxyz(
+        self,
+        key=None,
+        kout=None,
+        include_center=None,
+    ):
         """ Return dx, dy, dz to get the outline from any pixel center
         Only works on 2d or parallel cameras
 
@@ -329,6 +342,7 @@ class Camera(Previous):
         return _check.get_camera_dxyz(
             coll=self,
             key=key,
+            kout=kout,
             include_center=include_center,
         )
 
