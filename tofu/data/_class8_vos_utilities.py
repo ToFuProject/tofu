@@ -9,9 +9,45 @@ import bsplines2d as bs2
 from contourpy import contour_generator
 from matplotlib.path import Path
 from scipy.spatial import ConvexHull
+import scipy.interpolate as scpinterp
 import matplotlib.pyplot as plt
 import datastock as ds
 import Polygon as plg
+
+
+# ###############################################
+# ###############################################
+#           DEFAULT
+# ###############################################
+
+
+_DUNITS = {}
+
+for pp in ['cross', 'hor']:
+    for ii in [0, 1]:
+        _DUNITS[f"p{pp}{ii}"] = {
+            'units': 'm',
+            'dim': 'distance',
+        }
+
+for nd in ['cross', '3d']:
+    # sang
+    _DUNITS[f"sang_{nd}"] = {
+        'units': 'sr',
+        'dim': 'solid angle',
+    }
+
+    # dV
+    _DUNITS[f"dV_{nd}"] = {
+        'units': 'm3',
+        'dim': 'volume',
+    }
+
+    for vv in ['x', 'y', 'z']:
+        _DUNITS[f'vect{vv}_{nd}'] = {
+            'units': 'm',
+            'dim': 'distance',
+        }
 
 
 # ###############################################
@@ -207,7 +243,10 @@ def _simplify_polygon(c0, c1, res=None):
             if i1 < ih:
                 ind = np.arange(ih, i1 - 1, -1)
             else:
-                ind = np.r_[np.arange(ih, -1, -1), np.arange(npts - 1, i1 - 1, -1)]
+                ind = np.r_[
+                    np.arange(ih, -1, -1),
+                    np.arange(npts - 1, i1 - 1, -1),
+                ]
 
         # trivial
         if ind.size == 2:
@@ -386,3 +425,325 @@ def _get_dphi_from_R_phor(
             dphi[1, ir] = np.max(phi[ind]) + sign*(phi[1] - phi[0])
 
     return dphi
+
+
+# ########################################################
+# ########################################################
+#               Reshape / harmonize
+# ########################################################
+
+
+def _harmonize_reshape(
+    douti=None,
+    indok=None,
+    key_diag=None,
+    key_cam=None,
+    ref_cam=None,
+):
+
+    # -----------------------------
+    # extract all keys
+    # -----------------------------
+
+    lkeys = [tuple(sorted(v0.keys())) for v0 in douti.values()]
+    skeys = set(lkeys)
+    if len(skeys) != 1:
+        msg = (
+            "Something weird: all pixels don't have the same fields!\n"
+            f"\t- skeys: {skeys}\n"
+        )
+        raise Exception(msg)
+
+    keys = list(skeys)[0]
+
+    if len(keys) == 0:
+        return {}
+
+    # -----------------------------
+    # get max sizes
+    # -----------------------------
+
+    dnpts = {
+        key: np.max([v0[key].size for v0 in douti.values()])
+        for key in keys
+    }
+
+    # safety checks - pcross
+    if dnpts['pcross0'] != dnpts['pcross1']:
+        msg = "pcross0 and pcross1 have different max size!"
+        raise Exception(msg)
+
+    # safety checks - phor
+    if dnpts['phor0'] != dnpts['phor1']:
+        msg = "phor0 and phor1 have different max size!"
+        raise Exception(msg)
+
+    # safety checks - cross
+    lk = [k0 for k0 in dnpts.keys() if k0.endswith('_cross')]
+    ssize = [dnpts[k0] for k0 in lk]
+    if len(set(ssize)) > 1:
+        msg = "some '_cross' fields have different max size!"
+        raise Exception(msg)
+
+    # safety checks - 3d
+    lk = [k0 for k0 in dnpts.keys() if k0.endswith('_3d')]
+    ssize = [dnpts[k0] for k0 in lk]
+    if len(set(ssize)) > 1:
+        msg = "some '_3d' fields have different max size!"
+        raise Exception(msg)
+
+    # -----------------------------
+    # fill dout
+    # -----------------------------
+
+    ddata, dref = {}, {}
+    lpoly = ['pcross0', 'pcross1', 'phor0', 'phor1']
+    for key in keys:
+        shape = indok.shape + (dnpts[key],)
+
+        if 'ind' in key:
+            data = -np.ones(shape, dtype=int)
+        else:
+            data = np.full(shape, np.nan)
+
+        # ----------
+        # dref
+
+        # kref
+        if key in lpoly:
+            if 'cross' in key:
+                kr0 = 'pcross_npts'
+                kref = f'{key_cam}_vos_pc_n'
+                kred = key.replace('pcross', 'pc')
+            else:
+                kr0 = 'phor_npts'
+                kref = f'{key_cam}_vos_ph_n'
+                kred = key.replace('phor', 'ph')
+
+        else:
+            if key.endswith('_cross'):
+                kr0 = 'npts_cross'
+                kref = f'{key_cam}_vos_npts_cross'
+
+            else:
+                kr0 = 'npts_3d'
+                kref = f'{key_cam}_vos_npts_3d'
+            kred = key.replace('vect', 'v').replace('sang', 'sa')
+            kred = kred.replace('ind', 'i')
+
+        # dref
+        if kref not in dref.keys():
+            dref[kr0] = {
+                'key': kref,
+                'size': dnpts[key],
+            }
+
+        # ref
+        ref = ref_cam + (kref,)
+
+        # ------------
+        # initialize
+
+        knew = f"{key_diag}_{key_cam}_vos_{kred}"
+        ddata[key] = {
+            'key': knew,
+            'data': data,
+            'ref': ref,
+            **_DUNITS[key],
+        }
+
+        # ------------
+        # polygons
+
+        if key in lpoly:
+
+            for ind in zip(*indok.nonzero()):
+                nn = douti[ind][key].size
+                sli = ind + (slice(0, dnpts[key]),)
+                if nn < dnpts[key]:
+                    indi = np.r_[
+                        0,
+                        np.linspace(0.1, 0.9, dnpts[key] - nn),
+                        np.arange(1, nn),
+                    ]
+
+                    douti[ind][key] = scpinterp.interp1d(
+                        range(0, nn),
+                        douti[ind][key],
+                        kind='linear',
+                    )(indi)
+
+                ddata[key]['data'][sli] = douti[ind][key]
+
+        # ------------
+        # non-polygons
+
+        else:
+            for ind in zip(*indok.nonzero()):
+                nn = douti[ind][key].size
+                sli = ind + (slice(0, nn),)
+                ddata[key]['data'][sli] = douti[ind][key]
+
+    return ddata, dref
+
+
+# ########################################################
+# ########################################################
+#               Store
+# ########################################################
+
+
+def _store_dvos(
+    coll=None,
+    key_diag=None,
+    dvos=None,
+    dref=None,
+    overwrite=None,
+    replace_poly=None,
+    # optional
+    keym=None,
+    res_RZ=None,
+    res_phi=None,
+    res_lamb=None,
+    res_rock_curve=None,
+):
+
+    # ------------
+    # check inputs
+    # ------------
+
+    # overwrite
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
+        default=False,
+    )
+
+    # replace_poly
+    replace_poly = ds._generic_check._check_var(
+        replace_poly, 'replace_poly',
+        types=bool,
+        default=overwrite,
+    )
+
+    # ------------
+    # prepare
+    # ------------
+
+    # overwrite data
+    doverwrite = {}
+    for k0 in dvos.keys():
+        ispoly = 'pcross' in k0 or 'phor' in k0
+        doverwrite[k0] = {
+            'bool': replace_poly if ispoly else overwrite,
+            'msg': 'replace_poly' if ispoly else 'overwrite',
+        }
+
+    # overwrite ref
+    for k0 in dref.keys():
+        ispoly = 'pc_n' in k0 or 'ph_n' in k0
+        doverwrite[k0] = {
+            'bool': replace_poly if ispoly else overwrite,
+            'msg': 'replace_poly' if ispoly else 'overwrite',
+        }
+
+    # tuples
+    dtuples = {
+        'pcross': ('pcross0', 'pcross1'),
+        'phor': ('phor0', 'phor1'),
+        'ind_cross': ('indr_cross', 'indz_cross'),
+        'ind_3d': ('indr_3d', 'indz_3d', 'indphi_3d'),
+        'vect_cross': ('vectx_cross', 'vecty_cross', 'vectz_cross'),
+        'vect_3d': ('vectx_3d', 'vecty_3d', 'vectz_3d'),
+    }
+
+    # -----------------------
+    # store - loop on cameras
+    # -----------------------
+
+    for k0, v0 in dvos.items():
+
+        # --------
+        # add refs
+
+        for k1, v1 in dref[k0].items():
+            if v1['key'] in coll.dref.keys():
+                if doverwrite[k1] is True:
+                    coll.remove_ref(v1['key'], propagate=True)
+                elif v1['size'] != coll.dref[v1['key']]['size']:
+                    msg = (
+                        f"Mismatch between new vs existing size for ref\n"
+                        f"\t- ref {k1} '{v1['key']}'\n"
+                        f"\t- existing size = {coll.dref[v1['key']]['size']}\n"
+                        f"\t- new size      = {v1['size']}\n"
+                        "To force update use overwrite = True\n"
+                    )
+                    raise Exception(msg)
+            coll.add_ref(**v1)
+
+        # ----------------
+        # add data
+
+        for k1, v1 in v0.items():
+
+            if v1['key'] in coll.ddata.keys():
+                if doverwrite[k1] is True:
+                    coll.remove_data(key=v1['key'])
+                else:
+                    msg = (
+                        f"Not overwriting existing data '{v0[k1]['key']}'\n"
+                        "To force update use overwrite = True\n"
+                    )
+                    raise Exception(msg)
+
+            coll.add_data(**v1)
+
+        # ---------------
+        # update doptics
+
+        wdiag = coll._which_diagnostic
+        if coll._dobj[wdiag][key_diag]['doptics'][k0].get('dvos') is None:
+            coll._dobj[wdiag][key_diag]['doptics'][k0]['dvos'] = {}
+
+        doptics = coll._dobj[wdiag][key_diag]['doptics']
+
+        # --------
+        # singles
+
+        lsingle = [
+            k1 for k1 in v0.keys()
+            if not any([any([k1 in v2 for v2 in dtuples.values()])])
+        ]
+        for k1 in lsingle:
+            doptics[k0]['dvos'][k1] = v0[k1]['key']
+
+        # ---------
+        # tuples
+
+        for k1, v1 in dtuples.items():
+            if any([v2 in v0.keys() for v2 in v1]):
+                doptics[k0]['dvos'][k1] = tuple([
+                    v0.get(v2, {}).get('key') for v2 in v1
+                ])
+
+        # ---------
+        # mesh
+
+        if keym is not None:
+            doptics[k0]['dvos']['keym'] = keym
+
+        if res_RZ is not None:
+            doptics[k0]['dvos']['res_RZ'] = res_RZ
+
+        if res_phi is not None:
+            doptics[k0]['dvos']['res_phi'] = res_phi
+
+        # spectro
+        if res_lamb is not None:
+            doptics[k0]['dvos']['res_lamb'] = res_lamb
+
+        if res_rock_curve is not None:
+            doptics[k0]['dvos']['res_rock_curve'] = res_rock_curve
+
+
+    return
