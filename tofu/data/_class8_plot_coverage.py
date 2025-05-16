@@ -5,6 +5,8 @@ Created on Wed Feb 14 08:12:28 2024
 @author: dvezinet
 """
 
+import itertools as itt
+
 
 # Common
 import numpy as np
@@ -27,9 +29,10 @@ def main(
     coll=None,
     key=None,
     key_cam=None,
-    # plot_hor
+    # what to plot
     plot_cross=None,
     plot_hor=None,
+    plot_rank=None,
     # observation directions
     observation_directions=None,
     # mesh sampling
@@ -56,7 +59,7 @@ def main(
 
     (
         key, is_vos, lcam, dvos,
-        plot_cross, plot_hor,
+        plot_cross, plot_hor, plot_rank,
         observation_directions, keym,
         res_RZ, res_phi,
         nan0, dcolor,
@@ -68,6 +71,7 @@ def main(
         # plot
         plot_cross=plot_cross,
         plot_hor=plot_hor,
+        plot_rank=plot_rank,
         observation_directions=observation_directions,
         key_mesh=key_mesh,
         res_RZ=res_RZ,
@@ -146,6 +150,7 @@ def main(
     # ------------
 
     if plot_hor is True:
+
         # -----------
         # compute
 
@@ -188,7 +193,42 @@ def main(
             vmax=vmax,
         )
 
-    return dpoly, ndet, dax
+    # ------------
+    # plot_rank
+    # ------------
+
+    if plot_rank is True:
+
+        # -----------
+        # compute
+
+        drank = _compute_rank(
+            coll=coll,
+            key=key,
+            lcam=lcam,
+        )
+
+        # --------
+        # plot
+
+        # dax = _plot_rank(
+            # coll=coll,
+            # key=key,
+            # lcam=lcam,
+            # # data
+            # drank=drank,
+            # # plotting options
+            # config=config,
+            # dax=dax,
+            # fs=fs,
+            # dmargin=dmargin,
+            # tit=tit,
+            # cmap=cmap,
+            # vmin=vmin,
+            # vmax=vmax,
+        # )
+
+    return dpoly, ndet, drank, dax
 
 
 # ################################################################
@@ -204,6 +244,7 @@ def _check(
     dvos=None,
     plot_cross=None,
     plot_hor=None,
+    plot_rank=None,
     observation_directions=None,
     key_mesh=None,
     res_RZ=None,
@@ -267,17 +308,26 @@ def _check(
         and all([kk is not None for kk in doptics[lcam[0]]['dvos']['ind_3d']])
     )
 
+    # plot_cross
     plot_cross = ds._generic_check._check_var(
         plot_cross, 'plot_cross',
         types=bool,
         default=True,
     )
 
+    # plot_hor
     plot_hor = ds._generic_check._check_var(
         plot_hor, 'plot_hor',
         types=bool,
         default=is_3d,
         allowed=[False, True] if is_3d else [False],
+    )
+
+    # plot_hor
+    plot_rank = ds._generic_check._check_var(
+        plot_rank, 'plot_rank',
+        types=bool,
+        default=True,
     )
 
     # ------------------------
@@ -375,7 +425,7 @@ def _check(
 
     return (
         key, is_vos, lcam, dvos,
-        plot_cross, plot_hor,
+        plot_cross, plot_hor, plot_rank,
         observation_directions,
         keym, res_RZ, res_phi,
         nan0, dcolor,
@@ -515,6 +565,134 @@ def _compute_cross(
         }
 
     return dpoly, ndet, dphi, sang, extent
+
+
+# ################################################################
+# ################################################################
+#                   Compute_rank
+# ################################################################
+
+
+def _compute_rank(
+    coll=None,
+    key=None,
+    lcam=None,
+):
+
+    # ---------------
+    # prepare
+    # ---------------
+
+    wcam = coll._which_cam
+    doptics = coll.dobj['diagnostic'][key]['doptics']
+
+    # get all sensors
+    sensors = list(itt.chain.from_iterable([
+        [
+            f'{key}_[kcam]_{idet}'
+            for idet in np.ndindex(coll.dobj[wcam][kcam]['dgeom']['shape'])
+        ]
+        for kcam in lcam
+    ]))
+    nsensors = len(sensors)
+    isensors = np.arange(0, nsensors)
+
+    # get all points
+    dipts = {}
+    for kcam in lcam:
+        v0 = doptics[kcam]
+        kindr, kindz, kindphi = v0['dvos']['ind_3d']
+        indr = coll.ddata[kindr]['data']
+        indz = coll.ddata[kindz]['data']
+        indphi = coll.ddata[kindphi]['data']
+
+        dipts[kcam] = {}
+        for idet in np.ndindex(coll.dobj[wcam][kcam]['dgeom']['shape']):
+            sli = idet + (slice(None),)
+            iok = np.isfinite(indr[sli]) & (indr[sli] >= 0)
+            sli = idet + (iok,)
+            ind = np.unique(
+                np.array([indr[sli], indz[sli], indphi[sli]]),
+                axis=1,
+            )
+            dipts[kcam][idet] = ind
+
+    ipts = np.unique(
+        np.concatenate(
+            tuple([
+                np.unique(
+                    np.concatenate(
+                        tuple([v0 for v0 in v1.values()]),
+                        axis=1,
+                    ),
+                    axis=1,
+                )
+                for v1 in dipts.values()
+            ]),
+            axis=1,
+        ),
+        axis=1,
+    )
+
+    npts = ipts.shape[1]
+
+    # ---------------------
+    # unique R, phi indices
+    # ---------------------
+
+    matrix_ndet = np.zeros((nsensors, npts), dtype=bool)
+    idet_tot = 0
+    for kcam in lcam:
+        shape_cam = coll.dobj[wcam][kcam]['dgeom']['shape']
+        for i0, idet in enumerate(np.ndindex(shape_cam)):
+            for i1, ipt in enumerate(dipts[kcam][idet].T):
+                ind = np.all(ipt[:, None] == ipts, axis=0)
+                assert ind.sum() == 1
+                ipt_tot = ind.nonzero()[0][0]
+                matrix_ndet[idet_tot, ipt_tot] = True
+            idet_tot += 1
+
+    # ---------------------------
+    # extract unique combinations
+    # ---------------------------
+
+    rank, ncounts = np.unique(
+        matrix_ndet,
+        axis=1,
+        return_counts=True,
+    )
+
+    n_per_rank = np.sum(rank, axis=0)
+
+    rank_x = np.unique(n_per_rank)
+    rank_y = np.zeros(rank_x.shape)
+    rank_z = np.zeros(rank_x.shape)
+    for ir, rr in enumerate(rank_x):
+        ind = n_per_rank == rr
+        rank_y[ir] = np.sum(ncounts[ind])
+        rank_z[ir] = ind.sum()
+
+    assert np.sum(rank_y) == np.sum(ncounts)
+
+    # ------------
+    # output
+    # ------------
+
+    drank = {
+        'matrix_det': matrix_ndet,
+        'sensors': sensors,
+        'isensors': isensors,
+        'ipts': ipts,
+        'dipts': dipts,
+        'rank': rank,
+        'ncounts': ncounts,
+        'n_per_rank': n_per_rank,
+        'rank_x': rank_x,
+        'rank_y': rank_y,
+        'rank_z': rank_z,
+    }
+
+    return drank
 
 
 # ################################################################
@@ -1227,3 +1405,165 @@ def _plot_hor(
         fig.suptitle(tit, size=14, fontweight='bold')
 
     return dax
+
+
+# ################################################################
+# ################################################################
+#                   plot_rank
+# ################################################################
+
+
+def _plot_rank(
+    coll=None,
+    key=None,
+    lcam=None,
+    # data
+    drank=None,
+    # plotting options
+    marker=None,
+    markersize=None,
+    config=None,
+    is_vos=None,
+    dax=None,
+    fs=None,
+    dmargin=None,
+    tit=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
+):
+
+    # ----------------
+    # check input
+    # ----------------
+
+    # tit
+    if tit is not False:
+        titdef = (
+            f"Resolution info on diag '{key}' "
+            "- full volume"
+        )
+        tit = ds._generic_check._check_var(
+            tit, 'tit',
+            types=str,
+            default=titdef,
+        )
+
+    if cmap is None:
+        cmap = plt.cm.viridis   # Greys
+
+    if vmin is None:
+        vmin = 0
+
+    if vmax is None:
+        vmax = None
+
+    if marker is None:
+        marker = 's'
+    if markersize is None:
+        markersize = 8
+
+    # ----------------
+    # prepare data
+    # ----------------
+
+    # directions of observation
+
+    # ----------------
+    # prepare figure
+    # ----------------
+
+    if dax.get('rank') is None:
+        if fs is None:
+            fs = (16, 7)
+
+        if dmargin is None:
+            dmargin = {
+                'left': 0.05, 'right': 0.95,
+                'bottom': 0.06, 'top': 0.90,
+                'hspace': 0.20, 'wspace': 0.40,
+            }
+
+        Na, Ni, Nc = 7, 3, 1
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(ncols=(4*Na+3*Ni+3*Nc), nrows=8, **dmargin)
+
+        # ax0 = spans
+        ax0 = fig.add_subplot(gs[:, :Na], aspect='equal', adjustable='box')
+        ax0.set_ylabel('Z (m)', size=12, fontweight='bold')
+        ax0.set_xlabel('R (m)', size=12, fontweight='bold')
+        ax0.set_title("spans", size=14, fontweight='bold')
+
+        # ax1 = nb of detectors
+        ax1 = fig.add_subplot(
+            gs[:, Na+Ni:2*Na+Ni],
+            aspect='equal',
+            sharex=ax0,
+            sharey=ax0,
+            adjustable='box',
+        )
+        ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
+        ax1.set_xlabel('R (m)', size=12, fontweight='bold')
+        ax1.set_title("nb. of detectors", size=14, fontweight='bold')
+
+        # colorbar ndet
+        cax_ndet = fig.add_subplot(gs[1:-1, 2*Na+Ni], frameon=False)
+
+        # ax2 = dz
+        ax2 = fig.add_subplot(
+            gs[:, 2*Na+2*Ni+Nc:3*Na+2*Ni+Nc],
+            aspect='equal',
+            sharex=ax0,
+            sharey=ax0,
+            adjustable='box',
+        )
+        ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
+        ax2.set_xlabel('R (m)', size=12, fontweight='bold')
+        ax2.set_title(
+            "Vertical depth (m)",
+            size=14,
+            fontweight='bold',
+        )
+
+        # colorbar
+        cax_dz = fig.add_subplot(gs[1:-1, 3*Na+2*Ni+Nc], frameon=False)
+        cax_dz.set_title('m', size=12)
+
+        # ax3 = sang
+        ax3 = fig.add_subplot(
+            gs[:, 3*Na+3*Ni+2*Nc:4*Na+3*Ni+2*Nc],
+            aspect='equal',
+            sharex=ax0,
+            sharey=ax0,
+            adjustable='box',
+        )
+        ax3.set_ylabel('Z (m)', size=12, fontweight='bold')
+        ax3.set_xlabel('R (m)', size=12, fontweight='bold')
+        ax3.set_title(
+            "Integrated solid angle (sr)",
+            size=14,
+            fontweight='bold',
+        )
+
+        # colorbar
+        cax_sang = fig.add_subplot(gs[1:-1, -1], frameon=False)
+
+        dax.update({
+            'span_hor': {'handle': ax0, 'type': 'span_hor'},
+            'ndet_hor': {'handle': ax1, 'type': 'ndet_hor'},
+            'cax_ndet_hor': {'handle': cax_ndet, 'type': 'cbar_ndet_hor'},
+            'dz_hor': {'handle': ax2, 'type': 'dz_hor'},
+            'cax_dz_hor': {'handle': cax_dz, 'type': 'cbar_dz_hor'},
+            'sang_hor': {'handle': ax3, 'type': 'sang_hor'},
+            'cax_sang_hor': {'handle': cax_sang, 'type': 'cbar_sang_hor'},
+        })
+
+    # --------------------
+    # check / format dax
+
+    dax = ds._generic_check._check_dax(dax)
+    fig = dax['ndet_hor']['handle'].figure
+
+    # ---------------
+    # plot spans
+    # ---------------
