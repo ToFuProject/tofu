@@ -4,6 +4,9 @@ import numpy as np
 import datastock as ds
 
 
+from ..geom import _comp_solidangles
+
+
 # ##################################################
 # ##################################################
 #           Main
@@ -37,6 +40,12 @@ def main(
 
     ddata = {}
     for icam, kcam in enumerate(key_cam):
+
+        msg = (
+            f"coverage slice for diag '{key_diag}', cam '{kcam}'"
+            f" ({icam+1} / {len(key_cam)})"
+        )
+        print(msg)
 
         ddata[kcam] = _compute(
             coll=coll,
@@ -155,6 +164,19 @@ def _check(
     # options
     # -----------------
 
+    # visibility
+    visibility = ds._generic_check._check_var(
+        visibility, 'visibility',
+        types=bool,
+        default=True,
+    )
+
+    # return_vect
+    return_vect = ds._generic_check._check_var(
+        return_vect, 'return_vect',
+        types=bool,
+        default=False,
+    )
 
     return {
         'key_diag': key_diag,
@@ -162,7 +184,7 @@ def _check(
         'dpts': dpts,
         'visibility': visibility,
         'return_vect': return_vect,
-    )
+    }
 
 
 # ##################################################
@@ -175,11 +197,9 @@ def _compute(
     coll=None,
     # resources
     key_diag=None,
-    key_cam=None,
+    kcam=None,
     # pts
-    ptsx=None,
-    ptsy=None,
-    ptsz=None,
+    dpts=None,
     # options
     visibility=None,
     config=None,
@@ -192,11 +212,8 @@ def _compute(
     # prepare
     # -------------
 
-    msg = (
-        f"coverage slice for diag '{key_diag}', cam '{kcam}'"
-        f" ({icam+1} / {len(key_cam)})"
-    )
-    print(msg)
+    wdiag = coll._which_diagnostic
+    doptics = coll.dobj[wdiag][key_diag]['doptics']
 
     # -----------------
     # prepare apertures
@@ -222,7 +239,7 @@ def _compute(
 
     ref = (
         coll.dobj['camera'][kcam]['dgeom']['ref']
-        + tuple([None for ii in ptsx.shape])
+        + tuple([None for ii in dpts['ptsx']['data'].shape])
     )
     par = coll.dobj['camera'][kcam]['dgeom']['parallel']
 
@@ -249,11 +266,11 @@ def _compute(
             'e1_z': np.full(sh, dvect['e1_z']) if par else dvect['e1_z'],
         }
 
-        sang = _comp_solidangles.calc_solidangle_apertures(
+        out = _comp_solidangles.calc_solidangle_apertures(
             # observation points
-            pts_x=ptsx,
-            pts_y=ptsy,
-            pts_z=ptsz,
+            pts_x=dpts['ptsx']['data'],
+            pts_y=dpts['ptsy']['data'],
+            pts_z=dpts['ptsz']['data'],
             # polygons
             apertures=apertures,
             detectors=det,
@@ -262,17 +279,29 @@ def _compute(
             # parameters
             summed=False,
             visibility=visibility,
-            return_vector=False,
-            return_flat_pts=False,
-            return_flat_det=False,
+            return_vector=return_vect,
         )
+
+        # ------------
+        # extract
+
+        if return_vect is True:
+            sang, vectx, vecty, vectz = out
+        else:
+            sang = out
 
     # -----------
     # collimator
 
     else:
 
-        sang = np.full(cx.shape + ptsx.shape, np.nan)
+        pts_shape = dpts['ptsx']['data'].shape
+        sang = np.full(cx.shape + pts_shape, np.nan)
+        if return_vect is True:
+            vectx = np.full(cx.shape + pts_shape, np.nan)
+            vecty = np.full(cx.shape + pts_shape, np.nan)
+            vectz = np.full(cx.shape + pts_shape, np.nan)
+
         for ii, indch in enumerate(np.ndindex(cx.shape)):
 
             det = {
@@ -301,11 +330,11 @@ def _compute(
 
             sli = (indch, slice(None), slice(None))
 
-            sang[sli] = _comp_solidangles.calc_solidangle_apertures(
+            out = _comp_solidangles.calc_solidangle_apertures(
                 # observation points
-                pts_x=ptsx,
-                pts_y=ptsy,
-                pts_z=ptsz,
+                pts_x=dpts['ptsx']['data'],
+                pts_y=dpts['ptsy']['data'],
+                pts_z=dpts['ptsz']['data'],
                 # polygons
                 apertures=api,
                 detectors=det,
@@ -314,29 +343,54 @@ def _compute(
                 # parameters
                 summed=False,
                 visibility=visibility,
-                return_vector=False,
+                return_vector=return_vect,
                 return_flat_pts=False,
                 return_flat_det=False,
             )
 
+            if return_vect is True:
+                sang[sli] = out[0]
+                vectx[sli] = out[1]
+                vecty[sli] = out[1]
+                vectz[sli] = out[1]
+            else:
+                sang = out
+
+    # ------------
+    # extract
+    # ------------
+
     axis_cam = tuple([ii for ii in range(cx.ndim)])
     axis_plane = tuple([ii for ii in range(cx.ndim, sang.ndim)])
 
-    dout[kcam] = {
+    dout = {
         'sang': {
             'data': sang,
             'ref': ref,
             'units': 'sr',
-        },
-        'ndet': {
-            'data': np.sum(sang > 0., axis=axis_cam),
-            'units': '',
-            'ref': tuple([
-                rr for ii, rr in enumerate(ref) if ii in axis_plane
-            ]),
+            'dim': 'solid angle',
         },
         'axis_cam': axis_cam,
         'axis_plane': axis_plane,
     }
 
-    return
+    if return_vect is True:
+        dout.update({
+            'vectx': {
+                'data': vectx,
+                'ref': ref,
+                'units': 'm',
+            },
+            'vecty': {
+                'data': vecty,
+                'ref': ref,
+                'units': 'm',
+            },
+            'vectz': {
+                'data': vectz,
+                'ref': ref,
+                'units': 'm',
+            },
+        })
+
+    return dout
