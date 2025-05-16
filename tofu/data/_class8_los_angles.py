@@ -229,7 +229,7 @@ def _vos_from_los(
     dx, dy, dz = coll.get_camera_dxyz(
         key=key_cam,
         include_center=True,
-        kout=[0.5, 1],
+        kout=[0.3, 0.7, 1],
     )
 
     if pinhole is True:
@@ -256,6 +256,19 @@ def _vos_from_los(
         # -----------------------
         # get start / end points
 
+        x0 = np.r_[
+            v0['x0'][sli],
+            0.7*v0['x0'][sli],
+            0.3*v0['x0'][sli],
+            v0['cents0'][ind],
+        ]
+        x1 = np.r_[
+            v0['x1'][sli],
+            0.7*v0['x1'][sli],
+            0.3*v0['x1'][sli],
+            v0['cents1'][ind],
+        ]
+
         ptsx, ptsy, ptsz = _get_rays_from_pix(
             coll=coll,
             # start points
@@ -266,8 +279,8 @@ def _vos_from_los(
             dy=dy[sli],  # np.r_[0],
             dz=dz[sli],  # np.r_[0],
             # end points
-            x0=np.r_[v0['x0'][sli], v0['cents0'][ind]],
-            x1=np.r_[v0['x1'][sli], v0['cents1'][ind]],
+            x0=x0,
+            x1=x1,
             coords=coll.get_optics_x01toxyz(key=optics[iref]),
             lspectro=lspectro,
             config=config,
