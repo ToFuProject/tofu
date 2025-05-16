@@ -39,17 +39,18 @@ def main(
     # ----------
 
     ddata = {}
-    for icam, kcam in enumerate(key_cam):
+    for icam, kcam in enumerate(din['key_cam']):
 
         msg = (
-            f"coverage slice for diag '{key_diag}', cam '{kcam}'"
-            f" ({icam+1} / {len(key_cam)})"
+            f"coverage slice for diag '{din['key_diag']}', cam '{kcam}'"
+            f" ({icam+1} / {len(din['key_cam'])})"
         )
         print(msg)
 
         ddata[kcam] = _compute(
             coll=coll,
             kcam=kcam,
+            config=config,
             **din,
         )
 
@@ -77,8 +78,9 @@ def _check(
     ptsz=None,
     # options
     visibility=None,
-    config=None,
     return_vect=None,
+    # unused
+    **kwdargs,
 ):
 
     # -----------------
@@ -237,10 +239,9 @@ def _compute(
     # compute
     # -------------
 
-    ref = (
-        coll.dobj['camera'][kcam]['dgeom']['ref']
-        + tuple([None for ii in dpts['ptsx']['data'].shape])
-    )
+    ref_cam = coll.dobj['camera'][kcam]['dgeom']['ref']
+    ref_pts = tuple([None for ii in dpts['ptsx']['data'].shape])
+    ref = ref_cam + ref_pts
     par = coll.dobj['camera'][kcam]['dgeom']['parallel']
 
     # --------
@@ -369,6 +370,12 @@ def _compute(
             'ref': ref,
             'units': 'sr',
             'dim': 'solid angle',
+        },
+        'ndet': {
+            'data': np.sum(sang > 0., axis=axis_cam),
+            'ref': ref_pts,
+            'units': 'ndet',
+            'dim': 'ndet',
         },
         'axis_cam': axis_cam,
         'axis_plane': axis_plane,
