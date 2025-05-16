@@ -5,11 +5,6 @@
 import copy
 
 
-# Common
-import numpy as np
-import datastock as ds
-
-
 # tofu
 from ._class06_Grating import Grating as Previous
 from . import _class3_check
@@ -29,6 +24,7 @@ __all__ = ['Camera']
 
 class Camera(Previous):
 
+    _which_cam = 'camera'
     _ddef = copy.deepcopy(Previous._ddef)
     _ddef['params']['ddata'].update({
           'camera': {'cls': str, 'def': ''},
@@ -47,9 +43,7 @@ class Camera(Previous):
             'dgeom.pix_nb',
             'dgeom.outline',
             'dgeom.cent',
-            'dgeom.cents',
-            'dmat.qeff_energy',
-            'dmat.qeff',
+            # 'dgeom.cents',
             # 'dmisc.color',
         ],
     })
@@ -320,14 +314,27 @@ class Camera(Previous):
     # utilities
     # ---------------
 
-    def get_camera_unit_vectors(self, key=None):
-        """ Return unit vectors components as dict """
+    def get_camera_unit_vectors(
+        self,
+        key=None,
+        broadcast=None,
+    ):
+        """ Return a dict of unit vectors components
+
+        If broadcast=True, forces to match the shape of camera
+        """
         return _check.get_camera_unitvectors(
             coll=self,
             key=key,
+            broadcast=broadcast,
         )
 
-    def get_camera_dxyz(self, key=None, include_center=None):
+    def get_camera_dxyz(
+        self,
+        key=None,
+        kout=None,
+        include_center=None,
+    ):
         """ Return dx, dy, dz to get the outline from any pixel center
         Only works on 2d or parallel cameras
 
@@ -335,12 +342,20 @@ class Camera(Previous):
         return _check.get_camera_dxyz(
             coll=self,
             key=key,
+            kout=kout,
             include_center=include_center,
         )
 
     def get_camera_cents_xyz(self, key=None):
         """ Return cents_x, cents_y, cents_z """
         return _check.get_camera_cents_xyz(
+            coll=self,
+            key=key,
+        )
+
+    def get_camera_extent(self, key=None):
+        """ Return the extent of a 2d camera """
+        return _check._get_extent(
             coll=self,
             key=key,
         )
