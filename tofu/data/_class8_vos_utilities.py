@@ -107,17 +107,24 @@ def _get_overall_polygons(
     convexHull=None,
 ):
 
+    # -----------------------
+    # prepare
+    # -----------------------
+
     # get temporary vos
-    kp0, kp1 = doptics[key_cam]['dvos'][poly]
-    shape = coll.ddata[kp0]['data'].shape
-    p0 = coll.ddata[kp0]['data'].reshape((shape[0], -1))
-    p1 = coll.ddata[kp1]['data'].reshape((shape[0], -1))
+    if 'dvos' in doptics.keys():
+        kp0, kp1 = doptics['dvos'][poly]
+    else:
+        kp0, kp1 = doptics[key_cam]['dvos'][poly]
+    p0 = coll.ddata[kp0]['data']
+    p1 = coll.ddata[kp1]['data']
 
     # pix indices
     iok = np.isfinite(p0)
 
     # -----------------------
     # envelop pcross and phor
+    # -----------------------
 
     if convexHull is True:
         # replace by convex hull
@@ -126,40 +133,81 @@ def _get_overall_polygons(
 
     else:
 
-        ipn = (np.all(iok, axis=0)).nonzero()[0]
-        pp = plg.Polygon(np.array([p0[:, ipn[0]], p1[:, ipn[0]]]).T)
-        for ii in ipn[1:]:
-            pp |= plg.Polygon(np.array([p0[:, ii], p1[:, ii]]).T)
+        wcam = coll._which_cam
+        ref_cam = coll.dobj[wcam][key_cam]['dgeom']['ref']
+        shape_cam = coll.dobj[wcam][key_cam]['dgeom']['shape']
+        ref = coll.ddata[kp0]['ref']
+        axis = np.array([ref_cam.index(rr) for rr in ref_cam], dtype=int)
+        sli0 = np.array([slice(None) for ss in ref])
+        for ii, ind in enumerate(np.ndindex(shape_cam)):
+            sli0[axis] = ind
+            sli = tuple(sli0)
+            if ii == 0:
+                pp = plg.Polygon(np.array([p0[sli], p1[sli]]).T)
+            else:
+                pp = pp | plg.Polygon(np.array([p0[sli], p1[sli]]).T)
 
-        if len(pp) > 1:
+        # ---------
+        # ok
 
-            # replace by convex hull
-            pts = np.concatenate(
-                tuple([np.array(pp.contour(ii)) for ii in range(len(pp))]),
-                axis=0,
-            )
-            poly = pts[ConvexHull(pts).vertices, :].T
-
-            # plot for debugging
-            fig = plt.figure()
-            fig.suptitle("_get_overall_polygons()", size=12)
-            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-            ax.set_title(f"camera '{key_cam}', vos poly '{poly}'")
-            for ii in range(len(pp)):
-                ax.plot(
-                    np.array(pp.contour(ii))[:, 0],
-                    np.array(pp.contour(ii))[:, 1],
-                    '.-',
-                    poly[0, :],
-                    poly[1, :],
-                    '.-k',
-                )
-            msg = "multiple contours"
-            warnings.warn(msg)
-            return poly
+        if len(pp) == 1:
+            return np.array(pp.contour(0)).T
 
         else:
-            return np.array(pp.contour(0)).T
+            msg = (
+                f"_get_overall_polygons("
+                f"poly='{poly}', "
+                f"key_cam='{key_cam}', "
+                "convexHull=False)\n"
+            )
+
+            if len(pp) == 0:
+                msg += (
+                    "No union found!\n"
+                    "\t=> maybe resolution too bad?"
+                )
+                raise Exception(msg)
+
+            else:
+
+                # replace by convex hull
+                pts = np.concatenate(
+                    tuple([np.array(pp.contour(ii)) for ii in range(len(pp))]),
+                    axis=0,
+                )
+                polyi = pts[ConvexHull(pts).vertices, :].T
+
+                tit = (
+                    msg
+                    + "=> Multiple union polygons!"
+                )
+                xlab = 'R (m)' if poly == 'pcross' else 'X (m)'
+                ylab = 'Z (m)' if poly == 'pcross' else 'Y (m)'
+
+                # plot for debugging
+                fig = plt.figure(figsize=(12, 7))
+                fig.suptitle(tit, size=12, fontweight='bold')
+                ax = fig.add_axes([0.08, 0.1, 0.7, 0.7])
+                ax.set_xlabel(xlab, size=12, fontweight='bold')
+                ax.set_ylabel(ylab, size=12, fontweight='bold')
+                for ii in range(len(pp)):
+                    ax.plot(
+                        np.array(pp.contour(ii))[:, 0],
+                        np.array(pp.contour(ii))[:, 1],
+                        '.-',
+                        label=f'union {ii}',
+                    )
+                ax.plot(
+                    polyi[0, :],
+                    polyi[1, :],
+                    '.-k',
+                    lw=2,
+                    label='Agregated convex hull',
+                )
+                ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+                msg = "multiple contours"
+                warnings.warn(msg)
+                return polyi
 
 
 # ###############################################
