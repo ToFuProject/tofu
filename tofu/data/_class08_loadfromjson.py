@@ -244,7 +244,6 @@ def _get_dmat(din=None):
 # #################################################################
 
 
-
 def _add_diagnostic(
     coll=None,
     din=None,
@@ -339,7 +338,7 @@ def _add_diagnostic(
         # --------
         # add data
 
-        for kp in ['pcross_x0', 'pcross_x1', 'phor_x0', 'phor_x1']:
+        for kp in ['pcross0', 'pcross1', 'phor0', 'phor1']:
 
             kpi = doptics[kcam][kp]['key']
             ref = doptics[kcam][kp]['ref']
@@ -366,10 +365,10 @@ def _add_diagnostic(
         # -----------------
         # store vos in diag
 
-        pcross0 = doptics[kcam].get('pcross_x0', {}).get('key')
-        pcross1 = doptics[kcam].get('pcross_x1', {}).get('key')
-        phor0 = doptics[kcam].get('phor_x0', {}).get('key')
-        phor1 = doptics[kcam].get('phor_x1', {}).get('key')
+        pcross0 = doptics[kcam].get('pcross0', {}).get('key')
+        pcross1 = doptics[kcam].get('pcross1', {}).get('key')
+        phor0 = doptics[kcam].get('phor0', {}).get('key')
+        phor1 = doptics[kcam].get('phor1', {}).get('key')
         dphi = doptics[kcam].get('dphi', {}).get('data')
 
         if pcross0 is not None:
