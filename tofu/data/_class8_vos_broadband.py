@@ -42,7 +42,9 @@ def _vos(
     # user-defined limits
     user_limits=None,
     # keep
-    keep3d=None,
+    keep_cross=None,
+    keep_hor=None,
+    keep_3d=None,
     return_vector=None,
     # parameters
     margin_poly=None,
@@ -182,6 +184,7 @@ def _vos(
     npix = int(np.prod(shape_cam))
     douti = {}
     indok = np.ones(shape_cam, dtype=bool)
+    vectx, vecty, vectz = None, None, None
     for ii, ind in enumerate(np.ndindex(shape_cam)):
 
         debugi = debug if isinstance(debug, bool) else debug(ind)
@@ -241,25 +244,11 @@ def _vos(
         xx = rr * np.cos(pp)
         yy = rr * np.sin(pp)
 
-        # ---- legacy -----
-        iru = np.unique(ind3dr)
-        dind = {
-            i0: {
-                'dV': dV[ind3dr == i0][0],
-                'iz': np.unique(ind3dz[ind3dr == i0]),
-                'indrz': ind3dr == i0,
-                'iphi': np.unique(ind3dphi[ind3dr == i0]),
-            }
-            for ii, i0 in enumerate(iru)
-        }
-        # --- end legacy -----
-
         # --------------
         # re-initialize
 
-        bool_cross[...] = False
         npts_tot = xx.size
-        npts_cross = int(np.sum([v0['iz'].size for v0 in dind.values()]))
+        npts_cross = np.unique([ind3dr, ind3dz], axis=1).shape[1]
 
         # safety check
         assert npts_tot >= npts_cross
@@ -269,14 +258,14 @@ def _vos(
             indok[ind] = False
             continue
 
-        dsang_hor = {}
-        sang_cross = np.zeros((npts_cross,), dtype=float)
-        indr_cross = np.zeros((npts_cross,), dtype=int)
-        indz_cross = np.zeros((npts_cross,), dtype=int)
-        if return_vector is True:
-            vectx_cross = np.zeros((npts_cross,), dtype=float)
-            vecty_cross = np.zeros((npts_cross,), dtype=float)
-            vectz_cross = np.zeros((npts_cross,), dtype=float)
+        # dsang_hor = {}
+        # sang_cross = np.zeros((npts_cross,), dtype=float)
+        # indr_cross = np.zeros((npts_cross,), dtype=int)
+        # indz_cross = np.zeros((npts_cross,), dtype=int)
+        # if return_vector is True:
+            # vectx_cross = np.zeros((npts_cross,), dtype=float)
+            # vecty_cross = np.zeros((npts_cross,), dtype=float)
+            # vectz_cross = np.zeros((npts_cross,), dtype=float)
 
         if verb is True:
             msg = (
@@ -338,62 +327,73 @@ def _vos(
             timing=timing,
         )
 
-        if isinstance(out, tuple):
-            out, vectx, vecty, vectz = out
+        # ------------
+        # extract
+
+        if timing is True:
+            t0 = dtm.datetime.now()     # DB
+            if len(out) > 4:
+                sang, vectx, vecty, vectz = out[:4]
+                dt1, dt2, dt3 = out[4:]
+            else:
+                sang, dt1, dt2, dt3 = out
         else:
-            vectx, vecty, vectz = None, None, None
+            if isinstance(out, tuple):
+                sang, vectx, vecty, vectz = out
+            else:
+                sang = out
+
+        # ----------------------
+        # keep only valid points
+
+        # only one detector
+        sang = sang[0, ...]
+        iok = np.isfinite(sang) & (sang > 0.)
+        if not np.any(iok):
+            indok[ind] = False
+            continue
+
+        dtemp_3d = {
+            'indr_3d': ind3dr[iok],
+            'indz_3d': ind3dz[iok],
+            'indphi_3d': ind3dphi[iok],
+            'sang_3d': sang[iok],
+            'dV_3d': dV[iok],
+        }
+
+        if vectx is not None:
+            dtemp_3d.update({
+                'vectx_3d': vectx[0, iok],
+                'vecty_3d': vecty[0, iok],
+                'vectz_3d': vectz[0, iok],
+            })
+
+        # dtemp_cross
+        dtemp_cross = _get_crosshor_from_3d_single_det(
+            lind=[dtemp_3d['indr_3d'], dtemp_3d['indz_3d']],
+            proj='cross',
+            **dtemp_3d,
+        )
+
+        # dtemp_hor
+        dtemp_hor = _get_crosshor_from_3d_single_det(
+            lind=[dtemp_3d['indr_3d'], dtemp_3d['indphi_3d']],
+            proj='hor',
+            **dtemp_3d,
+        )
 
         # ------------
         # get indices
 
-        if timing:
-            t0 = dtm.datetime.now()     # DB
-            out, dt1, dt2, dt3 = out
+        douti[ind] = {}
+        if keep_3d is True:
+            douti[ind].update(**dtemp_3d)
 
-        # update cross-section
-        ipt = 0
-        for i0, v0 in dind.items():
-            for i1 in v0['iz']:
-                ind1 = dind[i0]['indrz'] & (ind3dz == i1)
-                totii = np.sum(out[0, ind1]) * v0['dV']
-                sang_cross[ipt] = totii
-                indr_cross[ipt] = i0
-                indz_cross[ipt] = i1
-                bool_cross[i0 + 1, i1 + 1] = sang_cross[ipt] > 0.
-                if vectx is not None:
-                    vectx_cross[ipt] = np.sum(
-                        out[0, ind1] * vectx[0, ind1] * v0['dV']
-                    ) / totii
-                    vecty_cross[ipt] = np.sum(
-                        out[0, ind1] * vecty[0, ind1] * v0['dV']
-                    ) / totii
-                    vectz_cross[ipt] = np.sum(
-                        out[0, ind1] * vectz[0, ind1] * v0['dV']
-                    ) / totii
-                ipt += 1
+        if keep_cross is True:
+            douti[ind].update(**dtemp_cross)
 
-        # update horizontal
-        for i0, v0 in dind.items():
-            dsang_hor[i0] = np.zeros((v0['iphi'].size,))
-            for iii, i1 in enumerate(v0['iphi']):
-                ind1 = dind[i0]['indrz'] & (ind3dphi == i1)
-                dsang_hor[i0][iii] = np.sum(out[0, ind1]) * v0['dV']
-
-        # update 3d
-        if keep3d is True:
-            if np.any(bool_cross):
-                indsa = out[0, :] > 0.
-
-                indr_3d = ind3dr[indsa]
-                indz_3d = ind3dz[indsa]
-                iphi_3d = ind3dphi[indsa]
-                sang_3d = out[0, indsa] * dV[indsa]
-                dV_3d = dV[indsa]
-
-                if vectx is not None:
-                    vectx_3d = vectx[0, indsa]
-                    vecty_3d = vecty[0, indsa]
-                    vectz_3d = vectz[0, indsa]
+        if keep_hor is True:
+            douti[ind].update(**dtemp_hor)
 
         # ----- DEBUG --------
         if debugi:
@@ -428,63 +428,33 @@ def _vos(
             dt222 += (t222-t111).total_seconds()
 
         # -----------------------
-        # get pcross and simplify
+        # get pcross and phor
 
-        if np.any(bool_cross):
+        bool_cross[...] = False
+        sli = (dtemp_cross['indr_cross'] + 1, dtemp_cross['indz_cross'] + 1)
+        bool_cross[sli] = True
 
-            # pcross
-            pc0, pc1 = _utilities._get_polygons(
-                bool_cross=bool_cross,
-                x0=x0l,
-                x1=x1l,
-                res=np.min(np.atleast_1d(res_RZ)),
-            )
+        # pcross
+        (
+            douti[ind]['pcross0'], douti[ind]['pcross1'],
+        ) = _utilities._get_polygons(
+            bool_cross=bool_cross,
+            x0=x0l,
+            x1=x1l,
+            res=np.min(np.atleast_1d(res_RZ)),
+        )
 
-            ph0, ph1 = _get_phor2(
-                xx=xx,
-                yy=yy,
-                out=out[0, :],
-                res=min(res_RZ[0], res_phi),
-            )
-
-        else:
-            pc0, pc1 = None, None
-            ph0, ph1 = None, None
-
-        # -----------
-        # replace
-
-        douti[ind] = {
-            'pcross0': pc0,
-            'pcross1': pc1,
-            'phor0': ph0,
-            'phor1': ph1,
-            'sang_cross': sang_cross,
-            'indr_cross': indr_cross,
-            'indz_cross': indz_cross,
-        }
-        if vectx is not None:
-            douti[ind].update({
-                'vectx_cross': vectx_cross,
-                'vecty_cross': vecty_cross,
-                'vectz_cross': vectz_cross,
-            })
-
-        if keep3d is True:
-            douti[ind].update({
-                'sang_3d': sang_3d,
-                'indr_3d': indr_3d,
-                'indz_3d': indz_3d,
-                'indphi_3d': iphi_3d,
-                'dV_3d': dV_3d,
-            })
-
-            if vectx is not None:
-                douti[ind].update({
-                    'vectx_3d': vectx_3d,
-                    'vecty_3d': vecty_3d,
-                    'vectz_3d': vectz_3d,
-                })
+        rr_hor, _, pp_hor, _ = func_RZphi_from_ind(
+            dtemp_hor['indr_hor'],
+            None,
+            dtemp_hor['indphi_hor'],
+        )
+        douti[ind]['phor0'], douti[ind]['phor1'] = _get_phor2(
+            xx=rr_hor*np.cos(pp_hor),
+            yy=rr_hor*np.sin(pp_hor),
+            out=dtemp_hor['sang_hor'],
+            res=min(res_RZ[0], res_phi),
+        )
 
         if timing:
             t333 = dtm.datetime.now()     # DB
@@ -614,3 +584,71 @@ def _get_deti(
     }
 
     return det
+
+
+# ###########################################################
+# ###########################################################
+#           Get cross from 3d
+# ###########################################################
+
+
+def _get_crosshor_from_3d_single_det(
+    lind=None,
+    proj=None,
+    # always
+    sang_3d=None,
+    dV_3d=None,
+    # vect
+    vectx_3d=None,
+    vecty_3d=None,
+    vectz_3d=None,
+    # unused
+    **kwdargs,
+):
+
+    # ------------
+    # keys
+    # -----------
+
+    if vectx_3d is None:
+        lkvect = []
+    else:
+        lkvect = [
+            (vectx_3d, f'vectx_{proj}'),
+            (vecty_3d, f'vecty_{proj}'),
+            (vectz_3d, f'vectz_{proj}'),
+        ]
+    zphi = 'z' if proj == 'cross' else 'phi'
+
+    # ------------
+    # get cross
+    # -----------
+
+    iptsu = np.unique([lind[0], lind[1]], axis=1)
+    npts = iptsu.shape[1]
+
+    ksang = f'sang_{proj}'
+    kdV = f'dV_{proj}'
+    dout = {
+        f'indr_{proj}': iptsu[0, :],
+        f'ind{zphi}_{proj}': iptsu[1, :],
+        ksang: np.full((npts,), np.nan),
+        kdV: np.full((npts,), np.nan),
+    }
+    for (_, k1) in lkvect:
+        dout[k1] = np.full((npts,), np.nan)
+
+    # ------------
+    # fill
+    # -----------
+
+    for ii, (ir, izphi) in enumerate(iptsu.T):
+        ind = (lind[0] == ir) & (lind[1] == izphi)
+
+        dout[ksang][ii] = np.sum(sang_3d[ind])
+        dout[kdV][ii] = dV_3d[ind.nonzero()[0][0]]
+
+        for (vect, k1) in lkvect:
+            dout[k1][ii] = np.sum(vect[ind] * sang_3d[ind]) / dout[ksang][ii]
+
+    return dout

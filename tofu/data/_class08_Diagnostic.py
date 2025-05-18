@@ -499,8 +499,10 @@ class Diagnostic(Previous):
         convexHull=None,
         # user-defined limits
         user_limits=None,
-        # keep3d
-        keep3d=None,
+        # keep
+        keep_cross=None,
+        keep_hor=None,
+        keep_3d=None,
         return_vector=None,
         # margins
         margin_poly=None,
@@ -547,7 +549,9 @@ class Diagnostic(Previous):
             # user-defined limits
             user_limits=user_limits,
             # keep3d
-            keep3d=keep3d,
+            keep_cross=keep_cross,
+            keep_hor=keep_hor,
+            keep_3d=keep_3d,
             return_vector=return_vector,
             # margins
             margin_poly=margin_poly,

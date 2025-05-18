@@ -42,8 +42,10 @@ def compute_vos(
     margin_poly=None,
     # user-defined limits
     user_limits=None,
-    # keep3d
-    keep3d=None,
+    # keep
+    keep_cross=None,
+    keep_hor=None,
+    keep_3d=None,
     return_vector=None,
     # options
     add_points=None,
@@ -79,7 +81,9 @@ def compute_vos(
         res_RZ,
         res_phi,
         res_lamb,
-        keep3d,
+        keep_cross,
+        keep_hor,
+        keep_3d,
         return_vector,
         convexHull,
         visibility,
@@ -101,7 +105,9 @@ def compute_vos(
         res_lamb=res_lamb,
         convexHull=convexHull,
         # bool
-        keep3d=keep3d,
+        keep_cross=keep_cross,
+        keep_hor=keep_hor,
+        keep_3d=keep_3d,
         return_vector=return_vector,
         visibility=visibility,
         verb=verb,
@@ -247,7 +253,9 @@ def compute_vos(
             # user-defined limits
             user_limits=user_limits,
             # keep3d
-            keep3d=keep3d,
+            keep_cross=keep_cross,
+            keep_hor=keep_hor,
+            keep_3d=keep_3d,
             return_vector=return_vector,
             # parameters
             margin_poly=margin_poly,
@@ -325,7 +333,9 @@ def _check(
     res_lamb=None,
     convexHull=None,
     # keep3d
-    keep3d=None,
+    keep_cross=None,
+    keep_hor=None,
+    keep_3d=None,
     return_vector=None,
     # bool
     visibility=None,
@@ -456,14 +466,50 @@ def _check(
     if res_lamb is None and lamb is None:
         res_lamb = 0.01-10
 
-    # -----------
-    # keep3d
+    # -------------
+    # what to keep
+    # -------------
 
-    keep3d = ds._generic_check._check_var(
-        keep3d, 'keep3d',
+    # -----------
+    # keep_cross
+
+    keep_cross = ds._generic_check._check_var(
+        keep_cross, 'keep_cross',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
+    # keep_hor
+
+    keep_hor = ds._generic_check._check_var(
+        keep_hor, 'keep_hor',
         types=bool,
         default=False,
     )
+
+    # -----------
+    # keep_3d
+
+    keep_3d = ds._generic_check._check_var(
+        keep_3d, 'keep_3d',
+        types=bool,
+        default=False,
+    )
+
+    # -------------
+    # at least one
+
+    if not any([keep_cross, keep_hor, keep_3d]):
+        msg = (
+            "When computing VOS, you must keep at least one of:\n"
+            "\t- keep_cross: cross-section projection of VOS\n"
+            "\t\ti.e.: integrated toroidally\n"
+            "\t- keep_hor  : horizontal projection of VOS\n"
+            "\t\ti.e.: integrated vertically\n"
+            "\t- keep_3d: Full 3d VOS (heavier)\n"
+        )
+        raise Exception(msg)
 
     # -----------
     # return_vector
@@ -553,7 +599,9 @@ def _check(
         res_RZ,
         res_phi,
         res_lamb,
-        keep3d,
+        keep_cross,
+        keep_hor,
+        keep_3d,
         return_vector,
         convexHull,
         visibility,

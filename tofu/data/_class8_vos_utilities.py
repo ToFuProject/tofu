@@ -30,7 +30,7 @@ for pp in ['cross', 'hor']:
             'dim': 'distance',
         }
 
-for nd in ['cross', '3d']:
+for nd in ['cross', 'hor', '3d']:
     # sang
     _DUNITS[f"sang_{nd}"] = {
         'units': 'sr',
@@ -490,19 +490,13 @@ def _harmonize_reshape(
         msg = "phor0 and phor1 have different max size!"
         raise Exception(msg)
 
-    # safety checks - cross
-    lk = [k0 for k0 in dnpts.keys() if k0.endswith('_cross')]
-    ssize = [dnpts[k0] for k0 in lk]
-    if len(set(ssize)) > 1:
-        msg = "some '_cross' fields have different max size!"
-        raise Exception(msg)
-
-    # safety checks - 3d
-    lk = [k0 for k0 in dnpts.keys() if k0.endswith('_3d')]
-    ssize = [dnpts[k0] for k0 in lk]
-    if len(set(ssize)) > 1:
-        msg = "some '_3d' fields have different max size!"
-        raise Exception(msg)
+    # safety checks - proj
+    for proj in ['_cross', '_hor', '_3d']:
+        lk = [k0 for k0 in dnpts.keys() if k0.endswith(proj)]
+        ssize = [dnpts[k0] for k0 in lk]
+        if len(set(ssize)) > 1:
+            msg = f"some '{proj}' fields have different max size!"
+            raise Exception(msg)
 
     # -----------------------------
     # fill dout
@@ -536,10 +530,16 @@ def _harmonize_reshape(
             if key.endswith('_cross'):
                 kr0 = 'npts_cross'
                 kref = f'{key_cam}_vos_npts_cross'
-
-            else:
+            elif key.endswith('_hor'):
+                kr0 = 'npts_hor'
+                kref = f'{key_cam}_vos_npts_hor'
+            elif key.endswith('_3d'):
                 kr0 = 'npts_3d'
                 kref = f'{key_cam}_vos_npts_3d'
+            else:
+                msg = f"Unknow field '{key}'"
+                raise Exception(msg)
+
             kred = key.replace('vect', 'v').replace('sang', 'sa')
             kred = kred.replace('ind', 'i')
 
@@ -672,8 +672,10 @@ def _store_dvos(
         'pcross': ('pcross0', 'pcross1'),
         'phor': ('phor0', 'phor1'),
         'ind_cross': ('indr_cross', 'indz_cross'),
+        'ind_hor': ('indr_hor', 'indphi_hor'),
         'ind_3d': ('indr_3d', 'indz_3d', 'indphi_3d'),
         'vect_cross': ('vectx_cross', 'vecty_cross', 'vectz_cross'),
+        'vect_hor': ('vectx_hor', 'vecty_hor', 'vectz_hor'),
         'vect_3d': ('vectx_3d', 'vecty_3d', 'vectz_3d'),
     }
 
@@ -749,8 +751,8 @@ def _store_dvos(
                     v0.get(v2, {}).get('key') for v2 in v1
                 ])
 
-        # ---------
-        # mesh
+        # ----------
+        # mesh & res
 
         if keym is not None:
             doptics[k0]['dvos']['keym'] = keym
