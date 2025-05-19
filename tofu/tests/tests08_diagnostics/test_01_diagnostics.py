@@ -849,9 +849,6 @@ class Test01_Diagnostic():
                     visibility=False,
                     store=True,
                 )
-            print()   # DB
-            print(k0)
-            print(self.coll.dobj['diagnostic'][k0]['doptics'])
 
             _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
 
