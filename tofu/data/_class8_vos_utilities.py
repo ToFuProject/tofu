@@ -758,6 +758,9 @@ def _store_dvos(
 
         for k1, v1 in v0.items():
 
+            if v1 is None:
+                continue
+
             if v1['key'] in coll.ddata.keys():
                 over = doverwrite[k1]
                 if over['bool'] is True:
@@ -794,7 +797,7 @@ def _store_dvos(
         # tuples
 
         for k1, v1 in dtuples.items():
-            if any([v2 in v0.keys() for v2 in v1]):
+            if any([v0.get(v2) is not None for v2 in v1]):
                 doptics[k0]['dvos'][k1] = tuple([
                     v0.get(v2, {}).get('key') for v2 in v1
                 ])

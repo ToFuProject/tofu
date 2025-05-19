@@ -789,6 +789,10 @@ class Test01_Diagnostic():
             if len(doptics[lcam[0]]['optics']) == 0:
                 continue
 
+            keep_cross = (ii % 3 != 0)
+            keep_hor = (ii % 2 == 0)
+            keep_3d = not (keep_cross or keep_hor)
+
             self.coll.compute_diagnostic_vos(
                 # keys
                 key_diag=k0,
@@ -797,14 +801,15 @@ class Test01_Diagnostic():
                 res_RZ=0.04,
                 res_phi=0.04,
                 # keep
-                keep_cross=(ii % 3 != 0),
-                keep_hor=(ii % 2 == 0),
-                keep_3d=(ii % 5 == 0),
+                keep_cross=keep_cross,
+                keep_hor=keep_hor,
+                keep_3d=keep_3d,
                 # spectro
                 n0=3,
                 n1=3,
                 res_lamb=2e-10,
                 visibility=False,
+                overwrite=True,
                 store=True,
             )
 
