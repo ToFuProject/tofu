@@ -47,7 +47,6 @@ def main(
     overwrite=None,
 ):
 
-
     # ----------------
     # check inputs
     # --------------
@@ -157,8 +156,12 @@ def _extract_diagnostic(
     doptics = coll.dobj['diagnostic'][key]['doptics']
 
     # dcls
-    lcls = list(itt.chain.from_iterable([v1['cls'] for v1 in doptics.values()]))
-    loptics = list(itt.chain.from_iterable([v1['optics'] for v1 in doptics.values()]))
+    lcls = list(itt.chain.from_iterable([
+        v1['cls'] for v1 in doptics.values()
+    ]))
+    loptics = list(itt.chain.from_iterable([
+        v1['optics'] for v1 in doptics.values()
+    ]))
 
     # dcls
     dcls = {
@@ -209,7 +212,6 @@ def _extract_diagnostic(
         # -----------------------------
         # initialize with simple values
 
-
         dout['diagnostic']['doptics'][kcam] = {
             k1: v1 for k1, v1 in doptics[kcam].items()
             if k1 not in ldirect
@@ -231,12 +233,15 @@ def _extract_diagnostic(
         # ------------
         # etendue key
 
-        dout['diagnostic']['doptics'][kcam]['etendue_key'] = doptics[kcam]['etendue']
+        dout['diagnostic']['doptics'][kcam]['etendue_key'] = (
+            doptics[kcam]['etendue']
+        )
 
         # ---------
         # los
 
         klos = doptics[kcam].get('los')
+        dlos = coll.dobj['rays'][klos]
         if klos is not None:
             ptsx, ptsy, ptsz = coll.get_rays_pts(klos)
 
@@ -269,15 +274,15 @@ def _extract_diagnostic(
                 },
                 'los_key': klos,
                 'los_alpha': {
-                    'data': coll.ddata[coll.dobj['rays'][klos]['alpha']]['data'],
+                    'data': coll.ddata[dlos['alpha']]['data'],
                     'units': 'rad'
                 },
                 'los_dalpha': {
-                    'data': coll.ddata[coll.dobj['rays'][klos]['reflect_dalpha']]['data'],
+                    'data': coll.ddata[dlos['reflect_dalpha']]['data'],
                     'units': 'rad'
                 },
                 'los_dbeta': {
-                    'data': coll.ddata[coll.dobj['rays'][klos]['reflect_dbeta']]['data'],
+                    'data': coll.ddata[dlos['reflect_dbeta']]['data'],
                     'units': 'rad'
                 },
             })
@@ -288,13 +293,13 @@ def _extract_diagnostic(
         if doptics[kcam].get('dvos', {}).get('pcross') is not None:
             pc0, pc1 = doptics[kcam]['dvos']['pcross']
             dout['diagnostic']['doptics'][kcam].update({
-                'pcross_x0': {
+                'pcross0': {
                     'key': pc0,
                     'data': coll.ddata[pc0]['data'],
                     'units': coll.ddata[pc0]['units'],
                     'ref': coll.ddata[pc0]['ref'],
                 },
-                'pcross_x1': {
+                'pcross1': {
                     'key': pc1,
                     'data': coll.ddata[pc1]['data'],
                     'units': coll.ddata[pc1]['units'],
@@ -308,13 +313,13 @@ def _extract_diagnostic(
         if doptics[kcam].get('dvos', {}).get('phor') is not None:
             ph0, ph1 = doptics[kcam]['dvos']['phor']
             dout['diagnostic']['doptics'][kcam].update({
-                'phor_x0': {
+                'phor0': {
                     'key': ph0,
                     'data': coll.ddata[ph0]['data'],
                     'units': coll.ddata[ph0]['units'],
                     'ref': coll.ddata[ph0]['ref'],
                 },
-                'phor_x1': {
+                'phor1': {
                     'key': ph1,
                     'data': coll.ddata[ph1]['data'],
                     'units': coll.ddata[ph1]['units'],
@@ -355,7 +360,7 @@ def _extract_dgeom_dmisc(
     # ----------------------
 
     if lok_geom is None:
-        lok_geom=[
+        lok_geom = [
             'type', 'nd', 'parallel', 'shape',
             'poly', 'cents', 'outline',
             'curve_r',
@@ -448,7 +453,6 @@ def _extract_dgeom_dmisc(
                             }
                         )
 
-
             # -------------------
             # more complex cases
 
@@ -479,9 +483,7 @@ def _extract_dgeom_dmisc(
             if k1 in lok_misc:
                 dout[key]['dmisc'][k1] = v1
 
-
     return dout
-
 
 
 # #################################################################

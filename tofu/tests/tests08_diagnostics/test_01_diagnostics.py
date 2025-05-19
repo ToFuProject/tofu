@@ -789,6 +789,10 @@ class Test01_Diagnostic():
             if len(doptics[lcam[0]]['optics']) == 0:
                 continue
 
+            keep_cross = True
+            keep_hor = (ii % 2 == 0)
+            keep_3d = False
+
             self.coll.compute_diagnostic_vos(
                 # keys
                 key_diag=k0,
@@ -796,11 +800,17 @@ class Test01_Diagnostic():
                 # resolution
                 res_RZ=0.04,
                 res_phi=0.04,
+                # keep
+                keep_cross=keep_cross,
+                keep_hor=keep_hor,
+                keep_3d=keep_3d,
                 # spectro
                 n0=3,
                 n1=3,
                 res_lamb=2e-10,
                 visibility=False,
+                overwrite=True,
+                replace_poly=True,
                 store=True,
             )
 
@@ -832,13 +842,17 @@ class Test01_Diagnostic():
                     # resolution
                     res_RZ=0.03,
                     res_phi=0.04,
+                    keep_3d=(ii % 2 == 0),
                     # spectro
                     n0=5,
                     n1=5,
                     res_lamb=1e-10,
                     visibility=False,
+                    overwrite=True,
+                    replace_poly=True,
                     store=True,
                 )
+
             _ = self.coll.plot_diagnostic_geometrical_coverage(k0)
 
         plt.close('all')

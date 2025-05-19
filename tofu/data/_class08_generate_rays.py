@@ -72,11 +72,11 @@ def main(
     # -------------
 
     (
-     key,
-     dsampling_pixel,
-     dsampling_optics,
-     optics,
-     store, strict, key_rays, overwrite,
+        key,
+        dsampling_pixel,
+        dsampling_optics,
+        optics,
+        store, strict, key_rays, overwrite,
     ) = _check(
         coll=coll,
         key=key,

@@ -35,6 +35,10 @@ def _vos(
     x1f=None,
     x0l=None,
     x1l=None,
+    # keep
+    keep_cross=None,
+    keep_hor=None,
+    keep_3d=None,
     # overall polygons
     pcross0=None,
     pcross1=None,
@@ -42,6 +46,7 @@ def _vos(
     phor1=None,
     dphi_r=None,
     sh=None,
+    # resolution
     res_phi=None,
     lamb=None,
     res_lamb=None,

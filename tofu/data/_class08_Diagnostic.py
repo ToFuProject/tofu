@@ -24,7 +24,8 @@ from . import _class8_vos as _vos
 from . import _class8_vos_spectro_nobin_at_lamb as _vos_nobin_at_lamb
 from . import _class8_los_angles as _los_angles
 from . import _class08_generate_rays as _generate_rays
-from . import _class8_plane_perp_to_los as _planeperp
+from . import _class8_sang_vect as _sang_vect
+from . import _class8_plot_coverage_slice as _coverage_slice
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_compute_signal_moments as _signal_moments
 from . import _class8_reverse_ray_tracing as _reverse_rt
@@ -46,6 +47,7 @@ __all__ = ['Diagnostic']
 
 class Diagnostic(Previous):
 
+    _which_diagnostic = 'diagnostic'
     _show_in_summary = 'all'
 
     _dshow = dict(Previous._dshow)
@@ -315,7 +317,47 @@ class Diagnostic(Previous):
         if return_dcompute is True:
             return dcompute
 
-    def compute_diagnostic_solidangle_from_plane(
+    # -----------------
+    # compute sang, vect for any pts
+    # -----------------
+
+    def compute_diagnostic_sang_vect_from_pts(
+        self,
+        # resources
+        key_diag=None,
+        key_cam=None,
+        # pts
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # options
+        visibility=None,
+        config=None,
+        return_vect=None,
+    ):
+        """ Return as dict of sang, vect, dV for any set of pts (full 3d)
+
+        """
+        return _sang_vect.main(
+            coll=self,
+            # resources
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # pts
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # options
+            visibility=visibility,
+            config=config,
+            return_vect=return_vect,
+        )
+
+    # -----------------
+    # geometrical coverage slicing
+    # -----------------
+
+    def plot_diagnostic_geometrical_coverage_slice(
         self,
         key_diag=None,
         key_cam=None,
@@ -325,6 +367,16 @@ class Diagnostic(Previous):
         res=None,
         margin_par=None,
         margin_perp=None,
+        vect=None,
+        segment=None,
+        # mesh slice
+        key_mesh=None,
+        phi=None,
+        Z=None,
+        DR=None,
+        DZ=None,
+        Dphi=None,
+        adjust_phi=None,
         config=None,
         # solid angle
         n0=None,
@@ -340,14 +392,8 @@ class Diagnostic(Previous):
         plot_config=None,
         fs=None,
         dmargin=None,
-        vmin_cam0=None,
-        vmax_cam0=None,
-        vmin_cam=None,
-        vmax_cam=None,
-        vmin_cam_lamb=None,
-        vmax_cam_lamb=None,
-        vmin_plane=None,
-        vmax_plane=None,
+        dvminmax=None,
+        markersize=None,
     ):
         """ Creates a plane perpendicular to los
         compute contribution of each point to the signal
@@ -355,7 +401,7 @@ class Diagnostic(Previous):
         return dout
         """
 
-        return _planeperp.main(
+        return _coverage_slice.main(
             coll=self,
             key_diag=key_diag,
             key_cam=key_cam,
@@ -365,6 +411,16 @@ class Diagnostic(Previous):
             res=res,
             margin_par=margin_par,
             margin_perp=margin_perp,
+            vect=vect,
+            segment=segment,
+            # mesh slice
+            key_mesh=key_mesh,
+            phi=phi,
+            Z=Z,
+            DR=DR,
+            DZ=DZ,
+            Dphi=Dphi,
+            adjust_phi=adjust_phi,
             config=config,
             # solid angle
             n0=n0,
@@ -380,14 +436,9 @@ class Diagnostic(Previous):
             plot_config=plot_config,
             fs=fs,
             dmargin=dmargin,
-            vmin_cam0=vmin_cam0,
-            vmax_cam0=vmax_cam0,
-            vmin_cam=vmin_cam,
-            vmax_cam=vmax_cam,
-            vmin_cam_lamb=vmin_cam_lamb,
-            vmax_cam_lamb=vmax_cam_lamb,
-            vmin_plane=vmin_plane,
-            vmax_plane=vmax_plane,
+            # vmin vmax
+            dvminmax=dvminmax,
+            markersize=markersize,
         )
 
     # -----------------
@@ -428,50 +479,8 @@ class Diagnostic(Previous):
         )
 
     # -----------------
-    # solid angle from plane
+    # compute vos
     # -----------------
-
-    def plot_diagnostic_solidangle_from_plane(
-        self,
-        dout=None,
-        # plotting
-        indplot=None,
-        dax=None,
-        plot_config=None,
-        fs=None,
-        dmargin=None,
-        vmin_cam0=None,
-        vmax_cam0=None,
-        vmin_cam=None,
-        vmax_cam=None,
-        vmin_cam_lamb=None,
-        vmax_cam_lamb=None,
-        vmin_plane=None,
-        vmax_plane=None,
-    ):
-        """ Creates a plane perpendicular to los
-        compute contribution of each point to the signal
-        """
-
-        return _planeperp._plot(
-            coll=self,
-            # extra
-            indplot=indplot,
-            dax=dax,
-            plot_config=plot_config,
-            fs=fs,
-            dmargin=dmargin,
-            vmin_cam0=vmin_cam0,
-            vmax_cam0=vmax_cam0,
-            vmin_cam=vmin_cam,
-            vmax_cam=vmax_cam,
-            vmin_cam_lamb=vmin_cam_lamb,
-            vmax_cam_lamb=vmax_cam_lamb,
-            vmin_plane=vmin_plane,
-            vmax_plane=vmax_plane,
-            # dout
-            **dout,
-        )
 
     def compute_diagnostic_vos(
         self,
@@ -490,8 +499,10 @@ class Diagnostic(Previous):
         convexHull=None,
         # user-defined limits
         user_limits=None,
-        # keep3d
-        keep3d=None,
+        # keep
+        keep_cross=None,
+        keep_hor=None,
+        keep_3d=None,
         return_vector=None,
         # margins
         margin_poly=None,
@@ -538,7 +549,9 @@ class Diagnostic(Previous):
             # user-defined limits
             user_limits=user_limits,
             # keep3d
-            keep3d=keep3d,
+            keep_cross=keep_cross,
+            keep_hor=keep_hor,
+            keep_3d=keep_3d,
             return_vector=return_vector,
             # margins
             margin_poly=margin_poly,

@@ -14,6 +14,7 @@ import datastock as ds
 
 
 from ..geom import CamLOS1D
+from . import _class8_vos_utilities as _utilities
 
 
 __all__ = ['compute_los_angles']
@@ -224,20 +225,12 @@ def _vos_from_los(
         or oo in coll.dobj.get('grating', {}).keys()
     ]
 
-    dgeom = coll.dobj['camera'][key_cam]['dgeom']
-    par = dgeom['parallel']
-
-    if par:
-        dx, dy, dz = coll.get_camera_dxyz(
-            key=key_cam,
-            include_center=True,
-        )
-
-    else:
-        out0 = coll.ddata[dgeom['outline'][0]]['data']
-        out1 = coll.ddata[dgeom['outline'][1]]['data']
-        ke0 = dgeom['e0']
-        ke1 = dgeom['e1']
+    # delta around cents, shape (shape_cam, npts)
+    dx, dy, dz = coll.get_camera_dxyz(
+        key=key_cam,
+        include_center=True,
+        kout=[0.3, 0.7, 1],
+    )
 
     if pinhole is True:
         iref = v0['iref']
@@ -246,33 +239,35 @@ def _vos_from_los(
     # poly_cross
     # ----------
 
-    lpoly_cross = []
-    lpoly_hor = []
-
-    shape0 = v0['cx'].shape
-    dphi = np.full(((2,) + shape0), np.nan)
-    linds = [range(ss) for ss in shape0]
-
-    for ii, ind in enumerate(itt.product(*linds)):
+    shape_cam = v0['cx'].shape
+    dphi = np.full(((2,) + shape_cam), np.nan)
+    douti = {}
+    indok = np.ones(shape_cam, dtype=bool)
+    for ii, ind in enumerate(np.ndindex(shape_cam)):
 
         if not v0['iok'][ind]:
-            lpoly_cross.append(None)
-            lpoly_hor.append(None)
+            indok[ind] = False
             continue
 
         sli = ind + (slice(None),)
         if pinhole is False:
             iref = v0['iref'][ind]
 
-        if not par:
-            e0 = [coll.ddata[kk]['data'][ind] for kk in ke0]
-            e1 = [coll.ddata[kk]['data'][ind] for kk in ke1]
-            dx = out0 * e0[0] + out1 * e1[0]
-            dy = out0 * e0[1] + out1 * e1[1]
-            dz = out0 * e0[2] + out1 * e1[2]
-
         # -----------------------
         # get start / end points
+
+        x0 = np.r_[
+            v0['x0'][sli],
+            0.7*v0['x0'][sli],
+            0.3*v0['x0'][sli],
+            v0['cents0'][ind],
+        ]
+        x1 = np.r_[
+            v0['x1'][sli],
+            0.7*v0['x1'][sli],
+            0.3*v0['x1'][sli],
+            v0['cents1'][ind],
+        ]
 
         ptsx, ptsy, ptsz = _get_rays_from_pix(
             coll=coll,
@@ -280,12 +275,12 @@ def _vos_from_los(
             cx=v0['cx'][ind],
             cy=v0['cy'][ind],
             cz=v0['cz'][ind],
-            dx=dx,  # np.r_[0],
-            dy=dy,  # np.r_[0],
-            dz=dz,  # np.r_[0],
+            dx=dx[sli],  # np.r_[0],
+            dy=dy[sli],  # np.r_[0],
+            dz=dz[sli],  # np.r_[0],
             # end points
-            x0=np.r_[v0['x0'][sli], v0['cents0'][ind]],
-            x1=np.r_[v0['x1'][sli], v0['cents1'][ind]],
+            x0=x0,
+            x1=x1,
             coords=coll.get_optics_x01toxyz(key=optics[iref]),
             lspectro=lspectro,
             config=config,
@@ -355,243 +350,67 @@ def _vos_from_los(
         ptsr = np.hypot(ptsx, ptsy)
 
         convh = ConvexHull(np.array([ptsr, ptsz]).T)
-        conv0 = ptsr[convh.vertices]
-        conv1 = ptsz[convh.vertices]
-
-        lpoly_cross.append((conv0, conv1))
+        pcross0 = ptsr[convh.vertices]
+        pcross1 = ptsz[convh.vertices]
 
         # -----------
         # poly_hor
 
         convh = ConvexHull(np.array([ptsx, ptsy]).T)
-        conv0 = ptsx[convh.vertices]
-        conv1 = ptsy[convh.vertices]
+        phor0 = ptsx[convh.vertices]
+        phor1 = ptsy[convh.vertices]
 
-        lpoly_hor.append((conv0, conv1))
+        # ------------
+        # add to douti
+
+        douti[ind] = {
+            'pcross0': pcross0,
+            'pcross1': pcross1,
+            'phor0': phor0,
+            'phor1': phor1,
+        }
 
     # ------------------------
-    # poly_cross harmonization
+    # reshape / harmonize
     # ------------------------
 
-    lnc = [0 if pp is None else pp[0].size for pp in lpoly_cross]
-    lnh = [0 if pp is None else pp[0].size for pp in lpoly_hor]
-    nmaxc = np.max(lnc)
-    nmaxh = np.max(lnh)
-
-    # ------------
-    # prepare
-
-    shc = tuple([nmaxc] + list(shape0))
-    shh = tuple([nmaxh] + list(shape0))
-    pcross0 = np.full(shc, np.nan)
-    pcross1 = np.full(shc, np.nan)
-    phor0 = np.full(shh, np.nan)
-    phor1 = np.full(shh, np.nan)
-
-    for ii, ind in enumerate(itt.product(*linds)):
-
-        if not v0['iok'][ind]:
-            continue
-
-        sli = (slice(None),) + ind
-
-        # --------
-        # cross
-
-        if lnc[ii] < nmaxc:
-            iextra = np.linspace(0.1, 0.9, nmaxc - lnc[ii])
-            indi = np.r_[0, iextra, np.arange(1, lnc[ii])].astype(int)
-
-            pcross0[sli] = scpinterp.interp1d(
-                range(lnc[ii]),
-                lpoly_cross[ii][0],
-                kind='linear',
-                axis=0,
-            )(indi)
-
-            pcross1[sli] = scpinterp.interp1d(
-                range(lnc[ii]),
-                lpoly_cross[ii][1],
-                kind='linear',
-                axis=0,
-            )(indi)
-
-        else:
-            pcross0[sli] = lpoly_cross[ii][0]
-            pcross1[sli] = lpoly_cross[ii][1]
-
-        # --------
-        # hor
-
-        if lnh[ii] < nmaxh:
-            iextra = np.linspace(0.1, 0.9, nmaxh - lnh[ii])
-            indi = np.r_[0, iextra, np.arange(1, lnh[ii])].astype(int)
-
-            phor0[sli] = scpinterp.interp1d(
-                range(lnh[ii]),
-                lpoly_hor[ii][0],
-                kind='linear',
-                axis=0,
-            )(indi)
-
-            phor1[sli] = scpinterp.interp1d(
-                range(lnh[ii]),
-                lpoly_hor[ii][1],
-                kind='linear',
-                axis=0,
-            )(indi)
-
-        else:
-            phor0[sli] = lpoly_hor[ii][0]
-            phor1[sli] = lpoly_hor[ii][1]
-
-    # ----------
-    # store
-    # ----------
-
-    _vos_from_los_store(
-        coll=coll,
-        key=key,
+    ddata, dref = _utilities._harmonize_reshape(
+        douti=douti,
+        indok=indok,
+        key_diag=key,
         key_cam=key_cam,
-        pcross0=pcross0,
-        pcross1=pcross1,
-        phor0=phor0,
-        phor1=phor1,
-        dphi=dphi,
-        overwrite=overwrite,
+        ref_cam=coll.dobj['camera'][key_cam]['dgeom']['ref'],
     )
 
+    if coll._dobj['diagnostic'][key]['doptics'][key_cam].get('dvos') is None:
+        coll._dobj['diagnostic'][key]['doptics'][key_cam]['dvos'] = {}
 
-def _vos_from_los_store(
-    coll=None,
-    key=None,
-    key_cam=None,
-    pcross0=None,
-    pcross1=None,
-    phor0=None,
-    phor1=None,
-    dphi=None,
-    overwrite=None,
-):
+    # ------------------------
+    # dphi
+    # ------------------------
 
-    # --------
-    # dref
-
-    # keys
-    knc = f'{key}_{key_cam}_vos_pc_n'
-    knh = f'{key}_{key_cam}_vos_ph_n'
-
-    # dict
-    dref = {}
-    if pcross0 is not None:
-        dref[knc] = {'size': pcross0.shape[0]}
-    if phor0 is not None:
-        dref[knh] = {'size': phor0.shape[0]}
-
-    # -------------
-    # data
-
-    # keys
-    kpc0 = f'{key}_{key_cam}_vos_pc0'
-    kpc1 = f'{key}_{key_cam}_vos_pc1'
-    kph0 = f'{key}_{key_cam}_vos_ph0'
-    kph1 = f'{key}_{key_cam}_vos_ph1'
-
-    # reshape for 2d camera
-    if coll.dobj['camera'][key_cam]['dgeom']['nd'] == '2d':
-        shape0 = coll.dobj['camera'][key_cam]['dgeom']['shape']
-
-        if pcross0 is not None:
-            shape = tuple(np.r_[pcross0.shape[0], shape0])
-            pcross0 = pcross0.reshape(shape)
-            pcross1 = pcross1.reshape(shape)
-
-        if phor0 is not None:
-            shape = tuple(np.r_[phor0.shape[0], shape0])
-            phor0 = phor0.reshape(shape)
-            phor1 = phor1.reshape(shape)
-
-    # ref
-    refc = tuple([knc] + list(coll.dobj['camera'][key_cam]['dgeom']['ref']))
-    refh = tuple([knh] + list(coll.dobj['camera'][key_cam]['dgeom']['ref']))
-
-    # dict
-    ddata = {}
-
-    if pcross0 is not None:
-        ddata.update({
-            kpc0: {
-                'data': pcross0,
-                'ref': refc,
-                'units': 'm',
-                'dim': 'length',
-                'quant': 'R',
-            },
-            kpc1: {
-                'data': pcross1,
-                'ref': refc,
-                'units': 'm',
-                'dim': 'length',
-                'quant': 'Z',
-            },
-        })
-
-    if phor0 is not None:
-        ddata.update({
-            kph0: {
-                'data': phor0,
-                'ref': refh,
-                'units': 'm',
-                'dim': 'length',
-                'quant': 'X',
-            },
-            kph1: {
-                'data': phor1,
-                'ref': refh,
-                'units': 'm',
-                'dim': 'length',
-                'quant': 'Y',
-            },
-        })
+    coll._dobj['diagnostic'][key]['doptics'][key_cam]['dvos']['dphi'] = dphi
 
     # ----------
     # store
+    # ----------
 
-    # update
-    for k0 in dref.keys():
-        if k0 in coll.dref.keys():
-            if overwrite is True:
-                coll.remove_ref(k0, propagate=False)
-            else:
-                msg = (
-                    "Storing vos from los for diag '{key}', camera '{keycam}':\n"
-                    f"\t- ref '{k0}' already exists!\n"
-                    "\t- Use overwrite=True to force overwriting\n"
-                )
-                raise Exception(msg)
+    _utilities._store_dvos(
+        coll=coll,
+        key_diag=key,
+        dvos={key_cam: ddata},
+        dref={key_cam: dref},
+        overwrite=overwrite,
+        replace_poly=True,
+        # optional
+        keym=None,
+        res_RZ=None,
+        res_phi=None,
+        res_lamb=None,
+        res_rock_curve=None,
+    )
 
-    for k0 in ddata.keys():
-        if k0 in coll.ddata.keys():
-            if overwrite is True:
-                coll.remove_data(k0, propagate=False)
-            else:
-                msg = (
-                    "Storing vos from los for diag '{key}', camera '{keycam}':\n"
-                    f"\t- data '{k0}' already exists!\n"
-                    "\t- Use overwrite=True to force overwriting\n"
-                )
-                raise Exception(msg)
-
-    coll.update(dref=dref, ddata=ddata)
-
-    # add pcross
-    doptics = coll._dobj['diagnostic'][key]['doptics']
-    doptics[key_cam]['dvos'] = {
-        'pcross': None if pcross0 is None else (kpc0, kpc1),
-        'phor': None if phor0 is None else (kph0, kph1),
-        'dphi': dphi,
-    }
-
+    return
 
 # ###########################################################
 # ###########################################################
@@ -727,6 +546,7 @@ def _angle_spectro(
 
     # ------------
     # prepare
+    # ------------
 
     angmin = np.full(v0['cx'].shape, np.nan)
     angmax = np.full(v0['cx'].shape, np.nan)
@@ -742,9 +562,13 @@ def _angle_spectro(
 
     # ------
     # loop
+    # ------
 
     if i0 == 0:
-        msg = f"\tComputing angles for spectro diag '{key}':\n\t\t- cam '{key_cam}':"
+        msg = (
+            f"\tComputing angles for spectro diag '{key}':\n"
+            f"\t\t- cam '{key_cam}':"
+        )
     else:
         msg = f"\t\t- cam '{key_cam}':"
     print(msg)
@@ -762,11 +586,11 @@ def _angle_spectro(
             continue
 
         # get 3d coordiantes of points on pixel
-        cxi = v0['cx'][ij] # + dx
-        cyi = v0['cy'][ij] # + dy
-        czi = v0['cz'][ij] # + dz
+        cxi = v0['cx'][ij]  # + dx
+        cyi = v0['cy'][ij]  # + dy
+        czi = v0['cz'][ij]  # + dz
 
-        nc = 1 # cxi.size
+        nc = 1  # cxi.size
 
         # slice for x0
         sli = tuple(list(ij) + [slice(None)])
@@ -833,9 +657,11 @@ def _angle_spectro(
                 coll.remove_data(k0, propagate=False)
             else:
                 msg = (
-                    "Storing vos from los for diag '{key}', camera '{keycam}':\n"
+                    "Storing vos from los for:\n"
+                    f"\t- diag '{key}'\n"
+                    f"\t- camera '{key_cam}':\n"
                     f"\t- data '{k0}' already exists!\n"
-                    "\t- Use overwrite=True to force overwriting\n"
+                    "Use overwrite=True to force overwriting\n"
                 )
                 raise Exception(msg)
 
@@ -843,3 +669,5 @@ def _angle_spectro(
 
     coll._dobj['diagnostic'][key]['doptics'][key_cam]['amin'] = kamin
     coll._dobj['diagnostic'][key]['doptics'][key_cam]['amax'] = kamax
+
+    return
