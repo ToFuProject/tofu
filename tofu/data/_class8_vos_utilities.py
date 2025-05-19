@@ -139,13 +139,18 @@ def _get_overall_polygons(
         ref = coll.ddata[kp0]['ref']
         axis = np.array([ref_cam.index(rr) for rr in ref_cam], dtype=int)
         sli0 = np.array([slice(None) for ss in ref])
+
+        i0 = 0
         for ii, ind in enumerate(np.ndindex(shape_cam)):
             sli0[axis] = ind
             sli = tuple(sli0)
-            if ii == 0:
+            if np.any(np.isnan(p0[sli]) | np.isnan(p1[sli])):
+                continue
+            if i0 == 0:
                 pp = plg.Polygon(np.array([p0[sli], p1[sli]]).T)
             else:
                 pp = pp | plg.Polygon(np.array([p0[sli], p1[sli]]).T)
+            i0 += 1
 
         # ---------
         # ok
