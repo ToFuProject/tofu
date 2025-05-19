@@ -546,6 +546,7 @@ def _angle_spectro(
 
     # ------------
     # prepare
+    # ------------
 
     angmin = np.full(v0['cx'].shape, np.nan)
     angmax = np.full(v0['cx'].shape, np.nan)
@@ -561,6 +562,7 @@ def _angle_spectro(
 
     # ------
     # loop
+    # ------
 
     if i0 == 0:
         msg = (
