@@ -796,6 +796,10 @@ class Test01_Diagnostic():
                 # resolution
                 res_RZ=0.04,
                 res_phi=0.04,
+                # keep
+                keep_cross=(ii % 3 != 0),
+                keep_hor=(ii % 2 == 0),
+                keep_3d=(ii % 5 == 0),
                 # spectro
                 n0=3,
                 n1=3,
