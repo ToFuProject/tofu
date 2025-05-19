@@ -810,6 +810,7 @@ class Test01_Diagnostic():
                 res_lamb=2e-10,
                 visibility=False,
                 overwrite=True,
+                replace_poly=True,
                 store=True,
             )
 
