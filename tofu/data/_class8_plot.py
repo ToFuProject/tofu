@@ -1095,7 +1095,7 @@ def _prepare_vos(
                 if ph0 is not None and ref_pts_h not in coll2.dref.keys():
                     coll2.add_ref(key=ref_pts_h, size=ph0.shape[axis_pts])
 
-            dref_vos[k0] = ref_cam
+            dref_vos[k0] = (ref_cam,)
 
             # add data as 2d poly
             ref = pcref + (krxy,)
@@ -1388,24 +1388,15 @@ def _add_camera_los_cross(
 
             # add mobile
             kl0 = f'{k0}_vos_cross{ii}'
-
-            if kl0 == 'cam2_vos_cross0':
-                import pdb; pdb.set_trace()  # DB
-                pass
-
-            try:
-                coll2.add_mobile(
-                    key=kl0,
-                    handle=l0,
-                    refs=dref_vos[k0],
-                    data=[f'{k0}_vos_cross'],
-                    dtype=['xy'],
-                    axes=kax,
-                    ind=ii,
-                )
-            except Exception as err:
-                import pdb; pdb.set_trace()     # DB
-                pass
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=dref_vos[k0],
+                data=[f'{k0}_vos_cross'],
+                dtype=['xy'],
+                axes=kax,
+                ind=ii,
+            )
 
 
 def _add_camera_los_hor(
