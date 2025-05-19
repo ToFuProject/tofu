@@ -201,12 +201,12 @@ def main(
 
         # -----------
         # compute
-
-        drank = _compute_rank(
-            coll=coll,
-            key=key,
-            lcam=lcam,
-        )
+        drank = None
+        # drank = _compute_rank(
+            # coll=coll,
+            # key=key,
+            # lcam=lcam,
+        # )
 
         # --------
         # plot
@@ -601,6 +601,14 @@ def _compute_rank(
     dipts = {}
     for kcam in lcam:
         v0 = doptics[kcam]
+
+        is_3d = (
+            v0['dvos'].get('ind_3d') is not None
+            and not any([ii is None for ii in v0['dvos']['ind_3d']])
+        )
+        if not is_3d:
+            continue
+
         kindr, kindz, kindphi = v0['dvos']['ind_3d']
         indr = coll.ddata[kindr]['data']
         indz = coll.ddata[kindz]['data']
