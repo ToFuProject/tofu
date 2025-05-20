@@ -2,6 +2,8 @@
 
 import numpy as np
 import scipy.linalg as scplinalg
+import matplotlib.pyplot as plt
+import datastock as ds
 
 
 # ################################################
@@ -10,9 +12,136 @@ import scipy.linalg as scplinalg
 # ################################################
 
 
-def main():
+def main(
+    coll=None,
+    key_diag=None,
+    key_cam=None,
+    # parameters
+    res=None,
+    # mesh slice
+    key_mesh=None,
+    phi=None,
+    Z=None,
+    DR=None,
+    DZ=None,
+    Dphi=None,
+    adjust_phi=None,
+    # solid angle
+    config=None,
+    visibility=None,
+    # plotting
+    plot=None,
+    plot_slice=None,
+    dax=None,
+    plot_config=None,
+    fs=None,
+    dmargin=None,
+    dvminmax=None,
+    markersize=None,
+):
 
-    return
+    # ------------------
+    # check inputs
+    # ------------------
+
+    din = _check(locals())
+
+    # ------------------
+    # get slice
+    # ------------------
+
+    dslice = coll.plot_diagnostic_geometrical_coverage_slice(
+        plot=plot_slice,
+        **{
+            k0: v0 for k0, v0 in din.items()
+            if k0 in [
+                'key_diag', 'key_cam',
+                'key_mesh', 'res', 'phi', 'Z', 'DR', 'DZ', 'Dphi',
+                'adjust_phi', 'config', 'visibility',
+            ]
+        },
+    )
+
+    # ---------
+    # extract
+
+    shape_pts = dslice['ptsx'].shape
+    npts = int(np.prod(shape_pts))
+    sli0 = tuple([slice(None) for ss in shape_pts])
+
+    # ------------------
+    # sang_flat
+    # ------------------
+
+    wcam = coll._which_cam
+    ndet = np.sum([
+        np.prod(coll.dobj[wcam][kcam]['dgeom']['shape'])
+        for kcam in dslice['key_cam']
+    ])
+
+    idet = 0
+    sang_flat = np.zeros((ndet, npts), dtype=float)
+    for kcam in dslice['key_cam']:
+
+        shape_cam = coll.dobj[wcam][kcam]['dgeom']['shape']
+        for ind in np.ndindex(shape_cam):
+
+            sli = ind + sli0
+            sang_flat[idet, :] = dslice[kcam]['sang']['data'][sli].ravel()
+            idet += 1
+
+    # ------------------
+    # compute
+    # ------------------
+
+    dout = _compute(
+        sang_flat,
+    )
+
+    # ----------------
+    # coll_svd
+    # ----------------
+
+    coll_svd = _coll_svd(
+        coll=coll,
+        dslice=dslice,
+        dout=dout,
+    )
+
+    # ------------------
+    # plot
+    # ------------------
+
+    dax = None
+    if din['plot'] is True:
+        dax = _plot(
+            coll=coll,
+            dslice=dslice,
+            dout=dout,
+        )
+
+    return coll_svd, dout, dslice, dax
+
+
+# ################################################
+# ################################################
+#              Check
+# ################################################
+
+
+def _check(din):
+
+    # --------------
+    # plot
+    # --------------
+
+    din['plot'] = ds._generic_check._check_var(
+        din['plot'], 'plot',
+        types=bool,
+        default=True,
+    )
+
+    return din
 
 
 # ################################################
@@ -22,45 +151,41 @@ def main():
 
 
 def _compute(
-    # ind
-    key_mesh=None,
-    indr=None,
-    indz=None,
-    indphi=None,
-    # sang
     sang=None,
+    # coll2
+    coll=None,
+    dslice=None,
 ):
     """ Assumes concatenated sang matrix and indices, in for (ndet, npts)
-
 
     """
 
     # -------------
-    # store
+    # compute
     # -------------
 
-    dout = {
-        'sang': sang,
-        'ndet': np.sum(sang > 0, axis=0),
-        'rank': rank,
-        'rank_sang': rank_sang,
-    }
+    dout = _compute_rank(sang)
 
     # -------------
     # run svd
     # -------------
 
-    dsvd = dict.fromkeys(['sang', 'ndet', 'rank', 'rank_sang'])
-    for k0 in dsvd.keys():
-        dsvd[k0]['U'], dsvd[k0]['s'], dsvd['V'] = scplinalg.svd(
+    dout['dsvd'] = dict.fromkeys(['sang', 'bool_det', 'rank'])
+    for k0 in dout['dsvd'].keys():
+        dout['dsvd'][k0] = {}
+        (
+            dout['dsvd'][k0]['U'],
+            dout['dsvd'][k0]['s'],
+            dout['dsvd'][k0]['V'],
+        ) = scplinalg.svd(
             dout[k0],
-            full_matrices=True,
+            full_matrices=False,
             compute_uv=True,
             overwrite_a=False,
             check_finite=True,
         )
 
-    return dout, dsvd
+    return dout
 
 
 # ################################################################
@@ -81,38 +206,277 @@ def _compute_rank(
     # extract unique combinations
     # ---------------------------
 
-    rank, ncounts = np.unique(
-        idet,
+    rank, ind_inv, ncounts = np.unique(
+        bool_det,
         axis=1,
+        return_inverse=True,
         return_counts=True,
     )
 
-    n_per_rank = np.sum(rank, axis=0)
-    sang_per_rank =
+    ndet_per_rank = np.sum(rank, axis=0)
+    sang_per_rank = np.full(ndet_per_rank.shape, np.nan)
+    for ii in range(rank.shape[1]):
+        ind = ind_inv == np.all(bool_det == rank[:, ii:ii+1], axis=0)
+        sang_per_rank[ii] = np.sum(sang[:, ind])
 
-    rank_x = np.unique(n_per_rank)
-    rank_y = np.zeros(rank_x.shape)
-    rank_z = np.zeros(rank_x.shape)
-    for ir, rr in enumerate(rank_x):
-        ind = n_per_rank == rr
-        rank_y[ir] = np.sum(ncounts[ind])
-        rank_z[ir] = ind.sum()
+    # ----------------
+    # dist
+    # ----------------
 
-    assert np.sum(rank_y) == np.sum(ncounts)
+    rank_ndetu = np.unique(ndet_per_rank)
+    rank_ndetu_npts = np.zeros(rank_ndetu.shape)
+    rank_ndetu_nn = np.zeros(rank_ndetu.shape)
+    for ir, rr in enumerate(rank_ndetu):
+        ind = ndet_per_rank == rr
+        rank_ndetu_npts[ir] = np.sum(ncounts[ind])
+        rank_ndetu_nn[ir] = ind.sum()
+
+    assert np.sum(rank_ndetu_npts) == np.sum(ncounts)
 
     # ------------
     # output
     # ------------
 
     drank = {
-        'bool_det': bool_ndet,
+        'sang': sang,
+        'bool_det': bool_det,
         'rank': rank,
-        'ncounts': ncounts,
-        'n_per_rank': n_per_rank,
+        'npts_per_rank': ncounts,
+        'ndet_per_rank': ndet_per_rank,
         'sang_per_rank': sang_per_rank,
-        'rank_x': rank_x,
-        'rank_y': rank_y,
-        'rank_z': rank_z,
+        'rank_ndetu': rank_ndetu,
+        'rank_ndetu_npts': rank_ndetu_npts,
+        'rank_ndetu_ndet': rank_ndetu_nn,
     }
 
     return drank
+
+
+# ################################################################
+# ################################################################
+#                   coll_svd
+# ################################################################
+
+
+def _coll_svd(
+    coll=None,
+    dslice=None,
+    dout=None,
+):
+
+    # ----------------
+    # prepare
+    # ----------------
+
+    # nn
+    ndet, npts = dout['sang'].shape
+
+    # instanciate
+    coll_svd = coll.__class__()
+
+    # pts coordinates
+    (
+        func_RZphi_from_ind,
+        func_ind_from_domain,
+    ) = coll.get_sample_mesh_3d_func(
+        key=dslice['key_mesh'],
+        res_RZ=dslice['res'][0],
+        res_phi=dslice['res'][0],
+    )
+
+    # coords
+    ptsr, ptsz, ptsphi, dV = func_RZphi_from_ind(
+        indr=dslice['indr'],
+        indz=dslice['indz'],
+        indphi=dslice['indphi'],
+    )
+
+    # ----------------
+    # add pts coords
+    # ----------------
+
+    # add pts
+    shape_pts = dslice['ptsx'].shape
+
+    # ----------
+    # 2d grid
+
+    if len(shape_pts) == 2:
+
+        # ref
+        krpts0 = 'npts0'
+        krpts1 = 'npts1'
+        npts0, npts1 = dslice['ptsx'].shape
+        coll_svd.add_ref(krpts0, size=npts0)
+        coll_svd.add_ref(krpts1, size=npts1)
+        rpts = (krpts0, krpts1)
+
+        ru, zu, _, _ = func_RZphi_from_ind(
+            indr=np.arange(0, npts0),
+            indz=np.arange(0, npts1),
+        )
+
+        # data
+        coll_svd.add_data(
+            key='ptsr',
+            data=ru,
+            units='m',
+            ref=krpts0,
+        )
+
+        coll_svd.add_data(
+            key='ptsz',
+            data=zu,
+            units='m',
+            ref=krpts1,
+        )
+
+    # ----------
+    # flattened
+
+    else:
+
+        # ref
+        krpts = 'npts'
+        coll_svd.add_ref(krpts, size=npts)
+        rpts = (krpts,)
+
+        # coords
+        coll_svd.add_data(
+            key='ptsx',
+            data=ptsr*np.cos(ptsphi),
+            units='m',
+            ref=krpts,
+        )
+        coll_svd.add_data(
+            key='ptsy',
+            data=ptsr*np.sin(ptsphi),
+            units='m',
+            ref=krpts,
+        )
+        coll_svd.add_data(
+            key='ptsz',
+            data=ptsz,
+            units='m',
+            ref=krpts,
+        )
+
+    # ----------------
+    # add det
+    # ----------------
+
+    # ref
+    kndet = "ndet"
+    coll_svd.add_ref(kndet, size=dout['sang'].shape[0])
+
+    # data
+    kdet = 'det'
+    coll_svd.add_data(
+        key=kdet,
+        data=np.arange(0, dout['sang'].shape[0]),
+    )
+
+    # ----------------
+    # add rank
+    # ----------------
+
+    # ref
+    rrank = 'nrank'
+    coll_svd.add_ref(rrank, size=dout['rank'].shape[1])
+
+    # data
+    krank = 'rank'
+    coll_svd.add_data(
+        key=krank,
+        data=dout['rank'],
+        ref=(kndet, rrank),
+    )
+
+    # data
+    lk = [k0 for k0 in dout.keys() if k0.endswith('_per_rank')]
+    for k0 in lk:
+        coll_svd.add_data(
+            key=k0,
+            data=dout[k0],
+            ref=(rrank,),
+        )
+
+    # ----------------
+    # loop on svds
+    # ----------------
+
+    # loop
+    for ii, (k0, v0) in enumerate(dout['dsvd'].items()):
+
+        # ----------
+        # spectrum
+
+        # add refs
+        krs = f'nsvd_{k0}'
+        ns = v0['s'].size
+        coll_svd.add_ref(krs, size=ns)
+
+        # add s
+        ks = f'{k0}_s'
+        coll_svd.add_data(ks, data=v0['s'], ref=krs)
+
+        # --------
+        # U (det)
+
+        kU = f'{k0}_U'
+        coll_svd.add_data(
+            key=kU,
+            data=v0['U'],
+            ref=(kndet, krs),
+        )
+
+        # --------
+        # V (pts)
+
+        if v0['V'].shape[1] == npts:
+            if len(shape_pts) == 2:
+                V = (v0['s'][:, None] * v0['V']).reshape((ns, npts0, npts1))
+            else:
+                V = v0['s'][:, None] * v0['V']
+            refV = (krs,) + rpts
+        else:
+            V = v0['s'][:, None] * v0['V']
+            refV = (krs, rrank)
+
+        kV = f'{k0}_V'
+        coll_svd.add_data(
+            key=kV,
+            data=V,
+            ref=refV,
+        )
+
+    return coll_svd
+
+
+# ################################################################
+# ################################################################
+#                   plot
+# ################################################################
+
+
+def _plot_rank(
+    coll_svd=None,
+):
+
+    # ---------------
+    # prepare data
+    # ---------------
+
+    # ---------------
+    # prepare figure
+    # ---------------
+
+    dax = None  # _get_dax()
+
+    # ---------------
+    # prepare data
+    # ---------------
+
+    kax = 'rank'
+
+    return dax
