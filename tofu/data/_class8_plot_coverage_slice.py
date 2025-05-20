@@ -218,6 +218,8 @@ def main(
     dout.update({
         'key_diag': key_diag,
         'key_cam': key_cam,
+        'key_mesh': key_mesh,
+        'res': res,
         'is2d': is2d,
         'spectro': spectro,
         'indch': indch,
@@ -508,7 +510,16 @@ def _check(
         vect = None
 
     if vect is not None:
-        assert len(key_cam) == 1
+        if len(key_cam) != 1:
+            msg = (
+                "If a slice is not provided, key_cam must be len() == 1\n"
+                f"\t- Z: {Z}\n"
+                f"\t- phi: {phi}\n"
+                f"\t- vect: {vect}\n"
+                f"\t- key_diag: {key_diag}\n"
+                f"\t- key_cam: {key_cam}\n"
+            )
+            raise Exception(msg)
 
     # -----------
     # adjust_phi
