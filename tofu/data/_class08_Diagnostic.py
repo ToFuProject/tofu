@@ -467,6 +467,8 @@ class Diagnostic(Previous):
         # solid angle
         config=None,
         visibility=None,
+        # output
+        coll_svd=None,
         # plotting
         plot_slice=None,
         dax=None,

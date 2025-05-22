@@ -2,7 +2,7 @@
 
 import numpy as np
 import scipy.linalg as scplinalg
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import datastock as ds
 
 
@@ -29,6 +29,8 @@ def main(
     # solid angle
     config=None,
     visibility=None,
+    # output
+    coll_svd=None,
     # plotting
     plot=None,
     plot_slice=None,
@@ -97,6 +99,7 @@ def main(
     dout = _compute(
         sang_flat,
     )
+    dout['res'] = res
 
     # ----------------
     # coll_svd
@@ -104,8 +107,10 @@ def main(
 
     coll_svd = _coll_svd(
         coll=coll,
+        key_diag=dslice['key_diag'],
         dslice=dslice,
         dout=dout,
+        coll_svd=coll_svd,
     )
 
     # ------------------
@@ -113,12 +118,12 @@ def main(
     # ------------------
 
     dax = None
-    if din['plot'] is True:
-        dax = _plot(
-            coll=coll,
-            dslice=dslice,
-            dout=dout,
-        )
+    # if din['plot'] is True:
+        # dax = _plot(
+            # coll=coll,
+            # dslice=dslice,
+            # dout=dout,
+        # )
 
     return coll_svd, dout, dslice, dax
 
@@ -184,6 +189,16 @@ def _compute(
             overwrite_a=False,
             check_finite=True,
         )
+
+        # -----------
+        # nb of modes
+
+        log10s = np.log10(dout['dsvd'][k0]['s'])
+        logmin = np.min(log10s)
+        logmax = np.max(log10s)
+        delta = (logmax - logmin)*0.1
+        log10s[log10s < logmin + delta] = np.nan
+        dout['dsvd'][k0]['ns'] = np.isfinite(log10s).sum()
 
     return dout
 
@@ -261,7 +276,9 @@ def _compute_rank(
 def _coll_svd(
     coll=None,
     dslice=None,
+    key_diag=None,
     dout=None,
+    coll_svd=None,
 ):
 
     # ----------------
@@ -272,7 +289,8 @@ def _coll_svd(
     ndet, npts = dout['sang'].shape
 
     # instanciate
-    coll_svd = coll.__class__()
+    if coll_svd is None:
+        coll_svd = coll.__class__()
 
     # pts coordinates
     (
@@ -304,8 +322,8 @@ def _coll_svd(
     if len(shape_pts) == 2:
 
         # ref
-        krpts0 = 'npts0'
-        krpts1 = 'npts1'
+        krpts0 = f'{key_diag}_npts0'
+        krpts1 = f'{key_diag}_npts1'
         npts0, npts1 = dslice['ptsx'].shape
         coll_svd.add_ref(krpts0, size=npts0)
         coll_svd.add_ref(krpts1, size=npts1)
@@ -318,14 +336,14 @@ def _coll_svd(
 
         # data
         coll_svd.add_data(
-            key='ptsr',
+            key=f'{key_diag}_ptsr',
             data=ru,
             units='m',
             ref=krpts0,
         )
 
         coll_svd.add_data(
-            key='ptsz',
+            key=f'{key_diag}_ptsz',
             data=zu,
             units='m',
             ref=krpts1,
@@ -337,25 +355,25 @@ def _coll_svd(
     else:
 
         # ref
-        krpts = 'npts'
+        krpts = f'{key_diag}_npts'
         coll_svd.add_ref(krpts, size=npts)
         rpts = (krpts,)
 
         # coords
         coll_svd.add_data(
-            key='ptsx',
+            key=f'{key_diag}_ptsx',
             data=ptsr*np.cos(ptsphi),
             units='m',
             ref=krpts,
         )
         coll_svd.add_data(
-            key='ptsy',
+            key=f'{key_diag}_ptsy',
             data=ptsr*np.sin(ptsphi),
             units='m',
             ref=krpts,
         )
         coll_svd.add_data(
-            key='ptsz',
+            key=f'{key_diag}_ptsz',
             data=ptsz,
             units='m',
             ref=krpts,
@@ -366,14 +384,15 @@ def _coll_svd(
     # ----------------
 
     # ref
-    kndet = "ndet"
+    kndet = f"{key_diag}_ndet"
     coll_svd.add_ref(kndet, size=dout['sang'].shape[0])
 
     # data
-    kdet = 'det'
+    kdet = f'{key_diag}_det'
     coll_svd.add_data(
         key=kdet,
         data=np.arange(0, dout['sang'].shape[0]),
+        ref=kndet,
     )
 
     # ----------------
@@ -381,11 +400,11 @@ def _coll_svd(
     # ----------------
 
     # ref
-    rrank = 'nrank'
+    rrank = f'{key_diag}_nrank'
     coll_svd.add_ref(rrank, size=dout['rank'].shape[1])
 
     # data
-    krank = 'rank'
+    krank = f'{key_diag}_rank'
     coll_svd.add_data(
         key=krank,
         data=dout['rank'],
@@ -396,7 +415,7 @@ def _coll_svd(
     lk = [k0 for k0 in dout.keys() if k0.endswith('_per_rank')]
     for k0 in lk:
         coll_svd.add_data(
-            key=k0,
+            key=f'{key_diag}_{k0}',
             data=dout[k0],
             ref=(rrank,),
         )
@@ -412,18 +431,18 @@ def _coll_svd(
         # spectrum
 
         # add refs
-        krs = f'nsvd_{k0}'
+        krs = f'{key_diag}_nsvd_{k0}'
         ns = v0['s'].size
         coll_svd.add_ref(krs, size=ns)
 
         # add s
-        ks = f'{k0}_s'
+        ks = f'{key_diag}_{k0}_s'
         coll_svd.add_data(ks, data=v0['s'], ref=krs)
 
         # --------
         # U (det)
 
-        kU = f'{k0}_U'
+        kU = f'{key_diag}_{k0}_U'
         coll_svd.add_data(
             key=kU,
             data=v0['U'],
@@ -443,7 +462,7 @@ def _coll_svd(
             V = v0['s'][:, None] * v0['V']
             refV = (krs, rrank)
 
-        kV = f'{k0}_V'
+        kV = f'{key_diag}_{k0}_V'
         coll_svd.add_data(
             key=kV,
             data=V,
