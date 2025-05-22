@@ -48,7 +48,7 @@ def main(
     # check inputs
     # ------------------
 
-    din = _check(locals())
+    din = _check(**locals())
 
     # ------------------
     # get slice
@@ -67,7 +67,6 @@ def main(
             },
         )
 
-        shape_pts = dpts['ptsx'].shape
         key_mesh = dpts['key_mesh']
         ksang = 'sang'
         indr = dpts['indr']
@@ -78,8 +77,7 @@ def main(
         res_phi = res
 
     else:
-        dpts = coll.get_diagnostic_vos_concatenate(
-            coll=coll,
+        dpts, dipts, _ = coll.get_diagnostic_vos_concatenate(
             key_diag=din['key_diag'],
             key_cam=din['key_cam'],
             vos_proj=din['vos_proj'],
@@ -89,15 +87,18 @@ def main(
 
         wdiag = coll._which_diagnostic
         doptics = coll.dobj[wdiag][din['key_diag']]['doptics']
-        key_mesh = doptics[din['key_cam'][0]]['dvos']['kmesh']
-        res_RZ = doptics[din['key_cam'][0]]['dvos']['res_RZ']
-        res_phi = doptics[din['key_cam'][0]]['dvos']['res_phi']
 
-        shape_pts = (dpts[f'indr_{vos_proj}']['data'].shape[1],)
+        kcam0 = din['key_cam'][0]
+        key_mesh = doptics[kcam0]['dvos']['keym']
+        res_RZ = doptics[kcam0]['dvos']['res_RZ']
+        res_phi = doptics[kcam0]['dvos']['res_phi']
+
         ksang = f'sang_{vos_proj}'
-        indr = dpts[f'indr_{vos_proj}']['data']
-        indz = dpts[f'indz_{vos_proj}']['data']
-        indphi = dpts[f'indphi_{vos_proj}']['data']
+        indr = dipts[vos_proj][0, :]
+        indz = dipts[vos_proj][1, :]
+        indphi = dipts[vos_proj][2, :]
+
+    shape_pts = indr.shape
 
     # ---------
     # extract
@@ -126,7 +127,7 @@ def main(
             iok = np.isfinite(dpts[kcam][ksang]['data'][sli])
             sli = ind + (iok,)
 
-            sli_pts = None
+            sli_pts = iok.ravel()
             sang_flat[idet, sli_pts] = dpts[kcam][ksang]['data'][sli].ravel()
             idet += 1
 
@@ -178,7 +179,9 @@ def main(
 # ################################################
 
 
-def _check(din):
+def _check(**kwdargs):
+
+    din = dict(kwdargs)
 
     # --------------
     # key_diag, key_cam
