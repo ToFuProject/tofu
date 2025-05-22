@@ -326,11 +326,11 @@ def _compute_rank(
 
     rank_ndetu = np.unique(ndet_per_rank)
     rank_ndetu_npts = np.zeros(rank_ndetu.shape)
-    rank_ndetu_nn = np.zeros(rank_ndetu.shape)
+    rank_ndetu_ncomb = np.zeros(rank_ndetu.shape)
     for ir, rr in enumerate(rank_ndetu):
         ind = ndet_per_rank == rr
         rank_ndetu_npts[ir] = np.sum(ncounts[ind])
-        rank_ndetu_nn[ir] = ind.sum()
+        rank_ndetu_ncomb[ir] = ind.sum()
 
     assert np.sum(rank_ndetu_npts) == np.sum(ncounts)
 
@@ -347,7 +347,7 @@ def _compute_rank(
         'sang_per_rank': sang_per_rank,
         'rank_ndetu': rank_ndetu,
         'rank_ndetu_npts': rank_ndetu_npts,
-        'rank_ndetu_ndet': rank_ndetu_nn,
+        'rank_ndetu_ncomb': rank_ndetu_ncomb,
     }
 
     return drank
@@ -492,6 +492,8 @@ def _coll_svd(
     # ref
     rrank = f'{key_diag}_nrank'
     coll_svd.add_ref(rrank, size=dout['rank'].shape[1])
+    rranku = f'{key_diag}_nranku'
+    coll_svd.add_ref(rranku, size=dout['rank_ndetu'].size)
 
     # data
     krank = f'{key_diag}_rank'
@@ -501,13 +503,22 @@ def _coll_svd(
         ref=(kndet, rrank),
     )
 
-    # data
+    # data per rank
     lk = [k0 for k0 in dout.keys() if k0.endswith('_per_rank')]
     for k0 in lk:
         coll_svd.add_data(
             key=f'{key_diag}_{k0}',
             data=dout[k0],
             ref=(rrank,),
+        )
+
+    # data per rank_ndetu
+    lk = [k0 for k0 in dout.keys() if k0.startswith('rank_ndetu')]
+    for k0 in lk:
+        coll_svd.add_data(
+            key=f'{key_diag}_{k0}',
+            data=dout[k0],
+            ref=(rranku,),
         )
 
     # ----------------
@@ -586,6 +597,6 @@ def _plot_rank(
     # prepare data
     # ---------------
 
-    kax = 'rank'
+    # kax = 'rank'
 
     return dax
