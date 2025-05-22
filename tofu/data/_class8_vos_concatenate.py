@@ -67,10 +67,12 @@ def main(
         return_vect=return_vect,
     )
 
+    dipts, icam = None, None
+
     # concatenate_pts
     if concatenate_pts is True:
 
-        dvos = _pts(
+        dvos, dipts = _pts(
             coll=coll,
             dvos=dvos,
             key_cam=key_cam,
@@ -80,7 +82,7 @@ def main(
     # concatenate_cam
     if concatenate_cam is True:
 
-        dvos = _cam(
+        dvos, icam = _cam(
             coll=coll,
             dvos=dvos,
             key_cam=key_cam,
@@ -88,7 +90,7 @@ def main(
             concatenate_pts=concatenate_pts,
         )
 
-    return dvos
+    return dvos, dipts, icam
 
 
 # ################################################
@@ -225,21 +227,37 @@ def _simple(
             lk0 = _DIND[pp]
             for ii, k0 in enumerate(lk0):
                 k1 = doptics[kcam]['dvos'][f'ind_{pp}'][ii]
-                dvos[kcam][f'{k0}_{pp}'] = coll.ddata[k1]
+                dvos[kcam][f'{k0}_{pp}'] = {
+                    'data': np.copy(coll.ddata[k1]['data']),
+                    'units': str(coll.ddata[k1]['units']),
+                    'ref': tuple([rr for rr in coll.ddata[k1]['ref']]),
+                }
 
             # sang
             ksang = doptics[kcam]['dvos'][f'sang_{pp}']
-            dvos[kcam][f'sang_{pp}'] = coll.ddata[ksang]
+            dvos[kcam][f'sang_{pp}'] = {
+                'data': np.copy(coll.ddata[ksang]['data']),
+                'units': str(coll.ddata[ksang]['units']),
+                'ref': tuple([rr for rr in coll.ddata[ksang]['ref']]),
+            }
 
             # dV
             kdV = doptics[kcam]['dvos'][f'dV_{pp}']
-            dvos[kcam][f'dV_{pp}'] = coll.ddata[kdV]
+            dvos[kcam][f'dV_{pp}'] = {
+                'data': np.copy(coll.ddata[kdV]['data']),
+                'units': str(coll.ddata[kdV]['units']),
+                'ref': tuple([rr for rr in coll.ddata[kdV]['ref']]),
+            }
 
             # vect
             if return_vect is True:
                 for kv in ['vectx', 'vecty', 'vectz']:
                     k1 = doptics[kcam]['dvos'][f'vect_{pp}'][ii]
-                    dvos[kcam][f"{kv}_{pp}"] = coll.ddata[k1]
+                    dvos[kcam][f"{kv}_{pp}"] = {
+                        'data': np.copy(coll.ddata[k1]['data']),
+                        'units': str(coll.ddata[k1]['units']),
+                        'ref': tuple([rr for rr in coll.ddata[k1]['ref']]),
+                    }
 
     return dvos
 
@@ -298,6 +316,7 @@ def _pts(
             k0 for k0 in dvos[key_cam[0]]
             if k0.endswith(f'_{pp}')
         ]
+        lk_noind = [kk for kk in lk if 'ind' not in kk]
 
         for kcam in dvos.keys():
 
@@ -309,8 +328,8 @@ def _pts(
 
             # initialize dtemp
             dtemp = {
-                kk: m1 if 'ind' in kk else nan
-                for kk in lk
+                kk: np.copy(m1) if 'ind' in kk else np.copy(nan)
+                for kk in lk_noind
             }
 
             # loop on pixels
@@ -333,15 +352,15 @@ def _pts(
                 sli_temp = ipix + (ipts,)
 
                 # update dtemp
-                for kk in lk:
+                for kk in lk_noind:
                     dtemp[kk][sli_temp] = dvos[kcam][kk]['data'][sli]
 
             # update dvos for kcam
-            for kk in lk:
+            for kk in lk_noind:
                 dvos[kcam][kk]['data'] = dtemp[kk]
                 dvos[kcam][kk]['ref'] = dvos[kcam][kk]['ref'][:-1] + (None,)
 
-    return dvos
+    return dvos, dipts
 
 
 # ################################################
@@ -371,6 +390,21 @@ def _cam(
         np.prod(shape)
         for shape in dshape_cam.values()
     ]))
+
+    # -----------------
+    # icam
+    # -----------------
+
+    icam = np.concatenate(
+        tuple([
+            np.array([
+                [kcam]*int(np.prod(dshape_cam[kcam])),
+                np.arange(0, int(np.prod(dshape_cam[kcam]))),
+            ])
+            for kcam in key_cam
+        ]),
+        axis=1,
+    ).T
 
     # --------------
     # initialize
@@ -424,4 +458,4 @@ def _cam(
 
             i0 += npix_cam
 
-    return dtemp
+    return dtemp, icam
