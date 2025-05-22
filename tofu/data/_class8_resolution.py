@@ -18,6 +18,8 @@ def main(
     key_cam=None,
     # parameters
     res=None,
+    # vos_proj
+    vos_proj=None,
     # mesh slice
     key_mesh=None,
     phi=None,
@@ -52,22 +54,54 @@ def main(
     # get slice
     # ------------------
 
-    dslice = coll.plot_diagnostic_geometrical_coverage_slice(
-        plot=plot_slice,
-        **{
-            k0: v0 for k0, v0 in din.items()
-            if k0 in [
-                'key_diag', 'key_cam',
-                'key_mesh', 'res', 'phi', 'Z', 'DR', 'DZ', 'Dphi',
-                'adjust_phi', 'config', 'visibility',
-            ]
-        },
-    )
+    if din['vos_proj'] is None:
+        dpts = coll.plot_diagnostic_geometrical_coverage_slice(
+            plot=plot_slice,
+            **{
+                k0: v0 for k0, v0 in din.items()
+                if k0 in [
+                    'key_diag', 'key_cam',
+                    'key_mesh', 'res', 'phi', 'Z', 'DR', 'DZ', 'Dphi',
+                    'adjust_phi', 'config', 'visibility',
+                ]
+            },
+        )
+
+        shape_pts = dpts['ptsx'].shape
+        key_mesh = dpts['key_mesh']
+        ksang = 'sang'
+        indr = dpts['indr']
+        indz = dpts['indz']
+        indphi = dpts['indphi']
+
+        res_RZ = [res, res]
+        res_phi = res
+
+    else:
+        dpts = coll.get_diagnostic_vos_concatenate(
+            coll=coll,
+            key_diag=din['key_diag'],
+            key_cam=din['key_cam'],
+            vos_proj=din['vos_proj'],
+            concatenate_pts=True,
+            concatenate_cam=False,
+        )
+
+        wdiag = coll._which_diagnostic
+        doptics = coll.dobj[wdiag][din['key_diag']]['doptics']
+        key_mesh = doptics[din['key_cam'][0]]['dvos']['kmesh']
+        res_RZ = doptics[din['key_cam'][0]]['dvos']['res_RZ']
+        res_phi = doptics[din['key_cam'][0]]['dvos']['res_phi']
+
+        shape_pts = (dpts[f'indr_{vos_proj}']['data'].shape[1],)
+        ksang = f'sang_{vos_proj}'
+        indr = dpts[f'indr_{vos_proj}']['data']
+        indz = dpts[f'indz_{vos_proj}']['data']
+        indphi = dpts[f'indphi_{vos_proj}']['data']
 
     # ---------
     # extract
 
-    shape_pts = dslice['ptsx'].shape
     npts = int(np.prod(shape_pts))
     sli0 = tuple([slice(None) for ss in shape_pts])
 
@@ -78,18 +112,22 @@ def main(
     wcam = coll._which_cam
     ndet = np.sum([
         np.prod(coll.dobj[wcam][kcam]['dgeom']['shape'])
-        for kcam in dslice['key_cam']
+        for kcam in din['key_cam']
     ])
 
     idet = 0
     sang_flat = np.zeros((ndet, npts), dtype=float)
-    for kcam in dslice['key_cam']:
+    for kcam in din['key_cam']:
 
         shape_cam = coll.dobj[wcam][kcam]['dgeom']['shape']
         for ind in np.ndindex(shape_cam):
 
             sli = ind + sli0
-            sang_flat[idet, :] = dslice[kcam]['sang']['data'][sli].ravel()
+            iok = np.isfinite(dpts[kcam][ksang]['data'][sli])
+            sli = ind + (iok,)
+
+            sli_pts = None
+            sang_flat[idet, sli_pts] = dpts[kcam][ksang]['data'][sli].ravel()
             idet += 1
 
     # ------------------
@@ -107,8 +145,14 @@ def main(
 
     coll_svd = _coll_svd(
         coll=coll,
-        key_diag=dslice['key_diag'],
-        dslice=dslice,
+        key_diag=din['key_diag'],
+        indr=indr,
+        indz=indz,
+        indphi=indphi,
+        res_RZ=res_RZ,
+        res_phi=res_phi,
+        shape_pts=shape_pts,
+        dpts=dpts,
         dout=dout,
         coll_svd=coll_svd,
     )
@@ -119,13 +163,13 @@ def main(
 
     dax = None
     # if din['plot'] is True:
-        # dax = _plot(
-            # coll=coll,
-            # dslice=dslice,
-            # dout=dout,
-        # )
+    # dax = _plot(
+    # coll=coll,
+    # dslice=dslice,
+    # dout=dout,
+    # )
 
-    return coll_svd, dout, dslice, dax
+    return coll_svd, dout, dpts, dax
 
 
 # ################################################
@@ -135,6 +179,48 @@ def main(
 
 
 def _check(din):
+
+    # --------------
+    # key_diag, key_cam
+    # --------------
+
+    din['key_diag'], din['key_cam'] = din['coll'].get_diagnostic_cam(
+        key=din['key_diag'],
+        key_cam=din['key_cam'],
+        default='all',
+    )
+
+    # --------------
+    # vos_proj
+    # --------------
+
+    if din['Z'] is None and din['phi'] is None:
+
+        wdiag = din['coll']._which_diagnostic
+        doptics = din['coll'].dobj[wdiag][din['key_diag']]['doptics']
+        lproj = ['3d', 'cross', 'hor']
+        dok = {
+            kk: all([
+                doptics[kcam].get('dvos', {}).get(f'ind_{kk}') is not None
+                and all([
+                    ii is not None
+                    for ii in doptics[kcam]['dvos'][f'ind_{kk}']
+                ])
+                for kcam in din['key_cam']
+            ])
+            for kk in lproj
+        }
+        lok = [kk for kk in lproj if dok[kk] is True]
+
+        din['vos_proj'] = ds._generic_check._check_var(
+            din['vos_proj'], 'vos_proj',
+            types=str,
+            allowed=lok,
+            default=lok[0],
+        )
+
+    else:
+        din['vos_proj'] = None
 
     # --------------
     # plot
@@ -157,9 +243,6 @@ def _check(din):
 
 def _compute(
     sang=None,
-    # coll2
-    coll=None,
-    dslice=None,
 ):
     """ Assumes concatenated sang matrix and indices, in for (ndet, npts)
 
@@ -275,7 +358,14 @@ def _compute_rank(
 
 def _coll_svd(
     coll=None,
-    dslice=None,
+    dpts=None,
+    key_mesh=None,
+    res_RZ=None,
+    res_phi=None,
+    indr=None,
+    indz=None,
+    indphi=None,
+    shape_pts=None,
     key_diag=None,
     dout=None,
     coll_svd=None,
@@ -297,24 +387,21 @@ def _coll_svd(
         func_RZphi_from_ind,
         func_ind_from_domain,
     ) = coll.get_sample_mesh_3d_func(
-        key=dslice['key_mesh'],
-        res_RZ=dslice['res'][0],
-        res_phi=dslice['res'][0],
+        key=key_mesh,
+        res_RZ=res_RZ,
+        res_phi=res_phi,
     )
 
     # coords
     ptsr, ptsz, ptsphi, dV = func_RZphi_from_ind(
-        indr=dslice['indr'],
-        indz=dslice['indz'],
-        indphi=dslice['indphi'],
+        indr=indr,
+        indz=indz,
+        indphi=indphi,
     )
 
     # ----------------
     # add pts coords
     # ----------------
-
-    # add pts
-    shape_pts = dslice['ptsx'].shape
 
     # ----------
     # 2d grid
@@ -324,7 +411,7 @@ def _coll_svd(
         # ref
         krpts0 = f'{key_diag}_npts0'
         krpts1 = f'{key_diag}_npts1'
-        npts0, npts1 = dslice['ptsx'].shape
+        npts0, npts1 = shape_pts
         coll_svd.add_ref(krpts0, size=npts0)
         coll_svd.add_ref(krpts1, size=npts1)
         rpts = (krpts0, krpts1)
