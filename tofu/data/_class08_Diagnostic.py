@@ -27,6 +27,7 @@ from . import _class08_generate_rays as _generate_rays
 from . import _class8_sang_vect as _sang_vect
 from . import _class8_plot_coverage_slice as _coverage_slice
 from . import _class8_resolution as _resolution
+from . import _class8_vos_concatenate as _vos_concatenate
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_compute_signal_moments as _signal_moments
 from . import _class8_reverse_ray_tracing as _reverse_rt
@@ -456,6 +457,8 @@ class Diagnostic(Previous):
         key_cam=None,
         # parameters
         res=None,
+        # vos_proj
+        vos_proj=None,
         # mesh slice
         key_mesh=None,
         phi=None,
@@ -661,6 +664,30 @@ class Diagnostic(Previous):
             spectro=spectro,
             overwrite=overwrite,
             replace_poly=replace_poly,
+        )
+
+    def get_diagnostic_vos_concatenate(
+        self,
+        key_diag=None,
+        key_cam=None,
+        # parameters
+        concatenate_cam=None,
+        concatenate_pts=None,
+        vos_proj=None,
+        return_vect=None,
+    ):
+        """ Return a dict of vos, optionally aggregated
+
+        """
+        return _vos_concatenate.main(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # parameters
+            concatenate_cam=concatenate_cam,
+            concatenate_pts=concatenate_pts,
+            vos_proj=vos_proj,
+            return_vect=return_vect,
         )
 
     def compute_diagnostic_vos_nobin_at_lamb(
