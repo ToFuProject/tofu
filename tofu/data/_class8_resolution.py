@@ -63,6 +63,7 @@ def main(
                     'key_diag', 'key_cam',
                     'key_mesh', 'res', 'phi', 'Z', 'DR', 'DZ', 'Dphi',
                     'adjust_phi', 'config', 'visibility',
+                    'plot_config',
                 ]
             },
         )
