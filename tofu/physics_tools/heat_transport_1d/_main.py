@@ -51,6 +51,7 @@ def main(
     # assumption
     assume=None,
     # plotting
+    plot=None,
     dax=None,
     color=None,
     ls=None,
@@ -99,23 +100,23 @@ def main(
     })
 
     # --------------
-    # prepare
-    # --------------
-
-    if dax is None:
-        dax = _get_dax(dout)
-
-    # --------------
     # plot
     # --------------
 
-    _plot(
-        dax=dax,
-        dout=dout,
-        # options
-        color=color,
-        ls=ls,
-    )
+    if din['plot'] is True:
+
+        # prepare
+        if dax is None:
+            dax = _get_dax(dout)
+
+        # plot
+        _plot(
+            dax=dax,
+            dout=dout,
+            # options
+            color=color,
+            ls=ls,
+        )
 
     return dout, dax
 
@@ -247,6 +248,25 @@ def _check(**kwdargs):
         default=1.,
     ))
 
+    # nterms
+    din['nterms'] = int(ds._generic_check._check_var(
+        din['nterms'], 'nterms',
+        types=(float, int),
+        sign='>=0',
+        default=10,
+    ))
+
+    # ------------
+    # plotting
+    # ------------
+
+    # plot
+    din['plot'] = ds._generic_check._check_var(
+        din['plot'], 'plot',
+        types=bool,
+        default=True,
+    )
+
     return din
 
 
@@ -256,7 +276,7 @@ def _check(**kwdargs):
 # ########################################################
 
 
-def _func_constant_flux_infinite(
+def _func_0flux_infinite(
     x_m=None,
     t_s=None,
     # material props
@@ -282,7 +302,7 @@ def _func_constant_flux_infinite(
     return T0_C + (q0_Wm2/kappa) * (term_exp - term_erf)
 
 
-def _func_constant_flux_finite(
+def _func_0flux_1T(
     x_m=None,
     t_s=None,
     # material props
@@ -318,8 +338,9 @@ def _func_constant_flux_finite(
     F = gamma * t_s[None, ...] / H_m**2
 
     # m
-    shape = (nterms,) + tuple([1]*x_m.ndim)
-    m = np.arange(1, nterms + 1).reshape(shape)
+    m = np.arange(1, nterms + 1)
+    shape = (m.size,) + tuple([1]*x_m.ndim)
+    m = m.reshape(shape)
 
     # betam
     betam = (2*m - 1) * np.pi / (2.*lamb)
@@ -329,6 +350,63 @@ def _func_constant_flux_finite(
 
     # normalized temp
     theta = (2./lamb) * np.sum(terms, axis=0)
+
+    return T0_C + theta * H_m * q0_Wm2 / kappa
+
+
+def _func_0flux_1flux(
+    x_m=None,
+    t_s=None,
+    # material props
+    kappa=None,
+    gamma=None,
+    # conditions
+    T0_C=None,
+    q0_Wm2=None,
+    # slab
+    H_m=None,
+    lamb=None,
+    # nterms
+    nterms=10,
+    # unused
+    **kwdargs,
+):
+    """ Analytical solution to non-steady heat conduction equation
+    Assuming finite slab of thickness H, in cartesian coordinates
+    Initial condition: T = T0 everywhere
+    Boundary:
+        - constant heat flux q0 at x = 0
+        - T = T0 at x = H
+
+    [1] S. M. Pineda et al., Journal of Heat Transfer, 133, 7, 2011
+        doi: 10.1115/1.4003544.
+
+    """
+
+    # xi (normalized x)
+    xi = x_m[None, ...] / H_m
+
+    # Fourier factor - noramilzed time
+    F = gamma * t_s[None, ...] / H_m**2
+
+    # m
+    m = np.arange(2, nterms+1)
+    shape = (m.size,) + tuple([1]*x_m.ndim)
+    m = m.reshape(shape)
+
+    # betam
+    betam = (m-1) * np.pi / lamb
+
+    # factor
+    fact = 2./lamb
+
+    # each term
+    terms = (
+        fact * np.cos(betam * xi) * (1. - np.exp(-betam**2 * F)) / betam**2
+    )
+
+    # normalized temp
+    theta = F[0, ...]/lamb + np.sum(terms, axis=0)
 
     return T0_C + theta * H_m * q0_Wm2 / kappa
 
@@ -353,9 +431,9 @@ def _get_dax(din):
     )
 
     dmargin = {
-        'left': 0.10, 'right': 0.97,
-        'bottom': 0.10, 'top': 0.90,
-        'wspace': 0.25, 'hspace': 0.10,
+        'left': 0.08, 'right': 0.97,
+        'bottom': 0.08, 'top': 0.90,
+        'wspace': 0.20, 'hspace': 0.30,
     }
 
     # ---------------
@@ -365,18 +443,37 @@ def _get_dax(din):
     dax = {}
     fig = plt.figure(figsize=(13, 9))
     fig.suptitle(tit, size=fontsize, fontweight='bold')
-    gs = gridspec.GridSpec(ncols=1, nrows=3, figure=fig, **dmargin)
+    gs = gridspec.GridSpec(ncols=2, nrows=2, figure=fig, **dmargin)
 
     # ---------------
     # create axes
     # ---------------
 
-    # temp
+    # T_C
     ax = fig.add_subplot(gs[:-1, :])
     ax.set_xlabel('X (mm)', size=fontsize, fontweight='bold')
     ax.set_ylabel('T (C)', size=fontsize, fontweight='bold')
+    ax.set_title('T profiles in slab', size=fontsize, fontweight='bold')
     plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
     dax['T_C'] = {'handle': ax}
+
+    # T0_C
+    ax = fig.add_subplot(gs[-1, -1])
+    ax.set_xlabel('t (ms)', size=fontsize, fontweight='bold')
+    ax.set_ylabel('T(x=0) (C)', size=fontsize, fontweight='bold')
+    ax.set_title('Surface T vs time', size=fontsize, fontweight='bold')
+    plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
+    dax['T_x0_C'] = {'handle': ax}
+
+    # text
+    ax = fig.add_subplot(gs[-1, 0], frameon=False)
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    plt.xticks([])
+    plt.yticks([])
+    dax['text'] = {'handle': ax}
 
     return dax
 
@@ -414,7 +511,7 @@ def _plot(
         ls = '-'
 
     # ---------------
-    #    plot temp
+    #    plot vs X
     # ---------------
 
     kax = 'T_C'
@@ -476,37 +573,72 @@ def _plot(
         ax.set_ylim(bottom=0)
 
     # ---------------
+    #    plot T0 vs t
+    # ---------------
+
+    kax = 'T_x0_C'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        l0, = ax.plot(
+            dout['t_s']*1e3,
+            dout['T_C']['data'][0, :],
+            ls=ls,
+            color=colors[it % ncolors],
+        )
+
+        # T0_C
+        ax.axhline(
+            dout['T0_C']['data'],
+            ls='--',
+            c='k',
+        )
+
+        # Tfus
+        ax.axhline(
+            _DMAT[dout['mat']]['Tfus']['data'],
+            ls='--',
+            c='k' if color is None else color,
+        )
+
+        ax.set_ylim(bottom=0)
+
+    # ---------------
     #    plot text
     # ---------------
 
-    lk = ['kappa', 'c', 'rho', 'gamma']
-    lstr = []
-    for kk in lk:
-        if kk == 'gamma':
-            val = f"{dout[kk]['data']:3.2e}"
-        else:
-            val = round(dout[kk]['data'])
-        lstr.append(f"{kk} = {val} {dout[kk]['units']}")
+    kax = 'text'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
 
-    q0str = f"{round(dout['q0_Wm2']['data']*1e-6)} MW/m2"
-    msg = (
-        f"Initial T0 = {dout['T0_C']['data']} {dout['T0_C']['units']}\n"
-        f"Power flux q0 = {q0str}\n\n"
-        f"Material: {dout['mat']}\n"
-        + "\n".join(lstr)
-    )
+        lk = ['kappa', 'c', 'rho', 'gamma']
+        lstr = []
+        for kk in lk:
+            if kk == 'gamma':
+                val = f"{dout[kk]['data']:3.2e}"
+            else:
+                val = round(dout[kk]['data'])
+            lstr.append(f"{kk} = {val} {dout[kk]['units']}")
 
-    ax.text(
-        0.,
-        -0.2,
-        msg,
-        size=16,
-        color=color,
-        fontweight='bold',
-        transform=ax.transAxes,
-        horizontalalignment='left',
-        verticalalignment='top',
-    )
+        q0str = f"{round(dout['q0_Wm2']['data']*1e-6)} MW/m2"
+        msg = (
+            f"Initial T0 = {dout['T0_C']['data']} {dout['T0_C']['units']}\n"
+            f"Power flux q0 = {q0str}\n\n"
+            f"Material: {dout['mat']}\n"
+            + "\n".join(lstr)
+        )
+
+        ax.text(
+            0.,
+            1,
+            msg,
+            size=16,
+            color=color,
+            fontweight='bold',
+            transform=ax.transAxes,
+            horizontalalignment='left',
+            verticalalignment='top',
+        )
 
     return
 
@@ -518,16 +650,25 @@ def _plot(
 
 
 _DSOL = {
-    'constant_flux_infinite': {
-        'func': _func_constant_flux_infinite,
+    '0flux_infinite': {
+        'func': _func_0flux_infinite,
         'comments': [
             'semi-infinite slab from x>=0',
             'uniform T0 (C) at t = 0',
             'constant heat flux q0 (W/m2) at x = 0',
         ],
     },
-    'constant_flux_finite': {
-        'func': _func_constant_flux_finite,
+    '0flux_1T': {
+        'func': _func_0flux_1T,
+        'comments': [
+            'finite slab from x in [0, H]',
+            'uniform T0 (C) at t = 0',
+            'T(x=H) = T0 at all t',
+            'constant heat flux q0 (W/m2) at x = 0',
+        ],
+    },
+    '0flux_1flux': {
+        'func': _func_0flux_1flux,
         'comments': [
             'finite slab from x in [0, H]',
             'uniform T0 (C) at t = 0',
