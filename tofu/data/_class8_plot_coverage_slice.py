@@ -2,7 +2,7 @@
 
 
 # Built-in
-# import copy
+import warnings
 
 
 # Common
@@ -512,14 +512,15 @@ def _check(
     if vect is not None:
         if len(key_cam) != 1:
             msg = (
-                "If a slice is not provided, key_cam must be len() == 1\n"
+                "If a slice is not provided, and len(key_cam) != 1\n"
                 f"\t- Z: {Z}\n"
                 f"\t- phi: {phi}\n"
                 f"\t- vect: {vect}\n"
                 f"\t- key_diag: {key_diag}\n"
                 f"\t- key_cam: {key_cam}\n"
+                f"=> The first camera is used as reference for (nin, e0, e1)"
             )
-            raise Exception(msg)
+            warnings.warn(msg)
 
     # -----------
     # adjust_phi
