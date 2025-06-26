@@ -927,7 +927,7 @@ def _get_dax_los(
 
     # sang
     sli = (slice(3, 6), slice(i0, -1))
-    ax4 = fig.add_subplot(gs[sli], aspect='equal', adjustable='datalim')
+    ax4 = fig.add_subplot(gs[sli], aspect='equal', adjustable='box')
     ax4.set_ylabel('x1 (m)', size=12, fontweight='bold')
 
     # sang cbar
