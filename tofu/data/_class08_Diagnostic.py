@@ -1499,11 +1499,17 @@ class Diagnostic(Previous):
         self,
         key=None,
         key_cam=None,
+        # what to plot
+        plot_cross=None,
+        plot_hor=None,
+        plot_rank=None,
         # mesh sampling
         key_mesh=None,
         res_RZ=None,
         nan0=None,
         # plotting options
+        marker=None,
+        markersize=None,
         plot_config=None,
         dcolor=None,
         dax=None,
@@ -1543,11 +1549,17 @@ class Diagnostic(Previous):
             coll=self,
             key=key,
             key_cam=key_cam,
+            # what to plot
+            plot_cross=plot_cross,
+            plot_hor=plot_hor,
+            plot_rank=plot_rank,
             # mesh sampling
             key_mesh=key_mesh,
             res_RZ=res_RZ,
             nan0=nan0,
             # plotting options
+            marker=marker,
+            markersize=markersize,
             config=plot_config,
             dcolor=dcolor,
             cmap=cmap,
