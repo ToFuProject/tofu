@@ -267,21 +267,19 @@ def _check(
     # is_3d vs plot_hor
     # ------------------
 
-    dhas = {'cross': None, 'hor': None, '3d': None}
-    for k0 in dhas.keys():
-        kc = lcam[0]
-        istr = f"ind_{k0}"
-        dhas[k0] = (
-            doptics[kc]['dvos'].get(istr) is not None
-            and all([kk is not None for kk in doptics[kc]['dvos'][istr]])
-        )
+    # cross vs hor vs 3d
+    dvosproj = coll.check_diagnostic_vos_proj(
+        key=key,
+        key_cam=key_cam,
+        logic='all',
+    )
 
     # plot_cross
     plot_cross = ds._generic_check._check_var(
         plot_cross, 'plot_cross',
         types=bool,
-        default=True if dhas['cross'] else False,
-        allowed=[True, False] if dhas['cross'] else [False],
+        default=True if dvosproj['cross'] else False,
+        allowed=[True, False] if dvosproj['cross'] else [False],
         extra_msg=f"diag '{key}' needs vos and 'ind_cross'",
     )
 
@@ -289,8 +287,8 @@ def _check(
     plot_hor = ds._generic_check._check_var(
         plot_hor, 'plot_hor',
         types=bool,
-        default=True if dhas['hor'] else False,
-        allowed=[True, False] if dhas['hor'] else [False],
+        default=True if dvosproj['hor'] else False,
+        allowed=[True, False] if dvosproj['hor'] else [False],
         extra_msg=f"diag '{key}' needs vos and 'ind_hor'",
     )
 
