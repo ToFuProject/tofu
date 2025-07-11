@@ -1006,6 +1006,7 @@ def _check_get_dvos(
 
     else:
         isstore = False
+        raise NotImplementedError("Check user-provided dvos not implemented")
 
     return key_diag, copy.deepcopy(dvos), isstore
 

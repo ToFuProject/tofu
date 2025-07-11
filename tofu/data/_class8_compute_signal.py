@@ -1095,7 +1095,7 @@ def _compute_vos_broadband(
     for k0, v0 in dvos.items():
 
         # group
-        units_vos = v0['sang_cross']['units']
+        units_vos = v0['sang_cross']['units'] * v0['dV_cross']['units']
 
         # --------------
         # loop on pixels
@@ -1112,7 +1112,7 @@ def _compute_vos_broadband(
                 continue
 
             # vos re-creation
-            ind_RZ = tuple(list(ind) + [iok])
+            ind_RZ = ind + (iok,)
             R = x0u[v0['indr_cross']['data'][ind_RZ]]
             Z = x1u[v0['indz_cross']['data'][ind_RZ]]
 
@@ -1155,9 +1155,12 @@ def _compute_vos_broadband(
 
             ind_data[axis] = ind
             ind_sa[axis] = ind_RZ
-            data[tuple(itt.chain.from_iterable(ind_data))] = np.nansum(
+            ind_data_full = tuple(itt.chain.from_iterable(ind_data))
+            ind_sa_full = tuple(itt.chain.from_iterable(ind_sa))
+            data[ind_data_full] = np.nansum(
                 datai
-                * v0['sang_cross']['data'][tuple(itt.chain.from_iterable(ind_sa))],
+                * v0['sang_cross']['data'][ind_sa_full],
+                * v0['dV_cross']['data'][ind_sa_full],
                 axis=axis,
             )
 
