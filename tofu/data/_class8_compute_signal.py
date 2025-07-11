@@ -1159,7 +1159,7 @@ def _compute_vos_broadband(
             ind_sa_full = tuple(itt.chain.from_iterable(ind_sa))
             data[ind_data_full] = np.nansum(
                 datai
-                * v0['sang_cross']['data'][ind_sa_full],
+                * v0['sang_cross']['data'][ind_sa_full]
                 * v0['dV_cross']['data'][ind_sa_full],
                 axis=axis,
             )
