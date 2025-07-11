@@ -618,6 +618,31 @@ class Diagnostic(Previous):
             timing=timing,
         )
 
+    def check_diagnostic_vos_proj(
+        self,
+        key=None,
+        key_cam=None,
+        logic=None,
+    ):
+        """ Return a dict {proj: [kcam0, kcam1, ...]}
+
+        Where proj is in ['cross', 'hor', '3d']
+
+        Shows for each vos proj the list of available cameras
+
+        Logic can be used to get a bool instead of a list
+            - logic = 'all' => True if all cameras
+            - logic = 'any' => True if any camera
+
+        """
+
+        return _vos._check_vos_proj(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            logic=logic,
+        )
+
     def check_diagnostic_dvos(
         self,
         key=None,
