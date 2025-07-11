@@ -318,7 +318,7 @@ setup(
         "scipy",
         # "scikit-sparse",
         # "scikit-umfpack",
-        "matplotlib",
+        "matplotlib<3.0.3",
         "contourpy",
         "requests",
         "svg.path",

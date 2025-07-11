@@ -5,7 +5,7 @@ numpy
 # scikit-umfpack   # similar issue
 # >=40.8.0, <64
 setuptools
-matplotlib
+matplotlib<3.0.3
 contourpy
 requests
 svg.path
