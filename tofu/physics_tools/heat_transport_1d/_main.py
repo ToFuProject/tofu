@@ -56,6 +56,19 @@ def main(
     color=None,
     ls=None,
 ):
+    """ Compute the 1d temperature profile in a medium at chosen times
+
+    Considers a uniform medium of chosen material 'mat' at initial uniform T
+    Evolved the 1d temperature profile assuming boundary conditions
+
+    Return
+    ------
+    dout: dict
+        dictionary of output results
+    dax: dict
+        dictionary of axes for plotting
+
+    """
 
     # --------------
     # check inputs
@@ -177,13 +190,17 @@ def _check(**kwdargs):
     # ------------
 
     # time
-    if din.get('t_s') is None:
-        din['t_s'] = np.linspace(0, 2e-3, 5)
+    msg = (
+        "Arg 't_s' must be a 1d time vector in seconds at which the "
+        "temperature profile will be plotted!\n"
+        "e.g.: t = np.linspace(0, 2e-3, 5)\n"
+    )
 
     din['t_s'] = ds._generic_check._check_flat1darray(
         din['t_s'], 't_s',
         dtype=float,
         unique=True,
+        extra_msg=msg,
     )
 
     # ------------
@@ -212,11 +229,17 @@ def _check(**kwdargs):
     # ------------
 
     # T0
+    msg = (
+        "Arg 'T0_C' must be a scalar\n"
+        "It is the initial uniform temperature of the medium\n"
+        "e.g.: T0_C = 300\n"
+    )
+
     T0_C = float(ds._generic_check._check_var(
         din['T0_C'], 'T0_C',
         types=(float, int),
         sign='>=0',
-        default=300,
+        extra_msg=msg,
     ))
     din['T0_C'] = {
         'data': T0_C,
@@ -225,10 +248,17 @@ def _check(**kwdargs):
     }
 
     # q0
+    msg = (
+        "Arg 'q0_Wm2' must be a positive scalar\n"
+        "It is the power flux at x = 0\n"
+        "e.g.: q0_Wm2 = 1e6\n"
+    )
+
     q0_Wm2 = float(ds._generic_check._check_var(
         din['q0_Wm2'], 'q0_Wm2',
         types=(float, int),
         sign='>=0',
+        extra_msg=msg,
     ))
     din['q0_Wm2'] = {
         'data': q0_Wm2,
