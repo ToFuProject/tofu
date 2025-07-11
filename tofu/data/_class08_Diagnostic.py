@@ -623,6 +623,7 @@ class Diagnostic(Previous):
         key=None,
         key_cam=None,
         logic=None,
+        reduced=None,
     ):
         """ Return a dict {proj: [kcam0, kcam1, ...]}
 
@@ -641,6 +642,7 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
             logic=logic,
+            reduced=reduced,
         )
 
     def check_diagnostic_dvos(

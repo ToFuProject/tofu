@@ -810,6 +810,7 @@ def _check_vos_proj(
     key=None,
     key_cam=None,
     logic=None,
+    reduced=None,
 ):
 
     # ------------
@@ -830,6 +831,13 @@ def _check_vos_proj(
         logic, 'logic',
         allowed=[list, 'all', 'any'],
         default=list,
+    )
+
+    # reduced
+    reduced = ds._generic_check._check_var(
+        reduced, 'reduced',
+        types=bool,
+        default=False,
     )
 
     # ------------
@@ -861,6 +869,17 @@ def _check_vos_proj(
         ncam = len(key_cam)
         for kproj, lcam in dvosproj.items():
             dvosproj[kproj] = len(lcam) == ncam
+
+    # -----------
+    # reduced
+    # -----------
+
+    if reduced is True:
+        dvosproj = {
+            k0: v0 for k0, v0 in dvosproj.items()
+            if v0 is True
+            or (logic is list and len(v0) > 0)
+        }
 
     return dvosproj
 
