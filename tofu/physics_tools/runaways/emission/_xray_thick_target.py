@@ -340,6 +340,25 @@ def _check_dcross_ei(
     )
 
     # -----------------
+    # check None
+    # -----------------
+
+    # E_re_eV
+    if E_re_eV is None:
+        msg = "Arg 'E_re_eV' must be provided (e.g.: 1d array)!"
+        raise Exception(msg)
+
+    # E_ph_eV
+    if E_ph_eV is None:
+        msg = "Arg 'E_ph_eV' must be provided (e.g.: 1d array)!"
+        raise Exception(msg)
+
+    # atomic_nb
+    if atomic_nb is None:
+        msg = "Arg 'atomic_nb' must be provided (e.g.: W = 74 or 1d array)!"
+        raise Exception(msg)
+
+    # -----------------
     # broadcastable
     # -----------------
 
