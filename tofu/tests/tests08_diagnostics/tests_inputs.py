@@ -779,6 +779,52 @@ def add_diags_spectro(
 
 # ####################################################
 # ####################################################
+#                 plot
+# ####################################################
+
+
+def _plot(
+    coll=None,
+    key_diag=None,
+    conf=None,
+    close=None,
+):
+
+    # --------------
+    # key_diag
+    # --------------
+
+    key_diag = _get_key_diag(
+        coll=coll,
+        key_diag=key_diag,
+        spectro=spectro,
+    )
+
+    # --------------
+    # plot
+    # --------------
+
+    for ii, k0 in enumerate(key_diag):
+
+        _ = coll.plot_diagnostic(
+            k0,
+            data='etendue',
+            proj=(
+                None if ii % 3 == 0
+                else ('cross' if ii % 3 == 1 else ['cross', 'hor'])
+            ),
+            plot_config=conf,
+        )
+
+        # close
+        if close is not False:
+            plt.close('all')
+
+    return
+
+
+# ####################################################
+# ####################################################
 #                 Tests
 #             Sinogram
 # ####################################################
@@ -787,20 +833,38 @@ def add_diags_spectro(
 def _sinogram(
     coll=None,
     conf=None,
+    key_diag=None,
+    close=None,
 ):
+
+    # --------------
+    # key_diag
+    # --------------
+
+    key_diag = _get_key_diag(
+        coll=coll,
+        key_diag=key_diag,
+        spectro=None,
+    )
 
     lrays = list(coll.dobj['rays'].keys())
     ldiag = [
-        k0 for k0, v0 in coll.dobj['diagnostic'].items()
+        k0 for k0 in key_diag
         if any([
             v1.get('los') is not None
-            for v1 in v0['doptics'].values()
+            for v1 in coll.dobj['diagnostic'][k0]['doptics'].values()
         ])
     ]
+
     lk = [lrays] + ldiag
+
+    # --------------
+    # sinogram
+    # --------------
+
     for ii, k0 in enumerate(lk):
 
-        dout, dax = coll.get_sinogram(
+        _, _ = coll.get_sinogram(
             key=k0,
             ang='theta' if ii % 2 == 0 else 'xi',
             ang_units='deg' if ii % 3 == 0 else 'radian',
@@ -811,8 +875,9 @@ def _sinogram(
             plot=True,
             verb=2,
         )
-        plt.close('all')
-        del dax
+
+        if close is not False:
+            plt.close('all')
 
     return
 
@@ -1027,22 +1092,13 @@ def _compute_vos(
 ):
 
     # ---------------
-    # key_diagh
+    # key_diag
     # ---------------
 
-    wdiag = coll._which_diagnostic
-    lok = [
-        k0 for k0, v0 in coll.dobj.get(wdiag, {}).items()
-        if v0['spectro'] == spectro
-        and len(v0['doptics'][v0['camera'][0]]['optics']) > 0
-    ]
-    if isinstance(key_diag, str):
-        key_diag = [key_diag]
-    key_diag = ds._generic_check._check_var_iter(
-        key_diag, 'key_diag',
-        types=list,
-        types_iter=str,
-        allowed=lok,
+    key_diag = _get_key_diag(
+        coll=coll,
+        key_diag=key_diag,
+        spectro=spectro,
     )
 
     # ---------------
@@ -1092,6 +1148,33 @@ def _compute_vos(
         )
 
     return
+
+
+def _get_key_diag(
+    coll=None,
+    key_diag=None,
+    spectro=None,
+):
+
+    wdiag = coll._which_diagnostic
+    lok = [
+        k0 for k0, v0 in coll.dobj.get(wdiag, {}).items()
+        if (
+            spectro is None
+            or v0['spectro'] == spectro
+        )
+        and len(v0['doptics'][v0['camera'][0]]['optics']) > 0
+    ]
+    if isinstance(key_diag, str):
+        key_diag = [key_diag]
+    key_diag = ds._generic_check._check_var_iter(
+        key_diag, 'key_diag',
+        types=list,
+        types_iter=str,
+        allowed=lok,
+    )
+
+    return key_diag
 
 
 # ####################################################
@@ -1166,4 +1249,42 @@ def _save_to_npz(
                     os.remove(pfe)
                 except Exception:
                     pass
+    return
+
+
+# ####################################################
+# ####################################################
+#                 VOS: plot_coverage
+# ####################################################
+
+
+def _plot_coverage(
+    coll=None,
+    key_diag=None,
+    conf=None,
+    spectro=False,
+    close=None,
+):
+
+    # --------------
+    # key_diag
+    # --------------
+
+    key_diag = _get_key_diag(
+        coll=coll,
+        key_diag=key_diag,
+        spectro=spectro,
+    )
+
+    # --------------
+    # plot
+    # --------------
+
+    for ii, k0 in enumerate(key_diag):
+
+        _ = coll.plot_diagnostic_geometrical_coverage(k0)
+
+        if close is not False:
+            plt.close('all')
+
     return
