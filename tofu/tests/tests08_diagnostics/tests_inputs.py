@@ -6,6 +6,8 @@ import copy
 
 
 import numpy as np
+import matplotlib.pyplot as plt
+import datastock as ds
 
 
 # tofu-specific
@@ -620,15 +622,28 @@ def add_diags_broadband(
     # ---------------
 
     wdiag = coll._which_diagnostic
-    wcam = coll._which_camera
+    wcam = coll._which_cam
     for kdiag, vdiag in ddiag.items():
 
         # already in => skip
         if kdiag in coll.dobj.get(wdiag, {}).keys():
             continue
 
+        # -----------------------
         # add optics for each cam
-        for kcam, voptics in vdiag['doptics'].items():
+
+        if isinstance(vdiag['doptics'], str):
+            kcam = vdiag['doptics']
+            dop = {kcam: {'optics': []}}
+        elif isinstance(vdiag['doptics'], (list, tuple)):
+            kcam = vdiag['doptics'][0]
+            lop = vdiag['doptics'][1:]
+            dop = {kcam: {'optics': lop}}
+        else:
+            dop = vdiag['doptics']
+
+        # loop on kcam, lop
+        for kcam, voptics in dop.items():
 
             # optics
             for kop in voptics['optics']:
@@ -653,7 +668,9 @@ def add_diags_broadband(
                 else:
                     coll.add_camera_2d(key=kcam, **dcameras[kcam])
 
+        # --------------
         # add diag
+
         coll.add_diagnostic(
             key=kdiag,
             config=conf,
@@ -669,49 +686,45 @@ def add_diags_broadband(
 def add_diags_spectro(
     coll=None,
     conf=None,
-    conf_touch=None,
     compute=None,
 ):
 
+    # ------------
+    # instanciate
+    # ------------
+
+    if coll is None:
+        coll = tf.data.Collection()
+
+    # --------------
+    # get inputs
+    # --------------
+
     # get dict
     dapertures = _apertures()
-    dfilters = _filters()
-    dcameras = _cameras()
     dcrystals = _crystals()
     dconfig = _configurations()
-    ddiag = _diagnostics_broadband()
 
-    # add apertures
+    # --------------
+    # add aperture
+    # --------------
+
     for k0, v0 in dapertures.items():
+        if k0 not in ['ap0']:
+            continue
         coll.add_aperture(key=k0, **v0)
 
-    # add filters
-    for k0, v0 in dfilters.items():
-        coll.add_filter(key=k0, **v0)
-
-    # add cameras
-    for k0, v0 in dcameras.items():
-        if 'cam0' in k0 or 'cam1' in k0:
-            coll.add_camera_1d(key=k0, **v0)
-        else:
-            coll.add_camera_2d(key=k0, **v0)
-
-    # add diagnostics
-    for k0, v0 in ddiag.items():
-        coll.add_diagnostic(
-            key=k0,
-            config=conf,
-            reflections_nb=1,
-            reflections_type='specular',
-            compute=compute,
-            **v0,
-        )
-
+    # --------------
     # add crystals
+    # --------------
+
     for k0, v0 in dcrystals.items():
         coll.add_crystal(key=k0, **v0)
 
-    # add crystal optics
+    # --------------
+    # add crystals optics
+    # --------------
+
     coll.doptics = {}
     for k0, v0 in dcrystals.items():
 
@@ -748,14 +761,409 @@ def add_diags_spectro(
                     f'{k0}_{ii}': loptics,
                 })
 
-    # add crystal optics
+    # -----------------
+    # add diagnostic
+    # -----------------
+
     for k0, v0 in coll.doptics.items():
         coll.add_diagnostic(
             doptics=v0,
-            config=coll.conf,
+            config=conf,
             compute_vos_from_los=True,
         )
 
     # add toroidal
     # coll.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
+    return coll
+
+
+# ####################################################
+# ####################################################
+#                 Tests
+#             Sinogram
+# ####################################################
+
+
+def _sinogram(
+    coll=None,
+    conf=None,
+):
+
+    lrays = list(coll.dobj['rays'].keys())
+    ldiag = [
+        k0 for k0, v0 in coll.dobj['diagnostic'].items()
+        if any([
+            v1.get('los') is not None
+            for v1 in v0['doptics'].values()
+        ])
+    ]
+    lk = [lrays] + ldiag
+    for ii, k0 in enumerate(lk):
+
+        dout, dax = coll.get_sinogram(
+            key=k0,
+            ang='theta' if ii % 2 == 0 else 'xi',
+            ang_units='deg' if ii % 3 == 0 else 'radian',
+            impact_pos=ii % 3 != 0,
+            R0=2.4 if ii % 3 != 1 else None,
+            config=None if ii % 3 != 1 else conf,
+            pmax=None if ii % 3 == 0 else 5,
+            plot=True,
+            verb=2,
+        )
+        plt.close('all')
+        del dax
+
+    return
+
+
+# ####################################################
+# ####################################################
+#                 Tests
+#           add_rays_from_diagnostic
+# ####################################################
+
+
+def _add_rays_from_diagnostic(
+    coll=None,
+    conf=None,
+):
+
+    wdiag = coll._which_diagnostic
+    for ii, (k0, v0) in enumerate(coll.dobj[wdiag].items()):
+        noptics = any([
+            len(v1['optics']) == 0 for v1 in v0['doptics'].values()
+        ])
+        if v0['is2d'] or v0['spectro'] or noptics:
+            continue
+        dsamp = {'dedge': {'res': 'max'}, 'dsurface': {'nb': 3}}
+        dout = coll.add_rays_from_diagnostic(
+            key=k0,
+            dsampling_pixel=dsamp,
+            dsampling_optics=dsamp,
+            optics=-1,
+            config=conf,
+            store=(ii % 2 == 0),
+        )
+        assert isinstance(dout, dict) or dout is None
+
+    return
+
+
+# ####################################################
+# ####################################################
+#                 Tests
+#             add_single_point_camera2d
+# ####################################################
+
+
+def _add_single_point_camera2d(
+    coll=None,
+    kdiag=None,
+    conf_touch=None,
+):
+
+    # ------------
+    # choose diag
+    # ------------
+
+    # kdiag
+    wdiag = coll._which_diagnostic
+    lok = [
+        k0 for k0, v0 in coll.dobj.get(wdiag, {}).items()
+        if v0['spectro'] is False
+    ]
+    if len(lok) == 0:
+        return
+    kdiag = ds._generic_check._check_var(
+        kdiag, 'kdiag',
+        types=str,
+        allowed=lok,
+        default='diag5',
+    )
+
+    wrays = coll._which_rays
+    klos = [
+        k0 for k0 in coll.dobj.get(wrays, {}).keys()
+        if k0.startswith(f'{kdiag}_')
+        and k0.endswith('_los')
+    ][0]
+    krays = klos.replace('_los', '_rays')
+
+    # ------------
+    # add cam2d
+    # ------------
+
+    coll.add_single_point_camera2d(
+        key='ptcam',
+        key_rays=klos,
+        angle0=55,
+        angle1=55,
+        config=conf_touch,
+    )
+
+    # -------------------
+    # add rays from diag
+    # -------------------
+
+    # add rays
+    dsamp = {'dedge': {'res': 'min'}, 'dsurface': {'nb': 3}}
+    coll.add_rays_from_diagnostic(
+        key=kdiag,
+        dsampling_pixel=dsamp,
+        dsampling_optics=dsamp,
+        optics=-1,
+        config=conf_touch,
+        store=True,
+        strict=None,
+        key_rays=krays,
+        overwrite=None,
+    )
+
+    # ---------------------
+    # get angles from rays
+    # ---------------------
+
+    # simple
+    dout = coll.get_rays_angles_from_single_point_camera2d(
+        key_single_pt_cam='ptcam',
+        key_rays=klos,
+        return_indices=False,
+    )
+
+    # with indices and no convex hull
+    dout = coll.get_rays_angles_from_single_point_camera2d(
+        key_single_pt_cam='ptcam',
+        key_rays=krays,
+        return_indices=True,
+        convex_axis=False,
+    )
+
+    # with indices and convesx axis
+    dout = coll.get_rays_angles_from_single_point_camera2d(
+        key_single_pt_cam='ptcam',
+        key_rays=krays,
+        return_indices=True,
+        convex_axis=(-1, -2),
+    )
+    assert isinstance(dout, dict)
+
+    return
+
+
+# ####################################################
+# ####################################################
+#                 Tests
+#             Reverse ray tracing
+# ####################################################
+
+
+def _reverse_ray_tracing(
+    coll=None,
+):
+
+    wdiag = coll._which_diagnostic
+    for ii, (k0, v0) in enumerate(coll.dobj[wdiag].items()):
+        lcam = coll.dobj[wdiag][k0]['camera']
+        doptics = coll.dobj[wdiag][k0]['doptics']
+        if len(doptics[lcam[0]]['optics']) == 0:
+            continue
+        if not coll.dobj[wdiag][k0]['spectro']:
+            continue
+
+        # Get points
+        ptsx, ptsy, ptsz = coll.get_rays_pts(k0)
+        kcryst = list(doptics.values())[0]['optics'][0]
+        lamb = coll.get_crystal_bragglamb(
+            key=kcryst,
+            lamb=None,
+            bragg=None,
+            norder=None,
+            rocking_curve=None,
+        )[1]
+
+        _ = coll.get_raytracing_from_pts(
+            key=k0,
+            key_cam=None,
+            key_mesh=None,
+            res_RZ=None,
+            res_phi=None,
+            ptsx=ptsx[-1, ...],
+            ptsy=ptsy[-1, ...],
+            ptsz=ptsz[-1, ...],
+            n0=3,
+            n1=3,
+            lamb0=lamb,
+            res_lamb=None,
+            rocking_curve=None,
+            res_rock_curve=None,
+            append=None,
+            plot=True,
+            dax=None,
+            plot_pixels=None,
+            plot_config=None,
+            vmin=None,
+            vmax=None,
+            aspect3d=None,
+            elements=None,
+            colorbar=None,
+        )
+
+    return
+
+
+# ####################################################
+# ####################################################
+#                 Tests
+#           compute_diagnostic_vos
+# ####################################################
+
+
+def _compute_vos(
+    coll=None,
+    key_diag=None,
+    conf=None,
+    spectro=False,
+):
+
+    # ---------------
+    # key_diagh
+    # ---------------
+
+    wdiag = coll._which_diagnostic
+    lok = [
+        k0 for k0, v0 in coll.dobj.get(wdiag, {}).items()
+        if v0['spectro'] == spectro
+        and len(v0['doptics'][v0['camera'][0]]['optics']) > 0
+    ]
+    if isinstance(key_diag, str):
+        key_diag = [key_diag]
+    key_diag = ds._generic_check._check_var_iter(
+        key_diag, 'key_diag',
+        types=list,
+        types_iter=str,
+        allowed=lok,
+    )
+
+    # ---------------
+    # add mesh
+    # ---------------
+
+    # add mesh
+    key_mesh = 'm0'
+    wmesh = coll._which_mesh
+    if key_mesh not in coll.dobj.get(wmesh, {}).keys():
+        coll.add_mesh_2d_rect(
+            key=key_mesh,
+            res=0.1,
+            crop_poly=conf,
+        )
+
+    # -----------------
+    # loop on key_diag
+    # -----------------
+
+    # compute vos
+    for ii, k0 in enumerate(key_diag):
+
+        keep_cross = True
+        keep_hor = (ii % 2 == 0)
+        keep_3d = False
+
+        coll.compute_diagnostic_vos(
+            # keys
+            key_diag=k0,
+            key_mesh=key_mesh,
+            # resolution
+            res_RZ=0.04,
+            res_phi=0.04,
+            # keep
+            keep_cross=keep_cross,
+            keep_hor=keep_hor,
+            keep_3d=keep_3d,
+            # spectro
+            n0=3,
+            n1=3,
+            res_lamb=2e-10,
+            visibility=False,
+            overwrite=True,
+            replace_poly=True,
+            store=True,
+        )
+
+    return
+
+
+# ####################################################
+# ####################################################
+#                 Tests
+#             save to json
+# ####################################################
+
+
+def _save_to_json(
+    coll=None,
+    remove=True,
+):
+
+    wdiag = coll._which_diagnostic
+    for ii, (k0, v0) in enumerate(coll.dobj[wdiag].items()):
+
+        lcam = coll.dobj[wdiag][k0]['camera']
+        doptics = coll.dobj[wdiag][k0]['doptics']
+        if len(doptics[lcam[0]]['optics']) == 0 or k0 == 'diag6':
+            continue
+
+        # saving
+        pfe = os.path.join(_PATH_HERE, f"{k0}.json")
+
+        try:
+            coll.save_diagnostic_to_file(k0, pfe_save=pfe)
+
+            # reloading
+            _ = tf.data.load_diagnostic_from_file(pfe)
+
+        # remove file
+        finally:
+            if remove is True:
+                try:
+                    os.remove(pfe)
+                except Exception:
+                    pass
+
+    return
+
+
+# ####################################################
+# ####################################################
+#                 Tests
+#             save to npz
+# ####################################################
+
+
+def _save_to_npz(
+    coll=None,
+    remove=True,
+):
+
+    wdiag = coll._which_diagnostic
+    for ii, (k0, v0) in enumerate(coll.dobj[wdiag].items()):
+
+        # pfe
+        pfe = os.path.join(_PATH_HERE, f'test_diag_{k0}.npz')
+
+        # save
+        try:
+            coll.save(pfe)
+
+            # reloading
+            _ = tf.data.load(pfe)
+
+        finally:
+            # remove file
+            if remove is True:
+                try:
+                    os.remove(pfe)
+                except Exception:
+                    pass
     return
