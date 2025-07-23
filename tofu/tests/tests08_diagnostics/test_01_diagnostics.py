@@ -4,10 +4,6 @@ This module contains tests for tofu.geom in its structured version
 """
 
 
-# Standard
-import matplotlib.pyplot as plt
-
-
 # local
 from . import tests_inputs as _inputs
 
@@ -187,17 +183,31 @@ class Diag_Vos():
     def test00_setup_done(self):
         pass
 
-    def test01_plot_coverage(self, close=None):
+    def test01_plot_coverage(self, key_diag=None, close=None):
         _inputs._plot_coverage(
             coll=self.coll,
-            key_diag=None,
+            key_diag=key_diag,
             conf=self.conf,
             spectro=self._spectro,
             close=close,
         )
 
-    def test02_plot_vos(self):
-        pass
+    def test02_plot_coverage_slice(
+        self,
+        key_diag=None,
+        res=None,
+        close=None,
+        isZ=None,
+    ):
+        _inputs._plot_coverage_slice(
+            coll=self.coll,
+            key_diag=key_diag,
+            conf=self.conf,
+            spectro=self._spectro,
+            close=close,
+            res=res,
+            isZ=isZ,
+        )
 
 
 # ############

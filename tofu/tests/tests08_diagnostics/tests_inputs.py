@@ -788,6 +788,7 @@ def _plot(
     key_diag=None,
     conf=None,
     close=None,
+    spectro=None,
 ):
 
     # --------------
@@ -1283,6 +1284,104 @@ def _plot_coverage(
     for ii, k0 in enumerate(key_diag):
 
         _ = coll.plot_diagnostic_geometrical_coverage(k0)
+
+        if close is not False:
+            plt.close('all')
+
+    return
+
+
+# ####################################################
+# ####################################################
+#           VOS: plot_coverage_slice
+# ####################################################
+
+
+def _plot_coverage_slice(
+    coll=None,
+    key_diag=None,
+    conf=None,
+    spectro=False,
+    close=None,
+    res=None,
+    isZ=None,
+):
+
+    # --------------
+    # inputs
+    # --------------
+
+    # key_diag
+    key_diag = _get_key_diag(
+        coll=coll,
+        key_diag=key_diag,
+        spectro=spectro,
+    )
+
+    # res
+    res = ds._generic_check._check_var(
+        res, 'res',
+        default=0.03,
+        types=(int, float),
+        sign='>0',
+    )
+
+    # --------------
+    # plot
+    # --------------
+
+    for ii, k0 in enumerate(key_diag):
+
+        if isZ is None:
+            c0 = ii % 2 == 0
+        else:
+            c0 = isZ
+
+        if c0:
+            Z = 0
+            Dphi = np.pi/6 * np.r_[-1, 1]
+            vect = None
+            margin_par = None
+            margin_perp = None
+        else:
+            Z = None
+            Dphi = None
+            vect = 'nin'
+            margin_par = 0.5
+            margin_perp = 0.1
+
+        _ = coll.plot_diagnostic_geometrical_coverage_slice(
+            key_diag=k0,
+            key_cam=None,
+            indch=None,
+            indref=None,
+            res=res,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            vect=vect,
+            segment=0,
+            key_mesh=None,
+            phi=None,
+            Z=Z,
+            DR=None,
+            DZ=None,
+            Dphi=Dphi,
+            adjust_phi=None,
+            config=conf,
+            visibility=True,
+            n0=None,
+            n1=None,
+            res_lamb=None,
+            verb=None,
+            plot=True,
+            indplot=None,
+            dax=None,
+            plot_config=None,
+            fs=None,
+            dmargin=None,
+            dvminmax=None,
+            markersize=None,
+        )
 
         if close is not False:
             plt.close('all')
