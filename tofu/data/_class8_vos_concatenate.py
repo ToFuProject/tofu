@@ -42,7 +42,7 @@ def main(
         key_diag, key_cam,
         concatenate_cam,
         concatenate_pts,
-        vos_proj,
+        dvosproj,
         return_vect,
     ) = _check(
         coll=coll,
@@ -59,12 +59,9 @@ def main(
     # build dvos
     # --------------
 
-    dvos = _simple(
-        coll=coll,
-        key_diag=key_diag,
+    _, dvos, _ = coll.check_diagnostic_dvos(
+        key=key_diag,
         key_cam=key_cam,
-        vos_proj=vos_proj,
-        return_vect=return_vect,
     )
 
     dipts, icam = None, None
@@ -76,7 +73,8 @@ def main(
             coll=coll,
             dvos=dvos,
             key_cam=key_cam,
-            vos_proj=vos_proj,
+            dvosproj=dvosproj,
+            concatenate_cam=concatenate_cam,
         )
 
     # concatenate_cam
@@ -86,7 +84,7 @@ def main(
             coll=coll,
             dvos=dvos,
             key_cam=key_cam,
-            vos_proj=vos_proj,
+            dvosproj=dvosproj,
             concatenate_pts=concatenate_pts,
         )
 
@@ -120,9 +118,6 @@ def _check(
         default='all',
     )
 
-    wdiag = coll._which_diagnostic
-    doptics = coll.dobj[wdiag][key_diag]['doptics']
-
     # ---------------
     # concatenate_cam
     # ---------------
@@ -147,31 +142,12 @@ def _check(
     # vos_proj
     # --------------
 
-    # dok
-    lok = []
-    lvos_proj = ['3d', 'cross', 'hor']
-    for kk in lvos_proj:
-        c0 = all([
-            doptics[kcam].get('dvos', {}).get(f'ind_{kk}') is not None
-            and all([
-                ii is not None
-                for ii in doptics[kcam]['dvos'][f'ind_{kk}']
-            ])
-            for kcam in key_cam
-        ])
-        if c0:
-            lok.append(kk)
-
-    # vos_proj
-    if isinstance(vos_proj, str):
-        vos_proj = [vos_proj]
-
-    vos_proj = ds._generic_check._check_var_iter(
-        vos_proj, 'vos_proj',
-        types=(list, tuple),
-        types_iter=str,
-        allowed=lok,
-        default=lok,
+    # dvosproj
+    dvosproj = coll.check_diagnostic_vos_proj(
+        key=key_diag,
+        key_cam=key_cam,
+        logic=list,
+        reduced=True,
     )
 
     # ---------------
@@ -188,78 +164,9 @@ def _check(
         key_diag, key_cam,
         concatenate_cam,
         concatenate_pts,
-        vos_proj,
+        dvosproj,
         return_vect,
     )
-
-
-# ################################################
-# ################################################
-#           simple
-# ################################################
-
-
-def _simple(
-    coll=None,
-    key_diag=None,
-    key_cam=None,
-    vos_proj=None,
-    return_vect=None,
-):
-
-    # ----------
-    # prepare
-    # ----------
-
-    wdiag = coll._which_diagnostic
-    doptics = coll.dobj[wdiag][key_diag]['doptics']
-
-    # ----------
-    #
-    # ----------
-
-    dvos = {kcam: {} for kcam in key_cam}
-    for kcam in key_cam:
-
-        for pp in vos_proj:
-
-            # ind pts
-            lk0 = _DIND[pp]
-            for ii, k0 in enumerate(lk0):
-                k1 = doptics[kcam]['dvos'][f'ind_{pp}'][ii]
-                dvos[kcam][f'{k0}_{pp}'] = {
-                    'data': np.copy(coll.ddata[k1]['data']),
-                    'units': str(coll.ddata[k1]['units']),
-                    'ref': tuple([rr for rr in coll.ddata[k1]['ref']]),
-                }
-
-            # sang
-            ksang = doptics[kcam]['dvos'][f'sang_{pp}']
-            dvos[kcam][f'sang_{pp}'] = {
-                'data': np.copy(coll.ddata[ksang]['data']),
-                'units': str(coll.ddata[ksang]['units']),
-                'ref': tuple([rr for rr in coll.ddata[ksang]['ref']]),
-            }
-
-            # dV
-            kdV = doptics[kcam]['dvos'][f'dV_{pp}']
-            dvos[kcam][f'dV_{pp}'] = {
-                'data': np.copy(coll.ddata[kdV]['data']),
-                'units': str(coll.ddata[kdV]['units']),
-                'ref': tuple([rr for rr in coll.ddata[kdV]['ref']]),
-            }
-
-            # vect
-            if return_vect is True:
-                for kv in ['vectx', 'vecty', 'vectz']:
-                    k1 = doptics[kcam]['dvos'][f'vect_{pp}'][ii]
-                    dvos[kcam][f"{kv}_{pp}"] = {
-                        'data': np.copy(coll.ddata[k1]['data']),
-                        'units': str(coll.ddata[k1]['units']),
-                        'ref': tuple([rr for rr in coll.ddata[k1]['ref']]),
-                    }
-
-    return dvos
 
 
 # ################################################
@@ -272,7 +179,8 @@ def _pts(
     coll=None,
     dvos=None,
     key_cam=None,
-    vos_proj=None,
+    dvosproj=None,
+    concatenate_cam=None,
 ):
 
     # --------------
@@ -280,8 +188,8 @@ def _pts(
     # --------------
 
     wcam = coll._which_cam
-    dipts = {pp: None for pp in vos_proj}
-    for pp in vos_proj:
+    dipts = {pp: None for pp in dvosproj.keys()}
+    for pp in dvosproj.keys():
 
         dipts[pp] = np.empty((len(_DIND[pp]), 0), dtype=int)
         for kcam in dvos.keys():
@@ -309,14 +217,15 @@ def _pts(
     # update dvos
     # --------------
 
-    for pp in vos_proj:
+    for pp in dvosproj.keys():
 
         npts = dipts[pp].shape[1]
         lk = [
             k0 for k0 in dvos[key_cam[0]]
             if k0.endswith(f'_{pp}')
         ]
-        lk_noind = [kk for kk in lk if 'ind' not in kk]
+        # lk_ind = [kk for kk in lk if 'ind' in kk]
+        # lk_noind = [kk for kk in lk if 'ind' not in kk]
 
         for kcam in dvos.keys():
 
@@ -329,7 +238,7 @@ def _pts(
             # initialize dtemp
             dtemp = {
                 kk: np.copy(m1) if 'ind' in kk else np.copy(nan)
-                for kk in lk_noind
+                for kk in lk
             }
 
             # loop on pixels
@@ -343,6 +252,10 @@ def _pts(
                     for ind in _DIND[pp]
                 ])
 
+                # no poits => skip
+                if indpts.size == 0 or 0 in indpts.shape:
+                    continue
+
                 ipts = np.array([
                     np.nonzero(
                         np.all(indpts[:, ii:ii+1] == dipts[pp], axis=0)
@@ -352,11 +265,11 @@ def _pts(
                 sli_temp = ipix + (ipts,)
 
                 # update dtemp
-                for kk in lk_noind:
+                for kk in lk:
                     dtemp[kk][sli_temp] = dvos[kcam][kk]['data'][sli]
 
-            # update dvos for kcam
-            for kk in lk_noind:
+            # update dvos for kcam for all field except ind
+            for kk in lk:
                 dvos[kcam][kk]['data'] = dtemp[kk]
                 dvos[kcam][kk]['ref'] = dvos[kcam][kk]['ref'][:-1] + (None,)
 
@@ -373,7 +286,7 @@ def _cam(
     coll=None,
     dvos=None,
     key_cam=None,
-    vos_proj=None,
+    dvosproj=None,
     concatenate_pts=None,
 ):
 
@@ -411,7 +324,7 @@ def _cam(
     # --------------
 
     dtemp = {}
-    for pp in vos_proj:
+    for pp in dvosproj.keys():
 
         lk = [
             k0 for k0 in dvos[key_cam[0]]

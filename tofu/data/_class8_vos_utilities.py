@@ -43,12 +43,20 @@ for nd in ['cross', 'hor', '3d']:
         'dim': 'volume',
     }
 
+    # ndV
+    _DUNITS[f"ndV_{nd}"] = {
+        'units': '',
+        'dim': 'nb',
+    }
+
+    # vect
     for vv in ['x', 'y', 'z']:
         _DUNITS[f'vect{vv}_{nd}'] = {
             'units': 'm',
             'dim': 'distance',
         }
 
+    # ind
     for vv in ['r', 'z', 'phi']:
         _DUNITS[f'ind{vv}_{nd}'] = {
             'units': '',

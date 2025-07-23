@@ -13,7 +13,6 @@ import datastock as ds
 
 
 # tofu
-from ..geom import _comp_solidangles
 from . import _class8_plot
 from . import _generic_check
 from . import _class8_plot_coverage_slice_utils as _utils
@@ -81,22 +80,41 @@ def _check_plot_los(
     # ---------
 
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+    is2d = coll.dobj['camera'][key_cam[0]]['dgeom']['nd'] == '2d'
 
-    kcam = key_cam[0]
-    is2d = coll.dobj['camera'][kcam]['dgeom']['nd'] == '2d'
-    sang = dout[kcam]['sang']['data']
-    ndet = dout[kcam]['ndet']['data']
-    sang_tot = np.sum(sang, axis=dout[kcam]['axis_cam'])
+    shape = (-1,) + dout[key_cam[0]]['sang']['data'].shape[-2:]
+    for ii, kcam in enumerate(key_cam):
+        axis_cam = dout[kcam]['axis_cam']
+        if ii == 0:
+            sang = np.reshape(dout[kcam]['sang']['data'], shape)
+            sang_tot = np.sum(dout[kcam]['sang']['data'], axis=axis_cam)
+            ndet = dout[kcam]['ndet']['data'].astype(float)
+        else:
+            sang = np.concatenate(
+                (
+                    sang,
+                    np.reshape(dout[kcam]['sang']['data'], shape),
+                ),
+                axis=0,
+            )
+            sang_tot += np.sum(dout[kcam]['sang']['data'], axis=axis_cam)
+            ndet += dout[kcam]['ndet']['data']
+    del kcam
+
+    ndet[ndet == 0] = np.nan
 
     # ---------
     # etendue
     # ---------
 
     if vect == 'nin':
-        ketend = doptics[kcam]['etendue']
+        ketend = doptics[key_cam[0]]['etendue']
         etend = coll.ddata[ketend]['data']
 
-        etend_plane = np.nansum(sang, axis=dout[kcam]['axis_plane']) * dS
+        etend_plane = np.nansum(
+            dout[key_cam[0]]['sang']['data'],
+            axis=dout[key_cam[0]]['axis_plane'],
+        ) * dS
     else:
         etend = None
         etend_plane = None
@@ -106,7 +124,7 @@ def _check_plot_los(
     # ---------
 
     # cam
-    extent_cam = coll.get_camera_extent(kcam)
+    extent_cam = coll.get_camera_extent(key_cam[0])
 
     # extent_plane
     if x0 is not None:
@@ -925,9 +943,12 @@ def _get_dax_los(
             ax30.set_xlabel('channel', size=12, fontweight='bold')
             ax30.set_ylabel('Etendue (m2.sr)', size=12, fontweight='bold')
 
+    # reinitialize i0
+    i0 = nca_left + 2*nci
+
     # sang
     sli = (slice(3, 6), slice(i0, -1))
-    ax4 = fig.add_subplot(gs[sli], aspect='equal', adjustable='datalim')
+    ax4 = fig.add_subplot(gs[sli], aspect='equal', adjustable='box')
     ax4.set_ylabel('x1 (m)', size=12, fontweight='bold')
 
     # sang cbar

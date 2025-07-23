@@ -799,10 +799,95 @@ def _get_user_limits(
     return user_limits
 
 
-# #######################################################
-# #######################################################
+# ####################################################
+# ####################################################
+#               check vos proj
+# ####################################################
+
+
+def _check_vos_proj(
+    coll=None,
+    key=None,
+    key_cam=None,
+    logic=None,
+    reduced=None,
+):
+
+    # ------------
+    # inputs
+    # ------------
+
+    # key_diag, key_cam
+    key_diag, key_cam = coll.get_diagnostic_cam(
+        key=key,
+        key_cam=key_cam,
+    )
+
+    wdiag = coll._which_diagnostic
+    doptics = coll.dobj[wdiag][key_diag]['doptics']
+
+    # logic
+    logic = ds._generic_check._check_var(
+        logic, 'logic',
+        allowed=[list, 'all', 'any'],
+        default=list,
+    )
+
+    # reduced
+    reduced = ds._generic_check._check_var(
+        reduced, 'reduced',
+        types=bool,
+        default=False,
+    )
+
+    # ------------
+    # dvosproj
+    # ------------
+
+    lproj = ['cross', 'hor', '3d']
+    dvosproj = {kproj: [] for kproj in lproj}
+    for kproj in lproj:
+        istr = f"ind_{kproj}"
+        for kcam in key_cam:
+            dvos = doptics[kcam]['dvos']
+            c0 = (
+                dvos.get(istr) is not None
+                and all([kk is not None for kk in dvos[istr]])
+            )
+            if c0 is True:
+                dvosproj[kproj].append(kcam)
+
+    # ------------
+    # logic
+    # ------------
+
+    if logic == 'any':
+        for kproj, lcam in dvosproj.items():
+            dvosproj[kproj] = len(lcam) > 0
+
+    elif logic == 'all':
+        ncam = len(key_cam)
+        for kproj, lcam in dvosproj.items():
+            dvosproj[kproj] = len(lcam) == ncam
+
+    # -----------
+    # reduced
+    # -----------
+
+    if reduced is True:
+        dvosproj = {
+            k0: v0 for k0, v0 in dvosproj.items()
+            if v0 is True
+            or (logic is list and len(v0) > 0)
+        }
+
+    return dvosproj
+
+
+# ####################################################
+# ####################################################
 #               get / check
-# #######################################################
+# ####################################################
 
 
 def _check_get_dvos(
@@ -814,41 +899,52 @@ def _check_get_dvos(
 
     # ------------
     # keys
+    # ------------
 
+    # key_diag, key_cam
     key_diag, key_cam = coll.get_diagnostic_cam(
         key=key,
         key_cam=key_cam,
     )
+
+    # spectro?
     spectro = coll.dobj['diagnostic'][key_diag]['spectro']
+
+    # cross vs hor vs 3d
+    dvosproj = coll.check_diagnostic_vos_proj(
+        key=key_diag,
+        key_cam=key_cam,
+        logic=list,
+    )
 
     # -------------------
     # prepare keys
+    # -------------------
 
-    lk_sca = ['res_RZ', 'res_phi']
+    lk_asis = ['keym', 'res_RZ', 'res_phi']
+
+    lk_data = []
+    dk_tuple = {}
+    for kproj, lcam in dvosproj.items():
+        lk_data += [f'sang_{kproj}', f'dV_{kproj}', f'ndV_{kproj}']
+        dk_tuple[f'ind_{kproj}'] = [f"indr_{kproj}"]
+        dk_tuple[f'vect_{kproj}'] = [
+            f'vectx_{kproj}', f'vecty_{kproj}', f'vectz_{kproj}',
+        ]
+        if kproj != 'hor':
+            dk_tuple[f'ind_{kproj}'].append(f"indz_{kproj}")
+        if kproj != 'cross':
+            dk_tuple[f'ind_{kproj}'].append(f"indphi_{kproj}")
+
+    # spectro
     if spectro is True:
-        lk_sca += ['res_lamb', 'res_rock_curve']
-        lk = [
+        lk_asis += ['res_lamb', 'res_rock_curve']
+        lk_data = [
             'lamb',
             'phi_min', 'phi_max', 'phi_mean',
             'ph', 'ncounts', 'cos',
-            'dV', 'etendlen',
+            'etendlen',
         ]
-        lk_opt = []
-
-    else:
-        lk = [
-            'sang_cross',
-        ]
-
-        lk_opt = [
-            'sang_3d',
-            'indr_3d', 'indz_3d', 'indphi_3d',
-            'vectx_3d', 'vecty_3d', 'vectz_3d'
-        ]
-
-    lkcom = ['keym', 'indr_cross', 'indz_cross']
-
-    lk_all = lk_sca + lk + lkcom
 
     # ------
     # dvos
@@ -879,63 +975,40 @@ def _check_get_dvos(
                 raise Exception(msg)
 
             # fill in dict with mesh and indices
-            dvos[k0] = {
-                'keym': dop['keym'],
-                'indr_cross': coll.ddata[dop['ind_cross'][0]],
-                'indz_cross': coll.ddata[dop['ind_cross'][1]],
-            }
+            dvos[k0] = {}
 
             # fill in with res
-            for k1 in lk_sca:
+            for k1 in lk_asis:
                 dvos[k0][k1] = dop[k1]
 
             # fill in with the rest
-            for k1 in lk:
+            for k1 in lk_data:
                 if k1 in dop.keys():
                     dvos[k0][k1] = {
                         'key': dop[k1],
                         **coll.ddata[dop[k1]],
                     }
+
+            # tuples
+            for ktup, vtup in dk_tuple.items():
+                c0 = (
+                    dop.get(ktup) is not None
+                    and all([k1 is not None for k1 in dop[ktup]])
+                )
+                if c0:
+                    for k1, k2 in zip(vtup, dop[ktup]):
+                        dvos[k0][k1] = {
+                            'key': k2,
+                            **coll.ddata[k2],
+                        }
+
         isstore = True
 
     else:
         isstore = False
+        raise NotImplementedError("Check user-provided dvos not implemented")
 
-    # copy to avoid changing the original
-    dvos = copy.deepcopy(dvos)
-
-    # ------------------
-    # check keys of dvos
-
-    # check
-    c0 = (
-        isinstance(dvos, dict)
-        and all([
-            k0 in dvos.keys()
-            and all([k1 in dvos[k0].keys() for k1 in lk_all])
-            for k0 in key_cam
-        ])
-    )
-
-    # raise exception
-    if not c0:
-        msg = (
-            "Arg dvos must be a dict with, for each camera, the keys:\n"
-            f"\t- expected: {sorted(lk_all)}"
-        )
-        if isinstance(dvos, dict):
-            k0 = list(dvos.keys())[0]
-            if isinstance(dvos[k0], dict):
-                lkout = [k1 for k1 in lk_all if k1 not in dvos[k0].keys()]
-                msg += f"\n\t- dvos['{k0}'] missing: {lkout}"
-        raise Exception(msg)
-
-    # only keep desired cams
-    lkout = [k0 for k0 in dvos.keys() if k0 not in key_cam]
-    for k0 in lkout:
-        del dvos[k0]
-
-    return key_diag, dvos, isstore
+    return key_diag, copy.deepcopy(dvos), isstore
 
 
 # #########################################################

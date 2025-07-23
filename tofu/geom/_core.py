@@ -4034,7 +4034,17 @@ class Config(utils.ToFuObject):
 
     def get_kwdargs_LOS_isVis(self):
 
-        lS = self.lStruct
+        lS = [
+            ss for ss in self.lStruct
+            if (
+                (not hasattr(ss, 'get_visible'))
+                or (getattr(ss, 'get_visible')() == True)
+            )
+            and (
+                (not hasattr(ss, 'get_compute'))
+                or (getattr(ss, 'get_compute')() == True)
+            )
+        ]
 
         # -- Getting "vessels" or IN structures -------------------------------
         lSIn = [ss for ss in lS if ss._InOut == "in"]

@@ -629,11 +629,13 @@ def _get_crosshor_from_3d_single_det(
 
     ksang = f'sang_{proj}'
     kdV = f'dV_{proj}'
+    kndV = f"ndV_{proj}"
     dout = {
         f'indr_{proj}': iptsu[0, :],
         f'ind{zphi}_{proj}': iptsu[1, :],
         ksang: np.full((npts,), np.nan),
         kdV: np.full((npts,), np.nan),
+        kndV: np.full((npts,), np.nan),
     }
     for (_, k1) in lkvect:
         dout[k1] = np.full((npts,), np.nan)
@@ -647,6 +649,7 @@ def _get_crosshor_from_3d_single_det(
 
         dout[ksang][ii] = np.sum(sang_3d[ind])
         dout[kdV][ii] = dV_3d[ind.nonzero()[0][0]]
+        dout[kndV][ii] = np.sum(ind)
 
         for (vect, k1) in lkvect:
             dout[k1][ii] = np.sum(vect[ind] * sang_3d[ind]) / dout[ksang][ii]
