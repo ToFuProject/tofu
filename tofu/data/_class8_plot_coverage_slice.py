@@ -584,7 +584,9 @@ def _check(
 
             if is2d:
                 n0, n1 = etend.shape
-                indref = np.r_[indref // n1, indref % n1].astype(int)
+                indref = tuple(np.r_[indref // n1, indref % n1].astype(int))
+            else:
+                indref = (indref,)
 
         else:
             indref = indch
@@ -681,7 +683,7 @@ def _plane_from_LOS(
         key=klos,
         segment=segment,
     )
-    ipts = (0, indref)
+    ipts = (0,) + indref
     pt_ref = np.r_[ptsx[ipts], ptsy[ipts], ptsz[ipts]]
 
     # los_ref

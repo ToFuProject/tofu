@@ -943,6 +943,9 @@ def _get_dax_los(
             ax30.set_xlabel('channel', size=12, fontweight='bold')
             ax30.set_ylabel('Etendue (m2.sr)', size=12, fontweight='bold')
 
+    # reinitialize i0
+    i0 = nca_left + 2*nci
+
     # sang
     sli = (slice(3, 6), slice(i0, -1))
     ax4 = fig.add_subplot(gs[sli], aspect='equal', adjustable='box')
