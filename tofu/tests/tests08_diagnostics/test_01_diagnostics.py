@@ -101,7 +101,7 @@ class Diag_Los():
 
     def test07_get_rays_touch_dict(self):
         dout = self.coll.get_rays_touch_dict(
-            key=self._def_kdiag,
+            key=self._def_krays,
             config=self.conf_touch,
             segment=-1,
             allowed=['PFC_ICRH0', 'Ves_FirstWallV0'],
@@ -148,6 +148,7 @@ class Test01_Diagnostic_Broadband_Los(Diag_Los):
             compute=True,
         )
         self._def_kdiag = 'diag5'
+        self._def_krays = 'diag5_cam22_los'
         self._spectro = False
 
 
@@ -164,6 +165,7 @@ class Test02_Diagnostic_Spectro_Los(Diag_Los):
             compute=True,
         )
         self._def_kdiag = 'd00_cryst0_cam0_los'
+        self._def_krays = 'd00_cryst0_cam0_los'
         self._spectro = True
 
 
