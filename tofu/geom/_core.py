@@ -4038,11 +4038,11 @@ class Config(utils.ToFuObject):
             ss for ss in self.lStruct
             if (
                 (not hasattr(ss, 'get_visible'))
-                or (getattr(ss, 'get_visible')() is True)
+                or (getattr(ss, 'get_visible')() == True)
             )
             and (
                 (not hasattr(ss, 'get_compute'))
-                or (getattr(ss, 'get_compute')() is True)
+                or (getattr(ss, 'get_compute')() == True)
             )
         ]
 

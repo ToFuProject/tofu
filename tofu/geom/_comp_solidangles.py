@@ -6,7 +6,7 @@ import numpy as np
 # import scipy.interpolate as scpinterp
 # import scipy.integrate as scpintg
 # from inspect import signature as insp
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import datastock as ds
 
 
@@ -428,7 +428,7 @@ def _check_pts(pts=None, pts_name=None):
     if not isinstance(pts, np.ndarray):
         try:
             pts = np.atleast_1d(pts)
-        except Exception as err:
+        except Exception:
             msg = (
                 f"Arg {pts_name} must be convertible to a np.ndarray float\n"
                 "Provided: {pts}"
@@ -796,10 +796,10 @@ def _check_det_dict(detectors=None):
 
     # copy dict and flatten (if not 1d)
     # if detectors['cents_x'].ndim > 1:
-        # detectors = dict(detectors)
-        # lk = [k0 for k0 in detectors.keys() if 'outline' not in k0]
-        # for k0 in lk:
-            # detectors[k0] = detectors[k0].ravel()
+    # detectors = dict(detectors)
+    # lk = [k0 for k0 in detectors.keys() if 'outline' not in k0]
+    # for k0 in lk:
+    # detectors[k0] = detectors[k0].ravel()
 
     return detectors
 
@@ -1328,7 +1328,7 @@ def calc_solidangle_apertures(
         detectors=detectors,
     )
 
-    nd = det_cents_x.size
+    # nd = det_cents_x.size
 
     # Get kwdargs for LOS blocking
     if config is not None:
@@ -1546,13 +1546,24 @@ def calc_solidangle_apertures(
     # reshape if necessary
     if summed is False:
         shape = tuple(np.r_[det_shape0, shape0])
+
         if mask is None:
-            if ndim0 > 1:
-                solid_angle = np.reshape(solid_angle, shape)
+            if len(shape0) > 1:
+                sh = solid_angle.shape[:1] + shape0
+                solid_angle = np.reshape(solid_angle, sh, order='C')
                 if return_vector:
-                    unit_vector_x = np.reshape(unit_vector_x, shape)
-                    unit_vector_y = np.reshape(unit_vector_y, shape)
-                    unit_vector_z = np.reshape(unit_vector_z, shape)
+                    unit_vector_x = np.reshape(unit_vector_x, sh, order='C')
+                    unit_vector_y = np.reshape(unit_vector_y, sh, order='C')
+                    unit_vector_z = np.reshape(unit_vector_z, sh, order='C')
+
+            if len(det_shape0) > 1:
+                sh = det_shape0 + solid_angle.shape[1:]
+                solid_angle = np.reshape(solid_angle, sh, order='C')
+                if return_vector:
+                    unit_vector_x = np.reshape(unit_vector_x, sh, order='C')
+                    unit_vector_y = np.reshape(unit_vector_y, sh, order='C')
+                    unit_vector_z = np.reshape(unit_vector_z, sh, order='C')
+
         else:
             sa = np.zeros(shape, dtype=float)
             sa[:, mask] = solid_angle
