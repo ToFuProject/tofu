@@ -1090,16 +1090,63 @@ def _compute_vos(
     key_diag=None,
     conf=None,
     spectro=False,
+    # options
+    res_RZ=None,
+    res_phi=None,
+    n0=None,
+    n1=None,
+    res_lamb=None,
 ):
 
     # ---------------
-    # key_diag
+    # inputs
     # ---------------
 
+    # key_diag
     key_diag = _get_key_diag(
         coll=coll,
         key_diag=key_diag,
         spectro=spectro,
+    )
+
+    # res_RZ
+    res_RZ = float(ds._generic_check._check_var(
+        res_RZ, 'res_RZ',
+        types=(int, float),
+        default=0.04,
+        sign='>0',
+    ))
+
+    # res_phi
+    res_phi = float(ds._generic_check._check_var(
+        res_phi, 'res_phi',
+        types=(int, float),
+        default=0.04,
+        sign='>0',
+    ))
+
+    # res_lamb
+    res_lamb = float(ds._generic_check._check_var(
+        res_lamb, 'res_lamb',
+        types=(int, float),
+        default=2e-10,
+        sign='>0',
+    ))
+
+    # n0
+    n0 = ds._generic_check._check_var(
+        n0, 'n0',
+        types=int,
+        default=3,
+        sign='>0',
+    )
+
+    # n1
+    n1 = ds._generic_check._check_var(
+        n1, 'n1',
+        types=int,
+        default=3,
+        sign='>0',
     )
 
     # ---------------

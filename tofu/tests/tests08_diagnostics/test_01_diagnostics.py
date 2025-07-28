@@ -113,12 +113,27 @@ class Diag_Los():
             coll=self.coll,
         )
 
-    def test09_compute_vos(self):
+    def test09_compute_vos(
+        self,
+        key_diag=None,
+        # options
+        res_RZ=None,
+        res_phi=None,
+        n0=None,
+        n1=None,
+        res_lamb=None,
+    ):
         _inputs._compute_vos(
             coll=self.coll,
             key_diag=None,
             conf=self.conf,
             spectro=self._spectro,
+            # options
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            n0=n0,
+            n1=n1,
+            res_lamb=res_lamb,
         )
 
     def test10_save_to_json(self):
@@ -219,7 +234,16 @@ class Diag_Vos():
 
 class Test03_Diagnostic_Broadband_Vos(Diag_Vos):
 
-    def setup_method(self):
+    def setup_method(
+        self,
+        key_diag=None,
+        # options
+        res_RZ=None,
+        res_phi=None,
+        n0=None,
+        n1=None,
+        res_lamb=None,
+    ):
         self.coll = _inputs.add_diags_broadband(
             conf=self.conf,
             conf_touch=self.conf_touch,
@@ -230,7 +254,51 @@ class Test03_Diagnostic_Broadband_Vos(Diag_Vos):
 
         _inputs._compute_vos(
             coll=self.coll,
-            key_diag=None,
+            key_diag=key_diag,
             conf=self.conf,
             spectro=self._spectro,
+            # options
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            n0=n0,
+            n1=n1,
+            res_lamb=res_lamb,
+        )
+
+
+# ############
+# Spectro
+# ############
+
+
+class Test04_Diagnostic_Spectro_Vos(Diag_Vos):
+
+    def setup_method(
+        self,
+        key_diag=None,
+        # options
+        res_RZ=None,
+        res_phi=None,
+        n0=None,
+        n1=None,
+        res_lamb=None,
+    ):
+        self.coll = _inputs.add_diags_spectro(
+            conf=self.conf,
+            compute=True,
+        )
+        self._def_kdiag = 'diag5'
+        self._spectro = True
+
+        _inputs._compute_vos(
+            coll=self.coll,
+            key_diag=key_diag,
+            conf=self.conf,
+            spectro=self._spectro,
+            # options
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            n0=n0,
+            n1=n1,
+            res_lamb=res_lamb,
         )
