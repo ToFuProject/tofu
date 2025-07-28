@@ -1453,7 +1453,9 @@ def _get_points_on_camera_from_pts(
     )
 
     return (
-        x0c, x1c, angles, dsang, cos, ind,
+        x0c, x1c,
+        angles, dsang,
+        vectx, vecty, vectz, ind,
         dangmin_str, x0if, x1if,
         ptsx1, ptsy1, ptsz1,
         ptsx2, ptsy2, ptsz2,
