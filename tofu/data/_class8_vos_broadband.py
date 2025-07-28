@@ -42,9 +42,7 @@ def _vos(
     # user-defined limits
     user_limits=None,
     # keep
-    keep_cross=None,
-    keep_hor=None,
-    keep_3d=None,
+    dkeep=None,
     return_vector=None,
     # parameters
     margin_poly=None,
@@ -386,13 +384,13 @@ def _vos(
         # get indices
 
         douti[ind] = {}
-        if keep_3d is True:
+        if dkeep['3d'] is True:
             douti[ind].update(**dtemp_3d)
 
-        if keep_cross is True:
+        if dkeep['cross'] is True:
             douti[ind].update(**dtemp_cross)
 
-        if keep_hor is True:
+        if dkeep['hor'] is True:
             douti[ind].update(**dtemp_hor)
 
         # ----- DEBUG --------

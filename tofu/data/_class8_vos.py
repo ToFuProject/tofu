@@ -81,9 +81,7 @@ def compute_vos(
         res_RZ,
         res_phi,
         res_lamb,
-        keep_cross,
-        keep_hor,
-        keep_3d,
+        dkeep,
         return_vector,
         convexHull,
         visibility,
@@ -127,20 +125,18 @@ def compute_vos(
     # -----------
     # prepare
 
-    func_RZphi_from_ind = None
-    func_ind_from_domain = None
+    (
+        func_RZphi_from_ind,
+        func_ind_from_domain,
+    ) = coll.get_sample_mesh_3d_func(
+        key=key_mesh,
+        res_RZ=res_RZ,
+        mode='abs',
+        res_phi=res_phi,
+    )
     if spectro:
         func = _vos_spectro._vos
     else:
-        (
-            func_RZphi_from_ind,
-            func_ind_from_domain,
-        ) = coll.get_sample_mesh_3d_func(
-            key=key_mesh,
-            res_RZ=res_RZ,
-            mode='abs',
-            res_phi=res_phi,
-        )
         func = _vos_broadband._vos
 
     # ------------
@@ -252,10 +248,8 @@ def compute_vos(
             bool_cross=bool_cross,
             # user-defined limits
             user_limits=user_limits,
-            # keep3d
-            keep_cross=keep_cross,
-            keep_hor=keep_hor,
-            keep_3d=keep_3d,
+            # keep
+            dkeep=dkeep,
             return_vector=return_vector,
             # parameters
             margin_poly=margin_poly,
@@ -500,7 +494,13 @@ def _check(
     # -------------
     # at least one
 
-    if not any([keep_cross, keep_hor, keep_3d]):
+    dkeep = {
+        '3d': keep_3d,
+        'cross': keep_cross,
+        'hor': keep_hor,
+    }
+
+    if not any([v0 for v0 in dkeep.values()]):
         msg = (
             "When computing VOS, you must keep at least one of:\n"
             "\t- keep_cross: cross-section projection of VOS\n"
@@ -599,9 +599,7 @@ def _check(
         res_RZ,
         res_phi,
         res_lamb,
-        keep_cross,
-        keep_hor,
-        keep_3d,
+        dkeep,
         return_vector,
         convexHull,
         visibility,
