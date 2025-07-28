@@ -4,7 +4,7 @@
 import datetime as dtm      # DB
 import numpy as np
 import scipy.stats as scpstats
-from matplotlib.path import Path
+# from matplotlib.path import Path
 import matplotlib.pyplot as plt       # DB
 import matplotlib.gridspec as gridspec
 import Polygon as plg
@@ -22,6 +22,8 @@ from . import _class8_reverse_ray_tracing as _reverse_rt
 
 
 def _vos(
+    func_RZphi_from_ind=None,
+    func_ind_from_domain=None,
     # ressources
     coll=None,
     doptics=None,
@@ -36,9 +38,7 @@ def _vos(
     x0l=None,
     x1l=None,
     # keep
-    keep_cross=None,
-    keep_hor=None,
-    keep_3d=None,
+    dkeep=None,
     # overall polygons
     pcross0=None,
     pcross1=None,
@@ -83,6 +83,7 @@ def _vos(
 
     # -----------------
     # prepare optics
+    # -----------------
 
     (
         kspectro,
@@ -106,6 +107,7 @@ def _vos(
 
     # --------------------------
     # get overall polygons
+    # --------------------------
 
     pcross0, pcross1 = _utilities._get_overall_polygons(
         coll=coll,
@@ -125,6 +127,7 @@ def _vos(
 
     # --------------------------
     # add margins
+    # --------------------------
 
     pcross0, pcross1 = _utilities._get_poly_margin(
         # polygon
@@ -143,43 +146,24 @@ def _vos(
     )
 
     # ------------------------
-    # get ind in cross-section
+    # get ind in cross-section (all pixels)
+    # ------------------------
 
-    pcross = Path(np.array([pcross0, pcross1]).T)
-    ind = (
-        dsamp['ind']['data']
-        & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
-    )
-    nRZ = ind.sum()
-
-    # R and Z indices
-    ir, iz = ind.nonzero()
-    iru = np.unique(ir)
-
-    # ----------
-    # get dphi_r
-
-    # dphi = doptics[key_cam]['dvos']['dphi']
-    # phimin = np.nanmin(dphi[0, :])
-    # phimax = np.nanmax(dphi[1, :])
-
-    phi_hor = np.arctan2(phor1, phor0)
-    phimin = np.nanmin(phi_hor)
-    phimax = np.nanmax(phi_hor)
-
-    # get dphi vs phor
-    dphi_r = _utilities._get_dphi_from_R_phor(
-        R=x0u[iru],
+    ind3dr, ind3dz, ind3dphi = func_ind_from_domain(
+        pcross0=pcross0,
+        pcross1=pcross1,
         phor0=phor0,
         phor1=phor1,
-        phimin=phimin,
-        phimax=phimax,
-        res=res_phi,
-        out=True,
+        debug=debug,
+        debug_msg=f"kcam = {key_cam}",
     )
+    rr, zz, pp, dV = func_RZphi_from_ind(ind3dr, ind3dz, ind3dphi)
+    xx = rr * np.cos(pp)
+    yy = rr * np.sin(pp)
 
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
+    # -------------------------------------
 
     (
         nlamb,
@@ -201,32 +185,37 @@ def _vos(
     )
 
     # --------------
-    # prepare output
+    # prepare dshape
+    # --------------
 
     shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
-    is2d = len(shape_cam) == 2
+    dind, dshape, dref = _prepare_dind_dshape(
+        dshape={
+            'cam': shape_cam,
+            'lamb': lamb.shape,
+        },
+        dkeep=dkeep,
+        ind3dr=ind3dr,
+        ind3dz=ind3dz,
+        ind3dphi=ind3dphi,
+        key_diag=key_diag,
+        key_cam=key_cam,
+    )
 
-    shape0 = tuple(np.r_[shape_cam, nRZ])
-    ncounts = np.full(shape0, 0.)
-    cos = np.full(shape0, 0.)
-    phi_mean = np.full(shape0, 0.)
-    phi_min = np.full(shape0, np.inf)
-    phi_max = np.full(shape0, -np.inf)
-    indr = np.zeros((nRZ,), dtype=int)
-    indz = np.zeros((nRZ,), dtype=int)
-    dV = np.full((nRZ,), np.nan)
+    # --------------
+    # prepare ddata
+    # --------------
 
-    shape1 = tuple(np.r_[shape_cam, nRZ, nlamb])
-    ph_count = np.full(shape1, 0.)
-
-    etendlen = np.full(shape_cam, 0.)
-    # ph_approx = np.full(shape1, 0.)
-    # sang = np.full(shape1, 0.)
-    # dang_rel = np.full(shape1, 0.)
-    # nphi_all = np.full(shape1, 0.)
-    # FW = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['FW']
-    # kp = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
-    # POW = coll.ddata[kp]['data'].max()
+    ddata = _prepare_ddata(
+        coll=coll,
+        dkeep=dkeep,
+        dshape=dshape,
+        dref=dref,
+        dind=dind,
+        key_diag=key_diag,
+        key_cam=key_cam,
+        lamb=lamb,
+    )
 
     if timing:
         t11 = dtm.datetime.now()     # DB
@@ -239,27 +228,208 @@ def _vos(
         msg = (
             f"\tlamb.shape: {lamb.shape}\n"
             f"\tang_rel.shape: {ang_rel.shape}\n"
-            f"\tiru.size: {iru.size}\n"
-            f"\tnRZ: {nRZ}\n"
+            # f"\tiru.size: {iru.size}\n"
+            # f"\tnRZ: {nRZ}\n"
         )
         print(msg)
 
     # ---------------------
     # loop in plasma points
 
-    if debug is True:
-        dx0 = {
-            i0: {
-                i1: [] for i1 in np.unique(iz[ir == i0])
-            }
-            for i0 in iru
-        }
-        dx1 = {
-            i0: {
-                i1: [] for i1 in np.unique(iz[ir == i0])
-            }
-            for i0 in iru
-        }
+    # if debug is True:
+        # dx0 = {
+            # i0: {
+                # i1: [] for i1 in np.unique(iz[ir == i0])
+            # }
+            # for i0 in iru
+        # }
+        # dx1 = {
+            # i0: {
+                # i1: [] for i1 in np.unique(iz[ir == i0])
+            # }
+            # for i0 in iru
+        # }
+
+    # -------------------
+    # loop on pts
+    # -------------------
+
+    pti = np.r_[0., 0., 0.]
+    for i0, ipts in enumerate(np.ndindex(ind3dr.shape)):
+
+        if timing:
+            t000 = dtm.datetime.now()     # DB
+
+        # ---------------
+        # update pti
+
+        pti[0] = xx[ipts]
+        pti[1] = yy[ipts]
+        pti[2] = zz[ipts]
+
+        # ------------------------------------------
+        # initial polygon (crystal on its own plane)
+
+        p0, p1 = ptsvect_plane(
+            pts_x=pti[0],
+            pts_y=pti[1],
+            pts_z=pti[2],
+            vect_x=p0x - pti[0],
+            vect_y=p0y - pti[1],
+            vect_z=p0z - pti[2],
+            strict=True,
+            return_x01=True,
+        )[-2:]
+        p_a = plg.Polygon(np.array([p0, p1]).T)
+
+        # post polygons
+        if len(lpoly_post) > 0:
+            # get equivalent aperture
+            p0, p1 = _equivalent_apertures._get_equivalent_aperture(
+                p_a=p_a,
+                pt=pti,
+                nop_pre=len(lpoly_post),
+                lpoly_pre=lpoly_post,
+                ptsvect=ptsvect_plane,
+                min_threshold=min_threshold,
+            )
+
+            # skip if no intersection
+            if p0 is None or p0.size == 0:
+                continue
+
+        # timing
+        if timing:
+            t111 = dtm.datetime.now()     # DB
+            dt111 += (t111-t000).total_seconds()
+
+        # -----------------------------------------------
+        # compute image on camera from pti through polygon
+
+        (
+            x0c, x1c,
+            angles, dsang,
+            vectx, vecty, vectz, iok,
+            dangmin_str, x0if, x1if,
+        ) = _reverse_rt._get_points_on_camera_from_pts(
+            p0=p0,
+            p1=p1,
+            pti=pti,
+            # ref
+            cent=cent_spectro,
+            nin=nin,
+            e0=e0,
+            e1=e1,
+            # dang
+            pix_size=pix_size,
+            dist_to_cam=dist_to_cam,
+            dang=dang,
+            phi=pp[ipts],
+            # resoluions
+            n0=n0,
+            n1=n1,
+            # functions
+            coords_x01toxyz_plane=coords_x01toxyz_plane,
+            ptsvect_spectro=ptsvect_spectro,
+            ptsvect_cam=ptsvect_cam,
+        )[:-6]
+
+        if verb is True:
+            msg = (
+                f"\t\t3d pt {i0 + 1} / {ind3dr.size}"
+                f"\tir = {ind3dr[ipts]}, "
+                f"iz = {ind3dz[ipts]}, "
+                f"iphi = {ind3dphi[ipts]}"
+                f":  {iok.sum()} rays   "
+                f"\t dangmin: {dangmin_str}"
+            )
+            print(msg, end='\r')
+
+        if timing:
+            # dt1111, dt2222, dt3333, dt4444 = out
+            t222 = dtm.datetime.now()     # DB
+            dt222 += (t222-t111).total_seconds()
+
+        # safety check - which rays end up within camera frame ?
+        iok2 = (
+            (x0c[iok] >= cbin0[0])
+            & (x0c[iok] <= cbin0[-1])
+            & (x1c[iok] >= cbin1[0])
+            & (x1c[iok] <= cbin1[-1])
+        )
+
+        # ---------- DEBUG ------------
+        if debug is True:
+            # _plot_debug(
+                # coll=coll,
+                # key_cam=key_cam,
+                # cbin0=cbin0,
+                # cbin1=cbin1,
+                # x0c=x0c,
+                # x1c=x1c,
+                # cos=cosi,
+                # angles=angles,
+                # iok=iok,
+                # p0=p0,
+                # p1=p1,
+                # x0if=x0if,
+                # x1if=x1if,
+            # )
+            dx0[i0][i1].append(x0c)
+            dx1[i0][i1].append(x1c)
+        # -------- END DEBUG ----------
+
+        if not np.any(iok2):
+            continue
+
+        # update index (within camera frame)
+        iok[iok] = iok2
+
+        # 2d pixel by binning - counts only
+        out = scpstats.binned_statistic_2d(
+            x0c[iok],
+            x1c[iok],
+            None,
+            statistic='count',
+            bins=(cbin0, cbin1),
+            expand_binnumbers=True,
+        )
+
+        # 2d pixel by binning - solid angle
+        outsa = scpstats.binned_statistic_2d(
+            x0c[iok],
+            x1c[iok],
+            dsang[iok],
+            statistic='sum',
+            bins=(cbin0, cbin1),
+            expand_binnumbers=True,
+        )
+
+        # --------------
+        # populate ddata
+
+        _populate_ddata(
+            out3d_counts=out,
+            out3d_sang=outsa,
+            ddata=ddata,
+            dkeep=dkeep,
+            dv=dV[ipts],
+            ipts=ipts,
+        )
+        import pdb; pdb.set_trace()     # DB
+
+
+
+
+
+
+
+
+
+
+    # -------------------
+    # Legacy
+    # -------------------
 
     dr = np.mean(np.diff(x0u))
     dz = np.mean(np.diff(x1u))
@@ -743,6 +913,375 @@ def _vos(
         dt1111, dt2222, dt3333, dt4444,
     )
 
+
+# ################################################
+# ################################################
+#           Prepare dshape
+# ################################################
+
+
+def _prepare_dind_dshape(
+    dshape=None,
+    dkeep=None,
+    ind3dr=None,
+    ind3dz=None,
+    ind3dphi=None,
+    key_diag=None,
+    key_cam=None,
+):
+
+    # -------------
+    # dind
+    # -------------
+
+    dind = {}
+    if dkeep['3d'] is True:
+        dind['3d'] = {
+            'r': ind3dr,
+            'z': ind3dz,
+            'phi': ind3dphi,
+        }
+
+    if dkeep['cross'] is True:
+        ind = np.array([ind3dr, ind3dz])
+        indu = np.unique(ind, axis=1)
+        dind['cross'] = {
+            'r': indu[0, :],
+            'z': indu[1, :],
+        }
+
+    if dkeep['hor'] is True:
+        ind = np.array([ind3dr, ind3dphi])
+        indu = np.unique(ind, axis=1)
+        dind['hor'] = {
+            'r': indu[0, :],
+            'phi': indu[1, :],
+        }
+
+    # -------------
+    # dshape
+    # -------------
+
+    dshapes = {
+        'pts': ('pts',),
+        'cam': ('cam',),
+        'campts': ('cam', 'pts'),
+        'camptslamb': ('cam', 'pts', 'lamb'),
+    }
+
+    dshape_out = {}
+    for k0, v0 in dshapes.items():
+
+        if 'pts' in v0:
+            for proj, vproj in dind.items():
+                shapepts = vproj['r'].shape
+                shape = np.concatenate([
+                    shapepts if k1 == 'pts'
+                    else dshape[k1]
+                    for k1 in v0
+                ]).astype(int)
+
+                ref = [
+                    'nlamb' if k1 == 'lamb'
+                    else (
+                        f'npts_{proj}' if k1 == 'pts'
+                        else k1
+                    )
+                    for k1 in v0
+                ]
+
+                key = f'{k0}_{proj}'
+                dshape_out[key] = {
+                    'ref': ref,
+                    'shape': tuple(shape),
+                }
+        else:
+            key = k0
+            shape = np.concatenate(
+                tuple([dshape[v1] for v1 in v0])
+            ).astype(int)
+
+            ref = ['nlamb' if k1 == 'lamb' else k1 for k1 in v0]
+
+            dshape_out[key] = {
+                'ref': ref,
+                'shape': tuple(shape),
+            }
+
+    # -------------
+    # dref
+    # -------------
+
+    dref = {
+        'nlamb': {
+            'key': f'{key_diag}_{key_cam}_vos_nlamb',
+            'size': dshape['lamb'][0],
+        },
+    }
+
+    for kproj, vproj in dkeep.items():
+        if vproj is True:
+            dref[f'npts_{kproj}'] = {
+                'key': f'{key_diag}_{key_cam}_vos_npts_{kproj}',
+                'size': dind[kproj]['r'].size,
+            }
+
+    return dind, dshape_out, dref
+
+
+# ################################################
+# ################################################
+#           Prepare ddata
+# ################################################
+
+
+def _prepare_ddata(
+    coll=None,
+    dshape=None,
+    dkeep=None,
+    dind=None,
+    dref=None,
+    lamb=None,
+    key_diag=None,
+    key_cam=None,
+):
+
+    # shape0 = shape_cam + (nRZ,)
+    # ncounts = np.full(shape0, 0.)
+    # cos = np.full(shape0, 0.)
+    # phi_mean = np.full(shape0, 0.)
+    # phi_min = np.full(shape0, np.inf)
+    # phi_max = np.full(shape0, -np.inf)
+    # indr = np.zeros((nRZ,), dtype=int)
+    # indz = np.zeros((nRZ,), dtype=int)
+    # dV = np.full((nRZ,), np.nan)
+
+    # shape1 = tuple(np.r_[shape_cam, nRZ, nlamb])
+    # ph_count = np.full(shape1, 0.)
+
+    # etendlen = np.full(shape_cam, 0.)
+    # ph_approx = np.full(shape1, 0.)
+    # sang = np.full(shape1, 0.)
+    # dang_rel = np.full(shape1, 0.)
+    # nphi_all = np.full(shape1, 0.)
+    # FW = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['FW']
+    # kp = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
+    # POW = coll.ddata[kp]['data'].max()
+
+    # --------------------
+    # dref_short
+    # --------------------
+
+    dref_short = {}
+    for kshort, vshort in dshape.items():
+        if all([k1 == 'cam' or k1 in dref.keys() for k1 in vshort['ref']]):
+            temp = tuple([
+                coll.dobj['camera'][key_cam]['dgeom']['ref'] if k1 == 'cam'
+                else (dref[k1]['key'],)
+                for k1 in vshort['ref']
+            ])
+            if len(temp) == 1:
+                dref_short[kshort] = temp[0]
+            else:
+                dref_short[kshort] = tuple(np.concatenate(temp))
+
+    # -------------
+    # dfields
+    # -------------
+
+    dfields = {
+        'ph': {
+            'key': f'{key_diag}_{key_cam}_vos_ph',
+            'ref': 'camptslamb',
+            'units': 'sr',
+            'dim': 'transfert',
+            'dtype': float,
+        },
+        'ncounts': {
+            'key': f'{key_diag}_{key_cam}_vos_nc',
+            'ref': 'campts',
+            'units': None,
+            'dim': 'counts',
+            'dtype': int,
+        },
+        'dV': {
+            'key': f'{key_diag}_{key_cam}_vos_dV',
+            'ref': 'campts',
+            'units': 'm3',
+            'dim': 'volume',
+            'dtype': float,
+        },
+    }
+
+    # --------------------
+    # Initialize with lamb
+    # --------------------
+
+    ddata = {
+        'lamb': {
+            'key': f'{key_diag}_{key_cam}_vos_lamb',
+            'data': lamb,
+            'ref': (dref['nlamb']['key'],),
+            'units': 'm',
+            'dim': 'distance',
+        },
+    }
+
+    # --------------------
+    # add ind
+    # --------------------
+
+    for kproj, vind in dind.items():
+        for kcoord, vcoord in vind.items():
+            ddata[f'ind{kcoord}_{kproj}'] = {
+                'key': f'{key_diag}_{key_cam}_vos_i{kcoord}_{kproj}',
+                'data': vcoord,
+                'units': 'rad' if 'phi' in kcoord else 'm',
+                'ref': dref[f'npts_{kproj}']['key'],
+                'dim': 'index',
+            }
+
+    # -------------
+    # add pts-agnostic
+    # -------------
+
+    for k0, v0 in dfields.items():
+
+        # -----------------
+        # add pts-agnostic
+
+        if 'pts' not in v0['ref']:
+
+            # shape
+            shape = dshape[v0['ref']]['shape']
+
+            # fill
+            ddata[k0] = {
+                'key': f'{key_diag}_{key_cam}_vos_{k0}',
+                'data': np.zeros(shape, dtype=v0['dtype']),
+                'units': v0['units'],
+                'ref': dref_short[v0['ref']],
+                'dim': v0['dim'],
+            }
+
+        # -----------------
+        # add pts-dependent
+
+        else:
+
+            for kproj, vind in dind.items():
+
+                # shape
+                ref = f"{v0['ref']}_{kproj}"
+                shape = dshape[ref]['shape']
+
+                # fill
+                ddata[f'{k0}_{kproj}'] = {
+                    'key': f'{key_diag}_{key_cam}_vos_{k0}_{kproj}',
+                    'data': np.zeros(shape, dtype=v0['dtype']),
+                    'units': v0['units'],
+                    'ref': dref_short[ref],
+                    'dim': v0['dim'],
+                }
+
+    return ddata
+
+
+# ################################################
+# ################################################
+#           Populate ddata
+# ################################################
+
+
+def _populate_ddata(
+    out3d_counts=None,
+    out3d_sang=None,
+    ddata=None,
+    dkeep=None,
+    dv=None,
+    ipts=None,
+):
+
+    import pdb; pdb.set_trace()     # DB
+
+    # ------------
+    # 3d
+    # ------------
+
+    proj = '3d'
+    if dkeep[proj] is True:
+
+        # counts
+        key = _get_ddata_key('counts', proj)
+        ddata[key]['data'][..., ipts] += out3d_counts.statistic
+
+        # dV
+        key = _get_ddata_key('dV', proj)
+        ddata[key]['data'] += dv
+
+    # back-up
+    ipixok = out.statistic > 0
+    dout['ncounts']['data'][ipixok, ipts] += out.statistic[ipixok]
+    ncounts[ipixok, ipts] += out.statistic[ipixok]
+    etendlen[ipixok] += outsa.statistic[ipixok] * dv
+
+    # adjust phimean
+    phi_mean[ipixok, ipts] += phii * out.statistic[ipixok]
+
+    cosi = cosi[iok]
+    angles = angles[iok]
+    dsang = dsang[iok]
+
+    ip0, ip1 = ipixok.nonzero()
+    indi = np.zeros((out.binnumber.shape[1],), dtype=bool)
+    indj = np.zeros((out.binnumber.shape[1],), dtype=bool)
+    for ii in np.unique(ip0):
+        indi[:] = (out.binnumber[0, :] == (ii + 1))
+        for jj in np.unique(ip1[ip0 == ii]):
+
+            # indices
+            indj[:] = indi & (out.binnumber[1, :] == jj + 1)
+
+            # phi_min, phi_max
+            phi_min[ii, jj, ipts] = min(phi_min[ii, jj, ipts], phii)
+            phi_max[ii, jj, ipts] = max(phi_max[ii, jj, ipts], phii)
+
+            # cos
+            cos[ii, jj, ipts] += np.sum(cosi[indj])
+
+            # ilamb
+            angj = angles[indj]
+            ilamb = (
+                (angj[:, None] - bragg >= ang_rel[0])
+                & (angj[:, None] - bragg < ang_rel[-1])
+            )
+
+            if not np.any(ilamb):
+                continue
+
+            ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
+
+            # nphi_all  # DB
+            # nphi_all[ii, jj, ipts, ilamb_n] += 1
+
+            # if False:
+            # binning of angles
+            for kk in ilamb_n:
+                ph_count[ii, jj, ipts, kk] += np.sum(
+                    pow_interp(angj[ilamb[:, kk]] - bragg[kk])
+                    * dsang[indj][ilamb[:, kk]]
+                ) * dv
+
+    return ddata
+
+
+def _get_ddata_key(key=None, proj=None):
+
+    lk = [kk for kk in ddata.keys() if kk.endswith(f'_{key}_{proj}')]
+    if len(lk) != 1:
+        raise NotImplementedError()
+
+    return lk[0]
 
 # ################################################
 # ################################################
