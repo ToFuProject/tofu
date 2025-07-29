@@ -21,6 +21,7 @@ from . import _class8_reverse_ray_tracing as _reverse_rt
 def main(
     ddata=None,
     dkeep=None,
+    dind_proj=None,
     # 3d pts coords
     xx=None,
     yy=None,
@@ -232,6 +233,8 @@ def main(
             x1c=x1c[iok],
             final=('ph', ph),
             ilamb=ilamb,
+            # dind_proj
+            dind_proj=dind_proj,
         )
 
     # -------------------------
@@ -270,6 +273,8 @@ def _binning_3d(
     # final
     final=None,
     ilamb=None,
+    # dind_proj
+    dind_proj=None,
 ):
 
     # ---------------
@@ -277,7 +282,6 @@ def _binning_3d(
     # ---------------
 
     out = None
-    sli = (slice(None), slice(None)) + ipts
     for i0, (k0, v0) in enumerate(weights):
 
         # 2d pixel by binning - counts only
@@ -291,8 +295,11 @@ def _binning_3d(
         )
 
         # store
-        key = _get_ddata_key(k0, proj='3d', din=ddata)
-        ddata[key]['data'][sli] += out.statistic
+        for kproj, vind in dind_proj.items():
+            key = _get_ddata_key(k0, proj=kproj, din=ddata)
+            ind = vind['all'][ipts]
+            sli = (slice(None), slice(None), ind)
+            ddata[key]['data'][sli] += out.statistic
 
     # -----------------
     # add ph
@@ -300,7 +307,6 @@ def _binning_3d(
 
     if np.any(ilamb):
 
-        key = _get_ddata_key(final[0], proj='3d', din=ddata)
         for i0 in np.any(ilamb, axis=0).nonzero()[0]:
 
             # bin
@@ -315,7 +321,13 @@ def _binning_3d(
 
             # store
             sli = (slice(None), slice(None)) + ipts + (i0,)
-            ddata[key]['data'][sli] += out.statistic
+
+            # store
+            for kproj, vind in dind_proj.items():
+                key = _get_ddata_key(final[0], proj=kproj, din=ddata)
+                ind = vind['all'][ipts]
+                sli = (slice(None), slice(None), ind, i0)
+                ddata[key]['data'][sli] += out.statistic
 
     return ddata
 

@@ -192,7 +192,7 @@ def _vos(
     # --------------
 
     shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
-    dind, dshape, dref, dind_inter = _prepare_dind_dshape(
+    dind, dshape, dref, dind_proj = _prepare_dind_dshape(
         dshape={
             'cam': shape_cam,
             'lamb': lamb.shape,
@@ -232,8 +232,8 @@ def _vos(
         ddata['dV_3d']['data'][:] = dV
     for kproj in ['cross', 'hor']:
         if dkeep[kproj] is True:
-            ddata[f'dV_{kproj}']['data'][:] = dV[dind_inter['unique'][kproj]]
-            ddata[f'ndV_{kproj}']['data'][:] = dind_inter['counts'][kproj]
+            ddata[f'dV_{kproj}']['data'][:] = dV[dind_proj[kproj]['unique']]
+            ddata[f'ndV_{kproj}']['data'][:] = dind_proj[kproj]['counts']
 
     # ----------
     # verb
@@ -340,7 +340,7 @@ def _prepare_dind_dshape(
 
     # initiate
     dind = {}
-    dind_inter = {}
+    dind_proj = {}
 
     # 3d
     if dkeep['3d'] is True:
@@ -348,6 +348,9 @@ def _prepare_dind_dshape(
             'r': ind3dr,
             'z': ind3dz,
             'phi': ind3dphi,
+        }
+        dind_proj['3d'] = {
+            'all': np.arange(0, ind3dr.size),
         }
 
     # cross
@@ -364,10 +367,10 @@ def _prepare_dind_dshape(
             'r': indu[0, :],
             'z': indu[1, :],
         }
-        dind_inter = {
-            'all': {'cross': i3d2},
-            'unique': {'cross': iu},
-            'counts': {'cross': counts},
+        dind_proj['cross'] = {
+            'all':  i3d2,
+            'unique':  iu,
+            'counts':  counts,
         }
 
     # hor
@@ -384,9 +387,11 @@ def _prepare_dind_dshape(
             'r': indu[0, :],
             'phi': indu[1, :],
         }
-        dind_inter['all']['hor'] = i3d2
-        dind_inter['unique']['hor'] = iu
-        dind_inter['counts']['hor'] = counts
+        dind_proj['hor'] = {
+            'all': i3d2,
+            'unique': iu,
+            'counts': counts,
+        }
 
     # -------------
     # dshape
@@ -456,7 +461,7 @@ def _prepare_dind_dshape(
                 'size': dind[kproj]['r'].size,
             }
 
-    return dind, dshape_out, dref, dind_inter
+    return dind, dshape_out, dref, dind_proj
 
 
 # ################################################

@@ -174,10 +174,11 @@ class Test01_Diagnostic_Broadband_Los(Diag_Los):
 
 class Test02_Diagnostic_Spectro_Los(Diag_Los):
 
-    def setup_method(self):
+    def setup_method(self, key_diag=None,):
         self.coll = _inputs.add_diags_spectro(
             conf=self.conf,
             compute=True,
+            key_diag=key_diag,
         )
         self._def_kdiag = 'd00_cryst0_cam0_los'
         self._def_krays = 'd00_cryst0_cam0_los'
@@ -286,8 +287,9 @@ class Test04_Diagnostic_Spectro_Vos(Diag_Vos):
         self.coll = _inputs.add_diags_spectro(
             conf=self.conf,
             compute=True,
+            key_diag=key_diag,
         )
-        self._def_kdiag = 'diag5'
+        self._def_kdiag = 'sd5'
         self._spectro = True
 
         _inputs._compute_vos(

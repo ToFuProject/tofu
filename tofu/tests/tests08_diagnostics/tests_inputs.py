@@ -686,6 +686,7 @@ def add_diags_broadband(
 def add_diags_spectro(
     coll=None,
     conf=None,
+    key_diag=None,
     compute=None,
 ):
 
@@ -695,6 +696,11 @@ def add_diags_spectro(
 
     if coll is None:
         coll = tf.data.Collection()
+
+    # key_diag
+    if key_diag is not None:
+        if isinstance(key_diag, str):
+            key_diag = [key_diag]
 
     # --------------
     # get inputs
@@ -765,12 +771,18 @@ def add_diags_spectro(
     # add diagnostic
     # -----------------
 
-    for k0, v0 in coll.doptics.items():
-        coll.add_diagnostic(
-            doptics=v0,
-            config=conf,
-            compute_vos_from_los=True,
-        )
+    for ii, (k0, v0) in enumerate(coll.doptics.items()):
+        kdiag = f'sd{ii}'
+        if key_diag is None or kdiag in key_diag:
+            coll.add_diagnostic(
+                key=kdiag,
+                doptics=v0,
+                config=conf,
+                compute_vos_from_los=True,
+            )
+        else:
+            msg = f"not added: diag '{kdiag}'\n"
+            print(msg)
 
     # add toroidal
     # coll.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
@@ -1172,29 +1184,58 @@ def _compute_vos(
 
         keep_cross = True
         keep_hor = (ii % 2 == 0)
-        keep_3d = False
+        keep_3d = ii == 0
 
         coll.compute_diagnostic_vos(
             # keys
             key_diag=k0,
             key_mesh=key_mesh,
             # resolution
-            res_RZ=0.04,
-            res_phi=0.04,
+            res_RZ=0.03,
+            res_phi=0.03,
             # keep
             keep_cross=keep_cross,
             keep_hor=keep_hor,
             keep_3d=keep_3d,
             # spectro
-            n0=3,
-            n1=3,
-            res_lamb=2e-10,
+            n0=5,
+            n1=5,
+            res_lamb=2e-12,
             visibility=False,
             overwrite=True,
             replace_poly=True,
             store=True,
         )
 
+        # testing vos
+        if keep_cross is True and keep_3d is True:
+            if spectro is True:
+                pattern = 'ph'
+            else:
+                pattern = 'sang'
+
+            k_3d = [
+                kk for kk in coll.ddata.keys()
+                if kk.endswith(f'_{pattern}_3d')
+                and k0 in kk
+            ][0]
+            k_cross = [
+                kk for kk in coll.ddata.keys()
+                if kk.endswith(f'_{pattern}_cross')
+                and k0 in kk
+            ][0]
+
+            v_3d = coll.ddata[k_3d]['data']
+            v_cross = coll.ddata[k_cross]['data']
+            sum_3d = v_3d.sum(axis=-2)
+            sum_cross = np.sum(v_cross, axis=-2)
+
+            if not np.allclose(sum_3d, sum_cross):
+                msg = (
+                    "Mismatch between vos_3d and vos_cross (spectro)!\n"
+                    f"\t- diag: '{k0}'\n"
+                )
+                raise Exception(msg)
     return
 
 
