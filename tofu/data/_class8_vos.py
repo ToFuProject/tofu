@@ -52,6 +52,9 @@ def compute_vos(
     # spectro-only
     rocking_curve_fw=None,
     rocking_curve_max=None,
+    # cleanup
+    cleanup_pts=None,
+    cleanup_lamb=None,
     # bool
     visibility=None,
     convex=None,
@@ -82,6 +85,8 @@ def compute_vos(
         res_phi,
         res_lamb,
         dkeep,
+        cleanup_pts,
+        cleanup_lamb,
         return_vector,
         convexHull,
         visibility,
@@ -102,6 +107,9 @@ def compute_vos(
         lamb=lamb,
         res_lamb=res_lamb,
         convexHull=convexHull,
+        # cleanup
+        cleanup_pts=cleanup_pts,
+        cleanup_lamb=cleanup_lamb,
         # bool
         keep_cross=keep_cross,
         keep_hor=keep_hor,
@@ -251,6 +259,9 @@ def compute_vos(
             # keep
             dkeep=dkeep,
             return_vector=return_vector,
+            # cleanup
+            cleanup_pts=cleanup_pts,
+            cleanup_lamb=cleanup_lamb,
             # parameters
             margin_poly=margin_poly,
             config=config,
@@ -331,6 +342,9 @@ def _check(
     keep_hor=None,
     keep_3d=None,
     return_vector=None,
+    # cleanup
+    cleanup_pts=None,
+    cleanup_lamb=None,
     # bool
     visibility=None,
     check=None,
@@ -512,6 +526,24 @@ def _check(
         raise Exception(msg)
 
     # -----------
+    # cleanup_pts
+
+    cleanup_pts = ds._generic_check._check_var(
+        cleanup_pts, 'cleanup_pts',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
+    # cleanup_lamb
+
+    cleanup_lamb = ds._generic_check._check_var(
+        cleanup_lamb, 'cleanup_lamb',
+        types=bool,
+        default=False,
+    )
+
+    # -----------
     # return_vector
 
     return_vector = ds._generic_check._check_var(
@@ -600,6 +632,8 @@ def _check(
         res_phi,
         res_lamb,
         dkeep,
+        cleanup_pts,
+        cleanup_lamb,
         return_vector,
         convexHull,
         visibility,
