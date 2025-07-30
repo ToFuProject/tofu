@@ -520,7 +520,7 @@ def _prepare_ddata(
             'dtype': float,
         },
         'sang': {
-            'key': f'{key_diag}_{key_cam}_vos_sang',
+            'key': f'{key_diag}_{key_cam}_vos_sa',
             'ref': 'campts',
             'units': 'sr',
             'dim': 'sang',

@@ -17,6 +17,7 @@ import datastock as ds
 
 
 from . import _class8_plot_coverage_broadband as _broadband
+from . import _class8_plot_coverage_spectro as _spectro
 
 
 # ################################################################
@@ -101,7 +102,11 @@ def main(
     # -----------------
 
     if spectro is True:
-        raise NotImplementedError()
+        _compute_cross = _spectro._compute_cross
+        _compute_hor = _spectro._compute_hor
+        _plot_cross = _spectro._plot_cross
+        _plot_hor = _spectro._plot_hor
+
     else:
         _compute_cross = _broadband._compute_cross
         _compute_hor = _broadband._compute_hor

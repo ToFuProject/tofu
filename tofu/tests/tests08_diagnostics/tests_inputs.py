@@ -1125,7 +1125,7 @@ def _compute_vos(
     res_RZ = float(ds._generic_check._check_var(
         res_RZ, 'res_RZ',
         types=(int, float),
-        default=0.04,
+        default=0.03,
         sign='>0',
     ))
 
@@ -1133,7 +1133,7 @@ def _compute_vos(
     res_phi = float(ds._generic_check._check_var(
         res_phi, 'res_phi',
         types=(int, float),
-        default=0.04,
+        default=0.03,
         sign='>0',
     ))
 
@@ -1141,7 +1141,7 @@ def _compute_vos(
     res_lamb = float(ds._generic_check._check_var(
         res_lamb, 'res_lamb',
         types=(int, float),
-        default=2e-10,
+        default=2e-12,
         sign='>0',
     ))
 
@@ -1191,16 +1191,16 @@ def _compute_vos(
             key_diag=k0,
             key_mesh=key_mesh,
             # resolution
-            res_RZ=0.03,
-            res_phi=0.03,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
             # keep
             keep_cross=keep_cross,
             keep_hor=keep_hor,
             keep_3d=keep_3d,
             # spectro
-            n0=5,
-            n1=5,
-            res_lamb=2e-12,
+            n0=n0,
+            n1=n1,
+            res_lamb=res_lamb,
             visibility=False,
             overwrite=True,
             replace_poly=True,
@@ -1371,7 +1371,7 @@ def _plot_coverage(
 
     for ii, k0 in enumerate(key_diag):
 
-        _ = coll.plot_diagnostic_geometrical_coverage(k0)
+        _ = coll.plot_diagnostic_geometrical_coverage(k0, plot_config=conf)
 
         if close is not False:
             plt.close('all')
