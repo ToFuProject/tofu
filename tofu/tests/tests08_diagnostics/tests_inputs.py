@@ -1212,16 +1212,16 @@ def _compute_vos(
             if spectro is True:
                 pattern = 'ph'
             else:
-                pattern = 'sang'
+                pattern = 'sa'
 
             k_3d = [
                 kk for kk in coll.ddata.keys()
-                if kk.endswith(f'_{pattern}_3d')
+                if kk.endswith(f'vos_{pattern}_3d')
                 and k0 in kk
             ][0]
             k_cross = [
                 kk for kk in coll.ddata.keys()
-                if kk.endswith(f'_{pattern}_cross')
+                if kk.endswith(f'vos_{pattern}_cross')
                 and k0 in kk
             ][0]
 
