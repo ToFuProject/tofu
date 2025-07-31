@@ -1229,10 +1229,13 @@ def _compute_vos(
 
             v_3d = coll.ddata[k_3d]['data']
             v_cross = coll.ddata[k_cross]['data']
-            sum_3d = v_3d.sum(axis=-2)
-            sum_cross = np.sum(v_cross, axis=-2)
+            sum_3d = v_3d.sum(axis=-2 if spectro else -1)
+            sum_cross = np.sum(v_cross, axis=-2 if spectro else -1)
 
-            if not np.allclose(sum_3d, sum_cross):
+            if (
+                (sum_3d.shape != sum_cross.shape)
+                or (not np.allclose(sum_3d, sum_cross))
+            ):
                 msg = (
                     "Mismatch between vos_3d and vos_cross (spectro)!\n"
                     f"\t- diag: '{k0}'\n"
@@ -1475,5 +1478,90 @@ def _plot_coverage_slice(
 
         if close is not False:
             plt.close('all')
+
+    return
+
+
+# ####################################################
+# ####################################################
+#           Add emiss
+# ####################################################
+
+
+def _add_emiss(
+    coll=None,
+    spectro=None,
+    method=None,
+):
+
+    # -----------------
+    #
+    # -----------------
+
+
+
+    # -------------
+    #
+    # -------------
+
+
+    return
+
+
+# ####################################################
+# ####################################################
+#           Synthetic signal
+# ####################################################
+
+
+def _synthetic_signal(
+    coll=None,
+    key_diag=None,
+    spectro=None,
+    method=None,
+):
+
+    # --------------
+    # inputs
+    # --------------
+
+    # key_diag
+    key_diag = _get_key_diag(
+        coll=coll,
+        key_diag=key_diag,
+        spectro=spectro,
+    )
+
+    # --------------
+    # compute
+    # --------------
+
+    for kdiag in key_diag:
+
+        dout = coll.compute_diagnostic_signal(
+            key=None,
+            key_diag=kdiag,
+            key_integrand='emiss_spectro' if spectro else 'emiss',
+            method=method,
+            key_ref_spectro=None,
+            method=method,
+            res=None,
+            mode=None,
+            groupby=None,
+            val_init=None,
+            ref_com=None,
+            brightness=None,
+            spectral_binning=None,
+            dvos=None,
+            verb=None,
+            timing=None,
+            store=None,
+            returnas=None,
+        )
+
+        if spectro and method in ['vos', 'vos_cross']:
+            dproj = coll.check_diagnostic_vos_proj(kdiag)
+
+
 
     return

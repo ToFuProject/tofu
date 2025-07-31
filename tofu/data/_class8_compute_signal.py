@@ -127,6 +127,7 @@ def compute_signal(
     if method == 'los':
         func = _compute_los
     else:
+        proj = method.replace('vos_', '')
         if spectro is True:
             func = _compute_vos_spectro
         else:
@@ -144,6 +145,7 @@ def compute_signal(
         key_bs=key_bs,
         res=res,
         mode=mode,
+        proj=proj,
         key_integrand=key_integrand,
         key_ref_spectro=key_ref_spectro,
         key_bs_spectro=key_bs_spectro,
@@ -298,21 +300,39 @@ def _compute_signal_check(
     wm = coll._which_mesh
     wbs = coll._which_bsplines
 
+    # ------------------
     # key_diag, key_cam
+    # ------------------
+
     key_diag, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
     spectro = coll.dobj['diagnostic'][key_diag]['spectro']
     PHA = coll.dobj['diagnostic'][key_diag]['PHA']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
 
+    # ----------
     # method
+    # ----------
+
+    dproj = coll.check_diagnostic_vos_proj(key_diag)
+    lok = ['los']
+    for kproj in ['cross', '3d', 'hor']:
+        if all([kcam in dproj.get(kproj, []) for kcam in key_cam]):
+            lok.append(f'vos_{kproj}')
+    if method == 'vos':
+        if len(lok) > 1:
+            method = lok[1]
+
     method = ds._generic_check._check_var(
         method, 'method',
         types=str,
         default='los',
-        allowed=['los', 'vos'],
+        allowed=lok,
     )
 
+    # ----------
     # mode
+    # ----------
+
     mode = ds._generic_check._check_var(
         mode, 'mode',
         types=str,
@@ -320,7 +340,10 @@ def _compute_signal_check(
         allowed=['abs', 'rel'],
     )
 
+    # ----------
     # groupby
+    # ----------
+
     groupby = ds._generic_check._check_var(
         groupby, 'groupby',
         types=int,
@@ -328,14 +351,20 @@ def _compute_signal_check(
         allowed=[1] if (PHA or spectro) else None,
     )
 
+    # ----------
     # brightness
+    # ----------
+
     brightness = ds._generic_check._check_var(
         brightness, 'brightness',
         types=bool,
         default=False,
     )
 
+    # ----------
     # key_integrand
+    # ----------
+
     lok = [
         k0 for k0, v0 in coll.ddata.items()
         if v0.get(wbs) is not None
@@ -352,7 +381,10 @@ def _compute_signal_check(
         allowed=lok,
     )
 
+    # ----------
     # key_mesh0
+    # ----------
+
     key_bs = [
         kk for kk in coll.ddata[key_integrand][wbs]
         if coll.dobj[wm][coll.dobj[wbs][kk][wm]]['nd'] == '2d'
@@ -371,7 +403,10 @@ def _compute_signal_check(
     else:
         key_mesh0 = key_mesh
 
+    # ----------
     # key_ref_spectro
+    # ----------
+
     if spectro:
         key_ref_spectro, key_bs_spectro = _get_ref_bs_spectro(
             coll=coll,
@@ -383,15 +418,21 @@ def _compute_signal_check(
         key_ref_spectro = None
         key_bs_spectro = None
 
+    # ----------
     # val_init
+    # ----------
+
     val_init = ds._generic_check._check_var(
         val_init, 'val_init',
         default=np.nan,
         allowed=[np.nan, 0.]
     )
 
+    # ----------
     # dvos
-    if method == 'vos':
+    # ----------
+
+    if 'vos' in method:
         # single camera + get dvos
         key_diag, dvos, isstore = coll.check_diagnostic_dvos(
             key_diag,
@@ -403,28 +444,40 @@ def _compute_signal_check(
             msg = "spectro synthetic signal with 'vos' required stored vos!"
             raise Exception(msg)
 
+    # ----------
     # verb
+    # ----------
+
     verb = ds._generic_check._check_var(
         verb, 'verb',
         types=bool,
         default=True,
     )
 
+    # ----------
     # timing
+    # ----------
+
     timing = ds._generic_check._check_var(
         timing, 'timing',
         types=bool,
         default=False,
     )
 
+    # ----------
     # store
+    # ----------
+
     store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
         default=True,
     )
 
+    # ----------
     # key
+    # ----------
+
     if store is True:
         key = ds._generic_check._obj_key(
             coll.dobj.get('synth sig', {}),
@@ -433,7 +486,10 @@ def _compute_signal_check(
             ndigits=2,
         )
 
+    # ----------
     # returnas
+    # ----------
+
     returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         default=False if store is True else dict,
@@ -1200,6 +1256,7 @@ def _compute_vos_spectro(
     key_bs=None,
     res=None,
     mode=None,
+    proj=None,
     key_integrand=None,
     key_ref_spectro=None,
     key_bs_spectro=None,
@@ -1295,8 +1352,8 @@ def _compute_vos_spectro(
     dout = {k0: {} for k0 in dvos.keys()}
     for k0, v0 in dvos.items():
 
-        R = x0u[v0['indr_cross']['data']]
-        Z = x1u[v0['indz_cross']['data']]
+        R = x0u[v0[f'indr_{proj}']['data']]
+        Z = x1u[v0[f'indz_{proj}']['data']]
 
         kapex = coll.dobj[wbs][key_bs_spectro]['apex'][0]
         dlamb_ref = np.mean(np.diff(coll.ddata[kapex]['data']))
