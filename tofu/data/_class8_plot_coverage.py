@@ -104,8 +104,8 @@ def main(
     if spectro is True:
         _compute_cross = _spectro._compute_cross
         _compute_hor = _spectro._compute_hor
-        _plot_cross = _spectro._plot_cross
-        _plot_hor = _spectro._plot_hor
+        _plot_cross = _spectro._plot
+        _plot_hor = _spectro._plot
 
     else:
         _compute_cross = _broadband._compute_cross
@@ -119,7 +119,7 @@ def main(
 
     if plot_cross is True:
 
-        dpoly, ndet, dVndV, sangdV, extent = _compute_cross(
+        dcomp_cross = _compute_cross(
             coll=coll,
             key=key,
             lcam=lcam,
@@ -131,12 +131,6 @@ def main(
             dcolor=dcolor,
         )
 
-        # ------------
-        # nan0
-
-        if nan0 is True:
-            ndet[ndet == 0] = np.nan
-
         # -----------
         # plot
 
@@ -146,11 +140,6 @@ def main(
             lcam=lcam,
             # data
             is_vos=is_vos,
-            ndet=ndet,
-            dVndV=dVndV,
-            sangdV=sangdV,
-            extent=extent,
-            dpoly=dpoly,
             # plotting options
             config=config,
             dax=dax,
@@ -160,6 +149,10 @@ def main(
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
+            # proj
+            proj='cross',
+            # compute output
+            **dcomp_cross,
         )
 
     # ------------
@@ -171,7 +164,7 @@ def main(
         # -----------
         # compute
 
-        dpoly, ndet, dVndV, sangdV, xx, yy = _compute_hor(
+        dcomp_hor = _compute_hor(
             coll=coll,
             key=key,
             lcam=lcam,
@@ -193,12 +186,6 @@ def main(
             lcam=lcam,
             # data
             is_vos=is_vos,
-            ndet=ndet,
-            dVndV=dVndV,
-            sangdV=sangdV,
-            xx=xx,
-            yy=yy,
-            dpoly=dpoly,
             # plotting options
             config=config,
             dax=dax,
@@ -208,6 +195,10 @@ def main(
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
+            # proj
+            proj='hor',
+            # compute output
+            **dcomp_hor,
         )
 
     return dax

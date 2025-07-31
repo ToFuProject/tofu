@@ -144,7 +144,13 @@ def _compute_cross(
             'color': dcolor[kcam],
         }
 
-    return dpoly, ndet, dVndV, sangdV, extent
+    return {
+        'dpoly': dpoly,
+        'ndet': ndet,
+        'dVndV': dVndV,
+        'sangdV': sangdV,
+        'extent': extent,
+    }
 
 
 # ################################################################
@@ -277,7 +283,14 @@ def _compute_hor(
             'color': dcolor[kcam],
         }
 
-    return dpoly, ndet, dVndV, sangdV, xx, yy
+    return {
+        'dpoly': dpoly,
+        'ndet': ndet,
+        'dVndV': dVndV,
+        'sangdV': sangdV,
+        'xx': xx,
+        'yy': yy,
+    }
 
 
 # ################################################################
@@ -306,6 +319,8 @@ def _plot_cross(
     cmap=None,
     vmin=None,
     vmax=None,
+    # unused
+    **kwdargs,
 ):
 
     # ----------------
@@ -411,7 +426,7 @@ def _plot_cross(
         )
         ax3.set_ylabel('Z (m)', size=12, fontweight='bold')
         ax3.set_xlabel('R (m)', size=12, fontweight='bold')
-        tstr = r"$\sum_{det_i} \sum_{V_i} Omega dV$"
+        tstr = r"$\sum_{det_i} \sum_{V_i} \Omega dV$"
         ax3.set_title(
             f"Integrated solid angle {tstr} (sr.m3)",
             size=14,
@@ -598,6 +613,8 @@ def _plot_hor(
     cmap=None,
     vmin=None,
     vmax=None,
+    # unused
+    **kwdargs,
 ):
 
     # ----------------

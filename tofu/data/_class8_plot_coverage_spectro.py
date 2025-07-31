@@ -72,9 +72,15 @@ def _compute_cross(
     # -----------
     # initialize
 
+    # common with broadband
     sangdV = np.zeros(shape, dtype=float)
     dVndV = np.zeros(shape, dtype=float)
     ndet = np.zeros(shape, dtype=float)
+
+    # specific to spectro
+    lamb = np.zeros(shape, dtype=float)
+    lamb_min = np.full(shape, np.inf, dtype=float)
+    lamb_max = np.zeros(shape, dtype=float)
 
     # ---------------
     # loop on cameras
@@ -91,6 +97,8 @@ def _compute_cross(
             ksang = v0['dvos']['sang_cross']
             kdV = v0['dvos']['dV_cross']
             kndV = v0['dvos']['ndV_cross']
+            klamb = v0['dvos']['lamb']
+            kph = v0['dvos']['ph_cross']
 
             # data
             indr = coll.ddata[kindr]['data']
@@ -98,16 +106,62 @@ def _compute_cross(
             sangi = coll.ddata[ksang]['data']
             dVi = coll.ddata[kdV]['data']
             ndVi = coll.ddata[kndV]['data']
+            lambi = coll.ddata[klamb]['data']
+            ph = coll.ddata[kph]['data']
 
             # axis
             ref_cam = coll.dobj[wcam][kcam]['dgeom']['ref']
             ref_sang = coll.ddata[ksang]['ref']
             axis_cam = tuple([ref_sang.index(rr) for rr in ref_cam])
+            axis_camlamb = axis_cam + (axis_cam[-1]+2,)
+            sli_lamb = (None,)*len(ref_cam) + (None, slice(None))
 
-            # compute
+            # safety check: for spectro, cameras must not overlap
+            if np.any(ndet[indr, indz] > 0):
+                msg = (
+                    "plot coverage for spectro only handles multiple cameras"
+                    " if they don't have overlapping FOV!\n"
+                    f"\t- diag: {key}\n"
+                    f"\t- cam: {kcam}\n"
+                )
+                raise Exception(msg)
+
+            # compute - dVndV, sangdV, ndet
             sangdV[indr, indz] = np.sum(sangi * dVi, axis=axis_cam)
             dVndV[indr, indz] = ndVi * dVi
             ndet[indr, indz] = np.sum(sangi > 0., axis=axis_cam)
+
+            # compute lamb, dlamb
+            sum_ph = np.sum(ph, axis=axis_camlamb)
+            iok_sum_ph = sum_ph > 0.
+            lamb[indr[iok_sum_ph], indz[iok_sum_ph]] = (
+                np.sum(ph * lambi[sli_lamb], axis=axis_camlamb)[iok_sum_ph]
+                / sum_ph[iok_sum_ph]
+            )
+
+            iok = ph > 0.
+            lamb_min[indr, indz] = np.minimum(
+                np.min(
+                    lambi[sli_lamb]*iok,
+                    axis=axis_camlamb,
+                    where=iok,
+                    initial=np.inf,
+                ),
+                lamb_min[indr, indz],
+            )
+            lamb_max[indr, indz] = np.maximum(
+                np.max(
+                    lambi[sli_lamb]*iok,
+                    axis=axis_camlamb,
+                    where=iok,
+                    initial=0,
+                ),
+                lamb_max[indr, indz],
+            )
+
+        # derive dlamb
+        dlamb = lamb_max - lamb_min
+        dlamb[np.isinf(lamb_min)] = 0.
 
         # nan
         if nan0 is True:
@@ -115,6 +169,8 @@ def _compute_cross(
             sangdV[iout] = np.nan
             dVndV[iout] = np.nan
             ndet[iout] = np.nan
+            lamb[iout] = np.nan
+            dlamb[iout] = np.nan
         else:
             ndet = ndet.astype(int)
 
@@ -148,7 +204,15 @@ def _compute_cross(
             'color': dcolor[kcam],
         }
 
-    return dpoly, ndet, dVndV, sangdV, extent
+    return {
+        'dpoly': dpoly,
+        'ndet': ndet,
+        'dVndV': dVndV,
+        'sangdV': sangdV,
+        'lamb': lamb,
+        'dlamb': dlamb,
+        'extent': extent,
+    }
 
 
 # ################################################################
@@ -202,9 +266,15 @@ def _compute_hor(
     # -----------
     # initialize
 
-    sangdV = np.zeros((indrpuT.shape[0],), dtype=float)
-    dVndV = np.zeros((indrpuT.shape[0],), dtype=float)
-    ndet = np.zeros((indrpuT.shape[0],), dtype=float)
+    shape = (indrpuT.shape[0],)
+    sangdV = np.zeros(shape, dtype=float)
+    dVndV = np.zeros(shape, dtype=float)
+    ndet = np.zeros(shape, dtype=float)
+
+    # specific to spectro
+    lamb = np.zeros(shape, dtype=float)
+    lamb_min = np.full(shape, np.inf, dtype=float)
+    lamb_max = np.zeros(shape, dtype=float)
 
     # ---------------
     # loop on cameras
@@ -218,11 +288,15 @@ def _compute_hor(
         ksang = v0['dvos']['sang_hor']
         kdV = v0['dvos']['dV_hor']
         kndV = v0['dvos']['ndV_hor']
+        klamb = v0['dvos']['lamb']
+        kph = v0['dvos']['ph_hor']
 
         # axis
         ref_cam = coll.dobj[wcam][kcam]['dgeom']['ref']
         ref_sang = coll.ddata[ksang]['ref']
         axis_cam = tuple([ref_sang.index(rr) for rr in ref_cam])
+        axis_camlamb = axis_cam + (axis_cam[-1]+2,)
+        sli_lamb = (None,)*len(ref_cam) + (None, slice(None))
 
         # data
         indr = coll.ddata[kindr]['data']
@@ -230,10 +304,17 @@ def _compute_hor(
         sangi = coll.ddata[ksang]['data']
         dVi = coll.ddata[kdV]['data']
         ndVi = coll.ddata[kndV]['data']
+        lambi = coll.ddata[klamb]['data']
+        ph = coll.ddata[kph]['data']
 
         # inds
         ind = np.array([
-            (indrpuT == np.r_[indr[ii], indphi[ii]][None, :]).nonzero()[0][0]
+            np.nonzero(
+                np.all(
+                    indrpuT == np.r_[indr[ii], indphi[ii]][None, :],
+                    axis=1,
+                )
+            )[0][0]
             for ii in range(0, indr.size)
         ]).astype(int)
 
@@ -241,6 +322,38 @@ def _compute_hor(
         sangdV[ind] = np.sum(sangi * dVi, axis=axis_cam)
         dVndV[ind] = ndVi * dVi
         ndet[ind] = np.sum(sangi > 0., axis=axis_cam)
+
+        # compute lamb, dlamb
+        sum_ph = np.sum(ph, axis=axis_camlamb)
+        iok_sum_ph = sum_ph > 0.
+        lamb[ind[iok_sum_ph]] = (
+            np.sum(ph * lambi[sli_lamb], axis=axis_camlamb)[iok_sum_ph]
+            / sum_ph[iok_sum_ph]
+        )
+
+        iok = ph > 0.
+        lamb_min[ind] = np.minimum(
+            np.min(
+                lambi[sli_lamb]*iok,
+                axis=axis_camlamb,
+                where=iok,
+                initial=np.inf,
+            ),
+            lamb_min[ind],
+        )
+        lamb_max[ind] = np.maximum(
+            np.max(
+                lambi[sli_lamb]*iok,
+                axis=axis_camlamb,
+                where=iok,
+                initial=0,
+            ),
+            lamb_max[ind],
+        )
+
+    # derive dlamb
+    dlamb = lamb_max - lamb_min
+    dlamb[np.isinf(lamb_min)] = 0.
 
     # ------------------
     # nan0
@@ -251,6 +364,8 @@ def _compute_hor(
         sangdV[iout] = np.nan
         dVndV[iout] = np.nan
         ndet[iout] = np.nan
+        lamb[iout] = np.nan
+        dlamb[iout] = np.nan
     else:
         ndet = ndet.astype(int)
 
@@ -290,7 +405,16 @@ def _compute_hor(
             'color': dcolor[kcam],
         }
 
-    return dpoly, ndet, dVndV, sangdV, xx, yy
+    return {
+        'dpoly': dpoly,
+        'ndet': ndet,
+        'dVndV': dVndV,
+        'sangdV': sangdV,
+        'lamb': lamb,
+        'dlamb': dlamb,
+        'xx': xx,
+        'yy': yy,
+    }
 
 
 # ################################################################
@@ -299,7 +423,7 @@ def _compute_hor(
 # ################################################################
 
 
-def _plot_cross(
+def _plot(
     coll=None,
     key=None,
     lcam=None,
@@ -307,8 +431,17 @@ def _plot_cross(
     ndet=None,
     dVndV=None,
     sangdV=None,
-    extent=None,
     dpoly=None,
+    lamb=None,
+    dlamb=None,
+    # proj
+    proj=None,
+    # proj-specific
+    extent=None,
+    xx=None,
+    yy=None,
+    marker=None,
+    markersize=None,
     # plotting options
     config=None,
     is_vos=None,
@@ -319,6 +452,8 @@ def _plot_cross(
     cmap=None,
     vmin=None,
     vmax=None,
+    # unused
+    **kwdargs,
 ):
 
     # ----------------
@@ -327,24 +462,41 @@ def _plot_cross(
 
     # tit
     if tit is not False:
-        titdef = (
-            f"geometrical coverage of diag '{key}' "
-            "- integrated cross-section"
-        )
+        titdef = f"geometrical coverage of diag '{key}' "
+        if proj == 'cross':
+            titdef += "- integrated cross-section"
+        else:
+            titdef += "- integrated vertically"
+
         tit = ds._generic_check._check_var(
             tit, 'tit',
             types=str,
             default=titdef,
         )
 
+    # cmap
     if cmap is None:
         cmap = plt.cm.viridis   # Greys
 
+    # vmin
     if vmin is None:
         vmin = 0
 
+    # vmax
     if vmax is None:
         vmax = np.nanmax(ndet)
+
+    # plot_func
+    pfunc = _get_plot_func(
+        proj=proj,
+        # set
+        xx=xx,
+        yy=yy,
+        extent=extent,
+        marker=marker,
+        markersize=markersize,
+        cmap=cmap,
+    )
 
     # ----------------
     # prepare data
@@ -356,112 +508,32 @@ def _plot_cross(
     # prepare figure
     # ----------------
 
-    if dax.get('ndet_cross') is None:
-
-        if fs is None:
-            fs = (16, 7)
-
-        if dmargin is None:
-            dmargin = {
-                'left': 0.05, 'right': 0.95,
-                'bottom': 0.10, 'top': 0.88,
-                'hspace': 0.20, 'wspace': 0.20,
-            }
-
-        Na, Ni, Nc = 7, 3, 1
-        fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=(4*Na+3*Ni+3*Nc), nrows=8, **dmargin)
-
-        # ax0 = spans
-        ax0 = fig.add_subplot(gs[:, :Na], aspect='equal', adjustable='box')
-        ax0.set_ylabel('Z (m)', size=12, fontweight='bold')
-        ax0.set_xlabel('R (m)', size=12, fontweight='bold')
-        ax0.set_title("spans", size=14, fontweight='bold')
-
-        # ax1 = nb of detectors
-        ax1 = fig.add_subplot(
-            gs[:, Na+Ni:2*Na+Ni],
-            aspect='equal',
-            sharex=ax0,
-            sharey=ax0,
-            adjustable='box',
+    if dax.get(f'ndet_{proj}') is None:
+        dax = _get_dax(
+            fs=fs,
+            dmargin=dmargin,
+            dax=dax,
+            proj=proj,
         )
-        ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
-        ax1.set_xlabel('R (m)', size=12, fontweight='bold')
-        tstr = r"$\sum_{det_i}$"
-        ax1.set_title(f"nb. of detectors {tstr}", size=14, fontweight='bold')
-
-        # colorbar ndet
-        cax_ndet = fig.add_subplot(gs[1:-1, 2*Na+Ni], frameon=False)
-
-        # ax2 = dV
-        ax2 = fig.add_subplot(
-            gs[:, 2*Na+2*Ni+Nc:3*Na+2*Ni+Nc],
-            aspect='equal',
-            sharex=ax0,
-            sharey=ax0,
-            adjustable='box',
-        )
-        ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
-        ax2.set_xlabel('R (m)', size=12, fontweight='bold')
-        tstr = r"$\sum_{det_i} \sum_{V_i} dV$"
-        ax2.set_title(
-            f"Volume observed {tstr} (m3)",
-            size=14,
-            fontweight='bold',
-        )
-
-        # colorbar ndet
-        cax_dphi = fig.add_subplot(gs[1:-1, 3*Na+2*Ni+Nc], frameon=False)
-
-        # ax3 = sang
-        ax3 = fig.add_subplot(
-            gs[:, 3*Na+3*Ni+2*Nc: 4*Na+3*Ni+2*Nc],
-            aspect='equal',
-            sharex=ax0,
-            sharey=ax0,
-            adjustable='box',
-        )
-        ax3.set_ylabel('Z (m)', size=12, fontweight='bold')
-        ax3.set_xlabel('R (m)', size=12, fontweight='bold')
-        tstr = r"$\sum_{det_i} \sum_{V_i} Omega dV$"
-        ax3.set_title(
-            f"Integrated solid angle {tstr} (sr.m3)",
-            size=14,
-            fontweight='bold',
-        )
-
-        # colorbar
-        cax_sang = fig.add_subplot(gs[1:-1, -1], frameon=False)
-
-        dax.update({
-            'span_cross': {'handle': ax0, 'type': 'span_cross'},
-            'ndet_cross': {'handle': ax1, 'type': 'ndet_cross'},
-            'cax_ndet_cross': {'handle': cax_ndet, 'type': 'cbar_ndet_cross'},
-            'dV_cross': {'handle': ax2, 'type': 'dV_cross'},
-            'cax_dV_cross': {'handle': cax_dphi, 'type': 'cbar_dV_cross'},
-            'sang_cross': {'handle': ax3, 'type': 'sang_cross'},
-            'cax_sang_cross': {'handle': cax_sang, 'type': 'cbar_sang_cross'},
-        })
 
     # --------------------
     # check / format dax
 
     dax = ds._generic_check._check_dax(dax)
-    fig = dax['ndet_cross']['handle'].figure
+    fig = dax[f'ndet_{proj}']['handle'].figure
 
     # ---------------
     # plot spans
     # ---------------
 
-    ktype = 'span_cross'
+    ktype = f'span_{proj}'
     lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
     for ax in lax:
 
         for k0, v0 in dpoly.items():
             ax.fill(
-                v0['pr'],
-                v0['pz'],
+                v0['pr'] if proj == 'cross' else v0['px'],
+                v0['pz'] if proj == 'cross' else v0['py'],
                 fc=v0['color'],
                 label=k0,
             )
@@ -472,105 +544,107 @@ def _plot_cross(
     # plot ndet
     # ---------------
 
-    ktype = 'ndet_cross'
+    ktype = f'ndet_{proj}'
     lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
     for ax in lax:
 
         # plot
-        im = ax.imshow(
-            ndet.T,
-            extent=extent,
-            origin='lower',
-            interpolation='bilinear',
-            cmap=cmap,
+        im = pfunc(
+            ax,
+            ndet,
             vmin=vmin,
             vmax=vmax,
         )
 
         # colorbar
-        ktype2 = 'cbar_ndet_cross'
-        lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
-        if len(lcax) == 0:
-            plt.colorbar(im)
-        else:
-            for cax in lcax:
-                plt.colorbar(im, cax=cax)
-                # ylab = "nb. of detectors"
-                # cax.set_ylabel(ylab, size=14, fontweight='bold')
+        _add_colorbar(im, ktype, dax)
 
     # ---------------
     # plot dphi
     # ---------------
 
     if dVndV is not None:
-        ktype = 'dV_cross'
+        ktype = f'dV_{proj}'
         lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
         for ax in lax:
 
             # plot
-            im = ax.imshow(
-                dVndV.T,
-                extent=extent,
-                origin='lower',
-                interpolation='bilinear',
-                cmap=cmap,
+            im = pfunc(
+                ax,
+                dVndV,
                 vmin=0,
                 vmax=None,
             )
 
             # colorbar
-            ktype2 = 'cbar_dV_cross'
-            lcax = [
-                v0['handle'] for v0 in dax.values()
-                if ktype2 in v0['type']
-            ]
-            if len(lcax) == 0:
-                plt.colorbar(im)
-            else:
-                for cax in lcax:
-                    plt.colorbar(im, cax=cax)
-                    # ylab = "nb. of detectors"
-                    # cax.set_ylabel(ylab, size=14, fontweight='bold')
+            _add_colorbar(im, ktype, dax)
 
     # ---------------
     # plot sang
     # ---------------
 
-    ktype = 'sang_cross'
+    ktype = f'sang_{proj}'
     lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
     for ax in lax:
 
         # plot
-        im = ax.imshow(
-            sangdV.T,
-            extent=extent,
-            origin='lower',
-            interpolation='bilinear',
-            cmap=cmap,
+        im = pfunc(
+            ax,
+            sangdV,
             vmin=0,
             vmax=None,
         )
 
         # colorbar
-        ktype2 = 'cbar_sang_cross'
-        lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
-        if len(lcax) == 0:
-            plt.colorbar(im)
-        else:
-            for cax in lcax:
-                plt.colorbar(im, cax=cax)
-                # ylab = "nb. of detectors"
-                # cax.set_ylabel(ylab, size=14, fontweight='bold')
+        _add_colorbar(im, ktype, dax)
+
+    # ---------------
+    # plot lamb
+    # ---------------
+
+    ktype = f'lamb_{proj}'
+    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
+    for ax in lax:
+
+        # plot
+        im = pfunc(
+            ax,
+            lamb,
+            vmin=np.min(lamb[lamb > 0]),
+            vmax=np.max(lamb),
+        )
+
+        # colorbar
+        _add_colorbar(im, ktype, dax)
+
+    # ---------------
+    # plot dlamb
+    # ---------------
+
+    ktype = f'dlamb_{proj}'
+    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
+    for ax in lax:
+
+        # plot
+        im = pfunc(
+            ax,
+            lamb,
+            vmin=np.min(dlamb[dlamb > 0]),
+            vmax=np.max(dlamb),
+        )
+
+        # colorbar
+        _add_colorbar(im, ktype, dax)
 
     # --------------
     # add config
     # --------------
 
     if config is not None:
-        for ktype in ['span_cross', 'ndet_cross', 'dV_cross', 'sang_cross']:
-            lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
-            for ax in lax:
-                config.plot(lax=ax, proj='cross', dLeg=False)
+        for kax, vax in dax.items():
+            typ = vax['type'][0]
+            if not typ.startswith('cbar') and (proj in typ):
+                config.plot(lax=vax['handle'], proj=proj, dLeg=False)
 
     # --------------
     # add tit
@@ -582,297 +656,277 @@ def _plot_cross(
     return dax
 
 
-# ################################################################
-# ################################################################
-#                   plot_hor
-# ################################################################
+# #########################################################
+# #########################################################
+#                       dax
+# #########################################################
 
 
-def _plot_hor(
-    coll=None,
-    key=None,
-    lcam=None,
-    # data
-    ndet=None,
-    dVndV=None,
-    sangdV=None,
-    xx=None,
-    yy=None,
-    dpoly=None,
-    # plotting options
-    marker=None,
-    markersize=None,
-    config=None,
-    is_vos=None,
-    dax=None,
+def _get_dax(
     fs=None,
     dmargin=None,
-    tit=None,
-    cmap=None,
-    vmin=None,
-    vmax=None,
+    dax=None,
+    proj=None,
 ):
 
-    # ----------------
-    # check input
-    # ----------------
+    # ---------
+    # inputs
+    # ---------
 
-    # tit
-    if tit is not False:
-        titdef = (
-            f"geometrical coverage of diag '{key}' "
-            "- integrated vertically"
-        )
-        tit = ds._generic_check._check_var(
-            tit, 'tit',
-            types=str,
-            default=titdef,
-        )
+    if fs is None:
+        fs = (16, 7)
 
-    if cmap is None:
-        cmap = plt.cm.viridis   # Greys
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.95,
+            'bottom': 0.06, 'top': 0.90,
+            'hspace': 0.20, 'wspace': 0.40,
+        }
 
-    if vmin is None:
-        vmin = 0
-
-    if vmax is None:
-        vmax = np.nanmax(ndet)
-
-    if marker is None:
-        marker = 's'
-    if markersize is None:
-        markersize = 8
-
-    # ----------------
-    # prepare data
-    # ----------------
-
-    # directions of observation
-
-    # ----------------
-    # prepare figure
-    # ----------------
-
-    if dax.get('ndet_hor') is None:
-        if fs is None:
-            fs = (16, 7)
-
-        if dmargin is None:
-            dmargin = {
-                'left': 0.05, 'right': 0.95,
-                'bottom': 0.06, 'top': 0.90,
-                'hspace': 0.20, 'wspace': 0.40,
-            }
-
-        Na, Ni, Nc = 7, 3, 1
-        fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=(4*Na+3*Ni+3*Nc), nrows=8, **dmargin)
-
-        # ax0 = spans
-        ax0 = fig.add_subplot(gs[:, :Na], aspect='equal', adjustable='box')
-        ax0.set_ylabel('Z (m)', size=12, fontweight='bold')
-        ax0.set_xlabel('R (m)', size=12, fontweight='bold')
-        ax0.set_title("spans", size=14, fontweight='bold')
-
-        # ax1 = nb of detectors
-        ax1 = fig.add_subplot(
-            gs[:, Na+Ni:2*Na+Ni],
-            aspect='equal',
-            sharex=ax0,
-            sharey=ax0,
-            adjustable='box',
-        )
-        ax1.set_ylabel('Z (m)', size=12, fontweight='bold')
-        ax1.set_xlabel('R (m)', size=12, fontweight='bold')
-        tstr = r"$\sum_{det_i}$"
-        ax1.set_title(f"nb. of detectors {tstr}", size=14, fontweight='bold')
-
-        # colorbar ndet
-        cax_ndet = fig.add_subplot(gs[1:-1, 2*Na+Ni], frameon=False)
-
-        # ax2 = dV
-        ax2 = fig.add_subplot(
-            gs[:, 2*Na+2*Ni+Nc:3*Na+2*Ni+Nc],
-            aspect='equal',
-            sharex=ax0,
-            sharey=ax0,
-            adjustable='box',
-        )
-        ax2.set_ylabel('Z (m)', size=12, fontweight='bold')
-        ax2.set_xlabel('R (m)', size=12, fontweight='bold')
-        tstr = r"$\sum_{det_i} \sum_{V_i} dV$"
-        ax2.set_title(
-            f"Observed volume {tstr} (m3)",
-            size=14,
-            fontweight='bold',
-        )
-
-        # colorbar
-        cax_dz = fig.add_subplot(gs[1:-1, 3*Na+2*Ni+Nc], frameon=False)
-        cax_dz.set_title('m', size=12)
-
-        # ax3 = sang
-        ax3 = fig.add_subplot(
-            gs[:, 3*Na+3*Ni+2*Nc:4*Na+3*Ni+2*Nc],
-            aspect='equal',
-            sharex=ax0,
-            sharey=ax0,
-            adjustable='box',
-        )
-        ax3.set_ylabel('Z (m)', size=12, fontweight='bold')
-        ax3.set_xlabel('R (m)', size=12, fontweight='bold')
-        tstr = r"$\sum_{det_i} \sum_{V_i} \Omega dV$"
-        ax3.set_title(
-            f"Integrated solid angle {tstr} (sr.m3)",
-            size=14,
-            fontweight='bold',
-        )
-
-        # colorbar
-        cax_sang = fig.add_subplot(gs[1:-1, -1], frameon=False)
-
-        dax.update({
-            'span_hor': {'handle': ax0, 'type': 'span_hor'},
-            'ndet_hor': {'handle': ax1, 'type': 'ndet_hor'},
-            'cax_ndet_hor': {'handle': cax_ndet, 'type': 'cbar_ndet_hor'},
-            'dV_hor': {'handle': ax2, 'type': 'dV_hor'},
-            'cax_dV_hor': {'handle': cax_dz, 'type': 'cbar_dV_hor'},
-            'sang_hor': {'handle': ax3, 'type': 'sang_hor'},
-            'cax_sang_hor': {'handle': cax_sang, 'type': 'cbar_sang_hor'},
-        })
-
-    # --------------------
-    # check / format dax
-
-    dax = ds._generic_check._check_dax(dax)
-    fig = dax['ndet_hor']['handle'].figure
-
-    # ---------------
-    # plot spans
-    # ---------------
-
-    ktype = 'span_hor'
-    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
-    for ax in lax:
-
-        for k0, v0 in dpoly.items():
-            ax.fill(
-                v0['px'],
-                v0['py'],
-                fc=v0['color'],
-                label=k0,
-            )
-
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=12)
-
-    # ---------------
-    # plot ndet
-    # ---------------
-
-    ktype = 'ndet_hor'
-    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
-    for ax in lax:
-
-        # plot
-        im = ax.scatter(
-            xx,
-            yy,
-            c=ndet,
-            s=markersize,
-            marker=marker,
-            cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
-        )
-
-        # colorbar
-        ktype2 = 'cbar_ndet_hor'
-        lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
-        if len(lcax) == 0:
-            plt.colorbar(im)
-        else:
-            for cax in lcax:
-                plt.colorbar(im, cax=cax)
-                # ylab = "nb. of detectors"
-                # cax.set_ylabel(ylab, size=14, fontweight='bold')
-
-    # ---------------
-    # plot dz
-    # ---------------
-
-    ktype = 'dV_hor'
-    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
-    for ax in lax:
-
-        # plot
-        im = ax.scatter(
-            xx,
-            yy,
-            c=dVndV,
-            s=markersize,
-            marker=marker,
-            cmap=cmap,
-            vmin=0,
-            vmax=None,
-        )
-
-        # colorbar
-        ktype2 = 'cbar_dV_hor'
-        lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
-        if len(lcax) == 0:
-            plt.colorbar(im)
-        else:
-            for cax in lcax:
-                plt.colorbar(im, cax=cax)
-                # ylab = "nb. of detectors"
-                # cax.set_ylabel(ylab, size=14, fontweight='bold')
-
-    # ---------------
-    # plot sang
-    # ---------------
-
-    ktype = 'sang_hor'
-    lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
-    for ax in lax:
-
-        # plot
-        im = ax.scatter(
-            xx,
-            yy,
-            c=sangdV,
-            s=markersize,
-            marker=marker,
-            cmap=cmap,
-            vmin=0,
-            vmax=None,
-        )
-
-        # colorbar
-        ktype2 = 'cbar_sang_hor'
-        lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
-        if len(lcax) == 0:
-            plt.colorbar(im)
-        else:
-            for cax in lcax:
-                plt.colorbar(im, cax=cax)
-                # ylab = "nb. of detectors"
-                # cax.set_ylabel(ylab, size=14, fontweight='bold')
+    if proj == 'cross':
+        xlab = 'R (m)'
+        ylab = 'Z (m)'
+    elif proj == 'hor':
+        xlab = 'X (m)'
+        ylab = 'Y (m)'
 
     # --------------
-    # add config
+    # initialize
     # --------------
 
-    if config is not None:
-        for ktype in ['span_hor', 'ndet_hor', 'dV_hor', 'sang_hor']:
-            lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
-            for ax in lax:
-                config.plot(lax=ax, proj='hor', dLeg=False)
+    Na, Ni, Nc = 7, 3, 1
+    Ca, Ci = 4, 1
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(
+        ncols=(4*Na+3*Ni+3*Nc),
+        nrows=2*Ca+Ci,
+        **dmargin,
+    )
 
     # --------------
-    # add tit
+    # ax0 = spans
     # --------------
 
-    if tit is not False:
-        fig.suptitle(tit, size=14, fontweight='bold')
+    ax0 = fig.add_subplot(gs[:Ca, :Na], aspect='equal', adjustable='box')
+    ax0.set_title("spans", size=14, fontweight='bold')
+
+    # --------------
+    # ax1 = nb of detectors
+    # --------------
+
+    ax1 = fig.add_subplot(
+        gs[:Ca, Na+Ni:2*Na+Ni],
+        aspect='equal',
+        sharex=ax0,
+        sharey=ax0,
+        adjustable='box',
+    )
+    tstr = r"$\sum_{det_i}$"
+    ax1.set_title(f"nb. of detectors {tstr}", size=14, fontweight='bold')
+
+    # colorbar ndet
+    cax_ndet = fig.add_subplot(gs[:Ca, 2*Na+Ni], frameon=False)
+
+    # --------------
+    # ax2 = dV
+    # --------------
+
+    ax2 = fig.add_subplot(
+        gs[:Ca, 2*Na+2*Ni+Nc:3*Na+2*Ni+Nc],
+        aspect='equal',
+        sharex=ax0,
+        sharey=ax0,
+        adjustable='box',
+    )
+    tstr = r"$\sum_{det_i} \sum_{V_i} dV$"
+    ax2.set_title(
+        f"Observed volume {tstr} (m3)",
+        size=14,
+        fontweight='bold',
+    )
+
+    # colorbar
+    cax_dz = fig.add_subplot(gs[:Ca, 3*Na+2*Ni+Nc], frameon=False)
+    cax_dz.set_title('m', size=12)
+
+    # --------------
+    # ax3 = sang
+    # --------------
+
+    ax3 = fig.add_subplot(
+        gs[:Ca, 3*Na+3*Ni+2*Nc:4*Na+3*Ni+2*Nc],
+        aspect='equal',
+        sharex=ax0,
+        sharey=ax0,
+        adjustable='box',
+    )
+    tstr = r"$\sum_{det_i} \sum_{V_i} \Omega dV$"
+    ax3.set_title(
+        f"Integrated solid angle {tstr} (sr.m3)",
+        size=14,
+        fontweight='bold',
+    )
+
+    # colorbar
+    cax_sang = fig.add_subplot(gs[:Ca, -1], frameon=False)
+
+    # --------------
+    # ax4 = lamb
+    # --------------
+
+    ax4 = fig.add_subplot(
+        gs[Ca+Ci:, 2*Na+2*Ni+Nc:3*Na+2*Ni+Nc],
+        aspect='equal',
+        sharex=ax0,
+        sharey=ax0,
+        adjustable='box',
+    )
+    tstr = r"$<\lambda>$"
+    ax4.set_title(
+        f"Average wavelength {tstr} (m)",
+        size=14,
+        fontweight='bold',
+    )
+
+    # colorbar
+    cax_lamb = fig.add_subplot(gs[Ca+Ci:, 3*Na+2*Ni+Nc], frameon=False)
+
+    # --------------
+    # ax5 = dlamb
+    # --------------
+
+    ax5 = fig.add_subplot(
+        gs[Ca+Ci:, 3*Na+3*Ni+2*Nc: 4*Na+3*Ni+2*Nc],
+        aspect='equal',
+        sharex=ax0,
+        sharey=ax0,
+        adjustable='box',
+    )
+    tstr = r"$\delta\lambda$"
+    ax5.set_title(
+        f"Wavelength span {tstr} (m)",
+        size=14,
+        fontweight='bold',
+    )
+
+    # colorbar
+    cax_dlamb = fig.add_subplot(gs[Ca+Ci:, -1], frameon=False)
+
+    # --------------
+    # dict
+    # --------------
+
+    dax.update({
+        f'span_{proj}': {'handle': ax0, 'type': f'span_{proj}'},
+        f'ndet_{proj}': {'handle': ax1, 'type': f'ndet_{proj}'},
+        f'cax_ndet_{proj}': {'handle': cax_ndet, 'type': f'cbar_ndet_{proj}'},
+        f'dV_{proj}': {'handle': ax2, 'type': f'dV_{proj}'},
+        f'cax_dV_{proj}': {'handle': cax_dz, 'type': f'cbar_dV_{proj}'},
+        f'sang_{proj}': {'handle': ax3, 'type': f'sang_{proj}'},
+        f'cax_sang_{proj}': {'handle': cax_sang, 'type': f'cbar_sang_{proj}'},
+        f'lamb_{proj}': {'handle': ax4, 'type': f'lamb_{proj}'},
+        f'cax_lamb_{proj}': {'handle': cax_lamb, 'type': f'cbar_lamb_{proj}'},
+        f'dlamb_{proj}': {'handle': ax5, 'type': f'dlamb_{proj}'},
+        f'cax_dlamb_{proj}': {
+            'handle': cax_dlamb,
+            'type': f'cbar_dlamb_{proj}',
+        },
+    })
+
+    # -------------
+    # add labels
+    # -------------
+
+    for kax, vax in dax.items():
+        if proj in kax and not kax.startswith('cbar'):
+            vax['handle'].set_xlabel(xlab, size=12, fontweight='bold')
+            vax['handle'].set_ylabel(ylab, size=12, fontweight='bold')
 
     return dax
+
+
+# #####################################################
+# #####################################################
+#               Get plot func
+# #####################################################
+
+
+def _get_plot_func(
+    proj=None,
+    # set
+    xx=None,
+    yy=None,
+    extent=None,
+    marker=None,
+    markersize=None,
+    cmap=None,
+):
+    if proj == 'cross':
+        def func(
+            # needed
+            ax, data,
+            vmin=None,
+            vmax=None,
+            # set
+            extent=extent,
+            cmap=cmap,
+        ):
+            im = ax.imshow(
+                data.T,
+                extent=extent,
+                origin='lower',
+                interpolation='bilinear',
+                cmap=cmap,
+                vmin=vmin,
+                vmax=vmax,
+            )
+            return im
+    else:
+        def func(
+            # needed
+            ax, data,
+            vmin=None,
+            vmax=None,
+            # set
+            xx=xx,
+            yy=yy,
+            marker=marker,
+            markersize=markersize,
+            cmap=cmap,
+        ):
+            im = ax.scatter(
+                xx,
+                yy,
+                c=data,
+                s=markersize,
+                marker=marker,
+                cmap=cmap,
+                vmin=vmin,
+                vmax=vmax,
+            )
+            return im
+
+    return func
+
+
+# ##################################################
+# ##################################################
+#               add colorbar
+# ##################################################
+
+
+def _add_colorbar(
+    im,
+    ktype,
+    dax,
+):
+    # colorbar
+    ktype2 = f'cbar_{ktype}'
+    lcax = [v0['handle'] for v0 in dax.values() if ktype2 in v0['type']]
+    if len(lcax) == 0:
+        plt.colorbar(im)
+    else:
+        for cax in lcax:
+            plt.colorbar(im, cax=cax)
+
+    return
