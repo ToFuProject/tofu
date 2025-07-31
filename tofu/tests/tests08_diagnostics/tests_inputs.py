@@ -1108,6 +1108,7 @@ def _compute_vos(
     n0=None,
     n1=None,
     res_lamb=None,
+    lamb=None,
 ):
 
     # ---------------
@@ -1201,6 +1202,7 @@ def _compute_vos(
             n0=n0,
             n1=n1,
             res_lamb=res_lamb,
+            lamb=lamb,
             visibility=False,
             overwrite=True,
             replace_poly=True,

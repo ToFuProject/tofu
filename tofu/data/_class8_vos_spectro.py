@@ -343,18 +343,20 @@ def _prepare_dind_dshape(
     dind_proj = {}
 
     # 3d
-    if dkeep['3d'] is True:
-        dind['3d'] = {
+    kproj = '3d'
+    if dkeep[kproj] is True:
+        dind[kproj] = {
             'r': ind3dr,
             'z': ind3dz,
             'phi': ind3dphi,
         }
-        dind_proj['3d'] = {
+        dind_proj[kproj] = {
             'all': np.arange(0, ind3dr.size),
         }
 
     # cross
-    if dkeep['cross'] is True:
+    kproj = 'cross'
+    if dkeep[kproj] is True:
         ind = np.array([ind3dr, ind3dz])
         indu, iu, i3d2, counts = np.unique(
             ind,
@@ -363,18 +365,19 @@ def _prepare_dind_dshape(
             return_inverse=True,
             return_counts=True,
         )
-        dind['cross'] = {
+        dind[kproj] = {
             'r': indu[0, :],
             'z': indu[1, :],
         }
-        dind_proj['cross'] = {
+        dind_proj[kproj] = {
             'all':  i3d2,
             'unique':  iu,
             'counts':  counts,
         }
 
     # hor
-    if dkeep['hor'] is True:
+    kproj = 'hor'
+    if dkeep[kproj] is True:
         ind = np.array([ind3dr, ind3dphi])
         indu, iu, i3d2, counts = np.unique(
             ind,
@@ -383,11 +386,11 @@ def _prepare_dind_dshape(
             return_inverse=True,
             return_counts=True,
         )
-        dind['hor'] = {
+        dind[kproj] = {
             'r': indu[0, :],
             'phi': indu[1, :],
         }
-        dind_proj['hor'] = {
+        dind_proj[kproj] = {
             'all': i3d2,
             'unique': iu,
             'counts': counts,

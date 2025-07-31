@@ -283,6 +283,7 @@ class Test04_Diagnostic_Spectro_Vos(Diag_Vos):
         n0=None,
         n1=None,
         res_lamb=None,
+        lamb=None,
     ):
         self.coll = _inputs.add_diags_spectro(
             conf=self.conf,
@@ -303,4 +304,5 @@ class Test04_Diagnostic_Spectro_Vos(Diag_Vos):
             n0=n0,
             n1=n1,
             res_lamb=res_lamb,
+            lamb=lamb,
         )
