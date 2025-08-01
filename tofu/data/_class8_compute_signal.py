@@ -126,6 +126,7 @@ def compute_signal(
     # pick routine
     if method == 'los':
         func = _compute_los
+        proj = None
     else:
         proj = method.replace('vos_', '')
         if spectro is True:
@@ -231,7 +232,7 @@ def _store(
 
     lkcam = list(dout.keys())
     dobj = {
-        'synth sig':{
+        'synth sig': {
             key: {
                 'diag': key_diag,
                 'camera': lkcam,
@@ -569,7 +570,10 @@ def _get_ref_bs_spectro(
     # safety check
 
     if key_ref_spectro is None:
-        msg = f"Spectral dimension of '{key_integrand} could not be identified'"
+        msg = (
+            f"Spectral dimension of '{key_integrand}' "
+            "could not be identified\n"
+        )
         raise Exception(msg)
 
     return key_ref_spectro, key_bs_spectro
@@ -740,7 +744,10 @@ def _compute_los(
             ni = i1 - i0
 
             # get rid of undefined LOS
-            ind_ch_flat = np.array([jj for jj in range(i0, i1) if ilosok[jj]], dtype=int)
+            ind_ch_flat = np.array(
+                [jj for jj in range(i0, i1) if ilosok[jj]],
+                dtype=int,
+            )
             ind_ch = np.unravel_index(ind_ch_flat, shape_cam)
             ni = ind_ch_flat.size
 
@@ -804,10 +811,13 @@ def _compute_los(
 
                 # bin spectrally before spatial interpolation
                 kbinned = f"{key_integrand}_bin_{k0}_{ii}"
-                #try:
+                # try:
                 coll.binning(
                     data=key_integrand,
-                    bin_data0=key_ref_spectro if key_bs_spectro is None else key_bs_spectro,
+                    bin_data0=(
+                        key_ref_spectro if key_bs_spectro is None
+                        else key_bs_spectro
+                    ),
                     bins0=ktemp_bin,
                     integrate=True,
                     verb=verb,
@@ -834,7 +844,9 @@ def _compute_los(
                 key_integrand_interp = kbinned
 
             elif spectro:
-                ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_ch_flat[0]]))
+                ind = np.argmin(
+                    np.abs(spect_ref_vect - E_flat[ind_ch_flat[0]])
+                )
                 domain = {key_ref_spectro: {'ind': np.r_[ind]}}
 
             # timing
@@ -922,12 +934,12 @@ def _compute_los(
                 sli = tuple(sli0)
 
                 # if jj in [50, 51]:
-                    # plt.figure();
-                    # plt.subplot(1,2,1)
-                    # plt.plot(dataii)
-                    # plt.subplot(1,2,2)
-                    # plt.plot(dataii.T)
-                    # plt.gcf().suptitle(f"jj = {jj}", size=12)
+                # plt.figure();
+                # plt.subplot(1,2,1)
+                # plt.plot(dataii)
+                # plt.subplot(1,2,2)
+                # plt.plot(dataii.T)
+                # plt.gcf().suptitle(f"jj = {jj}", size=12)
 
                 # integrate
                 data[sli] = scpinteg.trapezoid(
@@ -1047,7 +1059,10 @@ def _units_integration(
         if len(lunits) == 1:
             units_bs = lunits[0]
         else:
-            msg = "Don't know how to interpret line-integration units from bspline"
+            msg = (
+                "Don't know how to interpret line-integration "
+                "units from bspline\n"
+            )
             raise Exception(msg)
 
     return units0, units_bs
@@ -1564,7 +1579,8 @@ def _compute_vos_spectro(
 
         # brightness
         if brightness is True:
-            ketend = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['etendue']
+            wdiag = coll._which_diagnostic
+            ketend = coll.dobj[wdiag][key_diag]['doptics'][k0]['etendue']
             etend = coll.ddata[ketend]['data']
             ref_e = coll.ddata[ketend]['ref']
             sh_etend = (
