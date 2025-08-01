@@ -197,9 +197,9 @@ def main(
         iok = np.isfinite(pts_x)
 
         # get shape of arrays based on max nb of points ()
-        nn = np.ceil(length_rad / res).astype(int)
+        nn = np.ceil(length_rad / res)
         nmax = np.nansum(nn, axis=0) + 1
-        shape = tuple(np.r_[np.nanmax(nmax), length_rad.shape[1:]])
+        shape = tuple(np.r_[int(np.nanmax(nmax)), length_rad.shape[1:]])
 
         # initialize arrays
         itot = np.full(shape, np.nan)
@@ -230,13 +230,14 @@ def main(
                 i0i = i0[ioki]
             else:
                 i0i = i0[sli2]
-            nni = nn[tuple([iokin] + list(ind))]
+            nni = nn[tuple([iokin] + list(ind))].astype(int)
 
             # itoti
             itoti = []
             anyok = False
             for jj in range(i0i.size - 1):
                 if np.all(np.isfinite(i0i[jj:jj+2])):
+
                     itoti.append(
                         np.linspace(
                             i0i[jj],
