@@ -1174,6 +1174,7 @@ def _compute_vos(
             key=key_mesh,
             res=0.1,
             crop_poly=conf,
+            deg=1,
         )
 
     # -----------------
@@ -1494,16 +1495,66 @@ def _add_emiss(
     method=None,
 ):
 
+    wbs = coll._which_bsplines
+    lemis = [
+        kk for kk, vv in coll.ddata.items()
+        if 'emis' in kk
+        and vv.get(wbs) is not None
+    ]
+    if len(lemis) > 0:
+        return
+
     # -----------------
-    #
+    # add bsplines
     # -----------------
 
+    key_bs = list(coll.dobj.get(wbs, {}).keys())[0]
 
+    # R, Z
+    kR, kZ = coll.dobj[wbs][key_bs]['apex']
+    R = coll.ddata[kR]['data']
+    Z = coll.ddata[kZ]['data']
 
     # -------------
-    #
+    # emissivity profile with 1/1 mode
     # -------------
 
+    # time
+    t = np.linspace(0, 5, 21)
+
+    # fixed basis
+    R0, Z0 = 1.8, 0
+    DR, DZ = 0.2, 0.4
+    e0 = np.exp(-(R[:, None] - R0)**2/DR**2 - (Z[None, :] - Z0)**2/DZ**2)
+
+    # rotating mode
+    theta = np.arctan()
+    r0 = 0.2
+    dr, dz = 0.1, 0.2
+    Rm = R0 + r0*np.cos(theta)[:, None, None]
+    Zm = Z0 + r0*np.sin(theta)[:, None, None]
+    e1 = np.exp(
+        - (R[None, :, None] - Rm)**2 / dr**2
+        - (Z[None, None, :] - Zm)**2 / dz**2
+    )
+
+    emis = e0[None, :, :] + 0.2*e1
+
+    # -------------
+    # Store
+    # -------------
+
+    coll.add_data('t', data=t, ref='nt', units='s', dim='time')
+    coll.add_data('theta', data=theta, ref='nt', units='rad', dim='angle')
+    coll.add_data('Rm', data=Rm.ravel(), ref='nt', units='m', dim='distance')
+    coll.add_data('Zm', data=Zm.ravel(), ref='nt', units='m', dim='distance')
+    coll.add_data(
+        'emis',
+        data=emis,
+        ref=('nt', key_bs),
+        units='ph/m3/sr/s',
+        dim='emis',
+    )
 
     return
 
@@ -1538,7 +1589,7 @@ def _synthetic_signal(
 
     for kdiag in key_diag:
 
-        dout = coll.compute_diagnostic_signal(
+        _ = coll.compute_diagnostic_signal(
             key=None,
             key_diag=kdiag,
             key_integrand='emiss_spectro' if spectro else 'emiss',
@@ -1561,7 +1612,5 @@ def _synthetic_signal(
 
         if spectro and method in ['vos', 'vos_cross']:
             dproj = coll.check_diagnostic_vos_proj(kdiag)
-
-
 
     return
