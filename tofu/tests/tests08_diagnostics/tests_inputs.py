@@ -1235,7 +1235,7 @@ def _compute_vos(
 
             if (
                 (sum_3d.shape != sum_cross.shape)
-                or (not np.allclose(sum_3d, sum_cross))
+                or (not np.allclose(sum_3d, sum_cross, equal_nan=True))
             ):
                 msg = (
                     "Mismatch between vos_3d and vos_cross (spectro)!\n"
