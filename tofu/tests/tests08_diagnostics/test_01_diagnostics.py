@@ -227,6 +227,21 @@ class Diag_Vos():
             isZ=isZ,
         )
 
+    def test03_compute_synthetic_signal(
+        self,
+        key_diag=None,
+        res=None,
+        method=None,
+    ):
+        _inputs._synthetic_signal(
+            coll=self.coll,
+            key_diag=key_diag,
+            conf=self.conf,
+            spectro=self._spectro,
+            res=res,
+            method=method,
+        )
+
 
 # ############
 # Broadband
@@ -253,6 +268,7 @@ class Test03_Diagnostic_Broadband_Vos(Diag_Vos):
         self._def_kdiag = 'diag5'
         self._spectro = False
 
+        # compute vos
         _inputs._compute_vos(
             coll=self.coll,
             key_diag=key_diag,
@@ -264,6 +280,12 @@ class Test03_Diagnostic_Broadband_Vos(Diag_Vos):
             n0=n0,
             n1=n1,
             res_lamb=res_lamb,
+        )
+
+        # add emissivity
+        _inputs._add_emiss(
+            coll=self.coll,
+            spectro=False,
         )
 
 
@@ -293,6 +315,7 @@ class Test04_Diagnostic_Spectro_Vos(Diag_Vos):
         self._def_kdiag = 'sd5'
         self._spectro = True
 
+        # compute vos
         _inputs._compute_vos(
             coll=self.coll,
             key_diag=key_diag,
@@ -305,4 +328,10 @@ class Test04_Diagnostic_Spectro_Vos(Diag_Vos):
             n1=n1,
             res_lamb=res_lamb,
             lamb=lamb,
+        )
+
+        # add emissivity
+        _inputs._add_emiss(
+            coll=self.coll,
+            spectro=True,
         )

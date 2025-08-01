@@ -1492,7 +1492,6 @@ def _plot_coverage_slice(
 def _add_emiss(
     coll=None,
     spectro=None,
-    method=None,
 ):
 
     wbs = coll._which_bsplines
@@ -1520,7 +1519,9 @@ def _add_emiss(
     # -------------
 
     # time
-    t = np.linspace(0, 5, 21)
+    t0 = 0
+    t1 = 5
+    t = np.linspace(t0, t1, 21)
 
     # fixed basis
     R0, Z0 = 1.8, 0
@@ -1528,17 +1529,17 @@ def _add_emiss(
     e0 = np.exp(-(R[:, None] - R0)**2/DR**2 - (Z[None, :] - Z0)**2/DZ**2)
 
     # rotating mode
-    theta = np.arctan()
-    r0 = 0.2
-    dr, dz = 0.1, 0.2
-    Rm = R0 + r0*np.cos(theta)[:, None, None]
-    Zm = Z0 + r0*np.sin(theta)[:, None, None]
+    theta = np.arctan2(np.sin(4*np.pi*t/(t1-t0)), np.cos(4*np.pi*t/(t1-t0)))
+    r0R, r0Z = 0.2, 0.3
+    dr, dz = 0.1, 0.15
+    Rm = R0 + r0R*np.cos(theta)[:, None, None]
+    Zm = Z0 + r0Z*np.sin(theta)[:, None, None]
     e1 = np.exp(
         - (R[None, :, None] - Rm)**2 / dr**2
         - (Z[None, None, :] - Zm)**2 / dz**2
     )
 
-    emis = e0[None, :, :] + 0.2*e1
+    emis = e0[None, :, :] + 0.3*e1
 
     # -------------
     # Store
@@ -1548,13 +1549,38 @@ def _add_emiss(
     coll.add_data('theta', data=theta, ref='nt', units='rad', dim='angle')
     coll.add_data('Rm', data=Rm.ravel(), ref='nt', units='m', dim='distance')
     coll.add_data('Zm', data=Zm.ravel(), ref='nt', units='m', dim='distance')
-    coll.add_data(
-        'emis',
-        data=emis,
-        ref=('nt', key_bs),
-        units='ph/m3/sr/s',
-        dim='emis',
-    )
+
+    if spectro is False:
+        coll.add_data(
+            'emis',
+            data=emis,
+            ref=('nt', key_bs),
+            units='ph/m3/sr/s',
+            dim='emis',
+        )
+
+    else:
+        # lamb
+        lamb0 = 3e-10
+        lamb1 = 4e-10
+        lamb = np.linspace(lamb0, lamb1, 200)
+        coll.add_data('lamb', data=lamb, ref='nlamb', units='m')
+
+        # spectral emis
+        lambm = 0.5*(lamb0 + lamb1)
+        dlamb = 0.1*(lamb1 - lamb0)
+        elamb = 1 + 0.3*np.exp(-(lamb - lambm)**2/dlamb**2)
+
+        # overall
+        emis = emis[..., None] * elamb[None, None, None, :]
+
+        coll.add_data(
+            'emis',
+            data=emis,
+            ref=('nt', key_bs, 'nlamb'),
+            units='ph/m3/sr/s/m',
+            dim='emis',
+        )
 
     return
 
@@ -1595,7 +1621,6 @@ def _synthetic_signal(
             key_integrand='emiss_spectro' if spectro else 'emiss',
             method=method,
             key_ref_spectro=None,
-            method=method,
             res=None,
             mode=None,
             groupby=None,
