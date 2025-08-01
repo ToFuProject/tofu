@@ -136,13 +136,27 @@ class Diag_Los():
             res_lamb=res_lamb,
         )
 
-    def test10_save_to_json(self):
+    def test10_compute_synthetic_signal(
+        self,
+        key_diag=None,
+        res=None,
+    ):
+        _inputs._synthetic_signal(
+            coll=self.coll,
+            key_diag=key_diag,
+            spectro=self._spectro,
+            res=res,
+            method='los',
+            conf=self.conf,
+        )
+
+    def test11_save_to_json(self):
         _inputs._save_to_json(
             self.coll,
             remove=True,
         )
 
-    def test11_save_to_npz(self):
+    def test12_save_to_npz(self):
         _inputs._save_to_npz(
             self.coll,
             remove=True,
@@ -232,15 +246,15 @@ class Diag_Vos():
         self,
         key_diag=None,
         res=None,
-        method=None,
+        method='vos',
     ):
         _inputs._synthetic_signal(
             coll=self.coll,
             key_diag=key_diag,
-            conf=self.conf,
             spectro=self._spectro,
             res=res,
             method=method,
+            conf=self.conf,
         )
 
 

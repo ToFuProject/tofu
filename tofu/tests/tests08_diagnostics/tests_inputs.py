@@ -1166,16 +1166,10 @@ def _compute_vos(
     # add mesh
     # ---------------
 
-    # add mesh
-    key_mesh = 'm0'
-    wmesh = coll._which_mesh
-    if key_mesh not in coll.dobj.get(wmesh, {}).keys():
-        coll.add_mesh_2d_rect(
-            key=key_mesh,
-            res=0.1,
-            crop_poly=conf,
-            deg=1,
-        )
+    _add_mesh(
+        coll=coll,
+        conf=conf,
+    )
 
     # -----------------
     # loop on key_diag
@@ -1191,7 +1185,7 @@ def _compute_vos(
         coll.compute_diagnostic_vos(
             # keys
             key_diag=k0,
-            key_mesh=key_mesh,
+            key_mesh=None,
             # resolution
             res_RZ=res_RZ,
             res_phi=res_phi,
@@ -1485,28 +1479,58 @@ def _plot_coverage_slice(
 
 # ####################################################
 # ####################################################
+#           Add mesh / bsplines
+# ####################################################
+
+
+def _add_mesh(
+    coll=None,
+    conf=None,
+):
+
+    wm = coll._which_mesh
+    if len(coll.dobj.get(wm, {}).keys()) > 0:
+        return
+
+    key_mesh = 'm0'
+    wmesh = coll._which_mesh
+    if key_mesh not in coll.dobj.get(wmesh, {}).keys():
+        coll.add_mesh_2d_rect(
+            key=key_mesh,
+            res=0.08,
+            crop_poly=conf,
+            deg=1,
+        )
+
+    return
+
+
+# ####################################################
+# ####################################################
 #           Add emiss
 # ####################################################
 
 
 def _add_emiss(
     coll=None,
+    conf=None,
     spectro=None,
 ):
 
-    wbs = coll._which_bsplines
-    lemis = [
-        kk for kk, vv in coll.ddata.items()
-        if 'emis' in kk
-        and vv.get(wbs) is not None
-    ]
-    if len(lemis) > 0:
-        return
+    # ------------
+    # add mesh
+    # ------------
+
+    _add_mesh(
+        coll=coll,
+        conf=conf,
+    )
 
     # -----------------
     # add bsplines
     # -----------------
 
+    wbs = coll._which_bsplines
     key_bs = list(coll.dobj.get(wbs, {}).keys())[0]
 
     # R, Z
@@ -1596,7 +1620,19 @@ def _synthetic_signal(
     key_diag=None,
     spectro=None,
     method=None,
+    res=None,
+    conf=None,
 ):
+
+    # --------------
+    # check emis
+    # --------------
+
+    _add_emiss(
+        coll=coll,
+        conf=conf,
+        spectro=spectro,
+    )
 
     # --------------
     # inputs
@@ -1615,27 +1651,44 @@ def _synthetic_signal(
 
     for kdiag in key_diag:
 
-        _ = coll.compute_diagnostic_signal(
+        dout = coll.compute_diagnostic_signal(
             key=None,
             key_diag=kdiag,
-            key_integrand='emiss_spectro' if spectro else 'emiss',
+            key_integrand='emis',
             method=method,
-            key_ref_spectro=None,
-            res=None,
+            key_ref_spectro='nlamb',
+            res=res,
             mode=None,
             groupby=None,
             val_init=None,
             ref_com=None,
-            brightness=None,
+            brightness=False,
             spectral_binning=None,
             dvos=None,
             verb=None,
             timing=None,
-            store=None,
+            store=True,
             returnas=None,
         )
 
         if spectro and method in ['vos', 'vos_cross']:
             dproj = coll.check_diagnostic_vos_proj(kdiag)
+            lcam = coll.dobj['diagnostic'][kdiag]['doptics']['camera']
+            if all([kcam in dproj['3d'] for kcam in lcam]):
+
+                dout2 = coll.compute_diagnostic_signal(
+                    key=None,
+                    key_diag=kdiag,
+                    key_integrand='emiss',
+                    method='vos_3d',
+                    key_ref_spectro='nlamb',
+                    ref_com=None,
+                    brightness=False,
+                    store=False,
+                    returnas=dict,
+                )
+
+                import pdb; pdb.set_trace()     # DB
+
 
     return
