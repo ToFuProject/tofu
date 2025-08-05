@@ -1125,7 +1125,7 @@ def _compute_vos(
     res_RZ = float(ds._generic_check._check_var(
         res_RZ, 'res_RZ',
         types=(int, float),
-        default=0.015 if spectro is True else 0.03,
+        default=0.015 if spectro is True else 0.04,
         sign='>0',
     ))
 
@@ -1133,7 +1133,7 @@ def _compute_vos(
     res_phi = float(ds._generic_check._check_var(
         res_phi, 'res_phi',
         types=(int, float),
-        default=0.015 if spectro is True else 0.03,
+        default=0.015 if spectro is True else 0.04,
         sign='>0',
     ))
 
@@ -1408,7 +1408,7 @@ def _plot_coverage_slice(
     # res
     res = ds._generic_check._check_var(
         res, 'res',
-        default=0.03,
+        default=0.05,
         types=(int, float),
         sign='>0',
     )
