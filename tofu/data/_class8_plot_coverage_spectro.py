@@ -625,11 +625,13 @@ def _plot(
     lax = [v0['handle'] for v0 in dax.values() if ktype in v0['type']]
     for ax in lax:
 
+        iok = dlamb > 0
+
         # plot
         im = pfunc(
             ax,
             lamb,
-            vmin=np.min(dlamb[dlamb > 0]),
+            vmin=np.min(dlamb[iok]) if np.any(iok) else 0.,
             vmax=np.max(dlamb),
         )
 
