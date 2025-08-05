@@ -542,7 +542,6 @@ class Diagnostic(Previous):
         res_phi=None,
         lamb=None,
         res_lamb=None,
-        res_rock_curve=None,
         n0=None,
         n1=None,
         convexHull=None,
@@ -591,7 +590,6 @@ class Diagnostic(Previous):
             res_phi=res_phi,
             lamb=lamb,
             res_lamb=res_lamb,
-            res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
             convexHull=convexHull,
@@ -727,7 +725,6 @@ class Diagnostic(Previous):
         # parameters
         res_RZ=None,
         res_phi=None,
-        res_rock_curve=None,
         n0=None,
         n1=None,
         convexHull=None,
@@ -763,7 +760,6 @@ class Diagnostic(Previous):
         Parameters for plasma volume sampling:
             - res_RZ: float (m)
             - res_phi: float (m)
-            - res_rock_curve: float (rad)
 
         Parameters for sampling the solid angle for each point source
             - n0: int, nb of rays in horizontal direction
@@ -791,7 +787,6 @@ class Diagnostic(Previous):
             # etendue
             res_RZ=res_RZ,
             res_phi=res_phi,
-            res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
             convexHull=convexHull,
@@ -1168,7 +1163,6 @@ class Diagnostic(Previous):
         lamb0=None,
         res_lamb=None,
         rocking_curve=None,
-        res_rock_curve=None,
         # options
         append=None,
         plot=None,
@@ -1203,7 +1197,6 @@ class Diagnostic(Previous):
             lamb0=lamb0,
             res_lamb=res_lamb,
             rocking_curve=rocking_curve,
-            res_rock_curve=res_rock_curve,
             # options
             append=append,
             plot=plot,

@@ -113,21 +113,50 @@ class Diag_Los():
             coll=self.coll,
         )
 
-    def test09_compute_vos(self):
+    def test09_compute_vos(
+        self,
+        key_diag=None,
+        # options
+        res_RZ=None,
+        res_phi=None,
+        n0=None,
+        n1=None,
+        res_lamb=None,
+    ):
         _inputs._compute_vos(
             coll=self.coll,
             key_diag=None,
             conf=self.conf,
             spectro=self._spectro,
+            # options
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            n0=n0,
+            n1=n1,
+            res_lamb=res_lamb,
         )
 
-    def test10_save_to_json(self):
+    def test10_compute_synthetic_signal(
+        self,
+        key_diag=None,
+        res=None,
+    ):
+        _inputs._synthetic_signal(
+            coll=self.coll,
+            key_diag=key_diag,
+            spectro=self._spectro,
+            res=res,
+            method='los',
+            conf=self.conf,
+        )
+
+    def test11_save_to_json(self):
         _inputs._save_to_json(
             self.coll,
             remove=True,
         )
 
-    def test11_save_to_npz(self):
+    def test12_save_to_npz(self):
         _inputs._save_to_npz(
             self.coll,
             remove=True,
@@ -159,13 +188,15 @@ class Test01_Diagnostic_Broadband_Los(Diag_Los):
 
 class Test02_Diagnostic_Spectro_Los(Diag_Los):
 
-    def setup_method(self):
+    def setup_method(self, var=None, key_diag=None):
+
         self.coll = _inputs.add_diags_spectro(
             conf=self.conf,
             compute=True,
+            key_diag=key_diag,
         )
-        self._def_kdiag = 'd00_cryst0_cam0_los'
-        self._def_krays = 'd00_cryst0_cam0_los'
+        self._def_kdiag = 'sd0_cryst0_cam0_los'
+        self._def_krays = 'sd0_cryst0_cam0_los'
         self._spectro = True
 
 
@@ -211,6 +242,21 @@ class Diag_Vos():
             isZ=isZ,
         )
 
+    def test03_compute_synthetic_signal(
+        self,
+        key_diag=None,
+        res=None,
+        method='vos',
+    ):
+        _inputs._synthetic_signal(
+            coll=self.coll,
+            key_diag=key_diag,
+            spectro=self._spectro,
+            res=res,
+            method=method,
+            conf=self.conf,
+        )
+
 
 # ############
 # Broadband
@@ -219,7 +265,17 @@ class Diag_Vos():
 
 class Test03_Diagnostic_Broadband_Vos(Diag_Vos):
 
-    def setup_method(self):
+    def setup_method(
+        self,
+        var=None,
+        key_diag=None,
+        # options
+        res_RZ=None,
+        res_phi=None,
+        n0=None,
+        n1=None,
+        res_lamb=None,
+    ):
         self.coll = _inputs.add_diags_broadband(
             conf=self.conf,
             conf_touch=self.conf_touch,
@@ -228,9 +284,80 @@ class Test03_Diagnostic_Broadband_Vos(Diag_Vos):
         self._def_kdiag = 'diag5'
         self._spectro = False
 
+        # compute vos
         _inputs._compute_vos(
             coll=self.coll,
-            key_diag=None,
+            key_diag=key_diag,
             conf=self.conf,
             spectro=self._spectro,
+            # options
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            n0=n0,
+            n1=n1,
+            res_lamb=res_lamb,
         )
+
+        # add emissivity
+        _inputs._add_emiss(
+            coll=self.coll,
+            spectro=False,
+        )
+
+
+# ############
+# Spectro
+# ############
+
+
+class Test04_Diagnostic_Spectro_Vos(Diag_Vos):
+
+    def setup_method(
+        self,
+        var=None,
+        key_diag=None,
+        # options
+        res_RZ=None,
+        res_phi=None,
+        n0=None,
+        n1=None,
+        res_lamb=None,
+        lamb=None,
+    ):
+        self.coll = _inputs.add_diags_spectro(
+            conf=self.conf,
+            compute=True,
+            key_diag=key_diag,
+        )
+        self._def_kdiag = 'sd5'
+        self._spectro = True
+
+        # compute vos
+        _inputs._compute_vos(
+            coll=self.coll,
+            key_diag=key_diag,
+            conf=self.conf,
+            spectro=self._spectro,
+            # options
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            n0=n0,
+            n1=n1,
+            res_lamb=res_lamb,
+            lamb=lamb,
+        )
+
+        # add emissivity
+        _inputs._add_emiss(
+            coll=self.coll,
+            spectro=True,
+        )
+
+    def test02_plot_coverage_slice(
+        self,
+        key_diag=None,
+        res=None,
+        close=None,
+        isZ=None,
+    ):
+        return

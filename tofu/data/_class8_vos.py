@@ -34,7 +34,6 @@ def compute_vos(
     res_phi=None,
     lamb=None,
     res_lamb=None,
-    res_rock_curve=None,
     n0=None,
     n1=None,
     convexHull=None,
@@ -52,6 +51,9 @@ def compute_vos(
     # spectro-only
     rocking_curve_fw=None,
     rocking_curve_max=None,
+    # cleanup
+    cleanup_pts=None,
+    cleanup_lamb=None,
     # bool
     visibility=None,
     convex=None,
@@ -81,9 +83,9 @@ def compute_vos(
         res_RZ,
         res_phi,
         res_lamb,
-        keep_cross,
-        keep_hor,
-        keep_3d,
+        dkeep,
+        cleanup_pts,
+        cleanup_lamb,
         return_vector,
         convexHull,
         visibility,
@@ -104,6 +106,9 @@ def compute_vos(
         lamb=lamb,
         res_lamb=res_lamb,
         convexHull=convexHull,
+        # cleanup
+        cleanup_pts=cleanup_pts,
+        cleanup_lamb=cleanup_lamb,
         # bool
         keep_cross=keep_cross,
         keep_hor=keep_hor,
@@ -127,20 +132,18 @@ def compute_vos(
     # -----------
     # prepare
 
-    func_RZphi_from_ind = None
-    func_ind_from_domain = None
+    (
+        func_RZphi_from_ind,
+        func_ind_from_domain,
+    ) = coll.get_sample_mesh_3d_func(
+        key=key_mesh,
+        res_RZ=res_RZ,
+        mode='abs',
+        res_phi=res_phi,
+    )
     if spectro:
         func = _vos_spectro._vos
     else:
-        (
-            func_RZphi_from_ind,
-            func_ind_from_domain,
-        ) = coll.get_sample_mesh_3d_func(
-            key=key_mesh,
-            res_RZ=res_RZ,
-            mode='abs',
-            res_phi=res_phi,
-        )
         func = _vos_broadband._vos
 
     # ------------
@@ -245,18 +248,18 @@ def compute_vos(
             res_phi=res_phi,
             lamb=lamb,
             res_lamb=res_lamb,
-            res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
             convexHull=convexHull,
             bool_cross=bool_cross,
             # user-defined limits
             user_limits=user_limits,
-            # keep3d
-            keep_cross=keep_cross,
-            keep_hor=keep_hor,
-            keep_3d=keep_3d,
+            # keep
+            dkeep=dkeep,
             return_vector=return_vector,
+            # cleanup
+            cleanup_pts=cleanup_pts,
+            cleanup_lamb=cleanup_lamb,
             # parameters
             margin_poly=margin_poly,
             config=config,
@@ -310,7 +313,6 @@ def compute_vos(
             res_RZ=res_RZ,
             res_phi=res_phi,
             res_lamb=res_lamb if spectro else None,
-            res_rock_curve=res_rock_curve if spectro else None,
         )
 
     return dvos, dref
@@ -337,6 +339,9 @@ def _check(
     keep_hor=None,
     keep_3d=None,
     return_vector=None,
+    # cleanup
+    cleanup_pts=None,
+    cleanup_lamb=None,
     # bool
     visibility=None,
     check=None,
@@ -500,7 +505,13 @@ def _check(
     # -------------
     # at least one
 
-    if not any([keep_cross, keep_hor, keep_3d]):
+    dkeep = {
+        '3d': keep_3d,
+        'cross': keep_cross,
+        'hor': keep_hor,
+    }
+
+    if not any([v0 for v0 in dkeep.values()]):
         msg = (
             "When computing VOS, you must keep at least one of:\n"
             "\t- keep_cross: cross-section projection of VOS\n"
@@ -510,6 +521,24 @@ def _check(
             "\t- keep_3d: Full 3d VOS (heavier)\n"
         )
         raise Exception(msg)
+
+    # -----------
+    # cleanup_pts
+
+    cleanup_pts = ds._generic_check._check_var(
+        cleanup_pts, 'cleanup_pts',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
+    # cleanup_lamb
+
+    cleanup_lamb = ds._generic_check._check_var(
+        cleanup_lamb, 'cleanup_lamb',
+        types=bool,
+        default=False,
+    )
 
     # -----------
     # return_vector
@@ -599,9 +628,9 @@ def _check(
         res_RZ,
         res_phi,
         res_lamb,
-        keep_cross,
-        keep_hor,
-        keep_3d,
+        dkeep,
+        cleanup_pts,
+        cleanup_lamb,
         return_vector,
         convexHull,
         visibility,
@@ -921,12 +950,27 @@ def _check_get_dvos(
     # prepare keys
     # -------------------
 
+    # common as-is
     lk_asis = ['keym', 'res_RZ', 'res_phi']
 
+    # common data
     lk_data = []
+
+    # spectro-specific
+    if spectro is True:
+        lk_asis += ['res_lamb']
+        lk_data = [
+            'lamb', 'etendlen',
+            # 'phi_min', 'phi_max', 'phi_mean',
+        ]
+
+    # tuple and projection-specific
     dk_tuple = {}
     for kproj, lcam in dvosproj.items():
         lk_data += [f'sang_{kproj}', f'dV_{kproj}', f'ndV_{kproj}']
+        if spectro is True:
+            lk_data += [f'ph_{kproj}', f'ncounts_{kproj}']
+
         dk_tuple[f'ind_{kproj}'] = [f"indr_{kproj}"]
         dk_tuple[f'vect_{kproj}'] = [
             f'vectx_{kproj}', f'vecty_{kproj}', f'vectz_{kproj}',
@@ -935,16 +979,6 @@ def _check_get_dvos(
             dk_tuple[f'ind_{kproj}'].append(f"indz_{kproj}")
         if kproj != 'cross':
             dk_tuple[f'ind_{kproj}'].append(f"indphi_{kproj}")
-
-    # spectro
-    if spectro is True:
-        lk_asis += ['res_lamb', 'res_rock_curve']
-        lk_data = [
-            'lamb',
-            'phi_min', 'phi_max', 'phi_mean',
-            'ph', 'ncounts', 'cos',
-            'etendlen',
-        ]
 
     # ------
     # dvos

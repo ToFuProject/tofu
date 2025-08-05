@@ -37,7 +37,6 @@ def compute_vos_nobin_at_lamb(
     # parameters
     res_RZ=None,
     res_phi=None,
-    res_rock_curve=None,
     n0=None,
     n1=None,
     convexHull=None,
@@ -166,7 +165,6 @@ def compute_vos_nobin_at_lamb(
                 sh=sh,
                 res_RZ=res_RZ,
                 res_phi=res_phi,
-                res_rock_curve=res_rock_curve,
                 n0=n0,
                 n1=n1,
                 bool_cross=bool_cross,
@@ -206,7 +204,6 @@ def compute_vos_nobin_at_lamb(
             dout[k0]['keym'] = key_mesh
             dout[k0]['res_RZ'] = res_RZ
             dout[k0]['res_phi'] = res_phi
-            dout[k0]['res_rock_curve'] = res_rock_curve
 
     # -------------
     # replace
@@ -245,7 +242,6 @@ def _check(
     # parameters
     res_RZ=None,
     res_phi=None,
-    res_rock_curve=None,
     n0=None,
     n1=None,
     convexHull=None,
@@ -473,7 +469,6 @@ def _vos_nobin_at_lamb(
     dphi_r=None,
     sh=None,
     res_phi=None,
-    res_rock_curve=None,
     n0=None,
     n1=None,
     nmax_rays=None,
@@ -606,7 +601,6 @@ def _vos_nobin_at_lamb(
         kspectro=kspectro,
         res_lamb=None,
         lamb=lamb,
-        res_rock_curve=res_rock_curve,
         verb=verb,
     )
 

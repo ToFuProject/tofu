@@ -684,7 +684,6 @@ def _store_dvos(
     res_RZ=None,
     res_phi=None,
     res_lamb=None,
-    res_rock_curve=None,
 ):
 
     # ------------
@@ -830,8 +829,5 @@ def _store_dvos(
         # spectro
         if res_lamb is not None:
             doptics[k0]['dvos']['res_lamb'] = res_lamb
-
-        if res_rock_curve is not None:
-            doptics[k0]['dvos']['res_rock_curve'] = res_rock_curve
 
     return

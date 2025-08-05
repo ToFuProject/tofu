@@ -686,6 +686,7 @@ def add_diags_broadband(
 def add_diags_spectro(
     coll=None,
     conf=None,
+    key_diag=None,
     compute=None,
 ):
 
@@ -695,6 +696,11 @@ def add_diags_spectro(
 
     if coll is None:
         coll = tf.data.Collection()
+
+    # key_diag
+    if key_diag is not None:
+        if isinstance(key_diag, str):
+            key_diag = [key_diag]
 
     # --------------
     # get inputs
@@ -765,12 +771,18 @@ def add_diags_spectro(
     # add diagnostic
     # -----------------
 
-    for k0, v0 in coll.doptics.items():
-        coll.add_diagnostic(
-            doptics=v0,
-            config=conf,
-            compute_vos_from_los=True,
-        )
+    for ii, (k0, v0) in enumerate(coll.doptics.items()):
+        kdiag = f'sd{ii}'
+        if key_diag is None or kdiag in key_diag:
+            coll.add_diagnostic(
+                key=kdiag,
+                doptics=v0,
+                config=conf,
+                compute_vos_from_los=True,
+            )
+        else:
+            msg = f"not added: diag '{kdiag}'\n"
+            print(msg)
 
     # add toroidal
     # coll.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
@@ -1062,7 +1074,6 @@ def _reverse_ray_tracing(
             lamb0=lamb,
             res_lamb=None,
             rocking_curve=None,
-            res_rock_curve=None,
             append=None,
             plot=True,
             dax=None,
@@ -1090,31 +1101,74 @@ def _compute_vos(
     key_diag=None,
     conf=None,
     spectro=False,
+    # options
+    res_RZ=None,
+    res_phi=None,
+    n0=None,
+    n1=None,
+    res_lamb=None,
+    lamb=None,
 ):
 
     # ---------------
-    # key_diag
+    # inputs
     # ---------------
 
+    # key_diag
     key_diag = _get_key_diag(
         coll=coll,
         key_diag=key_diag,
         spectro=spectro,
     )
 
+    # res_RZ
+    res_RZ = float(ds._generic_check._check_var(
+        res_RZ, 'res_RZ',
+        types=(int, float),
+        default=0.015 if spectro is True else 0.04,
+        sign='>0',
+    ))
+
+    # res_phi
+    res_phi = float(ds._generic_check._check_var(
+        res_phi, 'res_phi',
+        types=(int, float),
+        default=0.015 if spectro is True else 0.04,
+        sign='>0',
+    ))
+
+    # res_lamb
+    res_lamb = float(ds._generic_check._check_var(
+        res_lamb, 'res_lamb',
+        types=(int, float),
+        default=2e-12,
+        sign='>0',
+    ))
+
+    # n0
+    n0 = ds._generic_check._check_var(
+        n0, 'n0',
+        types=int,
+        default=3,
+        sign='>0',
+    )
+
+    # n1
+    n1 = ds._generic_check._check_var(
+        n1, 'n1',
+        types=int,
+        default=3,
+        sign='>0',
+    )
+
     # ---------------
     # add mesh
     # ---------------
 
-    # add mesh
-    key_mesh = 'm0'
-    wmesh = coll._which_mesh
-    if key_mesh not in coll.dobj.get(wmesh, {}).keys():
-        coll.add_mesh_2d_rect(
-            key=key_mesh,
-            res=0.1,
-            crop_poly=conf,
-        )
+    _add_mesh(
+        coll=coll,
+        conf=conf,
+    )
 
     # -----------------
     # loop on key_diag
@@ -1125,29 +1179,62 @@ def _compute_vos(
 
         keep_cross = True
         keep_hor = (ii % 2 == 0)
-        keep_3d = False
+        keep_3d = ii == 0
 
         coll.compute_diagnostic_vos(
             # keys
             key_diag=k0,
-            key_mesh=key_mesh,
+            key_mesh=None,
             # resolution
-            res_RZ=0.04,
-            res_phi=0.04,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
             # keep
             keep_cross=keep_cross,
             keep_hor=keep_hor,
             keep_3d=keep_3d,
             # spectro
-            n0=3,
-            n1=3,
-            res_lamb=2e-10,
+            n0=n0,
+            n1=n1,
+            res_lamb=res_lamb,
+            lamb=lamb,
             visibility=False,
             overwrite=True,
             replace_poly=True,
             store=True,
         )
 
+        # testing vos
+        if keep_cross is True and keep_3d is True:
+            if spectro is True:
+                pattern = 'ph'
+            else:
+                pattern = 'sa'
+
+            k_3d = [
+                kk for kk in coll.ddata.keys()
+                if kk.endswith(f'vos_{pattern}_3d')
+                and k0 in kk
+            ][0]
+            k_cross = [
+                kk for kk in coll.ddata.keys()
+                if kk.endswith(f'vos_{pattern}_cross')
+                and k0 in kk
+            ][0]
+
+            v_3d = coll.ddata[k_3d]['data']
+            v_cross = coll.ddata[k_cross]['data']
+            sum_3d = v_3d.sum(axis=-2 if spectro else -1)
+            sum_cross = np.sum(v_cross, axis=-2 if spectro else -1)
+
+            if (
+                (sum_3d.shape != sum_cross.shape)
+                or (not np.allclose(sum_3d, sum_cross, equal_nan=True))
+            ):
+                msg = (
+                    "Mismatch between vos_3d and vos_cross (spectro)!\n"
+                    f"\t- diag: '{k0}'\n"
+                )
+                raise Exception(msg)
     return
 
 
@@ -1283,7 +1370,7 @@ def _plot_coverage(
 
     for ii, k0 in enumerate(key_diag):
 
-        _ = coll.plot_diagnostic_geometrical_coverage(k0)
+        _ = coll.plot_diagnostic_geometrical_coverage(k0, plot_config=conf)
 
         if close is not False:
             plt.close('all')
@@ -1321,7 +1408,7 @@ def _plot_coverage_slice(
     # res
     res = ds._generic_check._check_var(
         res, 'res',
-        default=0.03,
+        default=0.05,
         types=(int, float),
         sign='>0',
     )
@@ -1385,5 +1472,226 @@ def _plot_coverage_slice(
 
         if close is not False:
             plt.close('all')
+
+    return
+
+
+# ####################################################
+# ####################################################
+#           Add mesh / bsplines
+# ####################################################
+
+
+def _add_mesh(
+    coll=None,
+    conf=None,
+):
+
+    wm = coll._which_mesh
+    if len(coll.dobj.get(wm, {}).keys()) > 0:
+        return
+
+    key_mesh = 'm0'
+    wmesh = coll._which_mesh
+    if key_mesh not in coll.dobj.get(wmesh, {}).keys():
+        coll.add_mesh_2d_rect(
+            key=key_mesh,
+            res=0.08,
+            crop_poly=conf,
+            deg=1,
+        )
+
+    return
+
+
+# ####################################################
+# ####################################################
+#           Add emiss
+# ####################################################
+
+
+def _add_emiss(
+    coll=None,
+    conf=None,
+    spectro=None,
+):
+
+    # ------------
+    # add mesh
+    # ------------
+
+    _add_mesh(
+        coll=coll,
+        conf=conf,
+    )
+
+    # check emis
+    if len([kk for kk in coll.ddata.keys() if 'emis' in kk]) > 0:
+        return
+
+    # -----------------
+    # add bsplines
+    # -----------------
+
+    wbs = coll._which_bsplines
+    key_bs = list(coll.dobj.get(wbs, {}).keys())[0]
+
+    # R, Z
+    kR, kZ = coll.dobj[wbs][key_bs]['apex']
+    R = coll.ddata[kR]['data']
+    Z = coll.ddata[kZ]['data']
+
+    # -------------
+    # emissivity profile with 1/1 mode
+    # -------------
+
+    # time
+    t0 = 0
+    t1 = 5
+    t = np.linspace(t0, t1, 21)
+
+    # fixed basis
+    R0, Z0 = 1.8, 0
+    DR, DZ = 0.2, 0.4
+    e0 = np.exp(-(R[:, None] - R0)**2/DR**2 - (Z[None, :] - Z0)**2/DZ**2)
+
+    # rotating mode
+    theta = np.arctan2(np.sin(4*np.pi*t/(t1-t0)), np.cos(4*np.pi*t/(t1-t0)))
+    r0R, r0Z = 0.2, 0.3
+    dr, dz = 0.1, 0.15
+    Rm = R0 + r0R*np.cos(theta)[:, None, None]
+    Zm = Z0 + r0Z*np.sin(theta)[:, None, None]
+    e1 = np.exp(
+        - (R[None, :, None] - Rm)**2 / dr**2
+        - (Z[None, None, :] - Zm)**2 / dz**2
+    )
+
+    emis = e0[None, :, :] + 0.3*e1
+
+    # -------------
+    # Store
+    # -------------
+
+    coll.add_data('t', data=t, ref='nt', units='s', dim='time')
+    coll.add_data('theta', data=theta, ref='nt', units='rad', dim='angle')
+    coll.add_data('Rm', data=Rm.ravel(), ref='nt', units='m', dim='distance')
+    coll.add_data('Zm', data=Zm.ravel(), ref='nt', units='m', dim='distance')
+
+    if spectro is False:
+        coll.add_data(
+            'emis',
+            data=emis,
+            ref=('nt', key_bs),
+            units='ph/m3/sr/s',
+            dim='emis',
+        )
+
+    else:
+        # lamb
+        lamb0 = 3.91e-10
+        lamb1 = 4.01e-10
+        lamb = np.linspace(lamb0, lamb1, 3000)
+        coll.add_mesh_1d('mlamb', knots=lamb, deg=1, units='m')
+
+        # spectral emis
+        lambm = 0.5*(lamb0 + lamb1)
+        dlamb = 0.1*(lamb1 - lamb0)
+        elamb = 1 + 0.3*np.exp(-(lamb - lambm)**2/dlamb**2)
+
+        # overall
+        emis = emis[..., None] * elamb[None, None, None, :]
+
+        coll.add_data(
+            'emis',
+            data=emis,
+            ref=('nt', key_bs, 'mlamb_bs1'),
+            units='ph/m3/sr/s/m',
+            dim='emis',
+        )
+
+    return
+
+
+# ####################################################
+# ####################################################
+#           Synthetic signal
+# ####################################################
+
+
+def _synthetic_signal(
+    coll=None,
+    key_diag=None,
+    spectro=None,
+    method=None,
+    res=None,
+    conf=None,
+):
+
+    # --------------
+    # check emis
+    # --------------
+
+    _add_emiss(
+        coll=coll,
+        conf=conf,
+        spectro=spectro,
+    )
+
+    # --------------
+    # inputs
+    # --------------
+
+    # key_diag
+    key_diag = _get_key_diag(
+        coll=coll,
+        key_diag=key_diag,
+        spectro=spectro,
+    )
+
+    # --------------
+    # compute
+    # --------------
+
+    for kdiag in key_diag:
+
+        dout = coll.compute_diagnostic_signal(
+            key=None,
+            key_diag=kdiag,
+            key_integrand='emis',
+            method=method,
+            key_ref_spectro='mlamb_bs1_nbs',   # None would work too
+            res=res,
+            mode=None,
+            groupby=None,
+            val_init=None,
+            ref_com=None,
+            brightness=False,
+            spectral_binning=None,
+            dvos=None,
+            verb=None,
+            timing=None,
+            store=True,
+            returnas=None,
+        )
+        assert dout is None
+
+        if spectro and method in ['vos', 'vos_cross']:
+            dproj = coll.check_diagnostic_vos_proj(kdiag)
+            lcam = coll.dobj['diagnostic'][kdiag]['camera']
+            if all([kcam in dproj['3d'] for kcam in lcam]):
+
+                dout2 = coll.compute_diagnostic_signal(
+                    key=None,
+                    key_diag=kdiag,
+                    key_integrand='emis',
+                    method='vos_3d',
+                    key_ref_spectro=None,
+                    ref_com=None,
+                    brightness=False,
+                    store=False,
+                    returnas=dict,
+                )
+
+                assert isinstance(dout2, dict)
 
     return

@@ -62,7 +62,6 @@ def _compute(
         n0=n0,
         n1=n1,
         # others
-        res_rock_curve=None,
         lamb0=None,
         res_lamb=res_lamb,
         plot=False,
