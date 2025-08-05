@@ -1592,7 +1592,7 @@ def _add_emiss(
         lamb0 = 3.91e-10
         lamb1 = 4.01e-10
         lamb = np.linspace(lamb0, lamb1, 3000)
-        coll.add_data('lamb', data=lamb, ref='nlamb', units='m')
+        coll.add_mesh_1d('mlamb', knots=lamb, deg=1, units='m')
 
         # spectral emis
         lambm = 0.5*(lamb0 + lamb1)
@@ -1605,7 +1605,7 @@ def _add_emiss(
         coll.add_data(
             'emis',
             data=emis,
-            ref=('nt', key_bs, 'nlamb'),
+            ref=('nt', key_bs, 'mlamb_bs1'),
             units='ph/m3/sr/s/m',
             dim='emis',
         )
@@ -1660,7 +1660,7 @@ def _synthetic_signal(
             key_diag=kdiag,
             key_integrand='emis',
             method=method,
-            key_ref_spectro='nlamb',
+            key_ref_spectro='mlamb_bs1_nbs',   # None would work too
             res=res,
             mode=None,
             groupby=None,
@@ -1674,25 +1674,25 @@ def _synthetic_signal(
             store=True,
             returnas=None,
         )
+        assert dout is None
 
         if spectro and method in ['vos', 'vos_cross']:
             dproj = coll.check_diagnostic_vos_proj(kdiag)
-            lcam = coll.dobj['diagnostic'][kdiag]['doptics']['camera']
+            lcam = coll.dobj['diagnostic'][kdiag]['camera']
             if all([kcam in dproj['3d'] for kcam in lcam]):
 
                 dout2 = coll.compute_diagnostic_signal(
                     key=None,
                     key_diag=kdiag,
-                    key_integrand='emiss',
+                    key_integrand='emis',
                     method='vos_3d',
-                    key_ref_spectro='nlamb',
+                    key_ref_spectro=None,
                     ref_com=None,
                     brightness=False,
                     store=False,
                     returnas=dict,
                 )
 
-                import pdb; pdb.set_trace()     # DB
-
+                assert isinstance(dout2, dict)
 
     return

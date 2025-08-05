@@ -418,7 +418,6 @@ def main(
             # plt.plot(lengthtot)
             # plt.subplot(1,4,4)
             # plt.plot(kk*length + lengthtot)
-            # import pdb; pdb.set_trace()     # DB
 
             lout.append(kk*length + lengthtot)
 
