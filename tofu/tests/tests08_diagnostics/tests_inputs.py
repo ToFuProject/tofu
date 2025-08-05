@@ -1074,7 +1074,6 @@ def _reverse_ray_tracing(
             lamb0=lamb,
             res_lamb=None,
             rocking_curve=None,
-            res_rock_curve=None,
             append=None,
             plot=True,
             dax=None,
