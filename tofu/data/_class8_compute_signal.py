@@ -1390,7 +1390,7 @@ def _compute_vos_spectro(
         key_integrand_interp_lamb = f"{key_integrand}_interp_lamb"
         if spectral_binningi is True:
 
-            ktemp_bin = f'{key_bs_spectro}_{k0}_temp_bin'
+            ktemp_bin = f'{key_ref_spectro}_{k0}_temp_bin'
             edge_spectro = np.r_[
                 lamb[0] - 0.5*(lamb[1] - lamb[0]),
                 0.5 * (lamb[1:] + lamb[:-1]),
@@ -1508,7 +1508,7 @@ def _compute_vos_spectro(
         # sum to get signal
 
         # ref
-        ref_vos = list(coll.ddata[v0['ph']['key']]['ref'])
+        ref_vos = list(coll.ddata[v0[f'ph_{proj}']['key']]['ref'])
         ref_data = list(douti['ref'])
         ref_data[ref_data.index(None)] = ref_vos[-2]
         refc = [rr for rr in ref_data if rr in ref_vos]
@@ -1522,7 +1522,7 @@ def _compute_vos_spectro(
         shape_data = douti['data'].shape
 
         # (n0, n1, npts, nlamb)
-        shape_vos = v0['ph']['data'].shape
+        shape_vos = v0[f'ph_{proj}']['data'].shape
 
         # (nt, n0, n1)
         shape_sig = [
@@ -1564,7 +1564,7 @@ def _compute_vos_spectro(
             sli_vos[ax_n1_vos] = i1
             sig[tuple(sli_sig)] = np.nansum(
                 douti['data']
-                * v0['ph']['data'][tuple(sli_vos)],
+                * v0[f'ph_{proj}']['data'][tuple(sli_vos)],
                 axis=(ax_lamb_data, ax_pts_data),
             )
 
@@ -1572,7 +1572,10 @@ def _compute_vos_spectro(
         ref = [rr for rr in ref if rr not in refc]
 
         # units
-        units = asunits.Unit(v0['ph']['units']) * asunits.Unit(douti['units'])
+        units = (
+            asunits.Unit(v0[f'ph_{proj}']['units'])
+            * asunits.Unit(douti['units'])
+        )
 
         # --------------
         # post-treatment
