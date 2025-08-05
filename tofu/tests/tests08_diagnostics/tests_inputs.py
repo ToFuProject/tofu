@@ -1526,6 +1526,10 @@ def _add_emiss(
         conf=conf,
     )
 
+    # check emis
+    if len([kk for kk in coll.ddata.keys() if 'emis' in kk]) > 0:
+        return
+
     # -----------------
     # add bsplines
     # -----------------
