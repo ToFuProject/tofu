@@ -1125,7 +1125,7 @@ def _compute_vos(
     res_RZ = float(ds._generic_check._check_var(
         res_RZ, 'res_RZ',
         types=(int, float),
-        default=0.015,
+        default=0.015 if spectro is True else 0.03,
         sign='>0',
     ))
 
@@ -1133,7 +1133,7 @@ def _compute_vos(
     res_phi = float(ds._generic_check._check_var(
         res_phi, 'res_phi',
         types=(int, float),
-        default=0.015,
+        default=0.015 if spectro is True else 0.03,
         sign='>0',
     ))
 
@@ -1149,7 +1149,7 @@ def _compute_vos(
     n0 = ds._generic_check._check_var(
         n0, 'n0',
         types=int,
-        default=5,
+        default=3,
         sign='>0',
     )
 
@@ -1157,7 +1157,7 @@ def _compute_vos(
     n1 = ds._generic_check._check_var(
         n1, 'n1',
         types=int,
-        default=5,
+        default=3,
         sign='>0',
     )
 
