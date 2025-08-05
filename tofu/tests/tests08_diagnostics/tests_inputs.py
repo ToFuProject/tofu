@@ -1125,7 +1125,7 @@ def _compute_vos(
     res_RZ = float(ds._generic_check._check_var(
         res_RZ, 'res_RZ',
         types=(int, float),
-        default=0.03,
+        default=0.01,
         sign='>0',
     ))
 
@@ -1133,7 +1133,7 @@ def _compute_vos(
     res_phi = float(ds._generic_check._check_var(
         res_phi, 'res_phi',
         types=(int, float),
-        default=0.03,
+        default=0.01,
         sign='>0',
     ))
 
@@ -1141,7 +1141,7 @@ def _compute_vos(
     res_lamb = float(ds._generic_check._check_var(
         res_lamb, 'res_lamb',
         types=(int, float),
-        default=2e-12,
+        default=1e-12,
         sign='>0',
     ))
 
@@ -1149,7 +1149,7 @@ def _compute_vos(
     n0 = ds._generic_check._check_var(
         n0, 'n0',
         types=int,
-        default=3,
+        default=5,
         sign='>0',
     )
 
@@ -1157,7 +1157,7 @@ def _compute_vos(
     n1 = ds._generic_check._check_var(
         n1, 'n1',
         types=int,
-        default=3,
+        default=5,
         sign='>0',
     )
 
