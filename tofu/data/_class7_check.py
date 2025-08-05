@@ -2,13 +2,10 @@
 
 
 import numpy as np
-import scipy.constants as scpct
 import datastock as ds
 
 
-from . import _utils_surface3d
 from . import _class4_check
-
 from ..geom._comp_solidangles import _check_polygon_2d
 
 
@@ -943,11 +940,14 @@ def _dmat(
 def get_camera_unitvectors(
     coll=None,
     key=None,
+    broadcast=None,
 ):
 
     # ---------
     # check key
+    # ---------
 
+    # key
     lok = list(coll.dobj.get('camera', {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
@@ -955,22 +955,44 @@ def get_camera_unitvectors(
         allowed=lok,
     )
 
+    # broadcast
+    broadcast = ds._generic_check._check_var(
+        broadcast, 'broadcast',
+        types=bool,
+        default=False,
+    )
+
     # ---------------------------
     # get unit vector components
 
     dgeom = coll.dobj['camera'][key]['dgeom']
     if dgeom['parallel']:
-        dout = {
-            'nin_x': dgeom['nin'][0],
-            'nin_y': dgeom['nin'][1],
-            'nin_z': dgeom['nin'][2],
-            'e0_x':  dgeom['e0'][0],
-            'e0_y':  dgeom['e0'][1],
-            'e0_z':  dgeom['e0'][2],
-            'e1_x':  dgeom['e1'][0],
-            'e1_y':  dgeom['e1'][1],
-            'e1_z':  dgeom['e1'][2],
-        }
+        if broadcast is True:
+            shape = dgeom['shape']
+            dout = {
+                'nin_x': np.full(shape, dgeom['nin'][0]),
+                'nin_y': np.full(shape, dgeom['nin'][1]),
+                'nin_z': np.full(shape, dgeom['nin'][2]),
+                'e0_x': np.full(shape, dgeom['e0'][0]),
+                'e0_y': np.full(shape, dgeom['e0'][1]),
+                'e0_z': np.full(shape, dgeom['e0'][2]),
+                'e1_x': np.full(shape, dgeom['e1'][0]),
+                'e1_y': np.full(shape, dgeom['e1'][1]),
+                'e1_z': np.full(shape, dgeom['e1'][2]),
+            }
+
+        else:
+            dout = {
+                'nin_x': dgeom['nin'][0],
+                'nin_y': dgeom['nin'][1],
+                'nin_z': dgeom['nin'][2],
+                'e0_x':  dgeom['e0'][0],
+                'e0_y':  dgeom['e0'][1],
+                'e0_z':  dgeom['e0'][2],
+                'e1_x':  dgeom['e1'][0],
+                'e1_y':  dgeom['e1'][1],
+                'e1_z':  dgeom['e1'][2],
+            }
     else:
         dout = {
             'nin_x': coll.ddata[dgeom['nin'][0]]['data'],
@@ -987,19 +1009,22 @@ def get_camera_unitvectors(
     return dout
 
 
-def get_camera_dxyz(coll=None, key=None, include_center=None):
+def get_camera_dxyz(
+    coll=None,
+    key=None,
+    kout=None,
+    include_center=None,
+):
 
-    # ---------
-    # check key
+    # ------------
+    # check inputs
+    # ------------
 
-    lok = [
-        k0 for k0, v0 in coll.dobj.get('camera', {}).items()
-        if v0['dgeom']['parallel'] is True
-    ]
+    wcam = coll._which_cam
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
-        allowed=lok,
+        allowed=list(coll.dobj.get(wcam, {}).keys()),
     )
 
     dgeom = coll.dobj['camera'][key]['dgeom']
@@ -1011,22 +1036,47 @@ def get_camera_dxyz(coll=None, key=None, include_center=None):
         default=True,
     )
 
+    # kout
+    if kout is None:
+        kout = [1]
+    kout = ds._generic_check._check_flat1darray(
+        kout, 'kout',
+        dtype=float,
+        unique=True,
+        sign=[">0", "<=1"],
+    )
+
     # ----------------
     # get unit vectors
+    # ----------------
 
-    e0 = dgeom['e0']
-    e1 = dgeom['e1']
+    dvect = coll.get_camera_unit_vectors(key, broadcast=True)
+    shape = tuple(np.ones(dvect['nin_x'].ndim, dtype=int)) + (-1,)
+
+    # ----------------
+    # get outline
+    # ----------------
 
     out0 = coll.ddata[dgeom['outline'][0]]['data']
     out1 = coll.ddata[dgeom['outline'][1]]['data']
+
+    out0 = (kout[:, None] * out0[None, :]).ravel()
+    out1 = (kout[:, None] * out1[None, :]).ravel()
 
     if include_center is True:
         out0 = np.append(0, out0)
         out1 = np.append(0, out1)
 
-    dx = out0 * e0[0] + out1 * e1[0]
-    dy = out0 * e0[1] + out1 * e1[1]
-    dz = out0 * e0[2] + out1 * e1[2]
+    out0 = out0.reshape(shape)
+    out1 = out1.reshape(shape)
+
+    # ----------------
+    # get dx, dy, dz
+    # ----------------
+
+    dx = out0 * dvect['e0_x'][..., None] + out1 * dvect['e1_x'][..., None]
+    dy = out0 * dvect['e0_y'][..., None] + out1 * dvect['e1_y'][..., None]
+    dz = out0 * dvect['e0_z'][..., None] + out1 * dvect['e1_z'][..., None]
 
     return dx, dy, dz
 
@@ -1072,3 +1122,47 @@ def get_camera_cents_xyz(coll=None, key=None):
         )
 
     return cx, cy, cz
+
+
+def _get_extent(
+    coll=None,
+    key=None,
+):
+
+    # ----------
+    # check key
+    # ----------
+
+    wcam = coll._which_cam
+    lok = list(coll.dobj.get(wcam, {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    is2d = coll.dobj[wcam][key]['dgeom']['nd'] == '2d'
+
+    # ----------
+    # cents
+    # ----------
+
+    if is2d:
+        kc0, kc1 = coll.dobj[wcam][key]['dgeom']['cents']
+        c0 = coll.ddata[kc0]['data']
+        c1 = coll.ddata[kc1]['data']
+
+        d0 = 0.5*(c0[1] - c0[0])
+        d1 = 0.5*(c1[1] - c1[0])
+
+        extent = (
+            c0[0] - d0,
+            c0[-1] + d0,
+            c1[0] - d1,
+            c1[-1] + d1,
+        )
+
+    else:
+        extent = None
+
+    return extent

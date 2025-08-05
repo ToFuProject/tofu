@@ -126,7 +126,9 @@ def compute_signal(
     # pick routine
     if method == 'los':
         func = _compute_los
+        proj = None
     else:
+        proj = method.replace('vos_', '')
         if spectro is True:
             func = _compute_vos_spectro
         else:
@@ -144,6 +146,7 @@ def compute_signal(
         key_bs=key_bs,
         res=res,
         mode=mode,
+        proj=proj,
         key_integrand=key_integrand,
         key_ref_spectro=key_ref_spectro,
         key_bs_spectro=key_bs_spectro,
@@ -229,7 +232,7 @@ def _store(
 
     lkcam = list(dout.keys())
     dobj = {
-        'synth sig':{
+        'synth sig': {
             key: {
                 'diag': key_diag,
                 'camera': lkcam,
@@ -298,21 +301,39 @@ def _compute_signal_check(
     wm = coll._which_mesh
     wbs = coll._which_bsplines
 
+    # ------------------
     # key_diag, key_cam
+    # ------------------
+
     key_diag, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
     spectro = coll.dobj['diagnostic'][key_diag]['spectro']
     PHA = coll.dobj['diagnostic'][key_diag]['PHA']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
 
+    # ----------
     # method
+    # ----------
+
+    dproj = coll.check_diagnostic_vos_proj(key_diag)
+    lok = ['los']
+    for kproj in ['cross', '3d', 'hor']:
+        if all([kcam in dproj.get(kproj, []) for kcam in key_cam]):
+            lok.append(f'vos_{kproj}')
+    if method == 'vos':
+        if len(lok) > 1:
+            method = lok[1]
+
     method = ds._generic_check._check_var(
         method, 'method',
         types=str,
         default='los',
-        allowed=['los', 'vos'],
+        allowed=lok,
     )
 
+    # ----------
     # mode
+    # ----------
+
     mode = ds._generic_check._check_var(
         mode, 'mode',
         types=str,
@@ -320,7 +341,10 @@ def _compute_signal_check(
         allowed=['abs', 'rel'],
     )
 
+    # ----------
     # groupby
+    # ----------
+
     groupby = ds._generic_check._check_var(
         groupby, 'groupby',
         types=int,
@@ -328,14 +352,20 @@ def _compute_signal_check(
         allowed=[1] if (PHA or spectro) else None,
     )
 
+    # ----------
     # brightness
+    # ----------
+
     brightness = ds._generic_check._check_var(
         brightness, 'brightness',
         types=bool,
         default=False,
     )
 
+    # ----------
     # key_integrand
+    # ----------
+
     lok = [
         k0 for k0, v0 in coll.ddata.items()
         if v0.get(wbs) is not None
@@ -352,7 +382,10 @@ def _compute_signal_check(
         allowed=lok,
     )
 
+    # ----------
     # key_mesh0
+    # ----------
+
     key_bs = [
         kk for kk in coll.ddata[key_integrand][wbs]
         if coll.dobj[wm][coll.dobj[wbs][kk][wm]]['nd'] == '2d'
@@ -371,7 +404,10 @@ def _compute_signal_check(
     else:
         key_mesh0 = key_mesh
 
+    # ----------
     # key_ref_spectro
+    # ----------
+
     if spectro:
         key_ref_spectro, key_bs_spectro = _get_ref_bs_spectro(
             coll=coll,
@@ -383,15 +419,21 @@ def _compute_signal_check(
         key_ref_spectro = None
         key_bs_spectro = None
 
+    # ----------
     # val_init
+    # ----------
+
     val_init = ds._generic_check._check_var(
         val_init, 'val_init',
         default=np.nan,
         allowed=[np.nan, 0.]
     )
 
+    # ----------
     # dvos
-    if method == 'vos':
+    # ----------
+
+    if 'vos' in method:
         # single camera + get dvos
         key_diag, dvos, isstore = coll.check_diagnostic_dvos(
             key_diag,
@@ -403,28 +445,40 @@ def _compute_signal_check(
             msg = "spectro synthetic signal with 'vos' required stored vos!"
             raise Exception(msg)
 
+    # ----------
     # verb
+    # ----------
+
     verb = ds._generic_check._check_var(
         verb, 'verb',
         types=bool,
         default=True,
     )
 
+    # ----------
     # timing
+    # ----------
+
     timing = ds._generic_check._check_var(
         timing, 'timing',
         types=bool,
         default=False,
     )
 
+    # ----------
     # store
+    # ----------
+
     store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
         default=True,
     )
 
+    # ----------
     # key
+    # ----------
+
     if store is True:
         key = ds._generic_check._obj_key(
             coll.dobj.get('synth sig', {}),
@@ -433,7 +487,10 @@ def _compute_signal_check(
             ndigits=2,
         )
 
+    # ----------
     # returnas
+    # ----------
+
     returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         default=False if store is True else dict,
@@ -513,7 +570,10 @@ def _get_ref_bs_spectro(
     # safety check
 
     if key_ref_spectro is None:
-        msg = f"Spectral dimension of '{key_integrand} could not be identified'"
+        msg = (
+            f"Spectral dimension of '{key_integrand}' "
+            "could not be identified\n"
+        )
         raise Exception(msg)
 
     return key_ref_spectro, key_bs_spectro
@@ -684,7 +744,10 @@ def _compute_los(
             ni = i1 - i0
 
             # get rid of undefined LOS
-            ind_ch_flat = np.array([jj for jj in range(i0, i1) if ilosok[jj]], dtype=int)
+            ind_ch_flat = np.array(
+                [jj for jj in range(i0, i1) if ilosok[jj]],
+                dtype=int,
+            )
             ind_ch = np.unravel_index(ind_ch_flat, shape_cam)
             ni = ind_ch_flat.size
 
@@ -748,10 +811,13 @@ def _compute_los(
 
                 # bin spectrally before spatial interpolation
                 kbinned = f"{key_integrand}_bin_{k0}_{ii}"
-                #try:
+                # try:
                 coll.binning(
                     data=key_integrand,
-                    bin_data0=key_ref_spectro if key_bs_spectro is None else key_bs_spectro,
+                    bin_data0=(
+                        key_ref_spectro if key_bs_spectro is None
+                        else key_bs_spectro
+                    ),
                     bins0=ktemp_bin,
                     integrate=True,
                     verb=verb,
@@ -778,7 +844,9 @@ def _compute_los(
                 key_integrand_interp = kbinned
 
             elif spectro:
-                ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_ch_flat[0]]))
+                ind = np.argmin(
+                    np.abs(spect_ref_vect - E_flat[ind_ch_flat[0]])
+                )
                 domain = {key_ref_spectro: {'ind': np.r_[ind]}}
 
             # timing
@@ -866,12 +934,12 @@ def _compute_los(
                 sli = tuple(sli0)
 
                 # if jj in [50, 51]:
-                    # plt.figure();
-                    # plt.subplot(1,2,1)
-                    # plt.plot(dataii)
-                    # plt.subplot(1,2,2)
-                    # plt.plot(dataii.T)
-                    # plt.gcf().suptitle(f"jj = {jj}", size=12)
+                # plt.figure();
+                # plt.subplot(1,2,1)
+                # plt.plot(dataii)
+                # plt.subplot(1,2,2)
+                # plt.plot(dataii.T)
+                # plt.gcf().suptitle(f"jj = {jj}", size=12)
 
                 # integrate
                 data[sli] = scpinteg.trapezoid(
@@ -991,7 +1059,10 @@ def _units_integration(
         if len(lunits) == 1:
             units_bs = lunits[0]
         else:
-            msg = "Don't know how to interpret line-integration units from bspline"
+            msg = (
+                "Don't know how to interpret line-integration "
+                "units from bspline\n"
+            )
             raise Exception(msg)
 
     return units0, units_bs
@@ -1095,7 +1166,7 @@ def _compute_vos_broadband(
     for k0, v0 in dvos.items():
 
         # group
-        units_vos = v0['sang_cross']['units']
+        units_vos = v0['sang_cross']['units'] * v0['dV_cross']['units']
 
         # --------------
         # loop on pixels
@@ -1112,7 +1183,7 @@ def _compute_vos_broadband(
                 continue
 
             # vos re-creation
-            ind_RZ = tuple(list(ind) + [iok])
+            ind_RZ = ind + (iok,)
             R = x0u[v0['indr_cross']['data'][ind_RZ]]
             Z = x1u[v0['indz_cross']['data'][ind_RZ]]
 
@@ -1155,9 +1226,12 @@ def _compute_vos_broadband(
 
             ind_data[axis] = ind
             ind_sa[axis] = ind_RZ
-            data[tuple(itt.chain.from_iterable(ind_data))] = np.nansum(
+            ind_data_full = tuple(itt.chain.from_iterable(ind_data))
+            ind_sa_full = tuple(itt.chain.from_iterable(ind_sa))
+            data[ind_data_full] = np.nansum(
                 datai
-                * v0['sang_cross']['data'][tuple(itt.chain.from_iterable(ind_sa))],
+                * v0['sang_cross']['data'][ind_sa_full]
+                * v0['dV_cross']['data'][ind_sa_full],
                 axis=axis,
             )
 
@@ -1197,6 +1271,7 @@ def _compute_vos_spectro(
     key_bs=None,
     res=None,
     mode=None,
+    proj=None,
     key_integrand=None,
     key_ref_spectro=None,
     key_bs_spectro=None,
@@ -1292,8 +1367,8 @@ def _compute_vos_spectro(
     dout = {k0: {} for k0 in dvos.keys()}
     for k0, v0 in dvos.items():
 
-        R = x0u[v0['indr_cross']['data']]
-        Z = x1u[v0['indz_cross']['data']]
+        R = x0u[v0[f'indr_{proj}']['data']]
+        Z = x1u[v0[f'indz_{proj}']['data']]
 
         kapex = coll.dobj[wbs][key_bs_spectro]['apex'][0]
         dlamb_ref = np.mean(np.diff(coll.ddata[kapex]['data']))
@@ -1315,7 +1390,7 @@ def _compute_vos_spectro(
         key_integrand_interp_lamb = f"{key_integrand}_interp_lamb"
         if spectral_binningi is True:
 
-            ktemp_bin = f'{key_bs_spectro}_{k0}_temp_bin'
+            ktemp_bin = f'{key_ref_spectro}_{k0}_temp_bin'
             edge_spectro = np.r_[
                 lamb[0] - 0.5*(lamb[1] - lamb[0]),
                 0.5 * (lamb[1:] + lamb[:-1]),
@@ -1433,7 +1508,7 @@ def _compute_vos_spectro(
         # sum to get signal
 
         # ref
-        ref_vos = list(coll.ddata[v0['ph']['key']]['ref'])
+        ref_vos = list(coll.ddata[v0[f'ph_{proj}']['key']]['ref'])
         ref_data = list(douti['ref'])
         ref_data[ref_data.index(None)] = ref_vos[-2]
         refc = [rr for rr in ref_data if rr in ref_vos]
@@ -1447,7 +1522,7 @@ def _compute_vos_spectro(
         shape_data = douti['data'].shape
 
         # (n0, n1, npts, nlamb)
-        shape_vos = v0['ph']['data'].shape
+        shape_vos = v0[f'ph_{proj}']['data'].shape
 
         # (nt, n0, n1)
         shape_sig = [
@@ -1489,7 +1564,7 @@ def _compute_vos_spectro(
             sli_vos[ax_n1_vos] = i1
             sig[tuple(sli_sig)] = np.nansum(
                 douti['data']
-                * v0['ph']['data'][tuple(sli_vos)],
+                * v0[f'ph_{proj}']['data'][tuple(sli_vos)],
                 axis=(ax_lamb_data, ax_pts_data),
             )
 
@@ -1497,14 +1572,18 @@ def _compute_vos_spectro(
         ref = [rr for rr in ref if rr not in refc]
 
         # units
-        units = asunits.Unit(v0['ph']['units']) * asunits.Unit(douti['units'])
+        units = (
+            asunits.Unit(v0[f'ph_{proj}']['units'])
+            * asunits.Unit(douti['units'])
+        )
 
         # --------------
         # post-treatment
 
         # brightness
         if brightness is True:
-            ketend = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['etendue']
+            wdiag = coll._which_diagnostic
+            ketend = coll.dobj[wdiag][key_diag]['doptics'][k0]['etendue']
             etend = coll.ddata[ketend]['data']
             ref_e = coll.ddata[ketend]['ref']
             sh_etend = (

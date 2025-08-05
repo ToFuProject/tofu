@@ -215,7 +215,10 @@ def _compute_vos(
     # -----
     # units
 
-    units = asunits.Unit(dvos[key_cam[0]]['sang_cross']['units'])
+    units = (
+        asunits.Unit(dvos[key_cam[0]]['sang_cross']['units'])
+        * asunits.Unit(dvos[key_cam[0]]['dV_cross']['units'])
+    )
     units_coefs = asunits.Unit()
 
     # -------------
@@ -356,7 +359,9 @@ def _compute_vos(
 
             # integrate
             mat[tuple(sli_mat)] = np.sum(
-                datai * dvos[k0]['sang_cross']['data'][sli(ii)][indok][:, None],
+                datai
+                * dvos[k0]['sang_cross']['data'][sli(ii)][indok][:, None]
+                * dvos[k0]['dV_cross']['data'][sli(ii)][indok][:, None],
                 axis=axis,
             )
 

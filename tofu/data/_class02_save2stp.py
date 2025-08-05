@@ -59,6 +59,7 @@ def main(
     # saving
     pfe_save=None,
     overwrite=None,
+    verb=None,
 ):
     """ Export a set of LOS to a stp file (for CAD compatibility)
 
@@ -116,7 +117,7 @@ def main(
         chain,
         curve,
         iso,
-        pfe_save, overwrite,
+        pfe_save, overwrite, verb,
     ) = _check(
         coll=coll,
         key=key,
@@ -136,6 +137,7 @@ def main(
         # saving
         pfe_save=pfe_save,
         overwrite=overwrite,
+        verb=verb,
     )
 
     fname = os.path.split(pfe_save)[-1][:-4]
@@ -202,6 +204,7 @@ def main(
         msg=msg_header + "\n" + msg_data,
         pfe_save=pfe_save,
         overwrite=overwrite,
+        verb=verb,
     )
 
     return
@@ -232,6 +235,7 @@ def _check(
     # saving
     pfe_save=None,
     overwrite=None,
+    verb=None,
 ):
 
     # --------------
@@ -371,17 +375,30 @@ def _check(
 
     chain = ds._generic_check._check_var(
         chain, 'chain',
-        types=(bool, str),
+        types=(bool, str, tuple, int),
         default=False,
-        allowed=[True, False, 'pixel'],
     )
 
-    if chain is not False and not (key_cam is not None or key_rays is not None):
-        msg = (
-            "Arg chain can only used if key_cam or key_rays is known!\n"
-            f"\t- chain: {chain}\n"
-        )
-        raise Exception(msg)
+    if isinstance(chain, int) and chain is not True:
+        chain = (chain,)
+    if isinstance(chain, tuple):
+        if not all([isinstance(cc, int) for cc in chain]):
+            msg = (
+                "Arg chain, if a tuple, must consist of ints!\n"
+                f"Provided: {chain}\n"
+            )
+            raise Exception(msg)
+
+        ndim = len(coll.dobj['rays'][key]['shape'])
+        chain = tuple([cc if cc >= 0 else ndim + cc for cc in chain])
+
+    elif chain is not False:
+        if not (key_cam is not None or key_rays is not None):
+            msg = (
+                "Arg chain can only used if key_cam or key_rays is known!\n"
+                f"\t- chain: {chain}\n"
+            )
+            raise Exception(msg)
 
     # ---------------
     # curve
@@ -467,6 +484,16 @@ def _check(
         default=False,
     )
 
+    # ----------------
+    # verb
+    # ----------------
+
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=bool,
+        default=True,
+    )
+
     return (
         key, key_cam, key_rays,
         ptsx, ptsy, ptsz,
@@ -479,7 +506,7 @@ def _check(
         chain,
         curve,
         iso,
-        pfe_save, overwrite,
+        pfe_save, overwrite, verb,
     )
 
 
@@ -680,6 +707,28 @@ def _extract(
                         0,
                     )
 
+                elif isinstance(chain, tuple):
+
+                    if 0 not in chain:
+                        chain = (0,) + chain
+
+                    shape0 = ptsx.shape
+                    prod = np.prod([shape0[cc] for cc in chain])
+                    shape = tuple([
+                        ss for ii, ss in enumerate(shape0)
+                        if ii not in chain
+                    ]) + (prod,)
+
+                    ndim = ptsx.ndim
+                    end = [ndim-1-ii for ii in range(len(chain))]
+                    ptsx = np.moveaxis(ptsx, chain, end)
+                    ptsy = np.moveaxis(ptsy, chain, end)
+                    ptsz = np.moveaxis(ptsz, chain, end)
+
+                    dptsx[k0] = np.moveaxis(ptsx.reshape(shape), -1, 0)
+                    dptsy[k0] = np.moveaxis(ptsy.reshape(shape), -1, 0)
+                    dptsz[k0] = np.moveaxis(ptsz.reshape(shape), -1, 0)
+
                 else:
                     raise NotImplementedError(f"{chain}")
 
@@ -822,7 +871,7 @@ def _get_dcolor(dptsx=None, color=None):
             prop_cycle = plt.rcParams['axes.prop_cycle']
             colors = prop_cycle.by_key()['color']
             dcolor = {
-                k0: colors[ii%len(colors)]
+                k0: colors[ii % len(colors)]
                 for ii, k0 in enumerate(dptsx.keys())
             }
 
@@ -834,6 +883,7 @@ def _get_dcolor(dptsx=None, color=None):
                 "If str, arg 'color' must be either:\n"
                 "\t- 'camera': assign a color to each camera\n"
                 "\t- color-like: assign the same color to each camera\n"
+                f"Provided: {color}\n"
             )
             raise Exception(msg)
 
@@ -883,6 +933,7 @@ def _save(
     msg=None,
     pfe_save=None,
     overwrite=None,
+    verb=None,
 ):
 
     # -------------
@@ -906,8 +957,9 @@ def _save(
     # --------------
     # verb
 
-    msg = f"Saved to:\n\t{pfe_save}"
-    print(msg)
+    if verb is True:
+        msg = f"Saved to:\n\t{pfe_save}"
+        print(msg)
 
     return
 

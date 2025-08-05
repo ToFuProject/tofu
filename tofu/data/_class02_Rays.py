@@ -721,6 +721,7 @@ class Rays(Previous):
         # saving
         pfe_save=None,
         overwrite=None,
+        verb=None,
     ):
         """ Save a set of 'rays' to a stp file (CAD-readable)
 
@@ -761,4 +762,5 @@ class Rays(Previous):
             # saving
             pfe_save=pfe_save,
             overwrite=overwrite,
+            verb=verb,
         )

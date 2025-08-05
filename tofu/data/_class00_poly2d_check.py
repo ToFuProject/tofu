@@ -4,6 +4,9 @@
 """
 
 
+import warnings
+
+
 import numpy as np
 import datastock as ds
 
@@ -21,6 +24,7 @@ def check(
     # options
     closed=None,
     clockwise=None,
+    strict=None,
 ):
     """ High-level routine to format a 2d polygon
 
@@ -55,10 +59,11 @@ def check(
     # check inputs
     # -------------
 
-    key, close, clockwise = _check(
+    key, close, clockwise, strict = _check(
         key=key,
         closed=closed,
         clockwise=clockwise,
+        strict=strict,
     )
 
     # -------------
@@ -98,15 +103,29 @@ def check(
     # no duplicates
     # -------------
 
-    uni = np.unique([x0_closed[:-1], x1_closed[:-1]], axis=1)
+    uni, ind_uni = np.unique(
+        [x0_closed[:-1], x1_closed[:-1]],
+        axis=1,
+        return_index=True,
+    )
     if uni.shape[1] < (x0_closed.size - 1):
-        ndup = x0.size - 1 - uni.shape[1]
+        ind_dup = np.array([
+            ii for ii in range(x0_closed.size-1)
+            if ii not in ind_uni
+        ])
+        ndup = x0_closed.size - 1 - uni.shape[1]
         msg = (
             f"Polygon 2d '{key}' seems to have {ndup} duplicate points!\n"
-            "\t- x0 = {x0_closed[:-1]}\n"
-            "\t- x1 = {x1_closed[:-1]}\n"
+            f"\t- total nb of pts (with duplicates) = {x0_closed.size - 1}\n"
+            f"\t- total nb of pts (no duplicates) = {uni.shape[1]}\n"
+            f"\t- duplicates: {ndup}\n"
+            f"\t\t- x0 = {x0_closed[ind_dup]}\n"
+            f"\t\t- x1 = {x1_closed[ind_dup]}\n"
         )
-        raise Exception(msg)
+        if strict is True:
+            raise Exception(msg)
+        else:
+            warnings.warn(msg)
 
     # -------------
     # clockwise
@@ -143,6 +162,7 @@ def _check(
     key=None,
     closed=None,
     clockwise=None,
+    strict=None,
 ):
 
     # ---------------
@@ -175,7 +195,17 @@ def _check(
         default=True,
     )
 
-    return key, closed, clockwise
+    # ---------------
+    # strict
+    # ---------------
+
+    strict = ds._generic_check._check_var(
+        strict, 'strict',
+        types=bool,
+        default=True,
+    )
+
+    return key, closed, clockwise, strict
 
 
 # ###########################################################

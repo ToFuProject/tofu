@@ -312,19 +312,20 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        "setuptools>=40.8.0, <64",
+        # ">=40.8.0, <64",
+        "setuptools",
         "numpy",
         "scipy",
         # "scikit-sparse",
         # "scikit-umfpack",
-        "matplotlib",
+        "matplotlib>3.0.3",
         "contourpy",
         "requests",
         "svg.path",
         "Polygon3",
         "cython>=0.26",
         "datastock>=0.0.54",
-        "bsplines2d>=0.0.25",
+        "bsplines2d>=0.0.27",
         "spectrally>=0.0.9",
     ],
     python_requires=">=3.6",

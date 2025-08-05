@@ -44,7 +44,6 @@ def _from_pts(
     lamb0=None,
     res_lamb=None,
     rocking_curve=None,
-    res_rock_curve=None,
     # options
     append=None,
     plot=None,
@@ -139,7 +138,6 @@ def _from_pts(
         lamb=lamb0,
         res_lamb=res_lamb,
         rocking_curve=rocking_curve,
-        res_rock_curve=res_rock_curve,
         verb=False,
     )
 
@@ -424,7 +422,7 @@ def _check(
     append = ds._generic_check._check_var(
         append, 'append',
         types=bool,
-        default=lc[1] and ptsx.size < 100,  #  and plot is True,
+        default=lc[1] and ptsx.size < 100,  # and plot is True,
     )
 
     # colorbar
@@ -434,7 +432,7 @@ def _check(
         default=False,
     )
 
-    return  (
+    return (
         key, key_cam, key_mesh,
         dsamp, res_phi,
         shape, iok,
@@ -504,8 +502,14 @@ def _prepare_optics(
     # get functions for crystal and camera
     # ------------------
 
-    ptsvect_plane = coll.get_optics_reflect_ptsvect(key=kspectro, asplane=True)
-    ptsvect_spectro = coll.get_optics_reflect_ptsvect(key=kspectro, isnorm=True)
+    ptsvect_plane = coll.get_optics_reflect_ptsvect(
+        key=kspectro,
+        asplane=True,
+    )
+    ptsvect_spectro = coll.get_optics_reflect_ptsvect(
+        key=kspectro,
+        isnorm=True,
+    )
     ptsvect_cam = coll.get_optics_reflect_ptsvect(key=key_cam, fast=True)
 
     coords_x01toxyz_plane = coll.get_optics_x01toxyz(
@@ -565,7 +569,6 @@ def _prepare_lamb(
     res_lamb=None,
     rocking_curve=None,
     rocking_curve_step_width=None,
-    res_rock_curve=None,
     verb=None,
 ):
 
@@ -661,9 +664,15 @@ def _prepare_lamb(
         dd1 = bragg[0] + np.r_[0, FW]
         dd2 = bragg[0] + np.r_[0, ang_rel[1] - ang_rel[0]]
 
-        dlamb_max = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd0)[1])
-        dlamb_mh = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd1)[1])
-        dlamb_res = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd2)[1])
+        dlamb_max = np.diff(
+            coll.get_crystal_bragglamb(key=kspectro, bragg=dd0)[1]
+        )
+        dlamb_mh = np.diff(
+            coll.get_crystal_bragglamb(key=kspectro, bragg=dd1)[1]
+        )
+        dlamb_res = np.diff(
+            coll.get_crystal_bragglamb(key=kspectro, bragg=dd2)[1]
+        )
 
         if verb is True and res_lamb is not None:
             msg = (
@@ -807,7 +816,9 @@ def _loop0(
 
         # compute image
         (
-            x0c, x1c, angles, dsang, cosi, iok,
+            x0c, x1c,
+            angles, dsang,
+            vectx, vecty, vectz, iok,
             dangmin_str, x0if, x1if,
             ptsx1, ptsy1, ptsz1,
             ptsx2, ptsy2, ptsz2,
@@ -1121,7 +1132,9 @@ def _loop1(
             ipts += nz
             continue
 
-        nphi = np.ceil(x0u[i0]*(dphi_r[1, i00] - dphi_r[0, i00]) / res_phi).astype(int)
+        nphi = np.ceil(
+            x0u[i0]*(dphi_r[1, i00] - dphi_r[0, i00]) / res_phi
+        ).astype(int)
         phir = np.linspace(dphi_r[0, i00], dphi_r[1, i00], nphi)
         cosphi = np.cos(phir)
         sinphi = np.sin(phir)
@@ -1174,7 +1187,9 @@ def _loop1(
 
                 # compute image
                 (
-                    x0c, x1c, angles, dsang, cosi, iok,
+                    x0c, x1c,
+                    angles, dsang,
+                    vectx, vecty, vectz, iok,
                     dangmin_str, x0if, x1if,
                 ) = _get_points_on_camera_from_pts(
                     p0=p0,
@@ -1453,7 +1468,9 @@ def _get_points_on_camera_from_pts(
     )
 
     return (
-        x0c, x1c, angles, dsang, cos, ind,
+        x0c, x1c,
+        angles, dsang,
+        vectx, vecty, vectz, ind,
         dangmin_str, x0if, x1if,
         ptsx1, ptsy1, ptsz1,
         ptsx2, ptsy2, ptsz2,
@@ -1556,13 +1573,13 @@ def _plot(
             dmargin=dmargin,
         )
         # dax = _generic_plot.get_dax_diag(
-            # proj=['cross', 'hor', '3d', 'camera'],
-            # dmargin=dmargin,
-            # fs=fs,
-            # wintit=wintit,
-            # tit=key,
-            # is2d=True,
-            # key_cam=['rays', 'binned'],
+        # proj=['cross', 'hor', '3d', 'camera'],
+        # dmargin=dmargin,
+        # fs=fs,
+        # wintit=wintit,
+        # tit=key,
+        # is2d=True,
+        # key_cam=['rays', 'binned'],
         # )
 
     dax = _generic_check._check_dax(dax=dax, main='cross')
@@ -1597,7 +1614,6 @@ def _plot(
                 ls='-',
                 lw=0.1,
             )
-
 
     # -------------
     # mesh sampling

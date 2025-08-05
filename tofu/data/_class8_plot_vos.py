@@ -17,6 +17,7 @@ import datastock as ds
 from . import _generic_check
 from . import _generic_plot
 from . import _class8_plot as _plot
+from . import _class8_vos_utilities as _vos_utilities
 from ..geom import _core
 from . import _class8_plot_vos_spectro as _plot_vos_spectro
 
@@ -191,8 +192,8 @@ def _plot_diagnostic_vos(
     ) = _prepare_vos(
         coll=coll,
         doptics=doptics,
-        los_res=los_res,
-        is2d=is2d,
+        key_cam=key_cam[0],
+        shape_cam=shape_cam,
         indch=indch,
     )
 
@@ -402,6 +403,7 @@ def _plot_diagnostic_vos(
             is2d=is2d,
             los_x=los_x,
             los_y=los_y,
+            shape_cam=shape_cam,
             ph0=ph0,
             ph1=ph1,
             alpha=alpha,
@@ -520,19 +522,21 @@ def _prepare_los(
 def _prepare_vos(
     coll=None,
     doptics=None,
-    los_res=None,
-    is2d=None,
+    key_cam=None,
     indch=None,
+    shape_cam=None,
 ):
 
     # -----------
     # safety check
+    # -----------
 
     if doptics['los'] is None:
         return [None] * 8
 
-    # -------
-    # vos
+    # ---------
+    # total vos
+    # ---------
 
     kpc = doptics['dvos']['pcross']
     pc0 = coll.ddata[kpc[0]]['data']
@@ -541,60 +545,40 @@ def _prepare_vos(
     ph0 = coll.ddata[kph[0]]['data']
     ph1 = coll.ddata[kph[1]]['data']
 
-    if is2d:
-        pc0i = pc0[:, indch[0], indch[1]]
-        pc1i = pc1[:, indch[0], indch[1]]
-        ph0i = ph0[:, indch[0], indch[1]]
-        ph1i = ph1[:, indch[0], indch[1]]
+    # --------------
+    # particular channel
+    # --------------
 
-        # envelop
-        pc0 = pc0.reshape(pc0.shape[0], -1)
-        pc1 = pc1.reshape(pc1.shape[0], -1)
-        ph0 = ph0.reshape(ph0.shape[0], -1)
-        ph1 = ph1.reshape(ph1.shape[0], -1)
-
-        iok = np.all(np.isfinite(pc0), axis=0).nonzero()[0]
-        pc = plg.Polygon(np.array([pc0[:, iok[0]], pc1[:, iok[0]]]).T)
-        ph = plg.Polygon(np.array([ph0[:, iok[0]], ph1[:, iok[0]]]).T)
-        for ii in iok[1:]:
-            pc = pc | plg.Polygon(np.array([pc0[:, ii], pc1[:, ii]]).T)
-            ph = ph | plg.Polygon(np.array([ph0[:, ii], ph1[:, ii]]).T)
-
-        # -----------------------
-        # convex hull if distinct
-
-        # pc
-        if len(pc) > 1:
-            # replace by convex hull
-            pts = np.concatenate(
-                tuple([np.array(pc.contour(ii)) for ii in range(len(pc))]),
-                axis=0,
-            )
-            pc0, pc1 = pts[ConvexHull(pts).vertices, :].T
-        else:
-            pc0, pc1 = np.array(pc).T
-
-        # ph
-        if len(ph) > 1:
-            # replace by convex hull
-            pts = np.concatenate(
-                tuple([np.array(ph.contour(ii)) for ii in range(len(ph))]),
-                axis=0,
-            )
-            ph0, ph1 = pts[ConvexHull(pts).vertices, :].T
-        else:
-            ph0, ph1 = np.array(ph).T
-
-    else:
-        pc0i = pc0[:, indch]
-        pc1i = pc1[:, indch]
-        ph0i = ph0[:, indch]
-        ph1i = ph1[:, indch]
+    sli = tuple(np.atleast_1d(indch)) + (slice(None),)
+    pc0i = pc0[sli]
+    pc1i = pc1[sli]
+    ph0i = ph0[sli]
+    ph1i = ph1[sli]
 
     # safety check
     if np.any(~np.isfinite(pc0i)):
         pc0i, pc1i = None, None
         ph0i, ph1i = None, None
+
+    # --------------
+    # get overall
+    # --------------
+
+    pc0, pc1 = _vos_utilities._get_overall_polygons(
+        coll=coll,
+        doptics=doptics,
+        key_cam=key_cam,
+        poly='pcross',
+        convexHull=False,
+    )
+
+    ph0, ph1 = _vos_utilities._get_overall_polygons(
+        coll=coll,
+        doptics=doptics,
+        key_cam=key_cam,
+        poly='phor',
+        convexHull=False,
+    )
 
     return pc0, pc1, ph0, ph1, pc0i, pc1i, ph0i, ph1i
 
@@ -834,6 +818,7 @@ def _add_camera_los_hor(
     los_y=None,
     ph0=None,
     ph1=None,
+    shape_cam=None,
     alpha=None,
     color_dict=None,
 ):
@@ -855,28 +840,17 @@ def _add_camera_los_hor(
 
     if ph0 is not None:
 
-        if ph0.ndim == 2:
-            for ii in range(ph0.shape[1]):
+        if ph0.ndim > 1:
+            for ind in np.ndindex(shape_cam):
+                sli = ind + (slice(None),)
                 l0, = ax.fill(
-                    ph0[:, ii],
-                    ph1[:, ii],
+                    ph0[sli],
+                    ph1[sli],
                     fc='k',
                     alpha=alpha,
                     ls='None',
                     lw=0.,
                 )
-
-        elif ph0.ndim == 3:
-            for ii in range(ph0.shape[1]):
-                for jj in range(ph0.shape[2]):
-                    l0, = ax.fill(
-                        ph0[:, ii, jj],
-                        ph1[:, ii, jj],
-                        fc='k',
-                        alpha=alpha,
-                        ls='None',
-                        lw=0.,
-                    )
 
         else:
             l0, = ax.fill(

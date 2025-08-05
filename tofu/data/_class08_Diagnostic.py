@@ -24,7 +24,10 @@ from . import _class8_vos as _vos
 from . import _class8_vos_spectro_nobin_at_lamb as _vos_nobin_at_lamb
 from . import _class8_los_angles as _los_angles
 from . import _class08_generate_rays as _generate_rays
-from . import _class8_plane_perp_to_los as _planeperp
+from . import _class8_sang_vect as _sang_vect
+from . import _class8_plot_coverage_slice as _coverage_slice
+from . import _class8_resolution as _resolution
+from . import _class8_vos_concatenate as _vos_concatenate
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_compute_signal_moments as _signal_moments
 from . import _class8_reverse_ray_tracing as _reverse_rt
@@ -46,6 +49,7 @@ __all__ = ['Diagnostic']
 
 class Diagnostic(Previous):
 
+    _which_diagnostic = 'diagnostic'
     _show_in_summary = 'all'
 
     _dshow = dict(Previous._dshow)
@@ -315,7 +319,47 @@ class Diagnostic(Previous):
         if return_dcompute is True:
             return dcompute
 
-    def compute_diagnostic_solidangle_from_plane(
+    # -----------------
+    # compute sang, vect for any pts
+    # -----------------
+
+    def compute_diagnostic_sang_vect_from_pts(
+        self,
+        # resources
+        key_diag=None,
+        key_cam=None,
+        # pts
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # options
+        visibility=None,
+        config=None,
+        return_vect=None,
+    ):
+        """ Return as dict of sang, vect, dV for any set of pts (full 3d)
+
+        """
+        return _sang_vect.main(
+            coll=self,
+            # resources
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # pts
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # options
+            visibility=visibility,
+            config=config,
+            return_vect=return_vect,
+        )
+
+    # -----------------
+    # geometrical coverage slicing
+    # -----------------
+
+    def plot_diagnostic_geometrical_coverage_slice(
         self,
         key_diag=None,
         key_cam=None,
@@ -325,7 +369,19 @@ class Diagnostic(Previous):
         res=None,
         margin_par=None,
         margin_perp=None,
+        vect=None,
+        segment=None,
+        # mesh slice
+        key_mesh=None,
+        phi=None,
+        Z=None,
+        DR=None,
+        DZ=None,
+        Dphi=None,
+        adjust_phi=None,
+        # raytracing
         config=None,
+        visibility=None,
         # solid angle
         n0=None,
         n1=None,
@@ -340,14 +396,8 @@ class Diagnostic(Previous):
         plot_config=None,
         fs=None,
         dmargin=None,
-        vmin_cam0=None,
-        vmax_cam0=None,
-        vmin_cam=None,
-        vmax_cam=None,
-        vmin_cam_lamb=None,
-        vmax_cam_lamb=None,
-        vmin_plane=None,
-        vmax_plane=None,
+        dvminmax=None,
+        markersize=None,
     ):
         """ Creates a plane perpendicular to los
         compute contribution of each point to the signal
@@ -355,7 +405,7 @@ class Diagnostic(Previous):
         return dout
         """
 
-        return _planeperp.main(
+        return _coverage_slice.main(
             coll=self,
             key_diag=key_diag,
             key_cam=key_cam,
@@ -365,7 +415,19 @@ class Diagnostic(Previous):
             res=res,
             margin_par=margin_par,
             margin_perp=margin_perp,
+            vect=vect,
+            segment=segment,
+            # mesh slice
+            key_mesh=key_mesh,
+            phi=phi,
+            Z=Z,
+            DR=DR,
+            DZ=DZ,
+            Dphi=Dphi,
+            adjust_phi=adjust_phi,
+            # ray-tracing
             config=config,
+            visibility=visibility,
             # solid angle
             n0=n0,
             n1=n1,
@@ -380,14 +442,52 @@ class Diagnostic(Previous):
             plot_config=plot_config,
             fs=fs,
             dmargin=dmargin,
-            vmin_cam0=vmin_cam0,
-            vmax_cam0=vmax_cam0,
-            vmin_cam=vmin_cam,
-            vmax_cam=vmax_cam,
-            vmin_cam_lamb=vmin_cam_lamb,
-            vmax_cam_lamb=vmax_cam_lamb,
-            vmin_plane=vmin_plane,
-            vmax_plane=vmax_plane,
+            # vmin vmax
+            dvminmax=dvminmax,
+            markersize=markersize,
+        )
+
+    # -----------------
+    # compute resolution
+    # -----------------
+
+    def compute_diagnostic_resolution(
+        self,
+        key_diag=None,
+        key_cam=None,
+        # parameters
+        res=None,
+        # vos_proj
+        vos_proj=None,
+        # mesh slice
+        key_mesh=None,
+        phi=None,
+        Z=None,
+        DR=None,
+        DZ=None,
+        Dphi=None,
+        adjust_phi=None,
+        # solid angle
+        config=None,
+        visibility=None,
+        # output
+        coll_svd=None,
+        # plotting
+        plot_slice=None,
+        dax=None,
+        plot_config=None,
+        fs=None,
+        dmargin=None,
+        dvminmax=None,
+        markersize=None,
+    ):
+        """ Quantify the resolution of a slice or a full VOS
+
+        """
+
+        return _resolution.main(
+            coll=self,
+            **{k0: v0 for k0, v0 in locals().items() if k0 != 'self'}
         )
 
     # -----------------
@@ -428,50 +528,8 @@ class Diagnostic(Previous):
         )
 
     # -----------------
-    # solid angle from plane
+    # compute vos
     # -----------------
-
-    def plot_diagnostic_solidangle_from_plane(
-        self,
-        dout=None,
-        # plotting
-        indplot=None,
-        dax=None,
-        plot_config=None,
-        fs=None,
-        dmargin=None,
-        vmin_cam0=None,
-        vmax_cam0=None,
-        vmin_cam=None,
-        vmax_cam=None,
-        vmin_cam_lamb=None,
-        vmax_cam_lamb=None,
-        vmin_plane=None,
-        vmax_plane=None,
-    ):
-        """ Creates a plane perpendicular to los
-        compute contribution of each point to the signal
-        """
-
-        return _planeperp._plot(
-            coll=self,
-            # extra
-            indplot=indplot,
-            dax=dax,
-            plot_config=plot_config,
-            fs=fs,
-            dmargin=dmargin,
-            vmin_cam0=vmin_cam0,
-            vmax_cam0=vmax_cam0,
-            vmin_cam=vmin_cam,
-            vmax_cam=vmax_cam,
-            vmin_cam_lamb=vmin_cam_lamb,
-            vmax_cam_lamb=vmax_cam_lamb,
-            vmin_plane=vmin_plane,
-            vmax_plane=vmax_plane,
-            # dout
-            **dout,
-        )
 
     def compute_diagnostic_vos(
         self,
@@ -484,14 +542,15 @@ class Diagnostic(Previous):
         res_phi=None,
         lamb=None,
         res_lamb=None,
-        res_rock_curve=None,
         n0=None,
         n1=None,
         convexHull=None,
         # user-defined limits
         user_limits=None,
-        # keep3d
-        keep3d=None,
+        # keep
+        keep_cross=None,
+        keep_hor=None,
+        keep_3d=None,
         return_vector=None,
         # margins
         margin_poly=None,
@@ -531,14 +590,15 @@ class Diagnostic(Previous):
             res_phi=res_phi,
             lamb=lamb,
             res_lamb=res_lamb,
-            res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
             convexHull=convexHull,
             # user-defined limits
             user_limits=user_limits,
             # keep3d
-            keep3d=keep3d,
+            keep_cross=keep_cross,
+            keep_hor=keep_hor,
+            keep_3d=keep_3d,
             return_vector=return_vector,
             # margins
             margin_poly=margin_poly,
@@ -554,6 +614,33 @@ class Diagnostic(Previous):
             overwrite=overwrite,
             replace_poly=replace_poly,
             timing=timing,
+        )
+
+    def check_diagnostic_vos_proj(
+        self,
+        key=None,
+        key_cam=None,
+        logic=None,
+        reduced=None,
+    ):
+        """ Return a dict {proj: [kcam0, kcam1, ...]}
+
+        Where proj is in ['cross', 'hor', '3d']
+
+        Shows for each vos proj the list of available cameras
+
+        Logic can be used to get a bool instead of a list
+            - logic = 'all' => True if all cameras
+            - logic = 'any' => True if any camera
+
+        """
+
+        return _vos._check_vos_proj(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            logic=logic,
+            reduced=reduced,
         )
 
     def check_diagnostic_dvos(
@@ -604,6 +691,30 @@ class Diagnostic(Previous):
             replace_poly=replace_poly,
         )
 
+    def get_diagnostic_vos_concatenate(
+        self,
+        key_diag=None,
+        key_cam=None,
+        # parameters
+        concatenate_cam=None,
+        concatenate_pts=None,
+        vos_proj=None,
+        return_vect=None,
+    ):
+        """ Return a dict of vos, optionally aggregated
+
+        """
+        return _vos_concatenate.main(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # parameters
+            concatenate_cam=concatenate_cam,
+            concatenate_pts=concatenate_pts,
+            vos_proj=vos_proj,
+            return_vect=return_vect,
+        )
+
     def compute_diagnostic_vos_nobin_at_lamb(
         self,
         key_diag=None,
@@ -614,7 +725,6 @@ class Diagnostic(Previous):
         # parameters
         res_RZ=None,
         res_phi=None,
-        res_rock_curve=None,
         n0=None,
         n1=None,
         convexHull=None,
@@ -650,7 +760,6 @@ class Diagnostic(Previous):
         Parameters for plasma volume sampling:
             - res_RZ: float (m)
             - res_phi: float (m)
-            - res_rock_curve: float (rad)
 
         Parameters for sampling the solid angle for each point source
             - n0: int, nb of rays in horizontal direction
@@ -678,7 +787,6 @@ class Diagnostic(Previous):
             # etendue
             res_RZ=res_RZ,
             res_phi=res_phi,
-            res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
             convexHull=convexHull,
@@ -1055,7 +1163,6 @@ class Diagnostic(Previous):
         lamb0=None,
         res_lamb=None,
         rocking_curve=None,
-        res_rock_curve=None,
         # options
         append=None,
         plot=None,
@@ -1090,7 +1197,6 @@ class Diagnostic(Previous):
             lamb0=lamb0,
             res_lamb=res_lamb,
             rocking_curve=rocking_curve,
-            res_rock_curve=res_rock_curve,
             # options
             append=append,
             plot=plot,
@@ -1412,11 +1518,18 @@ class Diagnostic(Previous):
     def plot_diagnostic_geometrical_coverage(
         self,
         key=None,
+        key_cam=None,
+        # what to plot
+        plot_cross=None,
+        plot_hor=None,
+        plot_rank=None,
         # mesh sampling
         key_mesh=None,
         res_RZ=None,
         nan0=None,
         # plotting options
+        marker=None,
+        markersize=None,
         plot_config=None,
         dcolor=None,
         dax=None,
@@ -1434,6 +1547,8 @@ class Diagnostic(Previous):
         ----------
         key : str, optional
             key to the diagnostic
+        key_cam: str / list, optional
+            Use to reduce the plot to a subset of the diagnostic's cameras
         key_mesh : str, optional
             key to the mesh used for sampling the cross-section
         res_RZ : float / list, optional
@@ -1453,11 +1568,18 @@ class Diagnostic(Previous):
         return _plot_coverage.main(
             coll=self,
             key=key,
+            key_cam=key_cam,
+            # what to plot
+            plot_cross=plot_cross,
+            plot_hor=plot_hor,
+            plot_rank=plot_rank,
             # mesh sampling
             key_mesh=key_mesh,
             res_RZ=res_RZ,
             nan0=nan0,
             # plotting options
+            marker=marker,
+            markersize=markersize,
             config=plot_config,
             dcolor=dcolor,
             cmap=cmap,
