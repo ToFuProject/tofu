@@ -352,3 +352,12 @@ class Test04_Diagnostic_Spectro_Vos(Diag_Vos):
             coll=self.coll,
             spectro=True,
         )
+
+    def test02_plot_coverage_slice(
+        self,
+        key_diag=None,
+        res=None,
+        close=None,
+        isZ=None,
+    ):
+        return
