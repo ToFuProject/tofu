@@ -1585,9 +1585,9 @@ def _add_emiss(
 
     else:
         # lamb
-        lamb0 = 3e-10
-        lamb1 = 4e-10
-        lamb = np.linspace(lamb0, lamb1, 200)
+        lamb0 = 3.91e-10
+        lamb1 = 4.01e-10
+        lamb = np.linspace(lamb0, lamb1, 3000)
         coll.add_data('lamb', data=lamb, ref='nlamb', units='m')
 
         # spectral emis
