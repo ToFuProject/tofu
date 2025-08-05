@@ -49,7 +49,6 @@ def _vos(
     res_phi=None,
     lamb=None,
     res_lamb=None,
-    res_rock_curve=None,
     n0=None,
     n1=None,
     convexHull=None,
@@ -183,7 +182,6 @@ def _vos(
         kspectro=kspectro,
         lamb=lamb,
         res_lamb=res_lamb,
-        res_rock_curve=res_rock_curve,
         verb=verb,
     )
 

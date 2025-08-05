@@ -34,7 +34,6 @@ def compute_vos(
     res_phi=None,
     lamb=None,
     res_lamb=None,
-    res_rock_curve=None,
     n0=None,
     n1=None,
     convexHull=None,
@@ -249,7 +248,6 @@ def compute_vos(
             res_phi=res_phi,
             lamb=lamb,
             res_lamb=res_lamb,
-            res_rock_curve=res_rock_curve,
             n0=n0,
             n1=n1,
             convexHull=convexHull,
@@ -315,7 +313,6 @@ def compute_vos(
             res_RZ=res_RZ,
             res_phi=res_phi,
             res_lamb=res_lamb if spectro else None,
-            res_rock_curve=res_rock_curve if spectro else None,
         )
 
     return dvos, dref
@@ -953,12 +950,27 @@ def _check_get_dvos(
     # prepare keys
     # -------------------
 
+    # common as-is
     lk_asis = ['keym', 'res_RZ', 'res_phi']
 
+    # common data
     lk_data = []
+
+    # spectro-specific
+    if spectro is True:
+        lk_asis += ['res_lamb']
+        lk_data = [
+            'lamb', 'etendlen',
+            # 'phi_min', 'phi_max', 'phi_mean',
+        ]
+
+    # tuple and projection-specific
     dk_tuple = {}
     for kproj, lcam in dvosproj.items():
         lk_data += [f'sang_{kproj}', f'dV_{kproj}', f'ndV_{kproj}']
+        if spectro is True:
+            lk_data += [f'ph_{kproj}', f'ncounts_{kproj}']
+
         dk_tuple[f'ind_{kproj}'] = [f"indr_{kproj}"]
         dk_tuple[f'vect_{kproj}'] = [
             f'vectx_{kproj}', f'vecty_{kproj}', f'vectz_{kproj}',
@@ -967,16 +979,6 @@ def _check_get_dvos(
             dk_tuple[f'ind_{kproj}'].append(f"indz_{kproj}")
         if kproj != 'cross':
             dk_tuple[f'ind_{kproj}'].append(f"indphi_{kproj}")
-
-    # spectro
-    if spectro is True:
-        lk_asis += ['res_lamb', 'res_rock_curve']
-        lk_data = [
-            'lamb',
-            'phi_min', 'phi_max', 'phi_mean',
-            'ph', 'ncounts', 'cos',
-            'etendlen',
-        ]
 
     # ------
     # dvos

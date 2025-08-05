@@ -44,7 +44,6 @@ def _from_pts(
     lamb0=None,
     res_lamb=None,
     rocking_curve=None,
-    res_rock_curve=None,
     # options
     append=None,
     plot=None,
@@ -139,7 +138,6 @@ def _from_pts(
         lamb=lamb0,
         res_lamb=res_lamb,
         rocking_curve=rocking_curve,
-        res_rock_curve=res_rock_curve,
         verb=False,
     )
 
@@ -571,7 +569,6 @@ def _prepare_lamb(
     res_lamb=None,
     rocking_curve=None,
     rocking_curve_step_width=None,
-    res_rock_curve=None,
     verb=None,
 ):
 

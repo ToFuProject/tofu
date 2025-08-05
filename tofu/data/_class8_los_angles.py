@@ -407,7 +407,6 @@ def _vos_from_los(
         res_RZ=None,
         res_phi=None,
         res_lamb=None,
-        res_rock_curve=None,
     )
 
     return
