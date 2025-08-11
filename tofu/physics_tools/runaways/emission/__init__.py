@@ -6,3 +6,4 @@ from ._xray_thick_target import plot_dcross_ei as plot_xray_thick_dcross_ei
 from ._xray_thick_target import plot_dcross_vs_Salvat as plot_xray_thick_dcross_ei_vs_Salvat
 
 from ._xray_thin_target import get_bremss_maxwell as get_xray_thin_bremss_maxwell
+from ._xray_thin_target import get_dcross_ei as get_xray_thin_ddcross_ei

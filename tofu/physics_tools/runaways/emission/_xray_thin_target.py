@@ -26,7 +26,7 @@ def get_bremss_maxwell(
     # check inputs
     # -------------
 
-    kTe_eV, ne_m3, Zeff, E_ph_eV = _check(
+    kTe_eV, ne_m3, Zeff, E_ph_eV = _check_maxwell(
         # parameters
         kTe_eV=kTe_eV,
         ne_m3=ne_m3,
@@ -103,7 +103,7 @@ def get_bremss_maxwell(
     return dout
 
 
-def _check(
+def _check_maxwell(
     # parameters
     kTe_eV=None,
     ne_m3=None,
@@ -164,8 +164,8 @@ def _check(
 def get_dcross_ei(
     # inputs
     Z=None,
-    E_e0_J=None,
-    E_e1_J=None,
+    E_e0_eV=None,
+    E_e1_eV=None,
     # directions
     theta_ph=None,
     theta_e=None,
@@ -178,14 +178,40 @@ def get_dcross_ei(
 ):
     """ Return a differential cross-section for thin-target bremsstrahlung
 
-    Uses the BHE or BE formulas [1]:
-        - BHE: Bethe-Heitler-Elwert [2]
-        - BE: Elwert-Haug [3]
+    First based on [1]
+    Now uses the BHE or BE formulas (version):
+        - 'BE': Elwert-Haug [2]
+            . most general and accurate
+            . Uses Sommerfield-Maue eigenfunctions
+            . eq. (30) in [2]
+        - 'BHE': Bethe-Heitler-Elwert [3]
+            . Faster computation
+            . uses Born approximation
+
+    Valid for small atomic numbers, deviates at high Z, see [4]
 
     Uses:
         [1] Y. Peysson, "Rayonnement electromagnetique des plasmas"
-        [2]
+        [2] G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969
+            doi: 10.1103/PhysRev.183.90.
         [3]
+        [4] Starek et al., Physics Letters A, 39, p. 151, 1972
+            doi: 10.1016/0375-9601(72)91059-6.
+
+    Inputs:
+        E_e0_eV = kinetic energy of incident electron in eV
+        E_e1_eV = kinetic energy of scattered electron in eV
+        theta_e = (spherical) theta angle of scattered e vs incident e
+        theta_ph = (spherical) theta angle of photon vs incident e
+        phi_e = (spherical) phi angle of scattered e vs incident e
+        phi_ph = (spherical) theta angle of photon vs incident e
+        (all angles in rad)
+
+    Limitations:
+        - 'EH' implementation currently stalled because:
+            scipy.special.hyp2f1(a, b, c, z)
+            does not handle complex input (a, b) as required by the formula
+            => ticket https://github.com/scipy/scipy/issues/23450
 
     """
 
@@ -203,13 +229,13 @@ def get_dcross_ei(
     ) = _check_cross(
         # inputs
         Z=Z,
-        E_e0_J=E_e0_J,
-        E_e1_J=E_e1_J,
+        E_e0_eV=E_e0_eV,
+        E_e1_eV=E_e1_eV,
         # directions
-        theta_ph=None,
-        theta_e=None,
-        phi_ph=None,
-        phi_e=None,
+        theta_ph=theta_ph,
+        theta_e=theta_e,
+        phi_ph=phi_ph,
+        phi_e=phi_e,
         # version
         version=version,
         # plot
@@ -220,7 +246,7 @@ def get_dcross_ei(
     # prepare
     # -------------
 
-    dout = {
+    ddata = {
         'E_e0': {
             'data': E_e0_J,
             'units': 'J',
@@ -240,18 +266,22 @@ def get_dcross_ei(
     # -------------
 
     if version == 'BHE':
-        cross[...], dcrit = _cross_BetheHeitlerElwert(
+        ddata['cross']['data'][...], dcrit = _cross_BetheHeitlerElwert(
             Z=Z,
             E_e0_J=E_e0_J,
-            E_ph_J=E_ph_J,
+            E_e1_J=E_e1_J,
         )
 
     else:
-        cross[...], dcrit = _cross_ElwertHaug(
+        ddata['cross']['data'][...], dcrit = _cross_ElwertHaug(
             Z=Z,
             E_e0_J=E_e0_J,
-            E_ph_J=E_ph_J,
+            E_e1_J=E_e1_J,
             # directions
+            theta_ph=theta_ph,
+            theta_e=theta_e,
+            phi_ph=phi_ph,
+            phi_e=phi_e,
         )
 
     # -------------
@@ -260,14 +290,14 @@ def get_dcross_ei(
 
     if plot is True:
         _plot_cross(
-            dout=dout,
+            ddata=ddata,
         )
 
     # -------------
     # format output
     # -------------
 
-    return dout
+    return ddata
 
 
 # ####################################################
@@ -279,8 +309,8 @@ def get_dcross_ei(
 def _check_cross(
     # inputs
     Z=None,
-    E_e0_J=None,
-    E_e1_J=None,
+    E_e0_eV=None,
+    E_e1_eV=None,
     # directions
     theta_ph=None,
     theta_e=None,
@@ -304,22 +334,23 @@ def _check_cross(
     )
 
     # ------------
-    # E_e0_J
+    # E_e0_eV (kinetic) => E_e0_J (total)
     # ------------
 
-    if E_e0_J is None:
-        E_e0_J = np.r_[10e3, 50e3, 100e3, 500e3, 1e6] * scpct.e
+    mc2 = scpct.m_e*scpct.c**2
+    if E_e0_eV is None:
+        E_e0_eV = np.r_[10e3, 50e3, 100e3, 500e3, 1e6]
 
-    E_e0_J = np.atleast_1d(E_e0_J)
+    E_e0_J = np.atleast_1d(E_e0_eV) * scpct.e + mc2
 
     # ------------
-    # E_e1_J
+    # E_e1_eV (kinetic) => E_e1_J (total)
     # ------------
 
-    if E_e1_J is None:
-        E_e1_J = np.linspace(1e3, 1e6, 200) * scpct.e
+    if E_e1_eV is None:
+        E_e1_eV = np.linspace(1e3, 1e6, 200)
 
-    E_e1_J = np.atleast_1d(E_e1_J)
+    E_e1_J = np.atleast_1d(E_e1_eV) * scpct.e + mc2
 
     # ------------
     # theta_e, phi_e
@@ -349,7 +380,7 @@ def _check_cross(
 
     # phi
     if phi_ph is None:
-        phi_ph =  * np.pi / 180
+        phi_ph = 0 * np.pi / 180
 
     phi_ph = np.atleast_1d(phi_ph)
 
@@ -357,20 +388,10 @@ def _check_cross(
     # Broadcastable
     # -------------
 
-    dout = ds._generic_check._check_all_broadcastable(
+    dout, shape = ds._generic_check._check_all_broadcastable(
         return_full_arrays=False,
         E_e0_J=E_e0_J,
         E_e1_J=E_e1_J,
-        # directions
-        theta_ph=theta_ph,
-        theta_e=theta_e,
-        phi_ph=phi_ph,
-        phi_e=phi_e,
-    )
-
-    shape = np.broadcast_shapes(
-        E_e0_J.shape,
-        E_e1_J.shape,
         # directions
         theta_ph=theta_ph,
         theta_e=theta_e,
@@ -400,7 +421,10 @@ def _check_cross(
     )
 
     return (
-        dout,
+        Z,
+        E_e0_J, E_e1_J,
+        theta_e, phi_e,
+        theta_ph, phi_ph,
         shape,
         version, plot,
     )
@@ -453,7 +477,7 @@ def _cross_BetheHeitlerElwert(
     # -------------
 
     # E_ph_J
-    E_ph_J = E_e0_J - E_e1_J
+    # E_ph_J = E_e0_J - E_e1_J
 
     # momentum (kg m / s) x c (m / s) => J
     p0c_J = np.sqrt(E_e0_J**2 - E0_J**2)
@@ -564,7 +588,7 @@ def _cross_ElwertHaug(
     # --------------
 
     # a (adim)
-    a = alpha * Z
+    aa = alpha * Z
 
     # -------------
     # Energy-derived
@@ -582,12 +606,17 @@ def _cross_ElwertHaug(
     p0 = p0c_J / E0_J
     p1 = p1c_J / E0_J
 
+    # squared
+    p02 = p0**2
+    p12 = p1**2
+
     # a (adim)
-    a0 = a * eps0 / p0
-    a1 = a * eps1 / p1
+    a0 = aa * eps0 / p0
+    a1 = aa * eps1 / p1
 
     # k = photon energy / mc2 (adim)
     k = eps0 - eps1
+    k2 = k**2
 
     # kappa (adim)
     kappa = eps0 / p0 + eps1 / p1
@@ -603,7 +632,7 @@ def _cross_ElwertHaug(
     sinte = np.sin(theta_e)
     costp = np.cos(theta_ph)
     sintp = np.sin(theta_ph)
-    cosdphi = np.cos(phi_e-phi_ph)
+    cosdphi = np.cos(phi_ph - phi_e)
 
     # -------------
     # Vectors / scalar product
@@ -611,7 +640,7 @@ def _cross_ElwertHaug(
 
     # scalar
     sca_kp0 = k * E_e0_J * costp
-    sca_p1p0 = E_e0_J * E_e1_J * coste
+    sca_p01 = E_e0_J * E_e1_J * coste
     sca_kp1 = k * E_e1_J * (costp*coste + sintp*sinte*cosdphi)
 
     # vect{q} = vect{p0 - p1 - k}
@@ -628,42 +657,69 @@ def _cross_ElwertHaug(
     # eta and products
     # -------------
 
-    eta0 = p0 * (
-        -sintp*np.sin(phi_ph),   # x
-        sintp*np.cos(phi_ph),  # y
-        0,    # z
-    )
+    # eta0 = p0 * (
+    #     -sintp*np.sin(phi_ph),   # x
+    #     sintp*np.cos(phi_ph),    # y
+    #     0,                       # z
+    # )
 
-    eta1 = p1 * (
-        sinte*sin(phi_e)*costp - coste*sintp*sin(phi_ph), # x
-        coste*sintp*cos(phi_p) - sinte*cos(phi_e)*costp, # y
-        sinte*cos(phi_e)*sintp*sin(phi_p) - sinte*sin(phi_e)*sintp*cos(phi_p),
-    )
+    # eta1 = p1 * (
+    #     sinte*sinpe*costp - coste*sintp*sinpp,   # x
+    #     coste*sintp*cospp - sinte*cospe*costp,    # y
+    #     sinte*cospe*sintp*sinpp - sinte*sinpe*sintp*cospp,  # z
+    # )
 
+    # ---------
     # norm2
-    eta02 = p0**2 * sintp**2
-    eta12 = p1**2 * (
+
+    eta02 = p02 * sintp**2
+    # eta12 = p12 * (
+    #     (sinte*costp)**2
+    #     + (coste*sintp)**2
+    #     + (sinte*sintp)**2 * ((cospe*sinpp)**2 + (sinpe*cospp)**2)
+    #     - 2*sinte*sinpe*costp*coste*sintp*sinpp
+    #     - 2*coste*sintp*cospp*sinte*cospe*costp
+    #     - 2*(sinte*sintp)**2*cospe*sinpe*sinpp*cospp
+    # )
+    # = p12 * (
+    #     (sinte*costp)**2
+    #     + (coste*sintp)**2
+    #     - 2*sinte*coste*costp*sintp*cosdphi
+    #     + (sinte*sintp)**2 * sin(phi_p - phi_e)**2
+    # )
+    # = p12 * (
+    #     (sinte*costp)**2
+    #     + (coste*sintp)**2
+    #     - 2*(coste*costp)*(sinte*sintp*cosdphi)
+    #     + (sinte*sintp)**2 - (sinte*sintp*cosdphi)**2
+    # )
+    eta12 = p12 * (
         (sinte*costp)**2
         + (coste*sintp)**2
-        + (sinte*sintp)**2 * ((cospe*sinpp)**2 + (sinpe*cospp)**2)
-        # + (sinte*sintp)**2 * ((cospe*sinpp)**2 + (1-cospe**2)*(1-sinpp**2))
-        # + (sinte*sintp)**2 * ((cospe*sinpp)**2 + 1 - cospe**2 - sinpp**2 + (cospe*sinpp)**2)
-        - 2*sinte*coste*costp*sintp*sin(phi_e)*sin(phi_p)
-        - 2*sinte*coste*costp*sintp*cos(phi_e)*cos(phi_p)
-        - 2*sinte**2*sintp**2*cos(phi_e)*sin(phi_e)*cos(phi_p)*sin(phi_p)
-    )
-    eta12 = (
-        (sinte*costp)**2
-        + (coste*sintp)**2
-        + (sinte*sintp)**2 * ((cospe*sinpp)**2 + (1-cospe**2)*(1-sinpp**2))
-        - 2*sinte*coste*costp*sintp*sin(phi_e)*sin(phi_p)
-        - 2*sinte*coste*costp*sintp*cos(phi_e)*cos(phi_p)
-        - 2*sinte**2*sintp**2*cos(phi_e)*sin(phi_e)*cos(phi_p)*sin(phi_p)
+        - 2*(coste*costp)*(sinte*sintp*cosdphi)
+        + (sinte*sintp)**2 * (1 - cosdphi**2)
     )
 
-    # -------------
+    # --------
+    # scalar
+
+    # sca_eta01 = (
+    #     - sintp*sinpp * (sinte*sinpe*costp - coste*sintp*sinpp)
+    #     + sintp*cospp * (coste*sintp*cospp - sinte*cospe*costp)
+    # )
+    # = sintp * (
+    #     + sinpp * (coste*sintp*sinpp - sinte*sinpe*costp)
+    #     + cospp * (coste*sintp*cospp - sinte*cospe*costp)
+    # )
+    # = sintp * (
+    #     coste*sintp*(sinpp**2 + cospp**2)
+    #     - sinte*costp*(sinpe*sinpp + cospe*cospp)
+    # )
+    sca_eta01 = sintp * (coste*sintp - sinte*costp*cosdphi)
+
+    # ---------------
     # Intermediates 1
-    # -------------
+    # ---------------
 
     # D
     D0 = 2.*(eps0*k - sca_kp0)
@@ -677,17 +733,17 @@ def _cross_ElwertHaug(
     x = 1. - mu*q2 / D0D1
 
     # hypergeometric functions
-    V = scpsp.hyp2F1(1j*a0, 1j*a1, 1., x)
-    W = scpsp.hyp2F1(1. + 1j*a0, 1. + 1j*a1, 2., x)
+    V = scpsp.hyp2f1(1j*a0, 1j*a1, 1., x)
+    W = scpsp.hyp2f1(1. + 1j*a0, 1. + 1j*a1, 2., x)
 
-    # -------------
+    # ---------------
     # Intermediates 2
-    # -------------
+    # ---------------
 
     A0 = (V - 1j*a0*(1-x)*W) / (D0*q2)
     A1 = (V - 1j*a1*(1-x)*W) / (D1*q2)
 
-    B = 1j * a * W / D0D1
+    B = 1j * aa * W / D0D1
 
     # ---------------
     # squared modulus
@@ -714,33 +770,51 @@ def _cross_ElwertHaug(
 
     # adim
     E0 = (
-        (4*eps1**2 - q2) * eta0**2
-        + ((eta1**2 + 1)*2*k**2/D1 + eta0**2 - sca_eta01) * D0
+        (4*eps1**2 - q2) * eta02
+        + ((eta12 + 1)*2*k2/D1 + eta02 - sca_eta01) * D0
     )
     E1 = (
-        (4*eps0**2 - q2) * eta1**2
-        + ((eta0**2 + 1)*2*k**2/D0 + eta1**2 - sca_eta01) * D1
+        (4*eps0**2 - q2) * eta12
+        + ((eta02 + 1)*2*k2/D0 + eta12 - sca_eta01) * D1
     )
-    E2 = None
+    E2 = (
+        4.*(eps0*eps1 - q2)*sca_eta01
+        + 0.5*D0*(sca_eta01 - eta12)
+        + 0.5*D1*(eta02 - sca_eta01)
+        + 2.*k2*(sca_eta01 + 1.)
+    )
 
     # adim
-    F1 = None
-    F2 = None
-    F3 = None
+    F0 = (
+        k * rho * (eta02 - sca_eta01)
+        + kappa * (sca_kp0 * (sca_p01 - sca_kp1 + p12) + 2.*k2)
+        - (kappa*p0*p1 - 2.*k/p0) * (sca_kp0 + sca_kp1 - k2)
+    )
+    F1 = (
+        k * rho * (eta12 - sca_eta01)
+        + kappa * (sca_kp1 * (sca_p01 - sca_kp0 + p02) + 2.*k2)
+        - (kappa*p0*p1 - 2.*k/p1) * (sca_kp0 + sca_kp1 - k2)
+    )
+    F2 = mu * (
+        k2
+        - (sca_kp0 * sca_kp1) / (p0*p1)
+        + (p02 - p12) / (p0*p1)**2
+        * (p02 - p12 + sca_kp0 + sca_kp1)
+    ) - 2.*k2*rho**2
 
     # --------------------------------
     # combine into final cross-section
     # --------------------------------
 
-    # m2
+    # 3-differential cross-section - m2 / sr^2
     d3cross_ei_EH = (
         (term0 * term1 * term2 * term3 * term4 * k)
         * (
-            E0*modA02 + E1*modA12
-            - 2.*E2*ReA0A1
-            - 2.*F1*ReA0B
-            - 2.*F2*ReA1B
-            + F3*modB2
+            E0 * modA02 + E1 * modA12
+            - 2. * E2 * ReA0A1
+            - 2. * F0 * ReA0B
+            - 2. * F1 * ReA1B
+            + F2 * modB2
         )
     )
 
@@ -749,9 +823,20 @@ def _cross_ElwertHaug(
     # ------------------
 
     dcrit = {
-        'data': a,
+        'data': aa,
         'lim': 1,
         'comment': r'$\alpha Z < 1$'
     }
 
     return d3cross_ei_EH, dcrit
+
+
+# ####################################################
+# ####################################################
+#        Cross-section - plotting
+# ####################################################
+
+
+def _plot_cross():
+
+    return
