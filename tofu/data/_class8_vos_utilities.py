@@ -145,7 +145,7 @@ def _get_overall_polygons(
         ref_cam = coll.dobj[wcam][key_cam]['dgeom']['ref']
         shape_cam = coll.dobj[wcam][key_cam]['dgeom']['shape']
         ref = coll.ddata[kp0]['ref']
-        axis = np.array([ref_cam.index(rr) for rr in ref_cam], dtype=int)
+        axis = np.array([ref.index(rr) for rr in ref_cam], dtype=int)
         sli0 = np.array([slice(None) for ss in ref])
 
         i0 = 0
