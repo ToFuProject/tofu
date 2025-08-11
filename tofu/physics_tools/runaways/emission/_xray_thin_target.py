@@ -1,9 +1,23 @@
 
 
+import os
+
+
 import numpy as np
 import scipy.constants as scpct
 import scipy.special as scpsp
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import datastock as ds
+
+
+# ####################################################
+# ####################################################
+#           DEFAULT
+# ####################################################
+
+
+_PATH_HERE = os.path.dirname(__file__)
 
 
 # ####################################################
@@ -171,6 +185,8 @@ def get_dcross_ei(
     theta_e=None,
     phi_ph=None,
     phi_e=None,
+    # hypergeometric parameter
+    ninf=None,
     # version
     version=None,
     # plot
@@ -225,7 +241,8 @@ def get_dcross_ei(
         theta_e, phi_e,
         theta_ph, phi_ph,
         shape,
-        version, plot,
+        version,
+        plot,
     ) = _check_cross(
         # inputs
         Z=Z,
@@ -247,6 +264,7 @@ def get_dcross_ei(
     # -------------
 
     ddata = {
+        # energies
         'E_e0': {
             'data': E_e0_J,
             'units': 'J',
@@ -255,6 +273,24 @@ def get_dcross_ei(
             'data': E_e1_J,
             'units': 'J',
         },
+        # angles
+        'theta_e': {
+            'data': theta_e,
+            'units': 'rad',
+        },
+        'theta_ph': {
+            'data': theta_ph,
+            'units': 'rad',
+        },
+        'phi_e': {
+            'data': phi_e,
+            'units': 'rad',
+        },
+        'phi_ph': {
+            'data': phi_ph,
+            'units': 'rad',
+        },
+        # cross-section
         'cross': {
             'data': np.full(shape, 0.),
             'units': 'J',
@@ -282,6 +318,8 @@ def get_dcross_ei(
             theta_e=theta_e,
             phi_ph=phi_ph,
             phi_e=phi_e,
+            # hypergeometric parameter
+            ninf=ninf,
         )
 
     # -------------
@@ -289,9 +327,7 @@ def get_dcross_ei(
     # -------------
 
     if plot is True:
-        _plot_cross(
-            ddata=ddata,
-        )
+        pass
 
     # -------------
     # format output
@@ -539,6 +575,8 @@ def _cross_ElwertHaug(
     theta_e=None,
     phi_ph=None,
     phi_e=None,
+    # hypergeometric parameter
+    ninf=None,
 ):
     """
     More accurate than Bethe-Heitler-Elwert
@@ -733,8 +771,22 @@ def _cross_ElwertHaug(
     x = 1. - mu*q2 / D0D1
 
     # hypergeometric functions
-    V = scpsp.hyp2f1(1j*a0, 1j*a1, 1., x)
-    W = scpsp.hyp2f1(1. + 1j*a0, 1. + 1j*a1, 2., x)
+    # V = scpsp.hyp2f1(1j*a0, 1j*a1, 1., x)
+    # W = scpsp.hyp2f1(1. + 1j*a0, 1. + 1j*a1, 2., x)
+    V = _hyp2F1(
+        aa=1j*a0,
+        bb=1j*a1,
+        cc=np.ones(a0.shape, dtype=float),
+        zz=x,
+        ninf=ninf,
+    )
+    W = _hyp2F1(
+        aa=1.+1j*a0,
+        bb=1.+1j*a1,
+        cc=2.*np.ones(a0.shape, dtype=float),
+        zz=x,
+        ninf=ninf,
+    )
 
     # ---------------
     # Intermediates 2
@@ -833,10 +885,192 @@ def _cross_ElwertHaug(
 
 # ####################################################
 # ####################################################
+#        Homemade hypergeometric
+# ####################################################
+
+
+def _hyp2F1(
+    aa=None,
+    bb=None,
+    cc=None,
+    zz=None,
+    ninf=None,
+):
+    """ Hypergeometric function 2F1 with complex arguments
+
+    Home-made, replacement for:
+        https://github.com/scipy/scipy/issues/23450
+
+    Inspired from:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.hyp2f1.html
+
+    """
+
+    # ----------
+    # Number of terms
+    # ----------
+
+    if ninf is None:
+        ninf = 30
+
+    shape = (1,)*aa.ndim + (ninf,)
+    nn = np.arange(0, ninf).reshape(shape)
+
+    # ----------
+    # Pochammer
+    # ----------
+
+    poch_a = scpsp.gamma(aa[..., None] + nn) / scpsp.gamma(aa[..., None])
+    poch_b = scpsp.gamma(bb[..., None] + nn) / scpsp.gamma(bb[..., None])
+    poch_c = scpsp.gamma(cc[..., None] + nn) / scpsp.gamma(cc[..., None])
+
+    # ----------
+    # fact
+    # ----------
+
+    fact = zz[..., None]**nn / scpsp.factorial(nn)
+
+    # ----------
+    # sum
+    # ----------
+
+    # Hotfix: pcoh_a * pch_b can give negative values...
+    tot = poch_a * poch_b * fact / poch_c
+    iok = np.isfinite(tot)
+
+    return np.sum(tot, axis=-1, where=iok)
+
+
+# ####################################################
+# ####################################################
 #        Cross-section - plotting
 # ####################################################
 
 
-def _plot_cross():
+def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
+    """ Compute cross section from Elwert-Haug
 
-    return
+
+    """
+
+    # --------------
+    # Load data
+    # --------------
+
+    pfe_isolines = os.path.join(
+        _PATH_HERE,
+        'RE_HXR_CrossSection_ThinTarget_Isolines_ElwertHaug_fig2.csv',
+    )
+    out_isolines = np.loadtxt(pfe_isolines, delimiter=',')
+
+    # --------------
+    # Compute
+    # --------------
+
+    # --------------
+    # isolines data
+
+    te0 = np.linspace(-np.pi/2, np.pi/2, 91)[None, :]
+    te1 = np.linspace(-np.pi/2, np.pi/2, 92)[:, None]
+
+    ddata_iso = get_dcross_ei(
+        # inputs
+        Z=13,
+        E_e0_eV=180e3,
+        E_e1_eV=90e3,
+        # directions
+        theta_ph=np.abs(te0),
+        theta_e=np.abs(te1),
+        phi_ph=0.,
+        phi_e=(te0*te1 > 0)*np.pi,
+        # hypergeometric parameter
+        ninf=ninf,
+        # version
+        version=None,
+    )
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    fontsize = 14
+    tit = "Comparison to G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969"
+
+    dmargin = {
+        'left': 0.08, 'right': 0.95,
+        'bottom': 0.08, 'top': 0.85,
+        'wspace': 0.2, 'hspace': 0.2,
+    }
+
+    fig = plt.figure(figsize=(14, 10))
+    fig.suptitle(tit, size=fontsize+2, fontweight='bold')
+
+    gs = gridspec.GridSpec(ncols=2, nrows=1, **dmargin)
+    dax = {}
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    # ax0 -
+    ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+    ax.set_xlabel(
+        r"$\theta_{ph}$ (photon emission angle, deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(
+        r"$\theta_e$ (e deflection angle, deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        "Fig 2. Isolines of the differential cross-section\n"
+        + r"$Z = 13$, $E_{e0} = 180 keV$, $E_{e1} = 90 keV$\n"
+        + "1 barn = 1e-28 m2",
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # --------------
+    # dax
+    # --------------
+
+    dax = {
+        'isolines': {'handle': ax, 'type': 'isolines'}
+    }
+
+    # --------------
+    # plot
+    # --------------
+
+    kax = 'isolines'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        ax.plot(
+            out_isolines[:, 0],
+            out_isolines[:, 1],
+            c='k',
+            ls='-',
+        )
+
+        # computed data
+        im = ax.contour(
+            te0.ravel() * 180/np.pi,
+            te1.ravel() * 180/np.pi,
+            ddata_iso['cross']['data']*1e28,
+            levels=10,
+            cmap=plt.cm.viridis,
+            # levels=[0.1, 0.5, 1, 2, 3, 4, 5, 6, 7],
+        )
+
+        # add labels
+        ax.clabel(im, im.levels, inline=True, fmt='%r', fontsize=10)
+
+        # add refs
+        ax.axvline(0, c='k', ls='--')
+        ax.axhline(0, c='k', ls='--')
+
+    return dax, ddata_iso
