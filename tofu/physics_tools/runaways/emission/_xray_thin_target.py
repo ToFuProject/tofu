@@ -1014,7 +1014,7 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
         'wspace': 0.2, 'hspace': 0.2,
     }
 
-    fig = plt.figure(figsize=(14, 10))
+    fig = plt.figure(figsize=(15, 12))
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
     gs = gridspec.GridSpec(ncols=2, nrows=1, **dmargin)
@@ -1038,8 +1038,8 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
     )
     ax.set_title(
         "Fig 2. Isolines of the differential cross-section\n"
-        + r"$Z = 13$, $E_{e0} = 180 keV$, $E_{e1} = 90 keV$\n"
-        + "1 barn = 1e-28 m2",
+        + r"$Z = 13$, $E_{e0} = 180 keV$, $E_{e1} = 90 keV$"
+        + "\n1 barn = 1e-28 m2",
         size=fontsize,
         fontweight='bold',
     )
@@ -1075,9 +1075,8 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
             te0.ravel() * 180/np.pi,
             te1.ravel() * 180/np.pi,
             ddata_iso['cross']['data']*1e28,
-            levels=10,
             cmap=plt.cm.viridis,
-            # levels=[0.1, 0.5, 1, 2, 3, 4, 5, 6, 7],
+            levels=[0.1, 0.5, 1, 2, 3, 4, 5, 6, 7],
         )
 
         # add labels
@@ -1086,5 +1085,6 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
         # add refs
         ax.axvline(0, c='k', ls='--')
         ax.axhline(0, c='k', ls='--')
+        ax.set_xlim(-90, 90)
 
     return dax, ddata_iso
