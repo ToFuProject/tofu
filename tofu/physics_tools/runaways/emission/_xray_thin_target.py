@@ -907,11 +907,23 @@ def _hyp2F1(
     """
 
     # ----------
+    # Safety check
+    # ----------
+
+    if np.any(np.abs(zz) > 1):
+        msg = (
+            "This homemade implementation of Hyp2F1 is particularly unstable"
+            " for |zz| > 1\n"
+            "Found {(np.abs(zz) > 1).sum()} / {zz.size} pts with |zz| > 1\n"
+        )
+        raise Exception(msg)
+
+    # ----------
     # Number of terms
     # ----------
 
     if ninf is None:
-        ninf = 30
+        ninf = 50
 
     shape = (1,)*aa.ndim + (ninf,)
     nn = np.arange(0, ninf).reshape(shape)
@@ -1012,7 +1024,7 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
     # prepare axes
     # --------------
 
-    # ax0 -
+    # ax - isolines
     ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
     ax.set_xlabel(
         r"$\theta_{ph}$ (photon emission angle, deg)",
@@ -1032,6 +1044,8 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
         fontweight='bold',
     )
 
+    # ax -
+
     # --------------
     # dax
     # --------------
@@ -1050,8 +1064,8 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
 
         # literature data
         ax.plot(
-            out_isolines[:, 0],
-            out_isolines[:, 1],
+            np.r_[out_isolines[:, 0], np.nan, -out_isolines[:, 0]],
+            np.r_[out_isolines[:, 1], np.nan, -out_isolines[:, 1]],
             c='k',
             ls='-',
         )
