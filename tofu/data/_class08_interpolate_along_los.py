@@ -307,6 +307,7 @@ def main(
 
     dind = _get_dind(
         coll=coll,
+        key_cam=key_cam,
         doptics=doptics,
         dx=dx,
         dy=dy,
@@ -574,7 +575,7 @@ def _interpolate_along_los_reshape(
                 else:
                     ref[ii] = 1
 
-        # None not macthing xdata (e.g.: domain)
+        # None not matching xdata (e.g.: domain)
         xdata = xdata.reshape(ref) * np.ones(ydata.shape)
 
     return xdata, ydata, axis_los
@@ -587,6 +588,7 @@ def _interpolate_along_los_reshape(
 
 def _get_dind(
     coll=None,
+    key_cam=None,
     doptics=None,
     dx=None,
     dy=None,
@@ -596,7 +598,7 @@ def _get_dind(
     #  loop on cameras
 
     dind = {}
-    for kcam in doptics.keys():
+    for kcam in key_cam:
 
         klos = doptics[kcam]['los']
 
@@ -636,8 +638,8 @@ def _get_dind(
         # -----------
         # safety check
 
-        lc = [np.any(inan[ind>=0]), (ind == -1).sum() < nnan]
-        if  any(lc):
+        lc = [np.any(inan[ind >= 0]), (ind == -1).sum() < nnan]
+        if any(lc):
             msg = (
                 "Inconsistent nans!\n"
                 f"\t- lc: {lc}\n"
@@ -668,7 +670,6 @@ def interpolate_along_los_plot(
     dcolor=None,
     dax=None,
 ):
-
 
     # -------------
     # check inputs
