@@ -1,6 +1,7 @@
 
 
 import os
+import warnings
 
 
 import numpy as np
@@ -186,6 +187,7 @@ def get_dcross_ei(
     dphi=None,
     # hypergeometric parameter
     ninf=None,
+    source=None,
     # version
     version=None,
     # plot
@@ -321,6 +323,7 @@ def get_dcross_ei(
             dphi=dphi,
             # hypergeometric parameter
             ninf=ninf,
+            source=source,
             # debug
             debug=debug,
         )
@@ -601,6 +604,7 @@ def _cross_ElwertHaug(
     dphi=None,
     # hypergeometric parameter
     ninf=None,
+    source=None,
     # debug
     debug=None,
 ):
@@ -806,6 +810,7 @@ def _cross_ElwertHaug(
         cc=np.ones(a0.shape, dtype=float),
         zz=xx,
         ninf=ninf,
+        source=source,
     )
     W = _hyp2F1(
         aa=1.+1j*a0,
@@ -813,6 +818,7 @@ def _cross_ElwertHaug(
         cc=2.*np.ones(a0.shape, dtype=float),
         zz=xx,
         ninf=ninf,
+        source=source,
     )
 
     # ---------------
@@ -1012,7 +1018,7 @@ def _debug_EH_vs_theta_ph(
     # --------------
 
     fontsize = 14
-    tit = "Comparison to G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969"
+    tit = "Debugging of cross-section terms from Elwert-Haug 1969"
 
     dmargin = {
         'left': 0.08, 'right': 0.95,
@@ -1203,6 +1209,7 @@ def _hyp2F1(
     cc=None,
     zz=None,
     ninf=None,
+    source=None,
 ):
     """ Hypergeometric function 2F1 with complex arguments
 
@@ -1211,6 +1218,9 @@ def _hyp2F1(
 
     Inspired from:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.hyp2f1.html
+
+    And:
+        https://www.johndcook.com/blog/2024/04/16/hypergeometric-large-negative-z/
 
     """
 
@@ -1225,6 +1235,31 @@ def _hyp2F1(
             f"Found {(np.abs(zz) > 1).sum()} / {zz.size} pts with |zz| > 1\n"
         )
         raise Exception(msg)
+
+    # ----------
+    # inputs
+    # ----------
+
+    lok = ['mpmath', 'z/(z-1)', '1/z']
+    source = ds._generic_check._check_var(
+        source, 'source',
+        types=str,
+        allowed=lok,
+        default=lok[0],
+    )
+
+    # try import
+    if source == 'mpmath':
+        try:
+            import mpmath
+        except Exception:
+            source = lok[1]
+            msg = (
+                "_hyp2F1(source='{lok[0]}') requires mpmath to be installed\n"
+                "See https://pypi.org/project/mpmath/\n"
+                f"Setting to source = '{source}'\n"
+            )
+            warnings.warn(msg)
 
     # ----------
     # broadcast
@@ -1247,65 +1282,88 @@ def _hyp2F1(
 
     ismall = np.abs(zz) < 1.
     ilarge = ~ismall
-    out = np.full(zz.shape, np.nan)
+    out = np.full(zz.shape, np.nan, dtype=complex)
 
     # ----------------
-    # |z| < 1
+    # source = mpmath
     # ----------------
 
-    if np.any(ismall):
+    if source == 'mpmath':
 
-        sli = (ismall, None)
-
-        # ----------
-        # Pochammer
-
-        poch_a = scpsp.gamma(aa[sli] + nn) / scpsp.gamma(aa[sli])
-        poch_b = scpsp.gamma(bb[sli] + nn) / scpsp.gamma(bb[sli])
-        poch_c = scpsp.gamma(cc[sli] + nn) / scpsp.gamma(cc[sli])
-
-        # ----------
-        # fact
-
-        fact = zz[sli]**nn / scpsp.factorial(nn)
-
-        # ----------
-        # sum
-
-        # Hotfix: pcoh_a * pch_b can give negative values...
-        tot = poch_a * poch_b * fact / poch_c
-        iok = np.isfinite(tot)
-
-        out[ismall] = np.sum(tot, axis=-1, where=iok)
+        for ind in np.ndindex(zz.shape):
+            out[ind] = mpmath.hyp2f1(aa[ind], bb[ind], cc[ind], zz[ind])
 
     # ----------------
-    # |z| > 1
+    # source = 1/z or z/(z-1)
     # ----------------
 
-    if np.any(ilarge):
+    else:
 
-        # apply:
-        # https://www.johndcook.com/blog/2024/04/16/hypergeometric-large-negative-z/
+        # ----------------
+        # |z| < 1
+        # ----------------
 
-        # reduce
-        an = aa[ilarge]
-        bn = bb[ilarge]
-        cn = cc[ilarge]
-        zn = zz[ilarge]
+        if np.any(ismall):
 
-        coef0 = (
-            scpsp.gamma(cn) * scpsp.gamma(bn-an)
-            / (scpsp.gamma(bn) * scpsp.gamma(cn-an))
-        )
-        coef1 = (
-            scpsp.gamma(cn) * scpsp.gamma(an-bn)
-            / (scpsp.gamma(an) * scpsp.gamma(cn-bn))
-        )
+            sli = (ismall, None)
 
-        out[ilarge] = (
-            coef0 * (-zn)**(-an) * _hyp2F1(an, 1-cn+an, 1-bn+an, 1./zn)
-            + coef1 * (-zn)**(-bn) * _hyp2F1(bn, 1-cn+bn, 1-an+bn, 1./zn)
-        )
+            # ----------
+            # Pochammer
+
+            poch_a = scpsp.gamma(aa[sli] + nn) / scpsp.gamma(aa[sli])
+            poch_b = scpsp.gamma(bb[sli] + nn) / scpsp.gamma(bb[sli])
+            poch_c = scpsp.gamma(cc[sli] + nn) / scpsp.gamma(cc[sli])
+
+            # ----------
+            # fact
+
+            fact = zz[sli]**nn / scpsp.factorial(nn)
+
+            # ----------
+            # sum
+
+            # Hotfix: pcoh_a * pch_b can give negative values...
+            tot = poch_a * poch_b * fact / poch_c
+            iok = np.isfinite(tot)
+
+            out[ismall] = np.sum(tot, axis=-1, where=iok)
+
+        # ----------------
+        # |z| > 1
+        # ----------------
+
+        if np.any(ilarge):
+
+            # apply:
+            # https://www.johndcook.com/blog/2024/04/16/hypergeometric-large-negative-z/
+
+            # reduce
+            an = aa[ilarge]
+            bn = bb[ilarge]
+            cn = cc[ilarge]
+            zn = zz[ilarge]
+
+            if source == '1/z':
+
+                coef0 = (
+                    scpsp.gamma(cn) * scpsp.gamma(bn-an)
+                    / (scpsp.gamma(bn) * scpsp.gamma(cn-an))
+                )
+                coef1 = (
+                    scpsp.gamma(cn) * scpsp.gamma(an-bn)
+                    / (scpsp.gamma(an) * scpsp.gamma(cn-bn))
+                )
+
+                out[ilarge] = (
+                    coef0 * (-zn)**(-an) * _hyp2F1(an, 1-cn+an, 1-bn+an, 1./zn)
+                    + coef1 * (-zn)**(-bn) * _hyp2F1(bn, 1-cn+bn, 1-an+bn, 1./zn)
+                )
+
+            else:
+                out[ilarge] = (
+                    (1. - zn)**(-an)
+                    * _hyp2F1(an, cn-bn, cn, zn/(zn-1.))
+                )
 
     return out
 
@@ -1316,14 +1374,18 @@ def _hyp2F1(
 # ####################################################
 
 
-def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
+def plot_xray_thin_ddcross_ei_vs_Literature(
+    ninf=None,
+    source=None,
+):
     """ Compare computed cross-sections vs literature values from Elwert-Haug
 
     Triply differential cross-section
     Reproduces figures 2, 5, 6 and 7
 
-    [1]
-    [2]
+    [1] G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969
+    [2] W. Nakel, Physics Reports, 243, p. 317—353, 1994
+
 
     """
 
@@ -1373,6 +1435,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
         dphi=(te0*te1 < 0)*np.pi,
         # hypergeometric parameter
         ninf=ninf,
+        source=source,
         # version
         version=None,
     )
@@ -1393,6 +1456,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
         dphi=(tph < 0.)*np.pi,
         # hypergeometric parameter
         ninf=ninf,
+        source=source,
         # version
         version=None,
         # debug
@@ -1415,6 +1479,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
         dphi=(tph_nakel < 0.)*np.pi,
         # hypergeometric parameter
         ninf=ninf,
+        source=source,
         # version
         version=None,
         # debug
@@ -1426,7 +1491,11 @@ def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
     # --------------
 
     fontsize = 14
-    tit = "Comparison to G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969"
+    tit = (
+        "Comparison vs literature:\n"
+        "[1] G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969\n"
+        "[2] W. Nakel, Physics Reports, 243, p. 317—353, 1994\n"
+    )
 
     dmargin = {
         'left': 0.08, 'right': 0.95,
@@ -1459,7 +1528,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
         fontweight='bold',
     )
     ax.set_title(
-        "Fig 2. Isolines of the differential cross-section\n"
+        "[1] Fig 2. Isolines of the differential cross-section\n"
         + r"$Z = 13$ (Al), $E_{e0} = 180 keV$, $E_{e1} = 90 keV$"
         + "\n1 barn = 1e-28 m2",
         size=fontsize,
@@ -1475,7 +1544,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
     ax = fig.add_subplot(gs[0, 1], aspect='auto', projection='polar')
     ax.set_theta_zero_location("N")
     ax.set_title(
-        "Fig 5. Photon angular distribution\n"
+        "[1] Fig 5. Photon angular distribution\n"
         + r"$Z = 79$ (Au), $E_{e0} = 300 keV$, "
         + r"$E_{e1} = 170 keV$, $\theta_e = 0$"
         + "\n1 barn = 1e-28 m2",
@@ -1491,7 +1560,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
 
     ax = fig.add_subplot(gs[1, 0], aspect='auto')
     ax.set_title(
-        "Fig 5. Photon angular distribution\n"
+        "[2] Fig 5. Photon angular distribution\n"
         + r"$Z = 47$ (Ag), $E_{e0} = 180 keV$, "
         + r"$E_{e1} = 100 keV$, $\theta_e = 30$ deg"
         + "\n1 barn = 1e-28 m2",
@@ -1560,7 +1629,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
         # literature data
         ax.plot(
             out_ph_dist[:, 1] * np.pi/180,
-            out_ph_dist[:, 0]*1e-2,
+            out_ph_dist[:, 0],
             c='k',
             ls='-',
         )
