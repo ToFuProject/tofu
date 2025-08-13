@@ -860,7 +860,7 @@ def _cross_ElwertHaug(
     )
     E1 = (
         (4*eps0**2 - q2) * eta12
-        + ((eta02 + 1)*2*k2/D0 + eta12 - sca_eta01) * D1
+        + ((eta02 + 1)*2*k2/D0 - eta12 + sca_eta01) * D1
     )
     E2 = (
         4.*(eps0*eps1 - q2)*sca_eta01
@@ -877,8 +877,8 @@ def _cross_ElwertHaug(
     )
     F1 = (
         kk * rho * (eta12 - sca_eta01)
-        + kappa * (sca_kp1 * (sca_p01 - sca_kp0 + p02) + 2.*k2)
-        - (kappa*p0*p1 - 2.*kk/p1) * (sca_kp0 + sca_kp1 - k2)
+        + kappa * (sca_kp1 * (sca_p01 + sca_kp0 + p02) - 2.*k2)
+        - (kappa*p0*p1 + 2.*kk/p1) * (sca_kp0 + sca_kp1 + k2)
     )
     F2 = mu * (
         k2
@@ -971,6 +971,8 @@ def _debug_EH_vs_theta_ph(
     A0=None,
     A1=None,
     B=None,
+    D0=None,
+    D1=None,
     # unused
     **kwdargs,
 ):
@@ -980,6 +982,15 @@ def _debug_EH_vs_theta_ph(
     # ------------
 
     dterms = {
+        'E0 x |A0|^2': E0 * modA02,
+        'E1 x |A1|^2': E1 * modA12,
+        '-2 x E2 x Re(A0*A1)': -2.*E2*ReA0A1,
+        '-2 x F0 x Re(A0*B)': - 2.*F0*ReA0B,
+        '-2 x F1 x Re(A1*B)': - 2.*F1*ReA1B,
+        'F2 x |B|^2': F2*modB2,
+    }
+
+    dterms_comp = {
         'E0': E0,
         'E1': E1,
         'E2': E2,
@@ -1000,6 +1011,8 @@ def _debug_EH_vs_theta_ph(
         'A0': A0,
         'A1': A1,
         'B': B,
+        'D0': D0,
+        'D1': D1,
     }
 
     dsca = {
@@ -1029,7 +1042,7 @@ def _debug_EH_vs_theta_ph(
     fig = plt.figure(figsize=(15, 12))
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
-    gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
+    gs = gridspec.GridSpec(ncols=3, nrows=2, **dmargin)
     dax = {}
 
     # --------------
@@ -1037,7 +1050,7 @@ def _debug_EH_vs_theta_ph(
     # --------------
 
     # --------------
-    # ax - main terms
+    # ax - main terms of sum
 
     ax = fig.add_subplot(gs[0, 0], aspect='auto')
     ax.set_xlabel(
@@ -1046,18 +1059,37 @@ def _debug_EH_vs_theta_ph(
         fontweight='bold',
     )
     ax.set_title(
-        'Main terms in cross-section',
+        'Main terms in cross-section sum',
         size=fontsize,
         fontweight='bold',
     )
 
     # store
     dax['main'] = {'handle': ax, 'type': 'isolines'}
+    ax0 = ax
 
     # --------------
-    # ax - main terms
+    # ax - components of main terms
 
-    ax = fig.add_subplot(gs[0, 1], aspect='auto', sharex=ax)
+    ax = fig.add_subplot(gs[1, 0], aspect='auto', sharex=ax0)
+    ax.set_xlabel(
+        r"$\theta_{ph}$ (photon emission angle, deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        'Components of main terms in cross-section',
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['main_comp'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # ax - scalar products
+
+    ax = fig.add_subplot(gs[0, 2], aspect='auto', sharex=ax0)
     ax.set_xlabel(
         r"$\theta_{ph}$ (photon emission angle, deg)",
         size=fontsize,
@@ -1075,7 +1107,7 @@ def _debug_EH_vs_theta_ph(
     # --------------
     # ax - complex real
 
-    ax = fig.add_subplot(gs[1, 0], aspect='auto', sharex=ax)
+    ax = fig.add_subplot(gs[0, 1], aspect='auto', sharex=ax0)
     ax.set_xlabel(
         r"$\theta_{ph}$ (photon emission angle, deg)",
         size=fontsize,
@@ -1093,7 +1125,7 @@ def _debug_EH_vs_theta_ph(
     # --------------
     # ax - complex imag
 
-    ax = fig.add_subplot(gs[1, 1], aspect='auto', sharex=ax)
+    ax = fig.add_subplot(gs[1, 1], aspect='auto', sharex=ax0)
     ax.set_xlabel(
         r"$\theta_{ph}$ (photon emission angle, deg)",
         size=fontsize,
@@ -1128,6 +1160,30 @@ def _debug_EH_vs_theta_ph(
                 msg = f"\t- {kvar}.shape = {vvar.shape}"
                 print(msg)
 
+        ax.axhline(0, c='k', ls='--')
+        ax.legend()
+
+    # --------------
+    # plot main terms components
+    # --------------
+
+    kax = 'main_comp'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        for kvar, vvar in dterms_comp.items():
+            if theta_ph.size == vvar.size:
+                ax.plot(
+                    theta_ph.ravel()*180/np.pi,
+                    vvar.ravel(),
+                    label=kvar,
+                )
+            else:
+                msg = f"\t- {kvar}.shape = {vvar.shape}"
+                print(msg)
+
+        ax.axhline(0, c='k', ls='--')
         ax.legend()
 
     # --------------
@@ -1174,6 +1230,7 @@ def _debug_EH_vs_theta_ph(
                 msg = f"\t- {kvar}.shape = {vvar.shape}"
                 print(msg)
 
+        ax.axhline(0, c='k', ls='--')
         ax.legend()
 
     # --------------
@@ -1193,6 +1250,7 @@ def _debug_EH_vs_theta_ph(
                     label=kvar,
                 )
 
+        ax.axhline(0, c='k', ls='--')
         ax.legend()
     return
 
@@ -1414,6 +1472,13 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     )
     out_ph_dist_nakel = np.loadtxt(pfe_ph_dist_nakel, delimiter=',')
 
+    # ph_spect_nakel
+    pfe_ph_spect_nakel = os.path.join(
+        _PATH_HERE,
+        'RE_HXR_CrossSection_ThinTarget_PhotonSpectrum_Nakel_fig8.csv',
+    )
+    out_ph_spect_nakel = np.loadtxt(pfe_ph_spect_nakel, delimiter=',')
+
     # --------------
     # Compute
     # --------------
@@ -1466,16 +1531,20 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     # ------------
     # photon distribution - nakel
 
+    Z_dist_nakel = 47
     tph_nakel = np.linspace(-80, 60, 141)*np.pi/180.
+    theta_e_nakel = 30.
+    E_e0_eV_nakel = 180e3
+    E_e1_eV_nakel = 100e3
 
     ddata_ph_dist_nakel = get_dcross_ei(
         # inputs
-        Z=47,
-        E_e0_eV=180e3,
-        E_e1_eV=100e3,
+        Z=Z_dist_nakel,
+        E_e0_eV=E_e0_eV_nakel,
+        E_e1_eV=E_e1_eV_nakel,
         # directions
         theta_ph=np.abs(tph_nakel),
-        theta_e=30.*np.pi/180.,
+        theta_e=theta_e_nakel*np.pi/180.,
         dphi=(tph_nakel < 0.)*np.pi,
         # hypergeometric parameter
         ninf=ninf,
@@ -1486,13 +1555,39 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
         debug='vs_theta_ph',
     )
 
+    # ------------
+    # photon spectrum - nakel
+
+    Z_spect_nakel = 79
+    theta_e_spect_nakel = 20.
+    theta_ph_spect_nakel = 10.
+    E_e0_eV_spect_nakel = 300e3
+    E_ph_spect_nakel = np.linspace(0.2, 0.9, 21) * E_e0_eV_spect_nakel
+
+    ddata_ph_spect_nakel = get_dcross_ei(
+        # inputs
+        Z=Z_spect_nakel,
+        E_e0_eV=E_e0_eV_spect_nakel,
+        E_e1_eV=E_e0_eV_spect_nakel - E_ph_spect_nakel,
+        # directions
+        theta_ph=theta_ph_spect_nakel*np.pi/180.,
+        theta_e=theta_e_spect_nakel*np.pi/180.,
+        dphi=0.,
+        # hypergeometric parameter
+        ninf=ninf,
+        source=source,
+        # version
+        version=None,
+        # debug
+        debug=False,
+    )
+
     # --------------
     # prepare axes
     # --------------
 
     fontsize = 14
     tit = (
-        "Comparison vs literature:\n"
         "[1] G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969\n"
         "[2] W. Nakel, Physics Reports, 243, p. 317—353, 1994\n"
     )
@@ -1500,7 +1595,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     dmargin = {
         'left': 0.08, 'right': 0.95,
         'bottom': 0.06, 'top': 0.85,
-        'wspace': 0.2, 'hspace': 0.30,
+        'wspace': 0.2, 'hspace': 0.40,
     }
 
     fig = plt.figure(figsize=(15, 12))
@@ -1529,8 +1624,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     )
     ax.set_title(
         "[1] Fig 2. Isolines of the differential cross-section\n"
-        + r"$Z = 13$ (Al), $E_{e0} = 180 keV$, $E_{e1} = 90 keV$"
-        + "\n1 barn = 1e-28 m2",
+        + r"$Z = 13$ (Al), $E_{e0} = 180 keV$, $E_{e1} = 90 keV$",
         size=fontsize,
         fontweight='bold',
     )
@@ -1546,8 +1640,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     ax.set_title(
         "[1] Fig 5. Photon angular distribution\n"
         + r"$Z = 79$ (Au), $E_{e0} = 300 keV$, "
-        + r"$E_{e1} = 170 keV$, $\theta_e = 0$"
-        + "\n1 barn = 1e-28 m2",
+        + r"$E_{e1} = 170 keV$, $\theta_e = 0$",
         size=fontsize,
         fontweight='bold',
     )
@@ -1561,9 +1654,10 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     ax = fig.add_subplot(gs[1, 0], aspect='auto')
     ax.set_title(
         "[2] Fig 5. Photon angular distribution\n"
-        + r"$Z = 47$ (Ag), $E_{e0} = 180 keV$, "
-        + r"$E_{e1} = 100 keV$, $\theta_e = 30$ deg"
-        + "\n1 barn = 1e-28 m2",
+        + r"$Z = $" + f"{Z_dist_nakel} (Ag), "
+        + "$E_{e0} = $" + f"{E_e0_eV_nakel*1e-3} keV, "
+        + r"$E_{e1} = $" + f"{E_e1_eV_nakel*1e-3} keV, "
+        + r"$\theta_e = $" + f"{theta_e_nakel} deg",
         size=fontsize,
         fontweight='bold',
     )
@@ -1581,6 +1675,34 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
 
     # store
     dax['ph_dist_nakel'] = {'handle': ax, 'type': 'ph_dist'}
+
+    # ------------
+    # ax - ph_spect_nakel
+
+    ax = fig.add_subplot(gs[1, 1], aspect='auto')
+    ax.set_title(
+        "[2] Fig 8. Photon energy spectrum\n"
+        + r"$Z = $" + f"{Z_spect_nakel} (Au), "
+        + r"$E_{e0} = $" + f"{E_e0_eV_spect_nakel*1e-3} keV, "
+        + r"$\theta_e = $" + f"{theta_e_spect_nakel} deg, "
+        + r"$\theta_ph = $" + f"{theta_ph_spect_nakel} deg",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_xlabel(
+        r"$E_{ph} / E_{e,0}$ (adim.)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(
+        r"$\frac{d^3 \sigma}{d\Omega_e d\Omega_{ph} dk}$"
+        + "   [mb/(sr.sr.MeV)]",
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['ph_spect_nakel'] = {'handle': ax, 'type': 'ph_dist'}
 
     # --------------
     # plot isolines
@@ -1616,7 +1738,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
         # add refs
         ax.axvline(0, c='k', ls='--')
         ax.axhline(0, c='k', ls='--')
-        ax.set_xlim(-90, 90)
+        ax.set_ylim(-90, 90)
 
     # ------------------------
     # plot photon distribution
@@ -1659,12 +1781,45 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        # literature data
+        # prepare literature data
+        inan = np.nonzero(np.isnan(out_ph_dist_nakel[:, 0]))[0]
+
+        # literature data - BH
         ax.plot(
-            out_ph_dist_nakel[:, 0],
-            out_ph_dist_nakel[:, 1],
+            out_ph_dist_nakel[:inan[0], 0],
+            out_ph_dist_nakel[:inan[0], 1],
             c='k',
             ls='-',
+            label='BH',
+        )
+
+        # literature data - DMA
+        ax.plot(
+            out_ph_dist_nakel[inan[0]:inan[1], 0],
+            out_ph_dist_nakel[inan[0]:inan[1], 1],
+            c='k',
+            ls=':',
+            label='EH',
+        )
+
+        # literature data - EH
+        ax.plot(
+            out_ph_dist_nakel[inan[1]:inan[2], 0],
+            out_ph_dist_nakel[inan[1]:inan[2], 1],
+            c='k',
+            ls='--',
+            label='DMA',
+        )
+
+        # literature data - experimental
+        ax.plot(
+            out_ph_dist_nakel[inan[2]:, 0],
+            out_ph_dist_nakel[inan[2]:, 1],
+            c='k',
+            ls='-',
+            marker='o',
+            ms=4,
+            label='experimental',
         )
 
         # computed data
@@ -1673,14 +1828,78 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
             ddata_ph_dist_nakel['cross']['data']*1e28,
             c='b',
             ls='-',
+            label='computed',
         )
 
         # add
         ax.axvline(0, c='k', ls='-')
-        ax.axvline(0, c='k', ls='--')
+        ax.axvline(theta_e_nakel, c='k', ls='--')
 
         # limits
         ax.set_xlim(-80, 60)
         ax.set_ylim(0, 60)
 
-    return dax, ddata_iso, ddata_ph_dist, ddata_ph_dist_nakel
+        ax.legend()
+
+    # ------------------------
+    # plot photon spectrum - nakel
+    # ------------------------
+
+    kax = 'ph_spect_nakel'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # prepare literature data
+        inan = np.nonzero(np.isnan(out_ph_spect_nakel[:, 0]))[0]
+
+        # literature data - BH
+        ax.semilogy(
+            out_ph_spect_nakel[:inan[0], 0],
+            out_ph_spect_nakel[:inan[0], 1],
+            c='k',
+            ls='--',
+            label='EH',
+        )
+
+        # literature data - DMA
+        ax.semilogy(
+            out_ph_spect_nakel[inan[0]:inan[1], 0],
+            out_ph_spect_nakel[inan[0]:inan[1], 1],
+            c='k',
+            ls=':',
+            label='BH',
+        )
+
+        # literature data - experimental
+        ax.semilogy(
+            out_ph_spect_nakel[inan[1]:, 0],
+            out_ph_spect_nakel[inan[1]:, 1],
+            c='k',
+            ls='-',
+            marker='o',
+            ms=4,
+            label='experimental',
+        )
+
+        # computed data
+        im = ax.semilogy(
+            E_ph_spect_nakel / E_e0_eV_spect_nakel,
+            ddata_ph_spect_nakel['cross']['data']*1e28 * 1000.,
+            c='b',
+            ls='-',
+            label='computed',
+        )
+
+        # limits
+        ax.set_xlim(0.2, 0.9)
+        ax.set_ylim(1e4, 5e5)
+
+        ax.legend()
+
+    return (
+        dax,
+        ddata_iso,
+        ddata_ph_dist,
+        ddata_ph_dist_nakel,
+        ddata_ph_spect_nakel,
+    )
