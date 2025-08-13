@@ -456,6 +456,15 @@ def _rays_intersection(
         py = ptsy[0, ...]
         pz = ptsz[0, ...]
 
+        # safety check
+        if px.size <= 1:
+            msg = (
+                f"Intersection fof rays '{kray}' for single_pt_cam:\n"
+                "\t- Cannot compute intersection without at least 2 rays!\n"
+                f"\t- rays.shape = {px.shape}\n"
+            )
+            raise Exception(msg)
+
         # unit vectors
         vx, vy, vz = coll.get_rays_vect(
             kray,
