@@ -223,7 +223,7 @@ def main(
             )[key_coords]['data']
 
             # interpolate
-            q2dy = coll.interpolate_profile2d(
+            q2dy = coll.interpolate(
                 keys=key_integrand,
                 x0=Ri,
                 x1=pts_z,
@@ -239,13 +239,23 @@ def main(
             )[key_integrand]['data']
 
             # check shape
-            if q2dx['data'].shape != q2dy['data'].shape:
-                msg = "The two interpolated quantities must have same shape!"
+            if q2dx.shape != q2dy.shape:
+                msg = (
+                    "The two interpolated quantities must have same shape!\n"
+                    f"\t- '{key_coords}': {q2dx.shape}\n"
+                    f"\t- '{key_integrand}': {q2dy.shape}\n"
+                )
                 raise Exception(msg)
 
+            # axis_los
+            wbs = coll._which_bsplines
+            kbs = coll.ddata[key_integrand][wbs][0]
+            rbs = coll.dobj[wbs][kbs]['ref']
+            axis_los = coll.ddata[key_integrand]['ref'].index(rbs[0])
+
             # prepare
-            dx[kk] = np.full(q2d.shape, np.nan)
-            dy[kk] = np.full(q2d.shape, np.nan)
+            dx[kk] = np.full(q2dx.shape, np.nan)
+            dy[kk] = np.full(q2dx.shape, np.nan)
 
             # isok
             isok = np.isfinite(q2dx) & np.isfinite(q2dy) & np.isfinite(Ri)
@@ -307,6 +317,7 @@ def main(
 
     dind = _get_dind(
         coll=coll,
+        key_cam=key_cam,
         doptics=doptics,
         dx=dx,
         dy=dy,
@@ -574,7 +585,7 @@ def _interpolate_along_los_reshape(
                 else:
                     ref[ii] = 1
 
-        # None not macthing xdata (e.g.: domain)
+        # None not matching xdata (e.g.: domain)
         xdata = xdata.reshape(ref) * np.ones(ydata.shape)
 
     return xdata, ydata, axis_los
@@ -587,6 +598,7 @@ def _interpolate_along_los_reshape(
 
 def _get_dind(
     coll=None,
+    key_cam=None,
     doptics=None,
     dx=None,
     dy=None,
@@ -596,7 +608,7 @@ def _get_dind(
     #  loop on cameras
 
     dind = {}
-    for kcam in doptics.keys():
+    for kcam in key_cam:
 
         klos = doptics[kcam]['los']
 
@@ -636,8 +648,8 @@ def _get_dind(
         # -----------
         # safety check
 
-        lc = [np.any(inan[ind>=0]), (ind == -1).sum() < nnan]
-        if  any(lc):
+        lc = [np.any(inan[ind >= 0]), (ind == -1).sum() < nnan]
+        if any(lc):
             msg = (
                 "Inconsistent nans!\n"
                 f"\t- lc: {lc}\n"
@@ -668,7 +680,6 @@ def interpolate_along_los_plot(
     dcolor=None,
     dax=None,
 ):
-
 
     # -------------
     # check inputs
