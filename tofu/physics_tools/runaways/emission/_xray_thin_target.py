@@ -183,14 +183,15 @@ def get_dcross_ei(
     # directions
     theta_ph=None,
     theta_e=None,
-    phi_ph=None,
-    phi_e=None,
+    dphi=None,
     # hypergeometric parameter
     ninf=None,
     # version
     version=None,
     # plot
     plot=None,
+    # debug
+    debug=None,
 ):
     """ Return a differential cross-section for thin-target bremsstrahlung
 
@@ -238,11 +239,11 @@ def get_dcross_ei(
     (
         Z,
         E_e0_J, E_e1_J,
-        theta_e, phi_e,
-        theta_ph, phi_ph,
+        theta_e, theta_ph, dphi,
         shape,
         version,
         plot,
+        debug,
     ) = _check_cross(
         # inputs
         Z=Z,
@@ -251,12 +252,13 @@ def get_dcross_ei(
         # directions
         theta_ph=theta_ph,
         theta_e=theta_e,
-        phi_ph=phi_ph,
-        phi_e=phi_e,
+        dphi=dphi,
         # version
         version=version,
         # plot
         plot=plot,
+        # debug
+        debug=debug,
     )
 
     # -------------
@@ -282,18 +284,14 @@ def get_dcross_ei(
             'data': theta_ph,
             'units': 'rad',
         },
-        'phi_e': {
-            'data': phi_e,
-            'units': 'rad',
-        },
-        'phi_ph': {
-            'data': phi_ph,
+        'dphi': {
+            'data': dphi,
             'units': 'rad',
         },
         # cross-section
         'cross': {
             'data': np.full(shape, 0.),
-            'units': 'J',
+            'units': 'm2/(sr2.J)',
         },
     }
 
@@ -306,6 +304,10 @@ def get_dcross_ei(
             Z=Z,
             E_e0_J=E_e0_J,
             E_e1_J=E_e1_J,
+            # directions
+            theta_ph=theta_ph,
+            theta_e=theta_e,
+            dphi=dphi,
         )
 
     else:
@@ -316,10 +318,11 @@ def get_dcross_ei(
             # directions
             theta_ph=theta_ph,
             theta_e=theta_e,
-            phi_ph=phi_ph,
-            phi_e=phi_e,
+            dphi=dphi,
             # hypergeometric parameter
             ninf=ninf,
+            # debug
+            debug=debug,
         )
 
     # -------------
@@ -350,12 +353,13 @@ def _check_cross(
     # directions
     theta_ph=None,
     theta_e=None,
-    phi_ph=None,
-    phi_e=None,
+    dphi=None,
     # version
     version=None,
     # plot
     plot=None,
+    # debug
+    debug=None,
 ):
 
     # -------------
@@ -388,37 +392,27 @@ def _check_cross(
 
     E_e1_J = np.atleast_1d(E_e1_eV) * scpct.e + mc2
 
-    # ------------
-    # theta_e, phi_e
-    # ------------
+    # -----------------------
+    # theta_e, theta_ph, dphi
+    # -----------------------
 
-    # theta
+    # theta_e
     if theta_e is None:
         theta_e = 10 * np.pi / 180
 
     theta_e = np.atleast_1d(theta_e)
 
-    # phi
-    if phi_e is None:
-        phi_e = np.r_[0, 10, 45, 90, 135, 180] * np.pi / 180
-
-    phi_e = np.atleast_1d(phi_e)
-
-    # ------------
-    # theta_ph, phi_ph
-    # ------------
-
-    # theta
+    # theta_ph
     if theta_ph is None:
         theta_ph = np.linspace(0, 180, 181) * np.pi / 180
 
     theta_ph = np.atleast_1d(theta_ph)
 
-    # phi
-    if phi_ph is None:
-        phi_ph = 0 * np.pi / 180
+    # dphi
+    if dphi is None:
+        dphi = 0 * np.pi / 180
 
-    phi_ph = np.atleast_1d(phi_ph)
+    dphi = np.atleast_1d(dphi)
 
     # -------------
     # Broadcastable
@@ -431,9 +425,19 @@ def _check_cross(
         # directions
         theta_ph=theta_ph,
         theta_e=theta_e,
-        phi_ph=phi_ph,
-        phi_e=phi_e,
+        dphi=dphi,
     )
+
+    # safety check
+    ineg = E_e1_J > E_e0_J
+    if np.any(ineg):
+        msg = (
+            "Bremsstrahlung cross-section inputs:\n"
+            "scattered electron energy can't be more than incident electron\n"
+            f"\t- E_e0_eV = {E_e0_eV} eV\n"
+            f"\t- E_e1_eV = {E_e1_eV} eV\n"
+        )
+        raise Exception(msg)
 
     # ------------
     # version
@@ -456,13 +460,27 @@ def _check_cross(
         default=True,
     )
 
+    # ------------
+    # debug
+    # ------------
+
+    if debug is None:
+        debug = False
+
+    if debug is not False:
+        debug = ds._generic_check._check_var(
+            debug, 'debug',
+            types=str,
+            default='vs_theta_ph',
+            allowed=['vs_theta_ph'],
+        )
+
     return (
         Z,
         E_e0_J, E_e1_J,
-        theta_e, phi_e,
-        theta_ph, phi_ph,
+        theta_e, theta_ph, dphi,
         shape,
-        version, plot,
+        version, plot, debug,
     )
 
 
@@ -476,6 +494,10 @@ def _cross_BetheHeitlerElwert(
     Z=None,
     E_e0_J=None,
     E_e1_J=None,
+    # directions
+    theta_e=None,
+    theta_ph=None,
+    dphi=None,
 ):
     """
 
@@ -493,6 +515,9 @@ def _cross_BetheHeitlerElwert(
     All from
         [1] Y. Peysson, "Rayonnement electromagnetique des plasmas"
             (pages 19-20)
+        [2] W. Nakel, “The elementary process of bremsstrahlung”.
+            (eq. (2))
+
     """
 
     # -------------
@@ -573,10 +598,11 @@ def _cross_ElwertHaug(
     # directions
     theta_ph=None,
     theta_e=None,
-    phi_ph=None,
-    phi_e=None,
+    dphi=None,
     # hypergeometric parameter
     ninf=None,
+    # debug
+    debug=None,
 ):
     """
     More accurate than Bethe-Heitler-Elwert
@@ -653,8 +679,8 @@ def _cross_ElwertHaug(
     a1 = aa * eps1 / p1
 
     # k = photon energy / mc2 (adim)
-    k = eps0 - eps1
-    k2 = k**2
+    kk = eps0 - eps1
+    k2 = kk**2
 
     # kappa (adim)
     kappa = eps0 / p0 + eps1 / p1
@@ -670,25 +696,25 @@ def _cross_ElwertHaug(
     sinte = np.sin(theta_e)
     costp = np.cos(theta_ph)
     sintp = np.sin(theta_ph)
-    cosdphi = np.cos(phi_ph - phi_e)
+    cosdphi = np.cos(dphi)
+
+    cossindphi = costp*coste + sintp*sinte*cosdphi
 
     # -------------
     # Vectors / scalar product
     # -------------
 
     # scalar
-    sca_kp0 = k * E_e0_J * costp
-    sca_p01 = E_e0_J * E_e1_J * coste
-    sca_kp1 = k * E_e1_J * (costp*coste + sintp*sinte*cosdphi)
+    sca_kp0 = kk * p0 * costp
+    sca_p01 = p1 * p0 * coste
+    sca_kp1 = kk * p1 * cossindphi
 
     # vect{q} = vect{p0 - p1 - k}
     q2 = (
-        (E_e0_J - E_e1_J*coste - k*costp)**2
-        # + (E_e1_J*sinte*cos(phi_e) + k*sintp*cos(phi_ph))**2
-        # + (E_e1_J*sinte*sin(phi_e) + k*sintp*sin(phi_ph))**2
-        + (E_e1_J*sinte)**2
-        + (k*sintp)**2
-        + 2*E_e1_J*k*sinte*sintp*cosdphi
+        p0**2 + p1**2 + k2
+        - 2.*p0*p1*coste
+        - 2.*p0*kk*costp
+        + 2.*p1*kk*cossindphi
     )
 
     # -------------
@@ -702,8 +728,8 @@ def _cross_ElwertHaug(
     # )
 
     # eta1 = p1 * (
-    #     sinte*sinpe*costp - coste*sintp*sinpp,   # x
-    #     coste*sintp*cospp - sinte*cospe*costp,    # y
+    #     sinte*sinpe*costp - coste*sintp*sinpp,              # x
+    #     coste*sintp*cospp - sinte*cospe*costp,              # y
     #     sinte*cospe*sintp*sinpp - sinte*sinpe*sintp*cospp,  # z
     # )
 
@@ -725,12 +751,6 @@ def _cross_ElwertHaug(
     #     - 2*sinte*coste*costp*sintp*cosdphi
     #     + (sinte*sintp)**2 * sin(phi_p - phi_e)**2
     # )
-    # = p12 * (
-    #     (sinte*costp)**2
-    #     + (coste*sintp)**2
-    #     - 2*(coste*costp)*(sinte*sintp*cosdphi)
-    #     + (sinte*sintp)**2 - (sinte*sintp*cosdphi)**2
-    # )
     eta12 = p12 * (
         (sinte*costp)**2
         + (coste*sintp)**2
@@ -741,34 +761,41 @@ def _cross_ElwertHaug(
     # --------
     # scalar
 
-    # sca_eta01 = (
+    # sca_eta01 = p0 * p1 * (
     #     - sintp*sinpp * (sinte*sinpe*costp - coste*sintp*sinpp)
     #     + sintp*cospp * (coste*sintp*cospp - sinte*cospe*costp)
     # )
-    # = sintp * (
+    # = p0 * p1 * sintp * (
     #     + sinpp * (coste*sintp*sinpp - sinte*sinpe*costp)
     #     + cospp * (coste*sintp*cospp - sinte*cospe*costp)
     # )
-    # = sintp * (
+    # = p0 * p1 * sintp * (
     #     coste*sintp*(sinpp**2 + cospp**2)
     #     - sinte*costp*(sinpe*sinpp + cospe*cospp)
     # )
-    sca_eta01 = sintp * (coste*sintp - sinte*costp*cosdphi)
+    sca_eta01 = p0 * p1 * sintp * (coste*sintp - sinte*costp*cosdphi)
 
     # ---------------
     # Intermediates 1
     # ---------------
 
     # D
-    D0 = 2.*(eps0*k - sca_kp0)
-    D1 = 2.*(eps1*k - sca_kp1)
+    D0 = 2.*(eps0*kk - sca_kp0)
+    D1 = 2.*(eps1*kk - sca_kp1)
     D0D1 = D0 * D1
 
     # mu
-    mu = (p0 + p1)**2 - k**2
+    mu = (p0 + p1)**2 - k2
 
     # hypergeometric variable
-    x = 1. - mu*q2 / D0D1
+    xx = 1. - mu*q2 / D0D1
+
+    # safety check
+    assert np.all(kk < eps0)
+    assert np.all(D0D1 > 0.)
+    assert np.all(mu > 0.)
+    assert np.all(q2 > 0.)
+    assert np.all(xx < 1.)
 
     # hypergeometric functions
     # V = scpsp.hyp2f1(1j*a0, 1j*a1, 1., x)
@@ -777,14 +804,14 @@ def _cross_ElwertHaug(
         aa=1j*a0,
         bb=1j*a1,
         cc=np.ones(a0.shape, dtype=float),
-        zz=x,
+        zz=xx,
         ninf=ninf,
     )
     W = _hyp2F1(
         aa=1.+1j*a0,
         bb=1.+1j*a1,
         cc=2.*np.ones(a0.shape, dtype=float),
-        zz=x,
+        zz=xx,
         ninf=ninf,
     )
 
@@ -792,8 +819,8 @@ def _cross_ElwertHaug(
     # Intermediates 2
     # ---------------
 
-    A0 = (V - 1j*a0*(1-x)*W) / (D0*q2)
-    A1 = (V - 1j*a1*(1-x)*W) / (D1*q2)
+    A0 = (V - 1j*a0*(1-xx)*W) / (D0*q2)
+    A1 = (V - 1j*a1*(1-xx)*W) / (D1*q2)
 
     B = 1j * aa * W / D0D1
 
@@ -810,7 +837,7 @@ def _cross_ElwertHaug(
 
     # adim
     term0 = (pi2*a0) / (np.exp(pi2*a0) - 1.)
-    term1 = (pi2*a1) / (np.exp(pi2*a1) - 1.)
+    term1 = (pi2*a1) / (1. - np.exp(-pi2*a1))
     term2 = (r0/np.pi)**2   # m2
     term3 = alpha*Z**2
     term4 = p1/p0
@@ -838,14 +865,14 @@ def _cross_ElwertHaug(
 
     # adim
     F0 = (
-        k * rho * (eta02 - sca_eta01)
+        kk * rho * (eta02 - sca_eta01)
         + kappa * (sca_kp0 * (sca_p01 - sca_kp1 + p12) + 2.*k2)
-        - (kappa*p0*p1 - 2.*k/p0) * (sca_kp0 + sca_kp1 - k2)
+        - (kappa*p0*p1 - 2.*kk/p0) * (sca_kp0 + sca_kp1 - k2)
     )
     F1 = (
-        k * rho * (eta12 - sca_eta01)
+        kk * rho * (eta12 - sca_eta01)
         + kappa * (sca_kp1 * (sca_p01 - sca_kp0 + p02) + 2.*k2)
-        - (kappa*p0*p1 - 2.*k/p1) * (sca_kp0 + sca_kp1 - k2)
+        - (kappa*p0*p1 - 2.*kk/p1) * (sca_kp0 + sca_kp1 - k2)
     )
     F2 = mu * (
         k2
@@ -860,7 +887,7 @@ def _cross_ElwertHaug(
 
     # 3-differential cross-section - m2 / sr^2
     d3cross_ei_EH = (
-        (term0 * term1 * term2 * term3 * term4 * k)
+        (term0 * term1 * term2 * term3 * term4 * kk)
         * (
             E0 * modA02 + E1 * modA12
             - 2. * E2 * ReA0A1
@@ -880,7 +907,288 @@ def _cross_ElwertHaug(
         'comment': r'$\alpha Z < 1$'
     }
 
+    # -------------
+    # debug
+    # -------------
+
+    if debug is not False:
+        if debug == 'vs_theta_ph':
+            _debug_EH_vs_theta_ph(**locals())
+
     return d3cross_ei_EH, dcrit
+
+
+# ##################################
+#        Debug - EH
+# ##################################
+
+
+def _debug_EH_vs_theta_ph(
+    # inputs
+    E_e0_J=None,
+    E_e1_J=None,
+    theta_ph=None,
+    theta_e=None,
+    dphi=None,
+    # terms
+    term0=None,
+    term1=None,
+    term2=None,
+    term3=None,
+    term4=None,
+    kk=None,
+    # composite
+    E0=None,
+    modA02=None,
+    E1=None,
+    modA12=None,
+    E2=None,
+    ReA0A1=None,
+    F0=None,
+    ReA0B=None,
+    F1=None,
+    ReA1B=None,
+    F2=None,
+    modB2=None,
+    # scalar
+    sca_kp0=None,
+    sca_p01=None,
+    sca_kp1=None,
+    q2=None,
+    eta02=None,
+    eta12=None,
+    sca_eta01=None,
+    xx=None,
+    # complex
+    V=None,
+    W=None,
+    A0=None,
+    A1=None,
+    B=None,
+    # unused
+    **kwdargs,
+):
+
+    # ------------
+    # prepare data
+    # ------------
+
+    dterms = {
+        'E0': E0,
+        'E1': E1,
+        'E2': E2,
+        'F0': F0,
+        'F1': F1,
+        'F2': F2,
+        'modA02': modA02,
+        'modA12': modA12,
+        'modB2': modB2,
+        'ReA0A1': ReA0A1,
+        'ReA0B': ReA0B,
+        'ReA1B': ReA1B,
+    }
+
+    dcomp = {
+        'V': V,
+        'W': W,
+        'A0': A0,
+        'A1': A1,
+        'B': B,
+    }
+
+    dsca = {
+        'sca_kp0': sca_kp0,
+        'sca_p01': sca_p01,
+        'sca_kp1': sca_kp1,
+        'q2': q2,
+        'eta02': eta02,
+        'eta12': eta12,
+        'sca_eta01': sca_eta01,
+        'xx': xx,
+    }
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    fontsize = 14
+    tit = "Comparison to G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969"
+
+    dmargin = {
+        'left': 0.08, 'right': 0.95,
+        'bottom': 0.08, 'top': 0.85,
+        'wspace': 0.2, 'hspace': 0.2,
+    }
+
+    fig = plt.figure(figsize=(15, 12))
+    fig.suptitle(tit, size=fontsize+2, fontweight='bold')
+
+    gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
+    dax = {}
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    # --------------
+    # ax - main terms
+
+    ax = fig.add_subplot(gs[0, 0], aspect='auto')
+    ax.set_xlabel(
+        r"$\theta_{ph}$ (photon emission angle, deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        'Main terms in cross-section',
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['main'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # ax - main terms
+
+    ax = fig.add_subplot(gs[0, 1], aspect='auto', sharex=ax)
+    ax.set_xlabel(
+        r"$\theta_{ph}$ (photon emission angle, deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        'scalar products',
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['sca'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # ax - complex real
+
+    ax = fig.add_subplot(gs[1, 0], aspect='auto', sharex=ax)
+    ax.set_xlabel(
+        r"$\theta_{ph}$ (photon emission angle, deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        'Real',
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['real'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # ax - complex imag
+
+    ax = fig.add_subplot(gs[1, 1], aspect='auto', sharex=ax)
+    ax.set_xlabel(
+        r"$\theta_{ph}$ (photon emission angle, deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        'Imag',
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['imag'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # plot main terms
+    # --------------
+
+    kax = 'main'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        for kvar, vvar in dterms.items():
+            if theta_ph.size == vvar.size:
+                ax.plot(
+                    theta_ph.ravel()*180/np.pi,
+                    vvar.ravel(),
+                    label=kvar,
+                )
+            else:
+                msg = f"\t- {kvar}.shape = {vvar.shape}"
+                print(msg)
+
+        ax.legend()
+
+    # --------------
+    # plot scalar products
+    # --------------
+
+    kax = 'sca'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        for kvar, vvar in dsca.items():
+            if theta_ph.size == vvar.size:
+                ax.plot(
+                    theta_ph.ravel()*180/np.pi,
+                    vvar.ravel(),
+                    label=kvar,
+                )
+            else:
+                msg = f"\t- {kvar}.shape = {vvar.shape}"
+                print(msg)
+
+        ax.legend()
+        ax.axhline(-1, c='k', ls='--')
+        ax.axhline(0, c='k', ls='--')
+
+    # --------------
+    # plot real
+    # --------------
+
+    kax = 'real'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        for kvar, vvar in dcomp.items():
+            if theta_ph.size == vvar.size:
+                ax.plot(
+                    theta_ph.ravel()*180/np.pi,
+                    np.real(vvar).ravel(),
+                    label=kvar,
+                )
+            else:
+                msg = f"\t- {kvar}.shape = {vvar.shape}"
+                print(msg)
+
+        ax.legend()
+
+    # --------------
+    # plot imag
+    # --------------
+
+    kax = 'imag'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        for kvar, vvar in dcomp.items():
+            if theta_ph.size == vvar.size:
+                ax.plot(
+                    theta_ph.ravel()*180/np.pi,
+                    np.imag(vvar).ravel(),
+                    label=kvar,
+                )
+
+        ax.legend()
+    return
 
 
 # ####################################################
@@ -910,13 +1218,19 @@ def _hyp2F1(
     # Safety check
     # ----------
 
-    if np.any(np.abs(zz) > 1):
+    if np.any(zz > 1):
         msg = (
             "This homemade implementation of Hyp2F1 is particularly unstable"
             " for |zz| > 1\n"
-            "Found {(np.abs(zz) > 1).sum()} / {zz.size} pts with |zz| > 1\n"
+            f"Found {(np.abs(zz) > 1).sum()} / {zz.size} pts with |zz| > 1\n"
         )
         raise Exception(msg)
+
+    # ----------
+    # broadcast
+    # ----------
+
+    aa, bb, cc, zz = np.broadcast_arrays(aa, bb, cc, zz)
 
     # ----------
     # Number of terms
@@ -925,32 +1239,75 @@ def _hyp2F1(
     if ninf is None:
         ninf = 50
 
-    shape = (1,)*aa.ndim + (ninf,)
-    nn = np.arange(0, ninf).reshape(shape)
+    nn = np.arange(0, ninf)[None, :]
 
-    # ----------
-    # Pochammer
-    # ----------
+    # ----------------
+    # indices + initialize
+    # ----------------
 
-    poch_a = scpsp.gamma(aa[..., None] + nn) / scpsp.gamma(aa[..., None])
-    poch_b = scpsp.gamma(bb[..., None] + nn) / scpsp.gamma(bb[..., None])
-    poch_c = scpsp.gamma(cc[..., None] + nn) / scpsp.gamma(cc[..., None])
+    ismall = np.abs(zz) < 1.
+    ilarge = ~ismall
+    out = np.full(zz.shape, np.nan)
 
-    # ----------
-    # fact
-    # ----------
+    # ----------------
+    # |z| < 1
+    # ----------------
 
-    fact = zz[..., None]**nn / scpsp.factorial(nn)
+    if np.any(ismall):
 
-    # ----------
-    # sum
-    # ----------
+        sli = (ismall, None)
 
-    # Hotfix: pcoh_a * pch_b can give negative values...
-    tot = poch_a * poch_b * fact / poch_c
-    iok = np.isfinite(tot)
+        # ----------
+        # Pochammer
 
-    return np.sum(tot, axis=-1, where=iok)
+        poch_a = scpsp.gamma(aa[sli] + nn) / scpsp.gamma(aa[sli])
+        poch_b = scpsp.gamma(bb[sli] + nn) / scpsp.gamma(bb[sli])
+        poch_c = scpsp.gamma(cc[sli] + nn) / scpsp.gamma(cc[sli])
+
+        # ----------
+        # fact
+
+        fact = zz[sli]**nn / scpsp.factorial(nn)
+
+        # ----------
+        # sum
+
+        # Hotfix: pcoh_a * pch_b can give negative values...
+        tot = poch_a * poch_b * fact / poch_c
+        iok = np.isfinite(tot)
+
+        out[ismall] = np.sum(tot, axis=-1, where=iok)
+
+    # ----------------
+    # |z| > 1
+    # ----------------
+
+    if np.any(ilarge):
+
+        # apply:
+        # https://www.johndcook.com/blog/2024/04/16/hypergeometric-large-negative-z/
+
+        # reduce
+        an = aa[ilarge]
+        bn = bb[ilarge]
+        cn = cc[ilarge]
+        zn = zz[ilarge]
+
+        coef0 = (
+            scpsp.gamma(cn) * scpsp.gamma(bn-an)
+            / (scpsp.gamma(bn) * scpsp.gamma(cn-an))
+        )
+        coef1 = (
+            scpsp.gamma(cn) * scpsp.gamma(an-bn)
+            / (scpsp.gamma(an) * scpsp.gamma(cn-bn))
+        )
+
+        out[ilarge] = (
+            coef0 * (-zn)**(-an) * _hyp2F1(an, 1-cn+an, 1-bn+an, 1./zn)
+            + coef1 * (-zn)**(-bn) * _hyp2F1(bn, 1-cn+bn, 1-an+bn, 1./zn)
+        )
+
+    return out
 
 
 # ####################################################
@@ -959,9 +1316,14 @@ def _hyp2F1(
 # ####################################################
 
 
-def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
-    """ Compute cross section from Elwert-Haug
+def plot_xray_thin_ddcross_ei_vs_Literature(ninf=None):
+    """ Compare computed cross-sections vs literature values from Elwert-Haug
 
+    Triply differential cross-section
+    Reproduces figures 2, 5, 6 and 7
+
+    [1]
+    [2]
 
     """
 
@@ -969,11 +1331,26 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
     # Load data
     # --------------
 
+    # isolines
     pfe_isolines = os.path.join(
         _PATH_HERE,
         'RE_HXR_CrossSection_ThinTarget_Isolines_ElwertHaug_fig2.csv',
     )
     out_isolines = np.loadtxt(pfe_isolines, delimiter=',')
+
+    # ph_dist
+    pfe_ph_dist = os.path.join(
+        _PATH_HERE,
+        'RE_HXR_CrossSection_ThinTarget_PhotonDist_ElwertHaug_fig5.csv',
+    )
+    out_ph_dist = np.loadtxt(pfe_ph_dist, delimiter=',')
+
+    # ph_dist_nakel
+    pfe_ph_dist_nakel = os.path.join(
+        _PATH_HERE,
+        'RE_HXR_CrossSection_ThinTarget_PhotonDist_Nakel_fig5.csv',
+    )
+    out_ph_dist_nakel = np.loadtxt(pfe_ph_dist_nakel, delimiter=',')
 
     # --------------
     # Compute
@@ -993,12 +1370,55 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
         # directions
         theta_ph=np.abs(te0),
         theta_e=np.abs(te1),
-        phi_ph=0.,
-        phi_e=(te0*te1 > 0)*np.pi,
+        dphi=(te0*te1 < 0)*np.pi,
         # hypergeometric parameter
         ninf=ninf,
         # version
         version=None,
+    )
+
+    # ------------
+    # photon distribution
+
+    tph = np.linspace(-np.pi/2, np.pi/2, 92)
+
+    ddata_ph_dist = get_dcross_ei(
+        # inputs
+        Z=79,
+        E_e0_eV=300e3,
+        E_e1_eV=170e3,
+        # directions
+        theta_ph=np.abs(tph),
+        theta_e=0.,
+        dphi=(tph < 0.)*np.pi,
+        # hypergeometric parameter
+        ninf=ninf,
+        # version
+        version=None,
+        # debug
+        debug='vs_theta_ph',
+    )
+
+    # ------------
+    # photon distribution - nakel
+
+    tph_nakel = np.linspace(-80, 60, 141)*np.pi/180.
+
+    ddata_ph_dist_nakel = get_dcross_ei(
+        # inputs
+        Z=47,
+        E_e0_eV=180e3,
+        E_e1_eV=100e3,
+        # directions
+        theta_ph=np.abs(tph_nakel),
+        theta_e=30.*np.pi/180.,
+        dphi=(tph_nakel < 0.)*np.pi,
+        # hypergeometric parameter
+        ninf=ninf,
+        # version
+        version=None,
+        # debug
+        debug='vs_theta_ph',
     )
 
     # --------------
@@ -1010,21 +1430,23 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
 
     dmargin = {
         'left': 0.08, 'right': 0.95,
-        'bottom': 0.08, 'top': 0.85,
-        'wspace': 0.2, 'hspace': 0.2,
+        'bottom': 0.06, 'top': 0.85,
+        'wspace': 0.2, 'hspace': 0.30,
     }
 
     fig = plt.figure(figsize=(15, 12))
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
-    gs = gridspec.GridSpec(ncols=2, nrows=1, **dmargin)
+    gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
     dax = {}
 
     # --------------
     # prepare axes
     # --------------
 
+    # --------------
     # ax - isolines
+
     ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
     ax.set_xlabel(
         r"$\theta_{ph}$ (photon emission angle, deg)",
@@ -1032,30 +1454,67 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
         fontweight='bold',
     )
     ax.set_ylabel(
-        r"$\theta_e$ (e deflection angle, deg)",
+        r"$\theta_e$ (e scattering angle, deg)",
         size=fontsize,
         fontweight='bold',
     )
     ax.set_title(
         "Fig 2. Isolines of the differential cross-section\n"
-        + r"$Z = 13$, $E_{e0} = 180 keV$, $E_{e1} = 90 keV$"
+        + r"$Z = 13$ (Al), $E_{e0} = 180 keV$, $E_{e1} = 90 keV$"
         + "\n1 barn = 1e-28 m2",
         size=fontsize,
         fontweight='bold',
     )
 
-    # ax -
+    # store
+    dax['isolines'] = {'handle': ax, 'type': 'isolines'}
+
+    # ------------
+    # ax - ph_dist
+
+    ax = fig.add_subplot(gs[0, 1], aspect='auto', projection='polar')
+    ax.set_theta_zero_location("N")
+    ax.set_title(
+        "Fig 5. Photon angular distribution\n"
+        + r"$Z = 79$ (Au), $E_{e0} = 300 keV$, "
+        + r"$E_{e1} = 170 keV$, $\theta_e = 0$"
+        + "\n1 barn = 1e-28 m2",
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['ph_dist'] = {'handle': ax, 'type': 'ph_dist'}
+
+    # ------------
+    # ax - ph_dist_nakel
+
+    ax = fig.add_subplot(gs[1, 0], aspect='auto')
+    ax.set_title(
+        "Fig 5. Photon angular distribution\n"
+        + r"$Z = 47$ (Ag), $E_{e0} = 180 keV$, "
+        + r"$E_{e1} = 100 keV$, $\theta_e = 30$ deg"
+        + "\n1 barn = 1e-28 m2",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_xlabel(
+        r"$\theta_{ph}$ (photon emission angle, deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(
+        r"$\frac{d^3 \sigma}{d\Omega_e d\Omega_{ph} dk}$"
+        + "   [b/(sr.sr.MeV)]",
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['ph_dist_nakel'] = {'handle': ax, 'type': 'ph_dist'}
 
     # --------------
-    # dax
-    # --------------
-
-    dax = {
-        'isolines': {'handle': ax, 'type': 'isolines'}
-    }
-
-    # --------------
-    # plot
+    # plot isolines
     # --------------
 
     kax = 'isolines'
@@ -1067,7 +1526,7 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
             np.r_[out_isolines[:, 0], np.nan, -out_isolines[:, 0]],
             np.r_[out_isolines[:, 1], np.nan, -out_isolines[:, 1]],
             c='k',
-            ls='-',
+            ls='--',
         )
 
         # computed data
@@ -1075,8 +1534,11 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
             te0.ravel() * 180/np.pi,
             te1.ravel() * 180/np.pi,
             ddata_iso['cross']['data']*1e28,
-            cmap=plt.cm.viridis,
-            levels=[0.1, 0.5, 1, 2, 3, 4, 5, 6, 7],
+            cmap=None,
+            levels=8,
+            colors='b',
+            linestyles='-',
+            # levels=[0.1, 0.5, 1, 2, 3, 4, 5, 6, 7],
         )
 
         # add labels
@@ -1087,4 +1549,69 @@ def plot_xray_thin_ddcross_ei_vs_ElwertHaug(ninf=None):
         ax.axhline(0, c='k', ls='--')
         ax.set_xlim(-90, 90)
 
-    return dax, ddata_iso
+    # ------------------------
+    # plot photon distribution
+    # ------------------------
+
+    kax = 'ph_dist'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        ax.plot(
+            out_ph_dist[:, 1] * np.pi/180,
+            out_ph_dist[:, 0]*1e-2,
+            c='k',
+            ls='-',
+        )
+
+        # computed data
+        im = ax.plot(
+            tph,
+            ddata_ph_dist['cross']['data']*1e28,
+            c='b',
+            ls='-',
+        )
+
+        # limits
+        ax.set_thetamin(-90)
+        ax.set_thetamax(90)
+        # ax.set_rmax(2)
+        # ax.set_rmin(0)  # Change the radial axis to only go from 1 to 2
+        # ax.set_rticks([1, 2])  # Fewer radial ticks
+        ax.set_rorigin(0)
+        ax.set_rlabel_position(0)
+
+    # ------------------------
+    # plot photon distribution - nakel
+    # ------------------------
+
+    kax = 'ph_dist_nakel'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        ax.plot(
+            out_ph_dist_nakel[:, 0],
+            out_ph_dist_nakel[:, 1],
+            c='k',
+            ls='-',
+        )
+
+        # computed data
+        im = ax.plot(
+            tph_nakel*180/np.pi,
+            ddata_ph_dist_nakel['cross']['data']*1e28,
+            c='b',
+            ls='-',
+        )
+
+        # add
+        ax.axvline(0, c='k', ls='-')
+        ax.axvline(0, c='k', ls='--')
+
+        # limits
+        ax.set_xlim(-80, 60)
+        ax.set_ylim(0, 60)
+
+    return dax, ddata_iso, ddata_ph_dist, ddata_ph_dist_nakel
