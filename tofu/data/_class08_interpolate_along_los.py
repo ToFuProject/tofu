@@ -223,7 +223,7 @@ def main(
             )[key_coords]['data']
 
             # interpolate
-            q2dy = coll.interpolate_profile2d(
+            q2dy = coll.interpolate(
                 keys=key_integrand,
                 x0=Ri,
                 x1=pts_z,
@@ -239,13 +239,23 @@ def main(
             )[key_integrand]['data']
 
             # check shape
-            if q2dx['data'].shape != q2dy['data'].shape:
-                msg = "The two interpolated quantities must have same shape!"
+            if q2dx.shape != q2dy.shape:
+                msg = (
+                    "The two interpolated quantities must have same shape!\n"
+                    f"\t- '{key_coords}': {q2dx.shape}\n"
+                    f"\t- '{key_integrand}': {q2dy.shape}\n"
+                )
                 raise Exception(msg)
 
+            # axis_los
+            wbs = coll._which_bsplines
+            kbs = coll.ddata[key_integrand][wbs][0]
+            rbs = coll.dobj[wbs][kbs]['ref']
+            axis_los = coll.ddata[key_integrand]['ref'].index(rbs[0])
+
             # prepare
-            dx[kk] = np.full(q2d.shape, np.nan)
-            dy[kk] = np.full(q2d.shape, np.nan)
+            dx[kk] = np.full(q2dx.shape, np.nan)
+            dy[kk] = np.full(q2dx.shape, np.nan)
 
             # isok
             isok = np.isfinite(q2dx) & np.isfinite(q2dy) & np.isfinite(Ri)
