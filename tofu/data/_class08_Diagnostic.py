@@ -51,18 +51,6 @@ __all__ = ['Diagnostic']
 class Diagnostic(Previous):
 
     _which_diagnostic = 'diagnostic'
-    _show_in_summary = 'all'
-
-    _dshow = dict(Previous._dshow)
-    _dshow.update({
-        'diagnostic': [
-            'is2d',
-            'spectro',
-            'PHA',
-            'camera',
-            'signal',
-        ],
-    })
 
     def add_diagnostic(
         self,

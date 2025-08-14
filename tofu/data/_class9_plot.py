@@ -32,7 +32,8 @@ def _plot_geometry_matrix_check(
 ):
 
     # key
-    lk = list(coll.dobj['geom matrix'].keys())
+    wgmat = coll._which_gmat
+    lk = list(coll.dobj[wgmat].keys())
     key = ds._generic_check._check_var(
         key, 'key',
         default=None,
@@ -40,17 +41,17 @@ def _plot_geometry_matrix_check(
         allowed=lk,
     )
 
-    keybs = coll.dobj['geom matrix'][key]['bsplines']
+    keybs = coll.dobj[wgmat][key]['bsplines']
     # refbs = coll.dobj['bsplines'][keybs]['ref']
     keym = coll.dobj['bsplines'][keybs]['mesh']
 
-    key_diag = coll.dobj['geom matrix'][key]['diagnostic']
-    key_cam = coll.dobj['geom matrix'][key]['camera']
-    key_data = coll.dobj['geom matrix'][key]['data']
-    shape = coll.dobj['geom matrix'][key]['shape']
-    axis_chan = coll.dobj['geom matrix'][key]['axis_chan']
-    axis_bs = coll.dobj['geom matrix'][key]['axis_bs']
-    axis_other = coll.dobj['geom matrix'][key]['axis_other']
+    key_diag = coll.dobj[wgmat][key]['diagnostic']
+    key_cam = coll.dobj[wgmat][key]['camera']
+    key_data = coll.dobj[wgmat][key]['data']
+    shape = coll.dobj[wgmat][key]['shape']
+    axis_chan = coll.dobj[wgmat][key]['axis_chan']
+    axis_bs = coll.dobj[wgmat][key]['axis_bs']
+    axis_other = coll.dobj[wgmat][key]['axis_other']
 
     # indbfi
     indbf = ds._generic_check._check_var(
@@ -183,8 +184,9 @@ def _plot_geometry_matrix_prepare(
         res = res_coef*dR
 
     # crop
-    nchan, nbs = coll.dobj['geom matrix'][key]['shape'][-2:]
-    crop = coll.dobj['geom matrix'][key]['crop']
+    wgmat = coll._which_gmat
+    nchan, nbs = coll.dobj[wgmat][key]['shape'][-2:]
+    crop = coll.dobj[wgmat][key]['crop']
 
     # --------
     # indices
@@ -514,14 +516,14 @@ def plot_geometry_matrix(
         ax = dax[kax]['handle']
 
         # coll.plot_bsplines(
-            # key=keybs,
-            # indbs=ich_bf,
-            # indt=indt,
-            # knots=False,
-            # cents=False,
-            # plot_mesh=False,
-            # dax={'cross': dax[kax]},
-            # dleg=False,
+        # key=keybs,
+        # indbs=ich_bf,
+        # indt=indt,
+        # knots=False,
+        # cents=False,
+        # plot_mesh=False,
+        # dax={'cross': dax[kax]},
+        # dleg=False,
         # )
 
         if ptslos is not None:
@@ -644,7 +646,6 @@ def _create_dax(
         axt = fig.add_subplot(gs[0, 3], sharey=ax00)
         axt.set_xlabel('time')
         axt.set_ylabel('data')
-
 
     # ax10 = cross1
     ax10 = fig.add_subplot(gs[1, 0], aspect='equal')

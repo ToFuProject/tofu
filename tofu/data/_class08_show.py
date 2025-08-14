@@ -16,7 +16,7 @@ _LORDER = [
     'is2d', 'spectro', 'PHA',
     'camera', 'signal',
     'los', 'vos',
-    'nb geom matrix',
+    'nb geom_matrix',
 ]
 
 
@@ -58,7 +58,7 @@ def _show(coll=None, which=None, lcol=None, lar=None, show=None):
         for k1 in _LORDER:
 
             # parameters
-            if k1 in ['is2d', 'spectro', 'PHA', 'nb geom matrix']:
+            if k1 in ['is2d', 'spectro', 'PHA', 'nb geom_matrix']:
                 nn = str(ddiag[k1])
 
             # cameras, signal

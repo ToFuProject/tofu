@@ -231,6 +231,7 @@ def _store(
     # prepare
 
     lkcam = list(dout.keys())
+    wgmat = coll._which_gmat
     dobj = {
         'synth sig': {
             key: {
@@ -242,7 +243,7 @@ def _store(
                 'method': method,
                 'res': res,
                 # retrofit
-                'geom matrix': key_matrix,
+                wgmat: key_matrix,
             },
         },
     }

@@ -132,8 +132,8 @@ def compute_inversions(
     if hasattr(matrix, 'toarray'):
         mmm = matrix.toarray()
 
-    mmm = np.mean(mmm, axis=-1, where=mmm>0)
-    matnorm = np.mean(mmm, axis=-1, where=mmm>0)
+    mmm = np.mean(mmm, axis=-1, where=mmm > 0)
+    matnorm = np.mean(mmm, axis=-1, where=mmm > 0)
     matrix_norm = matrix / matnorm[:, None, None] if m3d else matrix / matnorm
 
     # --------------------------------
@@ -296,18 +296,18 @@ def compute_inversions(
         clas = coll.dobj['bsplines'][keybs]['class']
 
         # if clas.knotsa is None:
-            # # estimate 1d squared gradient
-            # kr = coll.dobj[coll._which_mesh][keym]['knots'][0]
-            # rr = coll.ddata[kr]['data']
-            # regularity = np.nansum(
-                # clas(
-                    # radius=np.linspace(rr[0], rr[-1], rr.size*10),
-                    # coefs=sol,
-                    # radius_vs_time=False,
-                    # deriv=1,
-                # )**2,
-                # axis=1,
-            # )
+        # # estimate 1d squared gradient
+        # kr = coll.dobj[coll._which_mesh][keym]['knots'][0]
+        # rr = coll.ddata[kr]['data']
+        # regularity = np.nansum(
+        # clas(
+        # radius=np.linspace(rr[0], rr[-1], rr.size*10),
+        # coefs=sol,
+        # radius_vs_time=False,
+        # deriv=1,
+        # )**2,
+        # axis=1,
+        # )
 
     # -------------
     # format output
@@ -344,7 +344,6 @@ def compute_inversions(
         return sol_full, mu, chi2n, regularity, niter, spec, t
 
 
-
 def _normalize_dconstraints(dcon=None, matnorm=None, m3d=None):
 
     # ------------
@@ -373,7 +372,11 @@ def _normalize_dconstraints(dcon=None, matnorm=None, m3d=None):
                 nt = matnorm.size
                 dcon_norm['coefs'] = [dcon['coefs'][0] for ii in matnorm]
                 dcon_norm['indbs'] = [dcon['indbs'][0] for ii in matnorm]
-                dcon_norm['indbs_free'] = np.repeat(dcon['indbs_free'], nt, axis=0)
+                dcon_norm['indbs_free'] = np.repeat(
+                    dcon['indbs_free'],
+                    nt,
+                    axis=0,
+                )
                 dcon_norm['hastime'] = True
 
     elif m3d is False:
@@ -601,7 +604,7 @@ def _store(
 
     # add synthetic data
     keyt = coll.get_ref_vector(key0=keyinv, ref=reft, **dref_vector)[3]
-    data_synth = coll.add_retrofit_data(
+    coll.add_retrofit_data(
         key=kretro,
         key_diag=key_diag,
         key_matrix=key_matrix,
@@ -612,6 +615,7 @@ def _store(
         ref_vector_strategy=ref_vector_strategy,
         store=True,
     )
+    return
 
 
 def _restore_fullt(
@@ -701,7 +705,6 @@ def _compute_inv_loop(
     # Options for quadratic solvers only
 
     bounds = None
-    func_val, func_jac, func_hess = None, None, None
     if regul and positive is True:
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
@@ -715,15 +718,17 @@ def _compute_inv_loop(
         def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn, R=R):
             return 2.*(TTn + mu*R)
 
-    elif not regul:
+    else:
+        func_val, func_jac, func_hess = None, None, None
+        if not regul:
 
-        if positive is True:
-            bounds = (
-                np.zeros((nbs,), dtype=float),
-                np.full((nbs,), np.inf),
-            )
-        else:
-            bounds = (-np.inf, np.inf)
+            if positive is True:
+                bounds = (
+                    np.zeros((nbs,), dtype=float),
+                    np.full((nbs,), np.inf),
+                )
+            else:
+                bounds = (-np.inf, np.inf)
 
     # ---------
     # time loop
@@ -862,7 +867,11 @@ def _compute_inv_loop(
         mu0 = mu[ii]
 
         if verb == 1:
-            msg = f"   chi2n = {chi2n[ii]:.3e}    reg = {regularity[ii]:.3e}    niter = {niter[ii]}"
+            msg = (
+                f"   chi2n = {chi2n[ii]:.3e}    "
+                f"reg = {regularity[ii]:.3e}    "
+                f"niter = {niter[ii]}"
+            )
             print(msg, end='\n', flush=True)
 
 
@@ -988,6 +997,8 @@ def _compute_inv_loop_tomotok(
         if verb == 1:
             msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
             print(msg, end='\n', flush=True)
+
+    return
 
 
 # ##################################################################
@@ -1176,7 +1187,8 @@ def compute_retrofit_data(
     # prepare
     # --------------
 
-    kmat = coll.dobj['geom matrix'][key_matrix]['data']
+    wgmat = coll._which_gmat
+    kmat = coll.dobj[wgmat][key_matrix]['data']
     gunits = coll.ddata[kmat[0]]['units']
 
     coefs = coll.ddata[key_profile2d]['data']
@@ -1339,19 +1351,22 @@ def _compute_retrofit_data_check(
     # ------------
     # key_matrix
 
-    lok = coll.dobj.get('geom matrix', {}).keys()
+    wgmat = coll._which_gmat
+    lok = coll.dobj.get(wgmat, {}).keys()
     key_matrix = ds._generic_check._check_var(
         key_matrix, 'key_matrix',
         types=str,
         allowed=lok,
     )
 
-    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
-    keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
+    key_cam = coll.dobj[wgmat][key_matrix]['camera']
+    keybs = coll.dobj[wgmat][key_matrix]['bsplines']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
 
-    matrix, ref, dindmat = coll.get_geometry_matrix_concatenated(key=key_matrix)
+    matrix, ref, dindmat = coll.get_geometry_matrix_concatenated(
+        key=key_matrix,
+    )
     nchan, nbs = matrix.shape[-2:]
     # refbs = ref[-1]
 
@@ -1373,7 +1388,8 @@ def _compute_retrofit_data_check(
     # time management
     # ---------------
 
-    lkmat = coll.dobj['geom matrix'][key_matrix]['data']
+    wgmat = coll._which_gmat
+    lkmat = coll.dobj[wgmat][key_matrix]['data']
 
     # ref to exclude from vector search
     refbs_mat = coll.dobj['bsplines'][keybs]['ref']
@@ -1405,14 +1421,14 @@ def _compute_retrofit_data_check(
         keyt = f'{key}_t'
 
     # --------------------------------------
-    # look for time vector from geom matrix
+    # look for time vector from geom_matrix
 
     ist_mat = coll.get_ref_vector(
         key0=lkmat[0],
         ref_exclude=ref_exclude,
         warn=False,
         **{
-            k0: v0 for k0,v0 in dref_vector.items()
+            k0: v0 for k0, v0 in dref_vector.items()
             if k0 != 'ref'
             or (k0 == 'ref' and v0 in coll.ddata[lkmat[0]]['ref'])
         },
@@ -1426,7 +1442,7 @@ def _compute_retrofit_data_check(
         ref_exclude=ref_exclude,
         warn=False,
         **{
-            k0: v0 for k0,v0 in dref_vector.items()
+            k0: v0 for k0, v0 in dref_vector.items()
             if k0 != 'ref'
             or (k0 == 'ref' and v0 in coll.ddata[lkmat[0]]['ref'])
         },
