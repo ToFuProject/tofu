@@ -1,5 +1,5 @@
- C Density=2.267, Angle=90.deg
- Photon Energy (eV), Atten Length (microns)
+# C Density=2.267, Angle=90.deg
+# Photon Energy (eV), Atten Length (microns)
    30.0000  1.417633E-02
    30.4173  1.462491E-02
    30.8405  1.508785E-02

@@ -1,5 +1,5 @@
- C10H8O4 Density=1.4, Angle=90.deg
- Photon Energy (eV), Atten Length (microns)
+# C10H8O4 Density=1.4, Angle=90.deg
+# Photon Energy (eV), Atten Length (microns)
    30.0000  2.050808E-02
    30.4173  2.098915E-02
    30.8405  2.147815E-02
