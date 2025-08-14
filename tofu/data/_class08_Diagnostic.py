@@ -12,6 +12,7 @@ import numpy as np
 # tofu
 from ._class07_Camera import Camera as Previous
 from . import _class8_check as _check
+from . import _class08_show as _show
 from . import _class8_compute as _compute
 from . import _class08_get_data as _get_data
 from . import _class08_concatenate_data as _concatenate
@@ -144,6 +145,22 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
         )
+
+    # -------------------
+    # show
+    # -------------------
+
+    def _get_show_obj(self, which=None):
+        if which == self._which_diagnostic:
+            return _show._show
+        else:
+            return super()._get_show_obj(which)
+
+    def _get_show_details(self, which=None):
+        if which == self._which_diagnostic:
+            return _show._show_details
+        else:
+            super()._get_show_details(which)
 
     # -----------------
     # utilities
