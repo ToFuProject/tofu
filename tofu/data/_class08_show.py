@@ -59,7 +59,7 @@ def _show(coll=None, which=None, lcol=None, lar=None, show=None):
 
             # parameters
             if k1 in ['is2d', 'spectro', 'PHA', 'nb geom_matrix']:
-                nn = str(ddiag[k1])
+                nn = str(ddiag.get(k1))
 
             # cameras, signal
             elif k1 in ['camera', 'signal']:
