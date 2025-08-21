@@ -1542,8 +1542,7 @@ class Diagnostic(Previous):
         dmargin=None,
         tit=None,
         cmap=None,
-        vmin=None,
-        vmax=None,
+        dvminmax=None,
     ):
         """ Plot the geometrical coverage of a diagnostic, in a cross-section
 
@@ -1588,8 +1587,7 @@ class Diagnostic(Previous):
             config=plot_config,
             dcolor=dcolor,
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
+            dvminmax=dvminmax,
             dax=dax,
             fs=fs,
             dmargin=dmargin,

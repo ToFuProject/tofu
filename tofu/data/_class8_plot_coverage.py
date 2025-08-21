@@ -50,8 +50,7 @@ def main(
     dmargin=None,
     tit=None,
     cmap=None,
-    vmin=None,
-    vmax=None,
+    dvminmax=None,
 ):
 
     # -------------
@@ -147,8 +146,7 @@ def main(
             dmargin=dmargin,
             tit=tit,
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
+            dvminmax=dvminmax,
             # proj
             proj='cross',
             # compute output
@@ -193,8 +191,7 @@ def main(
             dmargin=dmargin,
             tit=tit,
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
+            dvminmax=dvminmax,
             # proj
             proj='hor',
             # compute output
