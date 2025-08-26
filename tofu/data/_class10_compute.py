@@ -324,7 +324,7 @@ def compute_inversions(
         shapesol = tuple(np.r_[nt, shapebs])
         sol_full = np.zeros(shapesol, dtype=float)
         cropbs = coll.ddata[coll.dobj['bsplines'][keybs]['crop']]['data']
-        cropbsflat = cropbs.ravel(order='F')
+        cropbsflat = cropbs.ravel()
         iR = np.tile(np.arange(0, shapebs[0]), shapebs[1])[cropbsflat]
         iZ = np.repeat(np.arange(0, shapebs[1]), shapebs[0])[cropbsflat]
         sol_full[:, iR, iZ] = sol
