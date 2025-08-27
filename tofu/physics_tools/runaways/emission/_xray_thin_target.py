@@ -192,8 +192,6 @@ def get_dcross_ei(
     per_energy_unit='eV',
     # version
     version=None,
-    # plot
-    plot=None,
     # debug
     debug=None,
 ):
@@ -254,7 +252,6 @@ def get_dcross_ei(
         shape,
         per_energy_unit,
         version,
-        plot,
         debug,
     ) = _check_cross(
         # inputs
@@ -269,8 +266,6 @@ def get_dcross_ei(
         per_energy_unit=per_energy_unit,
         # version
         version=version,
-        # plot
-        plot=plot,
         # debug
         debug=debug,
     )
@@ -383,8 +378,6 @@ def _check_cross(
     per_energy_unit=None,
     # version
     version=None,
-    # plot
-    plot=None,
     # debug
     debug=None,
 ):
@@ -494,16 +487,6 @@ def _check_cross(
     )
 
     # ------------
-    # plot
-    # ------------
-
-    plot = ds._generic_check._check_var(
-        plot, 'plot',
-        types=bool,
-        default=True,
-    )
-
-    # ------------
     # debug
     # ------------
 
@@ -524,7 +507,7 @@ def _check_cross(
         theta_e, theta_ph, dphi,
         shape,
         per_energy_unit,
-        version, plot, debug,
+        version, debug,
     )
 
 
@@ -1609,8 +1592,10 @@ def _hyp2F1(
                 )
 
                 out[ilarge] = (
-                    coef0 * (-zn)**(-an) * _hyp2F1(an, 1-cn+an, 1-bn+an, 1./zn)
-                    + coef1 * (-zn)**(-bn) * _hyp2F1(bn, 1-cn+bn, 1-an+bn, 1./zn)
+                    coef0 * (-zn)**(-an)
+                    * _hyp2F1(an, 1-cn+an, 1-bn+an, 1./zn)
+                    + coef1 * (-zn)**(-bn)
+                    * _hyp2F1(bn, 1-cn+bn, 1-an+bn, 1./zn)
                 )
 
             else:

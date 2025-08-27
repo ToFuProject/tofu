@@ -210,7 +210,7 @@ class Test01_Inversions():
         for ii, kmat in enumerate(lkmat):
 
             kbs = self.coll.dobj[wgmat][kmat]['bsplines']
-            kd = self.coll.dobj[wgmat]['diagnostic']
+            kd = self.coll.dobj[wgmat][kmat]['diagnostic']
             km = self.coll.dobj['bsplines'][kbs]['mesh']
             nd = self.coll.dobj['mesh'][km]['nd']
             # mtype = self.coll.dobj['mesh'][km]['type']
