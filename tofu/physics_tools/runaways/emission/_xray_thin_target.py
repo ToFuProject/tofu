@@ -199,25 +199,31 @@ def get_dcross_ei(
 ):
     """ Return a differential cross-section for thin-target bremsstrahlung
 
-    First based on [1]
-    Now uses the BHE or BE formulas (version):
-        - 'BE': Elwert-Haug [2]
+    Allowws several formulas (version):
+        - 'BE': Elwert-Haug [1]
             . most general and accurate
             . Uses Sommerfield-Maue eigenfunctions
-            . eq. (30) in [2]
-        - 'BHE': Bethe-Heitler-Elwert [3]
+            . eq. (30) in [1]
+        - 'BH': Bethe-Heitler [1]
             . Faster computation
-            . uses Born approximation
+            . uses first Born approximation
+            . eq. (38) in [1]
+        - 'BHE': Bethe-Heitler-Elwert
+            . Faster computation
+            . uses first Born approximation
+            - Elwert correction factor from [3], for high energies
 
     Valid for small atomic numbers, deviates at high Z, see [4]
 
     Uses:
-        [1] Y. Peysson, "Rayonnement electromagnetique des plasmas"
-        [2] G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969
+        [1] G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969
             doi: 10.1103/PhysRev.183.90.
-        [3]
-        [4] Starek et al., Physics Letters A, 39, p. 151, 1972
+        [2] Y. Peysson, "Rayonnement electromagnetique des plasmas"
+        [3] Starek et al., Physics Letters A, 39, p. 151, 1972
             doi: 10.1016/0375-9601(72)91059-6.
+        [4] W. Nakel, “The elementary process of bremsstrahlung,”
+            Physics Reports, vol. 243, p. 317—353, 1994.
+
 
     Inputs:
         E_e0_eV = kinetic energy of incident electron in eV
@@ -233,6 +239,7 @@ def get_dcross_ei(
             scipy.special.hyp2f1(a, b, c, z)
             does not handle complex input (a, b) as required by the formula
             => ticket https://github.com/scipy/scipy/issues/23450
+            => uses mpmath instead, but slow due to loop
 
     """
 
@@ -332,8 +339,27 @@ def get_dcross_ei(
     )
 
     # -------------
-    # format output
+    # adjust vs per_energy_unit
     # -------------
+
+    # m0c (J)
+    m0c2 = scpct.m_e * scpct.c**2
+
+    # case
+    if per_energy_unit == 'eV':
+        coef = scpct.e / m0c2
+    elif per_energy_unit == 'keV':
+        coef = 1e3 * scpct.e / m0c2
+    elif per_energy_unit == 'MeV':
+        coef = 1e6 * scpct.e / m0c2
+    elif per_energy_unit == 'J':
+        coef = 1 / m0c2
+    else:
+        coef = 1.
+
+    # apply
+    for vv in version:
+        ddata['cross'][vv]['data'] *= coef
 
     return ddata
 
@@ -447,7 +473,7 @@ def _check_cross(
     per_energy_unit = ds._generic_check._check_var(
         per_energy_unit, 'per_energy_unit',
         types=str,
-        allowed=['J', 'eV', 'keV', 'MeV'],
+        allowed=['J', 'eV', 'keV', 'MeV', 'm0c2'],
         default='eV',
     )
 
@@ -653,7 +679,7 @@ def _cross_BetheHeitler(
     # BH cross-section
     # -------------
 
-    term0 = aa * Z**2 * (r0/np.pi)**2
+    term0 = scpct.alpha * Z**2 * (r0/np.pi)**2
     term1 = p1 / p0
     term2 = kk / q2**2
 
@@ -1677,6 +1703,8 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
         # hypergeometric parameter
         ninf=ninf,
         source=source,
+        # per_energy_unit
+        per_energy_unit='m0c2',
         # version
         version=list(dversions.keys()),
     )
@@ -1702,6 +1730,8 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
         # hypergeometric parameter
         ninf=ninf,
         source=source,
+        # per_energy_unit
+        per_energy_unit='m0c2',
         # version
         version=list(dversions.keys()),
         # debug
@@ -1729,6 +1759,8 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
         # hypergeometric parameter
         ninf=ninf,
         source=source,
+        # per_energy_unit
+        per_energy_unit='MeV',
         # version
         version=list(dversions.keys()),
         # debug
@@ -1756,6 +1788,8 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
         # hypergeometric parameter
         ninf=ninf,
         source=source,
+        # per_energy_unit
+        per_energy_unit='MeV',
         # version
         version=list(dversions.keys()),
         # debug
@@ -1925,6 +1959,9 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
         ax.axvline(0, c='k', ls='--')
         ax.axhline(0, c='k', ls='--')
         ax.set_ylim(-90, 90)
+
+        # add legend
+        ax.legend()
 
     # ------------------------
     # plot photon distribution
