@@ -27,7 +27,7 @@ _PATH_HERE = os.path.dirname(__file__)
 # ####################################################
 
 
-def get_dcross_ei(
+def get_xray_thin_d3cross_ei(
     # inputs
     Z=None,
     E_e0_eV=None,
@@ -1464,7 +1464,7 @@ def _hyp2F1(
 # ####################################################
 
 
-def plot_xray_thin_ddcross_ei_vs_Literature(
+def plot_xray_thin_d3cross_ei_vs_Literature(
     ninf=None,
     source=None,
 ):
@@ -1527,7 +1527,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     te0 = np.linspace(-np.pi/2, np.pi/2, 91)[None, :]
     te1 = np.linspace(-np.pi/2, np.pi/2, 92)[:, None]
 
-    ddata_iso = get_dcross_ei(
+    ddata_iso = get_xray_thin_d3cross_ei(
         # inputs
         Z=13,
         E_e0_eV=180e3,
@@ -1554,7 +1554,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     theta_e_dist = 0
     Z_dist = 79
 
-    ddata_ph_dist = get_dcross_ei(
+    ddata_ph_dist = get_xray_thin_d3cross_ei(
         # inputs
         Z=Z_dist,
         E_e0_eV=E_e0_eV_dist,
@@ -1583,7 +1583,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     E_e0_eV_nakel = 180e3
     E_e1_eV_nakel = 100e3
 
-    ddata_ph_dist_nakel = get_dcross_ei(
+    ddata_ph_dist_nakel = get_xray_thin_d3cross_ei(
         # inputs
         Z=Z_dist_nakel,
         E_e0_eV=E_e0_eV_nakel,
@@ -1612,7 +1612,7 @@ def plot_xray_thin_ddcross_ei_vs_Literature(
     E_e0_eV_spect_nakel = 300e3
     E_ph_spect_nakel = np.linspace(0.2, 0.9, 21) * E_e0_eV_spect_nakel
 
-    ddata_ph_spect_nakel = get_dcross_ei(
+    ddata_ph_spect_nakel = get_xray_thin_d3cross_ei(
         # inputs
         Z=Z_spect_nakel,
         E_e0_eV=E_e0_eV_spect_nakel,
