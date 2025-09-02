@@ -394,7 +394,8 @@ def plot_xray_thin_d2cross_ei_vs_literature():
         "[1] Fig 12. Integrated cross-section (vs theta_e and phi)\n"
         "Comparisation between experimental values and models\n"
         + r"$Z = O$ (O) and $Z = 13$ (Al), "
-        + r"$E_{e0} = 45 keV$, $E_{e1} = 5 keV$",
+        + r"$E_{e0} = 45 keV$, $E_{e1} = 5 keV$"
+        + "\nTarget was " + r"$Al_2O_3$",
         size=fontsize,
         fontweight='bold',
     )
@@ -414,16 +415,23 @@ def plot_xray_thin_d2cross_ei_vs_literature():
         ax = dax[kax]['handle']
 
         # literature data
-        inan = np.r_[0, np.any(np.isnan(out_fig12), axis=1).nonzero()[0]]
-        dls = {0: '--', 1: '-.', 2: '-', 3: '-', 4: 'None'}
-        for ii, ia in enumerate(inan):
+        inan = np.r_[0, np.any(np.isnan(out_fig12), axis=1).nonzero()[0], -1]
+        dls = {
+            0: {'ls': '--', 'lab': 'Born approx'},
+            1: {'ls': '-.', 'lab': 'Z = 8, EH'},
+            2: {'ls': '-', 'lab': 'Z = 13, EH'},
+            3: {'ls': '-', 'lab': 'Z = 13, Non-rel.'},
+            4: {'ls': 'None', 'lab': 'exp.'},
+        }
+        for ii, ia in enumerate(inan[:-1]):
             ax.plot(
                 out_fig12[inan[ii]:inan[ii+1], 0],
                 out_fig12[inan[ii]:inan[ii+1], 1],
                 c='k',
-                ls=dls[ii],
+                ls=dls[ii]['ls'],
                 marker='o' if ii == 4 else 'None',
                 ms=10,
+                label=dls[ii]['lab'],
             )
 
         # -------------
@@ -432,13 +440,6 @@ def plot_xray_thin_d2cross_ei_vs_literature():
         # Z = 13
         Z = 13
         for k0, v0 in d2cross_fig12_Z13['cross'].items():
-            ax.plot(
-                theta_ph * 180/np.pi,
-                v0['data']*1e28*1e3 * 40e3 / Z**2,
-                ls='-',
-                label=f'computed - {k0} Z = {Z}',
-            )
-
             ax.plot(
                 theta_ph * 180/np.pi,
                 v0['data']*1e28*1e3 * 40e3 / Z**2,
@@ -456,13 +457,6 @@ def plot_xray_thin_d2cross_ei_vs_literature():
                 label=f'computed - {k0} Z = {Z}',
             )
 
-            ax.plot(
-                theta_ph * 180/np.pi,
-                v0['data']*1e28*1e3 * 40e3 / Z**2,
-                ls='-',
-                label=f'computed - {k0} Z = {Z}',
-            )
-
         ax.set_xlim(0, 180)
 
         # add legend
@@ -472,4 +466,218 @@ def plot_xray_thin_d2cross_ei_vs_literature():
     # plot photon distribution
     # ------------------------
 
-    return dax
+    return dax, d2cross_fig12_Z13, d2cross_fig12_Z8
+
+
+# ####################################################
+# ####################################################
+#        plot anisotropy
+# ####################################################
+
+
+def plot_xray_thin_d2cross_ei_anisotropy(
+    Z=None,
+    theta_ph0=None,
+    theta_ph1=None,
+    E_e0_eV=None,
+    E_ph_eV=None,
+    version=None,
+):
+
+    # ---------------
+    # check inputs
+    # ---------------
+
+    # E_e0_eV
+    if E_e0_eV is None:
+        E_e0_eV = np.linspace(10, 10000, 20) * 1e3
+
+    E_e0_eV = ds._generic_check._check_flat1darray(
+        E_e0_eV, 'E_e0_eV',
+        dtype=float,
+        sign='>0',
+    )
+
+    # E_ph_eV
+    if E_ph_eV is None:
+        E_ph_eV = np.linspace(10, 100, 1000, 10) * 1e3
+
+    E_ph_eV = ds._generic_check._check_flat1darray(
+        E_ph_eV, 'E_ph_eV',
+        dtype=float,
+        sign='>0',
+    )
+
+    # theta_ph0
+    theta_ph0 = float(ds._generic_check._check_var(
+        theta_ph0, 'theta_ph0',
+        types=(float, int),
+        default=0,
+    ))
+    theta_ph0 = np.arctan2(np.sin(theta_ph0), np.cos(theta_ph0))
+
+    # theta_ph1
+    theta_ph1 = float(ds._generic_check._check_var(
+        theta_ph1, 'theta_ph1',
+        types=(float, int),
+        default=np.pi/2.,
+    ))
+    theta_ph1 = np.arctan2(np.sin(theta_ph1), np.cos(theta_ph1))
+
+    # ---------------
+    # prepare data
+    # ---------------
+
+    d2cross_map = get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+        # inputs
+        Z=Z,
+        E_e0_eV=E_e0_eV[None, :, None],
+        E_ph_eV=E_ph_eV[None, None, :],
+        theta_ph=np.r_[theta_ph0, theta_ph1][:, None, None],
+        # output customization
+        per_energy_unit=None,
+        # version
+        version=version,
+        # verb
+        verb=False,
+    )
+
+    # ---------------
+    # prepare norm
+    # ---------------
+
+    E_e0_eV_norm = np.r_[20, 200, 2000] * 1e3
+    E_ph_eV_norm = np.r_[10, 100] * 1e3
+    theta_ph = np.linspace(0, np.pi, 31)
+
+    d2cross_norm = get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+        # inputs
+        Z=Z,
+        E_e0_eV=E_e0_eV_norm[None, :, None],
+        E_ph_eV=E_ph_eV_norm[None, None, :],
+        theta_ph=theta_ph[:, None, None],
+        # output customization
+        per_energy_unit=None,
+        # version
+        version=version,
+        # verb
+        verb=False,
+    )
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    fontsize = 14
+    tit = (
+        "Anisotropy = d2cross(angle0) / d2cross(angle1)"
+    )
+
+    dmargin = {
+        'left': 0.08, 'right': 0.95,
+        'bottom': 0.06, 'top': 0.85,
+        'wspace': 0.2, 'hspace': 0.40,
+    }
+
+    fig = plt.figure(figsize=(15, 12))
+    fig.suptitle(tit, size=fontsize+2, fontweight='bold')
+
+    gs = gridspec.GridSpec(ncols=2, nrows=1, **dmargin)
+    dax = {}
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    # --------------
+    # ax - isolines
+
+    ax = fig.add_subplot(gs[0, 0])
+    ax.set_xlabel(
+        r"$E_{e,0}$ (keV)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(
+        r"$E_{ph}$ (keV)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        r"$d^2\sigma(\theta_0, Z) / d^2\sigma(\theta_1, Z)$"
+        + f"\n Z = {Z}, "
+        + r"$\theta_0 = $" + f"{theta_ph0*180/np.pi:3.1f} deg, "
+        + r"$\theta_1 = $" + f"{theta_ph1*180/np.pi:3.1f} deg",
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['map'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # ax - profiles
+
+    ax = fig.add_subplot(gs[0, 1])
+    ax.set_xlabel(
+        r"$\theta_{ph}$ (deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(
+        "normalized cross-section (adim.)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        "Normalized cross-section vs photon emission angle",
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['norm'] = {'handle': ax, 'type': 'isolines'}
+
+    # ---------------
+    # plot - map
+    # ---------------
+
+    kax = 'map'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for iv, (kk, vv) in enumerate(d2cross_map['cross'].items()):
+
+            ax.contour(
+                E_e0_eV * 1e-3,
+                E_ph_eV * 1e-3,
+                (vv['data'][0, ...] / vv['data'][1, ...]).T,
+                50,
+            )
+
+    # ---------------
+    # plot - norm
+    # ---------------
+
+    kax = 'norm'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for iv, (kk, vv) in enumerate(d2cross_norm['cross'].items()):
+
+            for ie, ee0 in enumerate(E_e0_eV_norm):
+                for iph, eph in enumerate(E_ph_eV_norm):
+                    lab = (
+                        r"$E_{ph} / E_{e0}$ = "
+                        + f"{ee0*1e-3:3.0f} keV / {eph*1e-3:3.0f} keV = "
+                        + f"{ee0 / eph} - {kk}"
+                    )
+                    yy = vv['data'][:, ie, iph]
+
+                    ax.plot(
+                        theta_ph * 180/np.pi,
+                        yy / np.max(yy),
+                        label=lab,
+                    )
+
+    return dax, d2cross_map, d2cross_norm

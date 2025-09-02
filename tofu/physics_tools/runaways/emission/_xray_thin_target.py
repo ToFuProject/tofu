@@ -163,17 +163,30 @@ def get_xray_thin_d3cross_ei(
     }
 
     # -------------
+    # prepare
+    # -------------
+
+    E_e0_J, E_e1_J, theta_ph, theta_e, dphi = np.broadcast_arrays(
+        E_e0_J, E_e1_J, theta_ph, theta_e, dphi,
+    )
+
+    mc2 = scpct.m_e*scpct.c**2
+    iok = ((E_e0_J > E_e1_J) & (E_e1_J > mc2))
+
+    # -------------
     # compute
     # -------------
 
     _get_cross(
         Z=Z,
-        E_e0_J=E_e0_J,
-        E_e1_J=E_e1_J,
+        E_e0_J=E_e0_J[iok],
+        E_e1_J=E_e1_J[iok],
         # directions
-        theta_ph=theta_ph,
-        theta_e=theta_e,
-        dphi=dphi,
+        theta_ph=theta_ph[iok],
+        theta_e=theta_e[iok],
+        dphi=dphi[iok],
+        # iok
+        iok=iok,
         # hypergeometric parameter
         ninf=ninf,
         source=source,
@@ -267,23 +280,38 @@ def _check_cross(
     # theta_e, theta_ph, dphi
     # -----------------------
 
+    # --------
     # theta_e
+
     if theta_e is None:
         theta_e = 10 * np.pi / 180
 
     theta_e = np.atleast_1d(theta_e)
 
+    # constraint [0, pi]
+    theta_e = np.arccos(np.cos(theta_e))
+
+    # ---------
     # theta_ph
+
     if theta_ph is None:
         theta_ph = np.linspace(0, 180, 181) * np.pi / 180
 
     theta_ph = np.atleast_1d(theta_ph)
 
+    # constraint [0, pi]
+    theta_ph = np.arccos(np.cos(theta_ph))
+
+    # ------
     # dphi
+
     if dphi is None:
         dphi = 0 * np.pi / 180
 
     dphi = np.atleast_1d(dphi)
+
+    # constraint [-pi, pi]
+    dphi = np.arctan2(np.sin(dphi), np.cos(dphi))
 
     # -------------
     # Broadcastable
@@ -376,6 +404,8 @@ def _get_cross(
     theta_e=None,
     theta_ph=None,
     dphi=None,
+    # iok
+    iok=None,
     # hypergeometric parameter
     ninf=None,
     source=None,
@@ -473,7 +503,7 @@ def _get_cross(
                 cross *= F_Elwert
 
         # store
-        ddata['cross'][vv]['data'] = cross
+        ddata['cross'][vv]['data'][iok] = cross
 
     return
 
