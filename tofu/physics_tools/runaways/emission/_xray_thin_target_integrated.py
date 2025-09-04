@@ -491,6 +491,9 @@ def plot_xray_thin_d2cross_ei_anisotropy(
     theta_ph=None,
     per_energy_units=None,
     version=None,
+    # hypergeometrc
+    ninf=None,
+    source=None,
     # selected cases
     dcases=None,
     # plot
@@ -540,6 +543,9 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         per_energy_unit=per_energy_units,
         # version
         version=version,
+        # hypergeometric
+        ninf=ninf,
+        source=source,
         # verb
         verb=False,
     )
