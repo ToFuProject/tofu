@@ -1495,8 +1495,10 @@ def _hyp2F1(
 
 
 def plot_xray_thin_d3cross_ei_vs_Literature(
+    version=None,
     ninf=None,
     source=None,
+    dax=None,
 ):
     """ Compare computed cross-sections vs literature values from Elwert-Haug
 
@@ -1572,7 +1574,7 @@ def plot_xray_thin_d3cross_ei_vs_Literature(
         # per_energy_unit
         per_energy_unit='m0c2',
         # version
-        version=list(dversions.keys()),
+        version=version,
     )
 
     # ------------
@@ -1599,7 +1601,7 @@ def plot_xray_thin_d3cross_ei_vs_Literature(
         # per_energy_unit
         per_energy_unit='m0c2',
         # version
-        version=list(dversions.keys()),
+        version=version,
         # debug
         debug=False,
     )
@@ -1628,7 +1630,7 @@ def plot_xray_thin_d3cross_ei_vs_Literature(
         # per_energy_unit
         per_energy_unit='MeV',
         # version
-        version=list(dversions.keys()),
+        version=version,
         # debug
         debug=False,
     )
@@ -1657,7 +1659,7 @@ def plot_xray_thin_d3cross_ei_vs_Literature(
         # per_energy_unit
         per_energy_unit='MeV',
         # version
-        version=list(dversions.keys()),
+        version=version,
         # debug
         debug=False,
     )
@@ -1665,6 +1667,254 @@ def plot_xray_thin_d3cross_ei_vs_Literature(
     # --------------
     # prepare axes
     # --------------
+
+    if dax is None:
+        dax = _get_dax_vs_literature(**locals())
+
+    # --------------
+    # plot isolines
+    # --------------
+
+    kax = 'isolines'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # literature data
+        ax.plot(
+            np.r_[out_isolines[:, 0], np.nan, -out_isolines[:, 0]],
+            np.r_[out_isolines[:, 1], np.nan, -out_isolines[:, 1]],
+            c='k',
+            ls='--',
+        )
+
+        # -------------
+        # computed data
+
+        for k0, v0 in ddata_iso['cross'].items():
+            im = ax.contour(
+                te0.ravel() * 180/np.pi,
+                te1.ravel() * 180/np.pi,
+                v0['data']*1e28,
+                cmap=None,
+                colors=dversions[k0],
+                linestyles='-',
+                # levels=8,
+                levels=[0.1, 0.5, 1, 2, 3, 4, 5, 6, 7],
+                label=f'computed - {k0}',
+            )
+
+            # add labels
+            ax.clabel(im, im.levels, inline=True, fmt='%r', fontsize=10)
+
+        # add refs
+        ax.axvline(0, c='k', ls='--')
+        ax.axhline(0, c='k', ls='--')
+        ax.set_ylim(-90, 90)
+
+        # add legend
+        ax.legend()
+
+    # ------------------------
+    # plot photon distribution
+    # ------------------------
+
+    kax = 'ph_dist'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        inan = np.nonzero(np.isnan(out_ph_dist[:, 0]))[0]
+        rmax_exp = np.max(out_ph_dist[:inan[0], 0])
+
+        # literature data
+        ax.plot(
+            out_ph_dist[:, 1] * np.pi/180,
+            out_ph_dist[:, 0],
+            c='k',
+            ls='-',
+        )
+
+        # -------------
+        # computed data
+
+        for k0, v0 in ddata_ph_dist['cross'].items():
+            rmax_comp = np.max(v0['data'])
+            im = ax.plot(
+                tph,
+                v0['data']*rmax_exp/rmax_comp,
+                c=dversions[k0],
+                ls='-',
+                label=f'computed - {k0}',
+            )
+
+        # limits
+        ax.set_thetamin(-90)
+        ax.set_thetamax(90)
+        # ax.set_rmax(2)
+        # ax.set_rmin(0)  # Change the radial axis to only go from 1 to 2
+        # ax.set_rticks([1, 2])  # Fewer radial ticks
+        ax.set_rorigin(0)
+        ax.set_rlabel_position(0)
+
+    # ------------------------
+    # plot photon distribution - nakel
+    # ------------------------
+
+    kax = 'ph_dist_nakel'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # prepare literature data
+        inan = np.nonzero(np.isnan(out_ph_dist_nakel[:, 0]))[0]
+
+        # literature data - BH
+        ax.plot(
+            out_ph_dist_nakel[:inan[0], 0],
+            out_ph_dist_nakel[:inan[0], 1],
+            c='k',
+            ls='-',
+            label='BH',
+        )
+
+        # literature data - DMA
+        ax.plot(
+            out_ph_dist_nakel[inan[0]:inan[1], 0],
+            out_ph_dist_nakel[inan[0]:inan[1], 1],
+            c='k',
+            ls=':',
+            label='EH',
+        )
+
+        # literature data - EH
+        ax.plot(
+            out_ph_dist_nakel[inan[1]:inan[2], 0],
+            out_ph_dist_nakel[inan[1]:inan[2], 1],
+            c='k',
+            ls='--',
+            label='DMA',
+        )
+
+        # literature data - experimental
+        ax.plot(
+            out_ph_dist_nakel[inan[2]:, 0],
+            out_ph_dist_nakel[inan[2]:, 1],
+            c='k',
+            ls='-',
+            marker='o',
+            ms=4,
+            label='experimental',
+        )
+
+        # -------------
+        # computed data
+
+        for k0, v0 in ddata_ph_dist_nakel['cross'].items():
+            im = ax.plot(
+                tph_nakel*180/np.pi,
+                v0['data']*1e28,
+                c=dversions[k0],
+                ls='-',
+                label=f'computed - {k0}',
+            )
+
+        # add
+        ax.axvline(0, c='k', ls='-')
+        ax.axvline(theta_e_nakel, c='k', ls='--')
+
+        # limits
+        ax.set_xlim(-80, 60)
+        ax.set_ylim(0, 60)
+
+        ax.legend()
+
+    # ------------------------
+    # plot photon spectrum - nakel
+    # ------------------------
+
+    kax = 'ph_spect_nakel'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # prepare literature data
+        inan = np.nonzero(np.isnan(out_ph_spect_nakel[:, 0]))[0]
+
+        # literature data - BH
+        ax.semilogy(
+            out_ph_spect_nakel[:inan[0], 0],
+            out_ph_spect_nakel[:inan[0], 1],
+            c='k',
+            ls='--',
+            label='EH',
+        )
+
+        # literature data - DMA
+        ax.semilogy(
+            out_ph_spect_nakel[inan[0]:inan[1], 0],
+            out_ph_spect_nakel[inan[0]:inan[1], 1],
+            c='k',
+            ls=':',
+            label='BH',
+        )
+
+        # literature data - experimental
+        ax.semilogy(
+            out_ph_spect_nakel[inan[1]:, 0],
+            out_ph_spect_nakel[inan[1]:, 1],
+            c='k',
+            ls='-',
+            marker='o',
+            ms=4,
+            label='experimental',
+        )
+
+        # -------------
+        # computed data
+
+        for k0, v0 in ddata_ph_spect_nakel['cross'].items():
+            im = ax.semilogy(
+                E_ph_spect_nakel / E_e0_eV_spect_nakel,
+                v0['data']*1e28 * 1000.,
+                c=dversions[k0],
+                ls='-',
+                label=f'computed - {k0}',
+            )
+
+        # limits
+        ax.set_xlim(0.2, 0.9)
+        ax.set_ylim(1e4, 5e5)
+
+        ax.legend()
+
+    return (
+        dax,
+        ddata_iso,
+        ddata_ph_dist,
+        ddata_ph_dist_nakel,
+        ddata_ph_spect_nakel,
+    )
+
+
+# ##############################################
+# ##############################################
+#             get dax
+# ##############################################
+
+
+def _get_dax_vs_literature(
+    Z_dist=None,
+    E_e0_eV_dist=None,
+    E_e1_eV_dist=None,
+    theta_e_dist=None,
+    Z_dist_nakel=None,
+    E_e0_eV_nakel=None,
+    E_e1_eV_nakel=None,
+    theta_e_nakel=None,
+    Z_spect_nakel=None,
+    E_e0_eV_spect_nakel=None,
+    theta_e_spect_nakel=None,
+    theta_ph_spect_nakel=None,
+    # unused
+    **kwdargs,
+):
 
     fontsize = 14
     tit = (
@@ -1786,223 +2036,4 @@ def plot_xray_thin_d3cross_ei_vs_Literature(
     # store
     dax['ph_spect_nakel'] = {'handle': ax, 'type': 'ph_dist'}
 
-    # --------------
-    # plot isolines
-    # --------------
-
-    kax = 'isolines'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        # literature data
-        ax.plot(
-            np.r_[out_isolines[:, 0], np.nan, -out_isolines[:, 0]],
-            np.r_[out_isolines[:, 1], np.nan, -out_isolines[:, 1]],
-            c='k',
-            ls='--',
-        )
-
-        # -------------
-        # computed data
-
-        for k0, v0 in dversions.items():
-            im = ax.contour(
-                te0.ravel() * 180/np.pi,
-                te1.ravel() * 180/np.pi,
-                ddata_iso['cross'][k0]['data']*1e28,
-                cmap=None,
-                colors=v0,
-                linestyles='-',
-                # levels=8,
-                levels=[0.1, 0.5, 1, 2, 3, 4, 5, 6, 7],
-                label=f'computed - {k0}',
-            )
-
-            # add labels
-            ax.clabel(im, im.levels, inline=True, fmt='%r', fontsize=10)
-
-        # add refs
-        ax.axvline(0, c='k', ls='--')
-        ax.axhline(0, c='k', ls='--')
-        ax.set_ylim(-90, 90)
-
-        # add legend
-        ax.legend()
-
-    # ------------------------
-    # plot photon distribution
-    # ------------------------
-
-    kax = 'ph_dist'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        inan = np.nonzero(np.isnan(out_ph_dist[:, 0]))[0]
-        rmax_exp = np.max(out_ph_dist[:inan[0], 0])
-
-        # literature data
-        ax.plot(
-            out_ph_dist[:, 1] * np.pi/180,
-            out_ph_dist[:, 0],
-            c='k',
-            ls='-',
-        )
-
-        # -------------
-        # computed data
-
-        for k0, v0 in dversions.items():
-            rmax_comp = np.max(ddata_ph_dist['cross'][k0]['data'])
-            im = ax.plot(
-                tph,
-                ddata_ph_dist['cross'][k0]['data']*rmax_exp/rmax_comp,
-                c=v0,
-                ls='-',
-                label=f'computed - {k0}',
-            )
-
-        # limits
-        ax.set_thetamin(-90)
-        ax.set_thetamax(90)
-        # ax.set_rmax(2)
-        # ax.set_rmin(0)  # Change the radial axis to only go from 1 to 2
-        # ax.set_rticks([1, 2])  # Fewer radial ticks
-        ax.set_rorigin(0)
-        ax.set_rlabel_position(0)
-
-    # ------------------------
-    # plot photon distribution - nakel
-    # ------------------------
-
-    kax = 'ph_dist_nakel'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        # prepare literature data
-        inan = np.nonzero(np.isnan(out_ph_dist_nakel[:, 0]))[0]
-
-        # literature data - BH
-        ax.plot(
-            out_ph_dist_nakel[:inan[0], 0],
-            out_ph_dist_nakel[:inan[0], 1],
-            c='k',
-            ls='-',
-            label='BH',
-        )
-
-        # literature data - DMA
-        ax.plot(
-            out_ph_dist_nakel[inan[0]:inan[1], 0],
-            out_ph_dist_nakel[inan[0]:inan[1], 1],
-            c='k',
-            ls=':',
-            label='EH',
-        )
-
-        # literature data - EH
-        ax.plot(
-            out_ph_dist_nakel[inan[1]:inan[2], 0],
-            out_ph_dist_nakel[inan[1]:inan[2], 1],
-            c='k',
-            ls='--',
-            label='DMA',
-        )
-
-        # literature data - experimental
-        ax.plot(
-            out_ph_dist_nakel[inan[2]:, 0],
-            out_ph_dist_nakel[inan[2]:, 1],
-            c='k',
-            ls='-',
-            marker='o',
-            ms=4,
-            label='experimental',
-        )
-
-        # -------------
-        # computed data
-
-        for k0, v0 in dversions.items():
-            im = ax.plot(
-                tph_nakel*180/np.pi,
-                ddata_ph_dist_nakel['cross'][k0]['data']*1e28,
-                c=v0,
-                ls='-',
-                label=f'computed - {k0}',
-            )
-
-        # add
-        ax.axvline(0, c='k', ls='-')
-        ax.axvline(theta_e_nakel, c='k', ls='--')
-
-        # limits
-        ax.set_xlim(-80, 60)
-        ax.set_ylim(0, 60)
-
-        ax.legend()
-
-    # ------------------------
-    # plot photon spectrum - nakel
-    # ------------------------
-
-    kax = 'ph_spect_nakel'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        # prepare literature data
-        inan = np.nonzero(np.isnan(out_ph_spect_nakel[:, 0]))[0]
-
-        # literature data - BH
-        ax.semilogy(
-            out_ph_spect_nakel[:inan[0], 0],
-            out_ph_spect_nakel[:inan[0], 1],
-            c='k',
-            ls='--',
-            label='EH',
-        )
-
-        # literature data - DMA
-        ax.semilogy(
-            out_ph_spect_nakel[inan[0]:inan[1], 0],
-            out_ph_spect_nakel[inan[0]:inan[1], 1],
-            c='k',
-            ls=':',
-            label='BH',
-        )
-
-        # literature data - experimental
-        ax.semilogy(
-            out_ph_spect_nakel[inan[1]:, 0],
-            out_ph_spect_nakel[inan[1]:, 1],
-            c='k',
-            ls='-',
-            marker='o',
-            ms=4,
-            label='experimental',
-        )
-
-        # -------------
-        # computed data
-
-        for k0, v0 in dversions.items():
-            im = ax.semilogy(
-                E_ph_spect_nakel / E_e0_eV_spect_nakel,
-                ddata_ph_spect_nakel['cross'][k0]['data']*1e28 * 1000.,
-                c=v0,
-                ls='-',
-                label=f'computed - {k0}',
-            )
-
-        # limits
-        ax.set_xlim(0.2, 0.9)
-        ax.set_ylim(1e4, 5e5)
-
-        ax.legend()
-
-    return (
-        dax,
-        ddata_iso,
-        ddata_ph_dist,
-        ddata_ph_dist_nakel,
-        ddata_ph_spect_nakel,
-    )
+    return dax
