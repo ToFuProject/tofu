@@ -107,7 +107,8 @@ def compute(
     # -----------
 
     if spectro is True:
-        raise NotImplementedError("Spectro geom matrix not implemented!")
+        wgmat = coll._which_gmat
+        raise NotImplementedError(f"Spectro {wgmat} not implemented!")
 
     else:
 
@@ -174,7 +175,6 @@ def compute(
             key_cam=key_cam,
         )
         store = False
-        import pdb; pdb.set_trace() # DB
 
     # ---------------
     # store / return
@@ -229,10 +229,11 @@ def _compute_check(
 
     wm = coll._which_mesh
     wbs = coll._which_bsplines
+    wgmat = coll._which_gmat
 
     # key
     key = ds._generic_check._obj_key(
-        d0=coll.dobj.get('geom matrix', {}),
+        d0=coll.dobj.get(wgmat, {}),
         short='gmat',
         key=key,
     )
@@ -449,8 +450,9 @@ def _store(
     assert np.allclose(shapes[1:, axis_bs:], shapes[0:1, axis_bs:])
 
     # add matrix obj
+    wgmat = coll._which_gmat
     dobj = {
-        'geom matrix': {
+        wgmat: {
             key: {
                 'data': list(dout.keys()),
                 'bsplines': key_bs,
@@ -485,14 +487,15 @@ def _concatenate(
     # ------------
     # check inputs
 
-    lok = list(coll.dobj.get('geom matrix', {}).keys())
+    wgmat = coll._which_gmat
+    lok = list(coll.dobj.get(wgmat, {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lok,
     )
 
-    key_cam0 = coll.dobj['geom matrix'][key]['camera']
+    key_cam0 = coll.dobj[wgmat][key]['camera']
     key_cam = ds._generic_check._check_var_iter(
         key_cam, 'key_cam',
         default=key_cam0,
@@ -504,8 +507,8 @@ def _concatenate(
     # -----------
     # concatenate
 
-    key_data = coll.dobj['geom matrix'][key]['data']
-    axis = coll.dobj['geom matrix'][key]['axis_chan']
+    key_data = coll.dobj[wgmat][key]['data']
+    axis = coll.dobj[wgmat][key]['axis_chan']
 
     ref = list(coll.ddata[key_data[0]]['ref'])
     ref[axis] = None

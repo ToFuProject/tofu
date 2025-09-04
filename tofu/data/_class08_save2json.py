@@ -136,7 +136,7 @@ def _extract_diagnostic(
     exdef = [
         'doptics',
         'signal',
-        'nb geom matrix'
+        'nb geom_matrix'
     ]
     if isinstance(excluded, str):
         excluded = [excluded]

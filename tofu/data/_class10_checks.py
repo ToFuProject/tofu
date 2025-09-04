@@ -66,17 +66,18 @@ def _compute_check(
     # key
 
     # key_matrix
-    lk = list(coll.dobj.get('geom matrix', {}).keys())
+    wgmat = coll._which_gmat
+    lk = list(coll.dobj.get(wgmat, {}).keys())
     key_matrix = ds._generic_check._check_var(
         key_matrix, 'key_matrix',
         types=str,
         allowed=lk,
     )
 
-    key_diag = coll.dobj['geom matrix'][key_matrix]['diagnostic']
-    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+    key_diag = coll.dobj[wgmat][key_matrix]['diagnostic']
+    key_cam = coll.dobj[wgmat][key_matrix]['camera']
 
-    keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
+    keybs = coll.dobj[wgmat][key_matrix]['bsplines']
     deg = coll.dobj['bsplines'][keybs]['deg']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     nd = coll.dobj[coll._which_mesh][keym]['nd']
@@ -87,11 +88,11 @@ def _compute_check(
         key_matrix,
         key_cam=key_cam,
     )
-    lkmat = coll.dobj['geom matrix'][key_matrix]['data']
+    lkmat = coll.dobj[wgmat][key_matrix]['data']
     units_gmat = coll.ddata[lkmat[0]]['units']
     nchan, nbs = matrix.shape[-2:]
     m3d = matrix.ndim == 3
-    crop = coll.dobj['geom matrix'][key_matrix]['crop']
+    crop = coll.dobj[wgmat][key_matrix]['crop']
 
     if np.any(~np.isfinite(matrix)):
         msg = "Geometry matrix should not contain NaNs or infs!"
@@ -153,7 +154,7 @@ def _compute_check(
     # update all accordingly
     if hastime and dindt is not None:
         # matrix side
-        lkmat = coll.dobj['geom matrix'][key_matrix]['data']
+        lkmat = coll.dobj[wgmat][key_matrix]['data']
         c0 = any([dindt.get(k0, {}).get('ind') is not None for k0 in lkmat])
         if c0:
             matrix = matrix[dindt[lkmat[0]]['ind'], ...]
