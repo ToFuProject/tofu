@@ -1108,6 +1108,7 @@ def _compute_vos(
     n1=None,
     res_lamb=None,
     lamb=None,
+    compact_lamb=None,
 ):
 
     # ---------------
@@ -1180,6 +1181,10 @@ def _compute_vos(
         keep_cross = True
         keep_hor = (ii % 2 == 0)
         keep_3d = ii == 0
+        if compact_lamb is None:
+            compact_lambi = (ii % 2 == 0)
+        else:
+            compact_lambi = compact_lamb
 
         coll.compute_diagnostic_vos(
             # keys
@@ -1192,6 +1197,8 @@ def _compute_vos(
             keep_cross=keep_cross,
             keep_hor=keep_hor,
             keep_3d=keep_3d,
+            # compact
+            compact_lamb=compact_lambi,
             # spectro
             n0=n0,
             n1=n1,
