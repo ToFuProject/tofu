@@ -984,7 +984,7 @@ def _check_get_dvos(
     for kproj, lcam in dvosproj.items():
         lk_data += [f'sang_{kproj}', f'dV_{kproj}', f'ndV_{kproj}']
         if spectro is True:
-            lk_data += [f'ph_{kproj}', f'ncounts_{kproj}']
+            lk_data += [f'ph_{kproj}', f'ncounts_{kproj}', f"indlamb_{kproj}"]
 
         dk_tuple[f'ind_{kproj}'] = [f"indr_{kproj}"]
         dk_tuple[f'vect_{kproj}'] = [

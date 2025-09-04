@@ -202,6 +202,7 @@ def _vos(
         ind3dphi=ind3dphi,
         key_diag=key_diag,
         key_cam=key_cam,
+        compact_lamb=compact_lamb,
     )
 
     # --------------
@@ -217,6 +218,7 @@ def _vos(
         key_diag=key_diag,
         key_cam=key_cam,
         lamb=lamb,
+        compact_lamb=compact_lamb,
     )
 
     if timing:
@@ -342,6 +344,7 @@ def _prepare_dind_dshape(
     ind3dphi=None,
     key_diag=None,
     key_cam=None,
+    compact_lamb=None,
 ):
 
     # -------------
@@ -473,10 +476,12 @@ def _prepare_dind_dshape(
                 'key': f'{key_diag}_{key_cam}_vos_npts_{kproj}',
                 'size': dind[kproj]['r'].size,
             }
-            dref[f"nlamb_{kproj}"] = {
-                'key': f'{key_diag}_{key_cam}_vos_nlamb_{kproj}',
-                'size': None,
-            }
+
+            if compact_lamb is True:
+                dref[f"nlamb_{kproj}"] = {
+                    'key': f'{key_diag}_{key_cam}_vos_nlamb_{kproj}',
+                    'size': None,
+                }
 
     return dind, dshape_out, dref, dind_proj
 
@@ -496,6 +501,7 @@ def _prepare_ddata(
     lamb=None,
     key_diag=None,
     key_cam=None,
+    compact_lamb=None,
 ):
 
     # etendlen = np.full(shape_cam, 0.)
@@ -627,14 +633,15 @@ def _prepare_ddata(
     # add ind - lamb
     # --------------------
 
-    for kproj, vind in dind.items():
-        ddata[f'indlamb_{kproj}'] = {
-            'key': f'{key_diag}_{key_cam}_vos_ilamb_{kproj}',
-            'data': None,
-            'units': None,
-            'ref': dref[f'nlamb_{kproj}']['key'],
-            'dim': 'index',
-        }
+    if compact_lamb is True:
+        for kproj, vind in dind.items():
+            ddata[f'indlamb_{kproj}'] = {
+                'key': f'{key_diag}_{key_cam}_vos_ilamb_{kproj}',
+                'data': None,
+                'units': None,
+                'ref': dref_short[f"{dfields['ph']['ref']}_{kproj}"],
+                'dim': 'index',
+            }
 
     # -------------
     # add pts-agnostic
@@ -717,6 +724,7 @@ def _cleanup_pts(
                 k0 for k0, v0 in ddata.items()
                 if k0.endswith(f'_{kproj}')
                 and dref[kref]['key'] in v0['ref']
+                and ddata[k0]['data'] is not None
             ]
             for k0 in lk:
                 ndim = ddata[k0]['data'].ndim
@@ -774,6 +782,76 @@ def _cleanup_lamb(
             ndim = ddata[k0]['data'].ndim
             sli = tuple([slice(None)]*(ndim-1) + [iin])
             ddata[k0]['data'] = ddata[k0]['data'][sli]
+
+    return ddata
+
+
+# ################################################
+# ################################################
+#           Compact lamb
+# ################################################
+
+
+def _compact_lamb(
+    dkeep=None,
+    ddata=None,
+    dref=None,
+):
+
+    # -------------
+    # prepare
+    # -------------
+
+    krlamb = dref['nlamb']['key']
+
+    # -------------
+    # loop on proj
+    # -------------
+
+    for kproj, vproj in dkeep.items():
+
+        if vproj is False:
+            continue
+
+        kilamb = f"indlamb_{kproj}"
+        krnlamb = f'nlamb_{kproj}'
+
+        # main field
+        k0 = f'ph_{kproj}'
+
+        # get number of lamb per pixel and pts
+        ref = ddata[k0]['ref']
+        axis = ref.index(krlamb)
+        iin = ddata[k0]['data'] > 0.
+        nlamb = np.sum(iin, axis=axis)
+        nlamb_max = np.max(nlamb)
+
+        # create new data
+        shape = list(ddata[k0]['data'].shape)
+        shape[axis] = nlamb_max
+        data = np.zeros(shape, dtype=float)
+
+        # create indices array
+        ddata[kilamb]['data'] = -np.ones(shape, dtype=int)
+
+        # fill
+        for ind in np.ndindex(nlamb.shape):
+            sli0 = ind[:axis] + (range(nlamb[ind]),) + ind[axis:]
+            sli1 = ind[:axis] + (slice(None),) + ind[axis:]
+            sli1 = ind[:axis] + (iin[sli1],) + ind[axis:]
+            data[sli0] = ddata[k0]['data'][sli1]
+
+            # fill indlamb
+            ddata[kilamb]['data'][sli0] = iin[sli1].nonzero()[0]
+
+        # update data
+        ddata[k0]['data'] = data
+
+        # update ref
+        refn = ref[:axis] + (dref[krnlamb]['key'],) + ref[axis+1:]
+        ddata[k0]['ref'] = refn
+        ddata[kilamb]['ref'] = refn
+        dref[krnlamb]['size'] = nlamb_max
 
     return ddata
 
