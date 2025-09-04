@@ -910,7 +910,7 @@ def _add_text_pinhole(dout):
 
     P = dout['inputs']['pitch']
     WD = dout['inputs']['det_size']
-    WA_str = round(1.1*P - WD, ndigits=1)
+    WA_str = round((1.1*P - WD)*1e3, ndigits=1)
 
     R10 = (
         "To get R = 10 %:\n    "

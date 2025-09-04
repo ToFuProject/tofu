@@ -1,17 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-# Built-in
-# import copy
-
-
-# Common
-import numpy as np
-import datastock as ds
-
-
 # tofu
 from ._class08_Diagnostic import Diagnostic as Previous
+from . import _class09_show as _show
 from . import _class9_compute as _compute
 from . import _class9_plot as _plot
 
@@ -27,20 +19,7 @@ __all__ = ['GeometryMatrix']
 
 class GeometryMatrix(Previous):
 
-    _show_in_summary = 'all'
-
-    _dshow = dict(Previous._dshow)
-    _dshow.update({
-        'geom matrix': [
-            'bsplines',
-            'diagnostic',
-            'camera',
-            'shape',
-            'data',
-            'method',
-            'res',
-        ],
-    })
+    _which_gmat = 'geom_matrix'
 
     # -----------------
     # geometry matrix
@@ -89,6 +68,22 @@ class GeometryMatrix(Previous):
             verb=verb,
             store=store,
         )
+
+    # -------------------
+    # show
+    # -------------------
+
+    def _get_show_obj(self, which=None):
+        if which == self._which_gmat:
+            return _show._show
+        else:
+            return super()._get_show_obj(which)
+
+    def _get_show_details(self, which=None):
+        if which == self._which_gmat:
+            return _show._show_details
+        else:
+            super()._get_show_details(which)
 
     # -----------------
     # get concatenated geometry matrix
