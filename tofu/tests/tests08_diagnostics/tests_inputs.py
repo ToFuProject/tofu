@@ -1141,7 +1141,7 @@ def _compute_vos(
     res_lamb = float(ds._generic_check._check_var(
         res_lamb, 'res_lamb',
         types=(int, float),
-        default=2e-12,
+        default=1e-13,
         sign='>0',
     ))
 
@@ -1223,8 +1223,8 @@ def _compute_vos(
 
             v_3d = coll.ddata[k_3d]['data']
             v_cross = coll.ddata[k_cross]['data']
-            sum_3d = v_3d.sum(axis=-2 if spectro else -1)
-            sum_cross = np.sum(v_cross, axis=-2 if spectro else -1)
+            sum_3d = v_3d.sum(axis=(-2, -1) if spectro else -1)
+            sum_cross = np.sum(v_cross, axis=(-2, -1) if spectro else -1)
 
             if (
                 (sum_3d.shape != sum_cross.shape)
