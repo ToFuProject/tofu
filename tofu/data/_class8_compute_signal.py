@@ -1548,6 +1548,13 @@ def _compute_vos_spectro(
             for ii, rr in enumerate(ref)
         ]
 
+        # dV
+        sli_dV = [None for rr in ref_data]
+        if compact_lamb is True:
+            sli_dV = [None for rr in ref_data[:-1]]
+        else:
+            sli_dV = [slice(None) if 'pts' in rr else None for rr in ref_data]
+
         # slicing sig
         sli_sig = [
             slice(None) if rr not in ref_vos else 0
@@ -1582,10 +1589,12 @@ def _compute_vos_spectro(
                 sli_douti[-1] = v0[kilamb]['data'][tuple(sli_vos)][iilamb]
                 sli_vos[-2] = iilamb[-2]
                 sli_vos[-1] = iilamb[-1]
+                sli_dV[-1] = iilamb[-2]
 
             sig[tuple(sli_sig)] = np.nansum(
                 douti['data'][tuple(sli_douti)]
-                * v0[f'ph_{proj}']['data'][tuple(sli_vos)],
+                * v0[f'ph_{proj}']['data'][tuple(sli_vos)]
+                * v0[f'dV_{proj}']['data'][tuple(sli_dV)],
                 axis=axsum,
             )
 
@@ -1601,6 +1610,7 @@ def _compute_vos_spectro(
         units = (
             asunits.Unit(v0[f'ph_{proj}']['units'])
             * asunits.Unit(douti['units'])
+            * asunits.Unit(v0[f'dV_{proj}']['units'])
         )
 
         # --------------
