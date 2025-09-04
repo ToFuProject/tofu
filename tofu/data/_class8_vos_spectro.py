@@ -60,6 +60,7 @@ def _vos(
     # cleanup
     cleanup_pts=None,
     cleanup_lamb=None,
+    compact_lamb=None,
     # verb
     verb=None,
     # debug
@@ -284,6 +285,17 @@ def _vos(
         )
 
     # ---------------------
+    # compact lamb
+    # ---------------------
+
+    if compact_lamb is True:
+        ddata = _compact_lamb(
+            dkeep=dkeep,
+            ddata=ddata,
+            dref=dref,
+        )
+
+    # ---------------------
     # Adjust vect
     # ---------------------
 
@@ -461,6 +473,10 @@ def _prepare_dind_dshape(
                 'key': f'{key_diag}_{key_cam}_vos_npts_{kproj}',
                 'size': dind[kproj]['r'].size,
             }
+            dref[f"nlamb_{kproj}"] = {
+                'key': f'{key_diag}_{key_cam}_vos_nlamb_{kproj}',
+                'size': None,
+            }
 
     return dind, dshape_out, dref, dind_proj
 
@@ -594,7 +610,7 @@ def _prepare_ddata(
     }
 
     # --------------------
-    # add ind
+    # add ind - pts
     # --------------------
 
     for kproj, vind in dind.items():
@@ -606,6 +622,19 @@ def _prepare_ddata(
                 'ref': dref[f'npts_{kproj}']['key'],
                 'dim': 'index',
             }
+
+    # --------------------
+    # add ind - lamb
+    # --------------------
+
+    for kproj, vind in dind.items():
+        ddata[f'indlamb_{kproj}'] = {
+            'key': f'{key_diag}_{key_cam}_vos_ilamb_{kproj}',
+            'data': None,
+            'units': None,
+            'ref': dref[f'nlamb_{kproj}']['key'],
+            'dim': 'index',
+        }
 
     # -------------
     # add pts-agnostic
@@ -664,6 +693,11 @@ def _cleanup_pts(
     ddata=None,
     dref=None,
 ):
+    """ Remove points not useful to any pixel
+
+    Then adjust associated ref and data
+
+    """
 
     for kproj, vproj in dkeep.items():
 

@@ -54,6 +54,7 @@ def compute_vos(
     # cleanup
     cleanup_pts=None,
     cleanup_lamb=None,
+    compact_lamb=None,
     # bool
     visibility=None,
     convex=None,
@@ -86,6 +87,7 @@ def compute_vos(
         dkeep,
         cleanup_pts,
         cleanup_lamb,
+        compact_lamb,
         return_vector,
         convexHull,
         visibility,
@@ -109,6 +111,7 @@ def compute_vos(
         # cleanup
         cleanup_pts=cleanup_pts,
         cleanup_lamb=cleanup_lamb,
+        compact_lamb=compact_lamb,
         # bool
         keep_cross=keep_cross,
         keep_hor=keep_hor,
@@ -260,6 +263,7 @@ def compute_vos(
             # cleanup
             cleanup_pts=cleanup_pts,
             cleanup_lamb=cleanup_lamb,
+            compact_lamb=compact_lamb,
             # parameters
             margin_poly=margin_poly,
             config=config,
@@ -342,6 +346,7 @@ def _check(
     # cleanup
     cleanup_pts=None,
     cleanup_lamb=None,
+    compact_lamb=None,
     # bool
     visibility=None,
     check=None,
@@ -541,6 +546,15 @@ def _check(
     )
 
     # -----------
+    # compact_lamb
+
+    compact_lamb = ds._generic_check._check_var(
+        compact_lamb, 'compact_lamb',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
     # return_vector
 
     return_vector = ds._generic_check._check_var(
@@ -631,6 +645,7 @@ def _check(
         dkeep,
         cleanup_pts,
         cleanup_lamb,
+        compact_lamb,
         return_vector,
         convexHull,
         visibility,
