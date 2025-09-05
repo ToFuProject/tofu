@@ -564,6 +564,10 @@ class Diagnostic(Previous):
         # spectro-only
         rocking_curve_fw=None,
         rocking_curve_max=None,
+        # cleanup
+        cleanup_pts=None,
+        cleanup_lamb=None,
+        compact_lamb=None,
         # bool
         check=None,
         verb=None,
@@ -610,6 +614,10 @@ class Diagnostic(Previous):
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
             rocking_curve_max=rocking_curve_max,
+            # cleanup
+            cleanup_pts=cleanup_pts,
+            cleanup_lamb=cleanup_lamb,
+            compact_lamb=compact_lamb,
             # bool
             visibility=visibility,
             check=check,

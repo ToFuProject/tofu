@@ -101,6 +101,26 @@ def main(
     # -----------------
 
     if spectro is True:
+
+        # safety check
+        wdiag = coll._which_diagnostic
+        doptics = coll.dobj[wdiag][key]['doptics']
+        compact_lamb_cross = any([
+            v0['dvos'].get('indlamb_cross') is not None
+            for k0, v0 in doptics.items()
+        ])
+        compact_lamb_hor = any([
+            v0['dvos'].get('indlamb_hor') is not None
+            for k0, v0 in doptics.items()
+        ])
+        compact_lamb = compact_lamb_cross or compact_lamb_hor
+        if compact_lamb is True:
+            msg = (
+                "plot_diagnostic_geometrical_coverage() not implemented "
+                "for spectro with compact_lamb = True\n"
+            )
+            raise NotImplementedError(msg)
+
         _compute_cross = _spectro._compute_cross
         _compute_hor = _spectro._compute_hor
         _plot_cross = _spectro._plot

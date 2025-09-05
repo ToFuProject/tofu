@@ -1368,15 +1368,19 @@ def _compute_vos_spectro(
     dout = {k0: {} for k0 in dvos.keys()}
     for k0, v0 in dvos.items():
 
+        # R, Z points
         R = x0u[v0[f'indr_{proj}']['data']]
         Z = x1u[v0[f'indz_{proj}']['data']]
 
+        # lamb
         kapex = coll.dobj[wbs][key_bs_spectro]['apex'][0]
         dlamb_ref = np.mean(np.diff(coll.ddata[kapex]['data']))
         lamb = v0['lamb']['data']
-        dlamb = np.mean(np.diff(lamb))
+        # beware dlamb can be wrong due to cleanup / compacting  !
+        dlamb = np.min(np.diff(lamb))
+
         if spectral_binning is None:
-            spectral_binningi = dlamb > dlamb_ref
+            spectral_binningi = bool(dlamb > dlamb_ref)
         else:
             spectral_binningi = spectral_binning
 
@@ -1508,11 +1512,15 @@ def _compute_vos_spectro(
         # -------------------
         # sum to get signal
 
+        # compact lamb?
+        kilamb = f"indlamb_{proj}"
+        compact_lamb = kilamb in v0.keys()
+
         # ref
         ref_vos = list(coll.ddata[v0[f'ph_{proj}']['key']]['ref'])
         ref_data = list(douti['ref'])
         ref_data[ref_data.index(None)] = ref_vos[-2]
-        refc = [rr for rr in ref_data if rr in ref_vos]
+        refc = [rr for rr in ref_data if rr in ref_vos or 'lamb' in rr]
         ref = (
             ref_data[:ref_data.index(refc[0])]
             + ref_vos[:ref_vos.index(refc[0])]
@@ -1535,39 +1543,65 @@ def _compute_vos_spectro(
 
         # slicing
         sli_vos = [
-            slice(None) if rr in ref_vos[-2:]
+            slice(None) if (rr in ref_vos[-2:] or 'lamb' in rr)
             else (0 if rr in ref_vos else None)
             for ii, rr in enumerate(ref)
         ]
+
+        # dV
+        sli_dV = [None for rr in ref_data]
+        if compact_lamb is True:
+            sli_dV = [None for rr in ref_data[:-1]]
+        else:
+            sli_dV = [slice(None) if 'pts' in rr else None for rr in ref_data]
 
         # slicing sig
         sli_sig = [
             slice(None) if rr not in ref_vos else 0
             for ii, rr in enumerate(ref)
-            if rr not in ref_vos[-2:]
+            if rr not in ref_vos[-2:] and 'lamb' not in rr
         ]
 
         # axis for summation
-        ax_lamb_data = ref_data.index(ref_vos[-1])
         ax_pts_data = ref_data.index(ref_vos[-2])
         ax_n0_vos = ref.index(ref_vos[0])
         ax_n1_vos = ref.index(ref_vos[1])
         ax_n0_sig = ref[:-2].index(ref_vos[0])
         ax_n1_sig = ref[:-2].index(ref_vos[1])
+        ax_lamb_data = ref_data.index(v0['lamb']['ref'][0])
+        sli_douti = [slice(None) for ii in range(douti['data'].ndim)]
+        axsum = (ax_lamb_data, ax_pts_data)
+        if compact_lamb is True:
+            axsum = -1
 
         # sum on pts and lamb
         # loop to save memory
         sig = np.full(shape_sig, np.nan)
-        for (i0, i1) in itt.product(range(shape_vos[0]), range(shape_vos[1])):
+        ipos = np.any(v0[f'ph_{proj}']['data'] > 0., axis=(-1, -2))
+        for (i0, i1) in zip(*ipos.nonzero()):
             sli_sig[ax_n0_sig] = i0
             sli_sig[ax_n1_sig] = i1
             sli_vos[ax_n0_vos] = i0
             sli_vos[ax_n1_vos] = i1
+            if compact_lamb is True:
+                iilamb = (v0[kilamb]['data'][tuple(sli_vos)] >= 0).nonzero()
+                sli_douti[-2] = iilamb[-2]
+                sli_douti[-1] = v0[kilamb]['data'][tuple(sli_vos)][iilamb]
+                sli_vos[-2] = iilamb[-2]
+                sli_vos[-1] = iilamb[-1]
+                sli_dV[-1] = iilamb[-2]
+
             sig[tuple(sli_sig)] = np.nansum(
-                douti['data']
-                * v0[f'ph_{proj}']['data'][tuple(sli_vos)],
-                axis=(ax_lamb_data, ax_pts_data),
+                douti['data'][tuple(sli_douti)]
+                * v0[f'ph_{proj}']['data'][tuple(sli_vos)]
+                * v0[f'dV_{proj}']['data'][tuple(sli_dV)],
+                axis=axsum,
             )
+
+            # reset
+            if compact_lamb is True:
+                sli_vos[-2] = slice(None)
+                sli_vos[-1] = slice(None)
 
         # new ref
         ref = [rr for rr in ref if rr not in refc]
@@ -1576,6 +1610,7 @@ def _compute_vos_spectro(
         units = (
             asunits.Unit(v0[f'ph_{proj}']['units'])
             * asunits.Unit(douti['units'])
+            * asunits.Unit(v0[f'dV_{proj}']['units'])
         )
 
         # --------------
