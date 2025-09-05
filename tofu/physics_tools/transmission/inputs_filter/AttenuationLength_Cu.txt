@@ -1,5 +1,5 @@
-Cu Density=8.96, Angle=90.deg
- Photon Energy (eV), Atten Length (microns)
+# Cu Density=8.96, Angle=90.deg
+# Photon Energy (eV), Atten Length (microns)
    30.0000  1.045196E-02
    30.4173  1.043038E-02
    30.8405  1.040982E-02
