@@ -2,6 +2,7 @@
 
 # Standard
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 # tofu-specific
@@ -69,5 +70,9 @@ class Test00_Transmission():
         dout = tfpt.transmission.get_xray_transmission(
             E=E[:, None],
             dthick=dthick,
+            plot=True,
+            plot_total=True,
         )
+
         assert isinstance(dout, dict)
+        plt.close('all')
