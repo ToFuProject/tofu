@@ -1377,7 +1377,13 @@ def _plot_coverage(
 
     for ii, k0 in enumerate(key_diag):
 
-        _ = coll.plot_diagnostic_geometrical_coverage(k0, plot_config=conf)
+        try:
+            _ = coll.plot_diagnostic_geometrical_coverage(k0, plot_config=conf)
+        except NotImplementedError as err:
+            if 'compact_lamb' in str(err):
+                pass
+            else:
+                raise err
 
         if close is not False:
             plt.close('all')
