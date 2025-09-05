@@ -442,14 +442,24 @@ def _plot(
 
     if plot_detail is True:
         for k0, v0 in dout['keys'].items():
-            ax.plot(
-                dout['E']['data'],
-                v0['trans'],
-                lw=1,
-                ls='-',
-                color=v0.get('color'),
-                label=f"{k0} {v0['mat']} - {v0['thick'][0]*1e3:.3f} mm",
-            )
+
+            tu, indu = np.unique(v0['thick'], return_index=True)
+            unravel_indu = np.unravel_index(indu, v0['thick'].shape)
+            for it, ind in enumerate(zip(*unravel_indu)):
+                lab = f"{k0} {v0['mat']} - {tu[it]*1e3:.3f} mm"
+                if dout['E']['data'].shape[0] == 1:
+                    sli = ind[:-1] + (slice(None),)
+                else:
+                    sli = (slice(None),) + ind[1:]
+
+                ax.plot(
+                    dout['E']['data'].ravel(),
+                    v0['trans'][sli],
+                    lw=1,
+                    ls='-',
+                    color=v0.get('color'),
+                    label=lab,
+                )
 
     # --------------
     # plot total
@@ -457,7 +467,7 @@ def _plot(
 
     if plot_total is True:
         ax.plot(
-            dout['E']['data'],
+            dout['E']['data'].ravel(),
             dout['total'],
             lw=2,
             ls='-',
