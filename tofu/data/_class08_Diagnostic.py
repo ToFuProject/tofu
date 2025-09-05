@@ -12,6 +12,7 @@ import numpy as np
 # tofu
 from ._class07_Camera import Camera as Previous
 from . import _class8_check as _check
+from . import _class08_show as _show
 from . import _class8_compute as _compute
 from . import _class08_get_data as _get_data
 from . import _class08_concatenate_data as _concatenate
@@ -50,18 +51,6 @@ __all__ = ['Diagnostic']
 class Diagnostic(Previous):
 
     _which_diagnostic = 'diagnostic'
-    _show_in_summary = 'all'
-
-    _dshow = dict(Previous._dshow)
-    _dshow.update({
-        'diagnostic': [
-            'is2d',
-            'spectro',
-            'PHA',
-            'camera',
-            'signal',
-        ],
-    })
 
     def add_diagnostic(
         self,
@@ -144,6 +133,22 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
         )
+
+    # -------------------
+    # show
+    # -------------------
+
+    def _get_show_obj(self, which=None):
+        if which == self._which_diagnostic:
+            return _show._show
+        else:
+            return super()._get_show_obj(which)
+
+    def _get_show_details(self, which=None):
+        if which == self._which_diagnostic:
+            return _show._show_details
+        else:
+            super()._get_show_details(which)
 
     # -----------------
     # utilities
@@ -559,6 +564,10 @@ class Diagnostic(Previous):
         # spectro-only
         rocking_curve_fw=None,
         rocking_curve_max=None,
+        # cleanup
+        cleanup_pts=None,
+        cleanup_lamb=None,
+        compact_lamb=None,
         # bool
         check=None,
         verb=None,
@@ -605,6 +614,10 @@ class Diagnostic(Previous):
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
             rocking_curve_max=rocking_curve_max,
+            # cleanup
+            cleanup_pts=cleanup_pts,
+            cleanup_lamb=cleanup_lamb,
+            compact_lamb=compact_lamb,
             # bool
             visibility=visibility,
             check=check,
@@ -1537,8 +1550,7 @@ class Diagnostic(Previous):
         dmargin=None,
         tit=None,
         cmap=None,
-        vmin=None,
-        vmax=None,
+        dvminmax=None,
     ):
         """ Plot the geometrical coverage of a diagnostic, in a cross-section
 
@@ -1583,8 +1595,7 @@ class Diagnostic(Previous):
             config=plot_config,
             dcolor=dcolor,
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
+            dvminmax=dvminmax,
             dax=dax,
             fs=fs,
             dmargin=dmargin,

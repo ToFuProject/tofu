@@ -6,12 +6,23 @@
 
 # Common
 import numpy as np
+import matplotlib.colors as mcolors
 import datastock as ds
 
 
 # specific
 from . import _generic_check
 from . import _generic_plot
+
+
+# ###############################################################
+# ###############################################################
+#                       DEFAULT
+# ###############################################################
+
+
+_LCOLORS = ['r', 'g', 'b', 'm', 'c', 'y']
+_COLOR = 'k'
 
 
 # ###############################################################
@@ -46,7 +57,6 @@ def _plot_rays(
 
     (
         key,
-        ref,
         mode,
         concatenate,
         proj,
@@ -69,19 +79,29 @@ def _plot_rays(
     # -------------------------
     # prepare los interactivity
 
-    rays_x, rays_y, rays_z = coll.sample_rays(
-        key=key,
-        res=res,
-        mode=mode,
-        concatenate=concatenate,
-    )
-    if concatenate is False and rays_x.ndim > 2:
-        shape = (rays_x.shape[0], -1)
-        rays_x = rays_x.reshape(shape)
-        rays_y = rays_y.reshape(shape)
-        rays_z = rays_z.reshape(shape)
+    drays = {}
+    for k0 in key:
+        rays_x, rays_y, rays_z = coll.sample_rays(
+            key=k0,
+            res=res,
+            mode=mode,
+            concatenate=concatenate,
+        )
+        if concatenate is False and rays_x.ndim > 2:
+            shape = (rays_x.shape[0], -1)
+            rays_x = rays_x.reshape(shape)
+            rays_y = rays_y.reshape(shape)
+            rays_z = rays_z.reshape(shape)
 
-    rays_r = np.hypot(rays_x, rays_y)
+        rays_r = np.hypot(rays_x, rays_y)
+
+        drays[k0] = {
+            'x': rays_x,
+            'y': rays_y,
+            'z': rays_z,
+            'r': rays_r,
+            'color': color_dict[k0],
+        }
 
     # -----------------
     # prepare figure
@@ -93,7 +113,7 @@ def _plot_rays(
             dmargin=dmargin,
             fs=fs,
             wintit=wintit,
-            tit=key,
+            tit=key[0] if len(key) == 1 else '',
         )
 
     dax = _generic_check._check_dax(dax=dax, main=proj[0])
@@ -106,66 +126,81 @@ def _plot_rays(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
+        for k0 in key:
+            if concatenate is True:
+                ax.plot(
+                    drays[k0]['r'],
+                    drays[k0]['z'],
+                    c=drays[k0]['color'],
+                    lw=1.,
+                    ls='-',
+                    label=k0,
+                )
+            else:
+                ax.plot(
+                    drays[k0]['r'],
+                    drays[k0]['z'],
+                    lw=1.,
+                    ls='-',
+                )
+
         if concatenate is True:
-            ax.plot(
-                rays_r,
-                rays_z,
-                c='k',
-                lw=1.,
-                ls='-',
-            )
-        else:
-            ax.plot(
-                rays_r,
-                rays_z,
-                lw=1.,
-                ls='-',
-            )
+            ax.legend()
 
     # hor
     kax = 'hor'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
+        for k0 in key:
+            if concatenate is True:
+                ax.plot(
+                    drays[k0]['x'],
+                    drays[k0]['y'],
+                    c=drays[k0]['color'],
+                    lw=1.,
+                    ls='-',
+                    label=k0,
+                )
+            else:
+                ax.plot(
+                    drays[k0]['x'],
+                    drays[k0]['y'],
+                    lw=1.,
+                    ls='-',
+                )
+
         if concatenate is True:
-            ax.plot(
-                rays_x,
-                rays_y,
-                c='k',
-                lw=1.,
-                ls='-',
-            )
-        else:
-            ax.plot(
-                rays_x,
-                rays_y,
-                lw=1.,
-                ls='-',
-            )
+            ax.legend()
 
     # 3d
     kax = '3d'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        if concatenate is True:
-            ax.plot(
-                rays_x,
-                rays_y,
-                rays_z,
-                c='k',
-                lw=1.,
-                ls='-',
-            )
-        else:
-            for ii in range(rays_x.shape[1]):
+        for k0 in key:
+            if concatenate is True:
                 ax.plot(
-                    rays_x[:, ii],
-                    rays_y[:, ii],
-                    rays_z[:, ii],
+                    drays[k0]['x'],
+                    drays[k0]['y'],
+                    drays[k0]['z'],
+                    c=drays[k0]['color'],
                     lw=1.,
                     ls='-',
+                    label=k0,
                 )
+            else:
+                for ii in range(rays_x.shape[1]):
+                    ax.plot(
+                        drays[k0]['x'][:, ii],
+                        drays[k0]['y'][:, ii],
+                        drays[k0]['z'][:, ii],
+                        lw=1.,
+                        ls='-',
+                    )
+
+        if concatenate is True:
+            ax.legend()
 
     # -------
     # config
@@ -208,13 +243,16 @@ def _plot_rays_check(
     # key
 
     lok = list(coll.dobj.get('rays', {}).keys())
-    key = ds._generic_check._check_var(
+    if key is None:
+        key = lok
+    if isinstance(key, str):
+        key = [key]
+    key = ds._generic_check._check_var_iter(
         key, 'key',
-        types=str,
+        types=(list, tuple),
+        types_iter=str,
         allowed=lok,
     )
-
-    ref = coll.dobj['rays'][key]['ref']
 
     # ------------
     # concatenate
@@ -246,15 +284,34 @@ def _plot_rays_check(
         pall=['cross', 'hor', '3d'],
     )
 
-    # -------
+    # ----------
     # color_dict
 
     if color_dict is None:
-        lc = ['r', 'g', 'b', 'm', 'c', 'y']
-        color_dict = {
-            'x': lc,
-            'y': lc,
-        }
+        color_dict = {k0: _LCOLORS[ii] for ii, k0 in enumerate(key)}
+    elif mcolors.is_color_like(color_dict):
+        color_dict = {k0: color_dict for k0 in key}
+
+    c0 = (
+        isinstance(color_dict, dict)
+        and all([
+            isinstance(k0, str)
+            and mcolors.is_color_like(color_dict[k0])
+            for k0 in color_dict.keys()
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg color_dict must be a dict of:\n"
+            "\t- {<key of rays>: <color-like>}\n"
+            f"Available rays: {key}\n"
+            f"Provided:\n{color_dict}"
+        )
+        raise Exception(msg)
+
+    # add missing keys
+    for k0 in key:
+        color_dict[k0] = color_dict.get(k0, _COLOR)
 
     # -------
     # nlos
@@ -276,7 +333,6 @@ def _plot_rays_check(
 
     return (
         key,
-        ref,
         mode,
         concatenate,
         proj,

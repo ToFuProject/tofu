@@ -58,20 +58,21 @@ def _plot_inversion_check(
 
     wm = coll._which_mesh
     wbs = coll._which_bsplines
+    wgmat = coll._which_gmat
     keymat = coll.dobj['inversions'][keyinv]['matrix']
     key_data = coll.dobj['inversions'][keyinv]['data_in']
     key_retro = coll.dobj['inversions'][keyinv]['retrofit']
-    keybs = coll.dobj['geom matrix'][keymat]['bsplines']
-    key_diag = coll.dobj['geom matrix'][keymat]['diagnostic']
+    keybs = coll.dobj[wgmat][keymat]['bsplines']
+    key_diag = coll.dobj[wgmat][keymat]['diagnostic']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
-    key_cam = coll.dobj['geom matrix'][keymat]['camera']
+    key_cam = coll.dobj[wgmat][keymat]['camera']
     key_retro = coll.dobj['synth sig'][key_retro]['data']
     keym = coll.dobj[wbs][keybs]['mesh']
     mtype = coll.dobj[wm][keym]['type']
     nd = coll.dobj[wm][keym]['nd']
     # refbs = coll.dobj['bsplines'][keybs]['ref']
 
-    crop = coll.dobj['geom matrix'][keymat]['crop']
+    crop = coll.dobj[wgmat][keymat]['crop']
     if crop is True:
         cropbs = coll.dobj['bsplines'][keybs]['crop']
         cropbs = coll.ddata[cropbs]['data']
@@ -111,7 +112,6 @@ def _plot_inversion_check(
 
     # color_dict
     color_dict = _class8_plot._check_color_dict(color_dict)
-
 
     # alpha
     alpha = ds._generic_check._check_var(
@@ -248,7 +248,9 @@ def _plot_inversion_prepare(
         ref=reft,
         **dref_vector,
     )[2:5]
-    lkmat = coll.dobj['geom matrix'][key_matrix]['data']
+
+    wgmat = coll._which_gmat
+    lkmat = coll.dobj[wgmat][key_matrix]['data']
 
     dind = None
     if coll.get_time(key=lkmat[0])[0]:
@@ -280,7 +282,9 @@ def _plot_inversion_prepare(
             nd = len(refi)
             refti = coll.get_time(key=key_data[ii])[2]
             axis = refi.index(refti)
-            refi = tuple([reft if jj == axis else refi[jj] for jj in range(nd)])
+            refi = tuple([
+                reft if jj == axis else refi[jj] for jj in range(nd)
+            ])
             sli = tuple([
                 dind['ind'] if jj == axis else slice(None) for jj in range(nd)
             ])
@@ -920,16 +924,21 @@ def _plot_inversion_create_axes(
     # ------------------
     # axes for inversion
 
-    npc = nrows / ncam
     for ii, k0 in enumerate(key_cam):
         # retrofit
         dax[k0] = fig.add_subplot(gs[9*ii:9*ii+6, 5:])
 
         # error
-        dax[f'{k0}_err'] = fig.add_subplot(gs[9*ii+6:9*(ii+1), 5:], sharex=dax[k0])
+        dax[f'{k0}_err'] = fig.add_subplot(
+            gs[9*ii+6:9*(ii+1), 5:],
+            sharex=dax[k0],
+        )
 
     # parameters (chi2, ...)
-    dax['inv-param'] = fig.add_subplot(gs[2*nblock:2*nblock+ncam, :2], sharex=ax3)
+    dax['inv-param'] = fig.add_subplot(
+        gs[2*nblock:2*nblock+ncam, :2],
+        sharex=ax3,
+    )
 
     # nb of iterations
     dax['niter'] = fig.add_subplot(gs[2*nblock+ncam:, :2], sharex=ax3)

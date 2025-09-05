@@ -1039,7 +1039,6 @@ def _get_data_polyline(
     iso=None,
 ):
 
-
     # ----------------
     # prepare
     # ----------------
@@ -1094,7 +1093,7 @@ def _get_data_polyline(
             ipts = i0_poly + np.arange(nptsi)
 
             col = dcolor[k0]
-            if color_by_pixel is not False and ii%2 == 1:
+            if color_by_pixel is not False and ii % 2 == 1:
                 col = np.r_[col]
                 icol = np.argmin(col)
                 col[icol] += (np.max(col) - col[icol]) * color_by_pixel

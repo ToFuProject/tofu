@@ -48,14 +48,15 @@ def _get_ref_vector_common(
         dref_vector = {}
 
     # ------------
-    # geom matrix
+    # geom_matrix
 
     refc0 = None
     wbs = coll._which_bsplines
-    key_bs = coll.dobj['geom matrix'][key_matrix]['bsplines']
-    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+    wgmat = coll._which_gmat
+    key_bs = coll.dobj[wgmat][key_matrix]['bsplines']
+    key_cam = coll.dobj[wgmat][key_matrix]['camera']
     refbs = coll.dobj[wbs][key_bs]['ref_bs']
-    lgeom = coll.dobj['geom matrix'][key_matrix]['data']
+    lgeom = coll.dobj[wgmat][key_matrix]['data']
     for ii, k0 in enumerate(lgeom):
         camdgeom = coll.dobj['camera'][key_cam[ii]]['dgeom']
         camref = camdgeom['ref'] + camdgeom['ref_flat']
@@ -85,7 +86,7 @@ def _get_ref_vector_common(
 
             assert refc0 == refi[0]
 
-    lk = list(coll.dobj['geom matrix'][key_matrix]['data'])
+    lk = list(coll.dobj[wgmat][key_matrix]['data'])
 
     # ------------------
     # data or profile2d
@@ -94,7 +95,10 @@ def _get_ref_vector_common(
     if ddata is not None:
 
         # handle equivalent diag / cameras
-        kcameq = 'keys_cam' if ddata['keys_cam_equi'] is None else 'keys_cam_equi'
+        if ddata['keys_cam_equi'] is None:
+            kcameq = 'keys_cam'
+        else:
+            kcameq = 'keys_cam_equi'
         key_cam = ddata[kcameq]
 
         # loop
@@ -158,7 +162,12 @@ def _get_ref_vector_common(
             and rr not in lrefbs
         ]
         if len(refi) > 1:
-            msg = (key_profile2d, coll.ddata[key_profile2d]['ref'], refi, lrefbs)
+            msg = (
+                key_profile2d,
+                coll.ddata[key_profile2d]['ref'],
+                refi,
+                lrefbs,
+            )
             raise Exception(msg)
 
         if len(refi) == 1:
@@ -181,7 +190,7 @@ def _get_ref_vector_common(
                     "Non-consistent references with:\n"
                     f"\t- dref_vector: {dref_vector}\n"
                     "For:\n"
-                    f"\t- geom matrix: {refc0}\n"
+                    f"\t- {wgmat}: {refc0}\n"
                 )
                 if ddata is None:
                     msg += f"\t- {key_profile2d}: {refc1}\n"
