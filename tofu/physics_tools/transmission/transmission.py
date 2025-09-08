@@ -6,6 +6,7 @@ import os
 
 import numpy as np
 import scipy.interpolate as scpinterp
+import matplotlib.pyplot as plt
 import datastock as ds
 
 
@@ -55,6 +56,9 @@ def main(
     E=None,
     # plotting
     plot=None,
+    fontsize=None,
+    plot_detail=None,
+    plot_total=None,
 ):
     """ Return dict of linear transmission
 
@@ -118,6 +122,7 @@ def main(
         # store
         dout['keys'][k0] = {
             'trans': trans,
+            'mat': v0['mat'],
             'thick': v0['thick'],
         }
 
@@ -138,28 +143,20 @@ def main(
     # --------------------
 
     if plot is True:
-        pass
-        # fig = plt.figure()
-
-        # ax = fig.add_subplot()
-
-        # for kloc in  dfilter[boxi].keys():
-        # ax.semilogy(
-        # E,
-        # dfilter[boxi][kloc]['total'],
-        # ls='-',
-        # lw=1,
-        # label=kloc,
-        # )
-        # ax.legend()
+        _plot(
+            dout=dout,
+            fontsize=fontsize,
+            plot_detail=plot_detail,
+            plot_total=plot_total,
+        )
 
     return dout
 
 
-# ###############################################################################
-# ###############################################################################
+# ##################################################################
+# ##################################################################
 #                Check inputs
-# ###############################################################################
+# ##################################################################
 
 
 def _check(
@@ -231,6 +228,9 @@ def _check(
     # ---------
     # E itself
 
+    if E is None:
+        E = np.linspace(30, 30000, 500)
+
     try:
         E = np.asarray(E).astype(float)
         assert np.all(np.isfinite(E))
@@ -300,10 +300,10 @@ def _error_dthick(dthick, dfail=None):
     raise Exception(msg)
 
 
-# ###############################################################################
-# ###############################################################################
+# #################################################################
+# #################################################################
 #               get transmission
-# ###############################################################################
+# #################################################################
 
 
 def _get_transmission_from_length(mat=None, E=None, thick=None):
@@ -365,3 +365,118 @@ def _get_transmission_from_mass(mat=None, E=None, thick=None):
     trans = np.exp(-thick / length)
 
     return trans
+
+
+# #################################################################
+# #################################################################
+#               plot
+# #################################################################
+
+
+def _plot(
+    dout=None,
+    fontsize=None,
+    plot_detail=None,
+    plot_total=None,
+):
+
+    # --------------
+    # inputs
+    # --------------
+
+    # fontsize
+    fontsize = ds._generic_check._check_var(
+        fontsize, 'fontsize',
+        types=int,
+        sign='>0',
+        default=14,
+    )
+
+    # plot_detail
+    plot_detail = ds._generic_check._check_var(
+        plot_detail, 'plot_detail',
+        types=bool,
+        default=True,
+    )
+
+    # plot_total
+    plot_total = ds._generic_check._check_var(
+        plot_total, 'plot_total',
+        types=bool,
+        default=len(dout['keys']) > 1,
+    )
+
+    # --------------
+    # prepare data
+    # --------------
+
+    # --------------
+    # prepare figure
+    # --------------
+
+    fig = plt.figure(figsize=(12, 8))
+
+    ax = fig.add_subplot(111, aspect='auto')
+
+    ax.set_title(
+        "X-ray transmission",
+        fontsize=fontsize,
+        fontweight='bold',
+    )
+
+    ax.set_xlabel(
+        f"Photon energy E ({dout['E']['units']})",
+        fontsize=fontsize,
+        fontweight='bold',
+    )
+
+    ax.set_ylabel(
+        "Transmission (adim.)",
+        fontsize=fontsize,
+        fontweight='bold',
+    )
+
+    # --------------
+    # plot each filter
+    # --------------
+
+    if plot_detail is True:
+        for k0, v0 in dout['keys'].items():
+
+            tu, indu = np.unique(v0['thick'], return_index=True)
+            unravel_indu = np.unravel_index(indu, v0['thick'].shape)
+            for it, ind in enumerate(zip(*unravel_indu)):
+                lab = f"{k0} {v0['mat']} - {tu[it]*1e3:.3f} mm"
+                if dout['E']['data'].shape[0] == 1:
+                    sli = ind[:-1] + (slice(None),)
+                else:
+                    sli = (slice(None),) + ind[1:]
+
+                ax.plot(
+                    dout['E']['data'].ravel(),
+                    v0['trans'][sli],
+                    lw=1,
+                    ls='-',
+                    color=v0.get('color'),
+                    label=lab,
+                )
+
+    # --------------
+    # plot total
+    # --------------
+
+    if plot_total is True:
+        ax.plot(
+            dout['E']['data'].ravel(),
+            dout['total'],
+            lw=2,
+            ls='-',
+            color='k',
+            label='Total',
+        )
+
+    ax.legend()
+    ax.set_ylim(0, 1)
+    ax.grid(True)
+
+    return
