@@ -1028,7 +1028,7 @@ def _check_get_dvos(
 
             # fill in with res
             for k1 in lk_asis:
-                dvos[k0][k1] = dop[k1]
+                dvos[k0][k1] = dop.get(k1)
 
             # fill in with the rest
             for k1 in lk_data:
