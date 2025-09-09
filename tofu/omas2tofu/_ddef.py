@@ -141,6 +141,31 @@ _DSHORT = {
             'long': 'time_slice[nt].global_quantities.ip',
             'units': 'A',
         },
+        'magaxR': {
+            'dim': 'distance',
+            'long': 'time_slice[nt].global_quantities.magnetic_axis.r',
+            'units': 'm',
+        },
+        'magaxZ': {
+            'dim': 'distance',
+            'long': 'time_slice[nt].global_quantities.magnetic_axis.z',
+            'units': 'm',
+        },
+        'q95': {
+            'dim': 'q',
+            'long': 'time_slice[nt].global_quantities.q_95',
+            'units': '',
+        },
+        'qax': {
+            'dim': 'q',
+            'long': 'time_slice[nt].global_quantities.q_axis',
+            'units': '',
+        },
+        'qmin': {
+            'dim': 'q',
+            'long': 'time_slice[nt].global_quantities.q_min.value',
+            'units': '',
+        },
 
         # -----------
         # boundary
