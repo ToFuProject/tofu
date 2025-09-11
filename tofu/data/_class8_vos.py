@@ -893,9 +893,10 @@ def _check_vos_proj(
     for kproj in lproj:
         istr = f"ind_{kproj}"
         for kcam in key_cam:
-            dvos = doptics[kcam]['dvos']
+            dvos = doptics[kcam].get('dvos')
             c0 = (
-                dvos.get(istr) is not None
+                dvos is not None
+                and dvos.get(istr) is not None
                 and all([kk is not None for kk in dvos[istr]])
             )
             if c0 is True:
