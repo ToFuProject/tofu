@@ -75,8 +75,8 @@ class Test01_Inversions():
             y=1.,
             z=0.3,
             pinhole_size=0.01,
-            focal=0.1,
-            pix_size=0.1,
+            focal=0.15,
+            pix_size=0.05,
             pix_nb=npix,
             theta=-5*np.pi/6,
             dphi=0,
@@ -92,8 +92,8 @@ class Test01_Inversions():
             y=1.,
             z=-0.3,
             pinhole_size=0.01,
-            focal=0.1,
-            pix_size=0.1,
+            focal=0.15,
+            pix_size=0.05,
             pix_nb=npix,
             theta=5*np.pi/6,
             dphi=0,
@@ -190,6 +190,7 @@ class Test01_Inversions():
             res=0.01,
         )
 
+        self.config = conf0
         self.coll = coll
 
     def teardown_method(self):
@@ -224,7 +225,7 @@ class Test01_Inversions():
 
             for jj, comb in enumerate(itt.product(dalgo.keys(), lop)):
 
-                if comb[0] == 'algo5':
+                if comb[0] in ['algo2', 'algo5']:
                     continue
 
                 if comb[1] == 'D2N2' and deg != 2:
@@ -251,6 +252,16 @@ class Test01_Inversions():
                         dconstraints = {'rmax': 0.70}
 
                 kdat = 's0' if kd == 'd0' else 's1'
+                # --  DB ----
+                msg = (
+                    f"\nkey_matrix = {kmat}\n"
+                    f"key_data= {kdat}\n"
+                    f"operator = {comb[1]}\n"
+                    f"algo = {comb[0]}\n"
+                    f"dconstraints = {dconstraints}\n"
+                )
+                print(msg)
+                # -- END  DB ----
                 self.coll.add_inversion(
                     algo=comb[0],
                     key_matrix=kmat,

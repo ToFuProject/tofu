@@ -470,6 +470,9 @@ def inv_linear_augTikho_chol_dense(
     verb=None,
     verb2head=None,
     maxiter_outer=None,
+    # debug
+    debug=None,
+    # unused
     **kwdargs,
 ):
     """
@@ -492,7 +495,47 @@ def inv_linear_augTikho_chol_dense(
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
-        try:
+
+        det = np.linalg.det(TTn + mu0*R)
+        if det == 0.:
+            # call solver
+            try:
+                sol = scplin.solve(
+                    TTn + mu0*R, Tyn,
+                    assume_a='sym',         # chol failed => not 'pos'
+                    overwrite_a=True,       # no significant gain
+                    overwrite_b=False,      # True faster, but a copy of Tyn needed
+                    check_finite=False,     # small speed gain compared to True
+                    transposed=False,
+                )  # 3
+            except Exception as err:
+                import matplotlib.pyplot as plt
+                plt.figure()
+                plt.subplot(141)
+                plt.imshow(Tn)
+                plt.colorbar()
+                plt.gca().set_title('Tn')
+                plt.subplot(142)
+                plt.imshow(TTn)
+                plt.colorbar()
+                plt.gca().set_title('TTn')
+                plt.subplot(143)
+                plt.imshow(mu0*R)
+                plt.colorbar()
+                plt.gca().set_title(f'{mu0}* R')
+                plt.subplot(144)
+                plt.imshow(TTn + mu0*R)
+                plt.colorbar()
+                plt.gca().set_title('TTn + mu0R')
+                rank = np.linalg.matrix_rank(TTn + mu0*R)
+                msg = (
+                    f"\ndet(TTn + mu0R) = {det}\n"
+                    f"rank(TTn + mu0R) = {rank} / {TTn.shape[1]}"
+                )
+                print(msg)
+                raise err
+
+        else:
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # (chol(A).T * chol(A) = A
             chol = scplin.cholesky(
@@ -507,16 +550,6 @@ def inv_linear_augTikho_chol_dense(
                 overwrite_b=None,
                 check_finite=True,
             )
-        except Exception as err:
-            # call solver
-            sol = scplin.solve(
-                TTn + mu0*R, Tyn,
-                assume_a='sym',         # chol failed => not 'pos'
-                overwrite_a=True,       # no significant gain
-                overwrite_b=False,      # True faster, but a copy of Tyn needed
-                check_finite=False,     # small speed gain compared to True
-                transposed=False,
-            )  # 3
 
         # call augmented Tikhonov update of mu
         mu1, conv, res2, reg, tau, lamb = _augTikho_update(

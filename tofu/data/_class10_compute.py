@@ -117,7 +117,6 @@ def compute_inversions(
 
     # normalization
     data_n = (data / sigma)
-    mu0 = 1.
 
     # Define Regularization operator
     R = _get_operator(
@@ -161,6 +160,9 @@ def compute_inversions(
     else:
         Tn = mat0 / np.nanmean(sigma, axis=0)[:, None]
         TTn = Tn.T.dot(Tn)
+
+    # mu0 so TTn and R are comparable - DB
+    mu0 = np.mean(TTn[TTn > 0]) / np.mean(R[R > 0])
 
     # prepare output arrays
     sol = np.full((nt, nbs), np.nan)
@@ -922,20 +924,23 @@ def _compute_inv_loop_tomotok(
 
     nt, nchan = data_n.shape
     if not isinstance(R, np.ndarray):
-        nbs = R[0].shape[0]
+        # nbs = R[0].shape[0]
         R = (R,)
     else:
-        nbs = R.shape[0]
+        pass
+        # nbs = R.shape[0]
 
     if dcon is not None:
         msg = "constraints not handled by tomotok algorithms"
         raise Exception(msg)
 
     if verb >= 2:
-        form = "nchan * chi2n   +   mu *  R           "
-        verb2head = f"\n\t\titer    {form} \t\t\t  tau  \t      conv"
+        pass
+        # form = "nchan * chi2n   +   mu *  R           "
+        # verb2head = f"\n\t\titer    {form} \t\t\t  tau  \t      conv"
     else:
-        verb2head = None
+        pass
+        # verb2head = None
 
     # ---------
     # time loop
