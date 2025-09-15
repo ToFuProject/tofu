@@ -325,7 +325,7 @@ setup(
         "Polygon3",
         "cython>=0.26",
         "datastock>=0.0.54",
-        "bsplines2d>=0.0.28",
+        "bsplines2d>=0.0.29",
         "spectrally>=0.0.9",
     ],
     python_requires=">=3.6",
