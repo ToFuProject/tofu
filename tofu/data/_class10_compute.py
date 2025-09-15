@@ -880,9 +880,10 @@ def _safety_check_nan(
     # condition: nan
     # --------------
 
+    ii = kwdargs['ii']
     c0 = (
-        np.isnan(kwdargs['chi2n'][kwdargs['ii']])
-        or (kwdargs['regul'] and np.isnan(kwdargs['regularity']))
+        np.isnan(kwdargs['chi2n'][ii])
+        or (kwdargs['regul'] and np.isnan(kwdargs['regularity'][ii]))
     )
 
     # ---------------
@@ -915,7 +916,6 @@ def _safety_check_nan(
             lstr.append(f"\t- {k1}: {ss}")
 
         # aggregate into msg
-        ii = kwdargs['ii']
         msg = (
             "Non-finite inversion step (post-check):\n"
             + "\n".join(lstr)
