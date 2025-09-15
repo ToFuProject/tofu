@@ -59,6 +59,9 @@ def _compute_check(
     # ref vector specifiers
     dref_vector=None,
     ref_vector_strategy=None,
+    # debug
+    debug=None,
+    # kwdargs
     **kwargs,
 ):
 
@@ -444,6 +447,13 @@ def _compute_check(
         allowed=['spsolve'],
     )
 
+    # debug
+    debug = ds._generic_check._check_var(
+        debug, 'debug',
+        default=False,
+        types=bool,
+    )
+
     # ----------------------------------------
     # algo-specific kwdargs and solver options
 
@@ -473,6 +483,7 @@ def _compute_check(
         crop, chain, kwdargs, method, options,
         solver, verb, store,
         key, refinv, regul,
+        debug,
     )
 
 

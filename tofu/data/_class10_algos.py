@@ -472,6 +472,10 @@ def inv_linear_augTikho_chol_dense(
     maxiter_outer=None,
     # debug
     debug=None,
+    key_diag=None,
+    key_matrix=None,
+    key_data=None,
+    it=None,
     # unused
     **kwdargs,
 ):
@@ -509,30 +513,8 @@ def inv_linear_augTikho_chol_dense(
                     transposed=False,
                 )  # 3
             except Exception as err:
-                import matplotlib.pyplot as plt
-                plt.figure()
-                plt.subplot(141)
-                plt.imshow(Tn)
-                plt.colorbar()
-                plt.gca().set_title('Tn')
-                plt.subplot(142)
-                plt.imshow(TTn)
-                plt.colorbar()
-                plt.gca().set_title('TTn')
-                plt.subplot(143)
-                plt.imshow(mu0*R)
-                plt.colorbar()
-                plt.gca().set_title(f'{mu0}* R')
-                plt.subplot(144)
-                plt.imshow(TTn + mu0*R)
-                plt.colorbar()
-                plt.gca().set_title('TTn + mu0R')
-                rank = np.linalg.matrix_rank(TTn + mu0*R)
-                msg = (
-                    f"\ndet(TTn + mu0R) = {det}\n"
-                    f"rank(TTn + mu0R) = {rank} / {TTn.shape[1]}"
-                )
-                print(msg)
+                if debug is True:
+                    _debug_singular(**locals())
                 raise err
 
         else:
@@ -1014,6 +996,92 @@ def inv_linear_leastsquares_bounds(
         return (
             dconstraints['coefs'].dot(res.x) + dconstraints['offset']
         )
+
+
+# ##################################################################
+# ##################################################################
+#               debug singular matrix
+# ##################################################################
+
+
+def _debug_singular(
+    Tn=None,
+    TTn=None,
+    mu0=None,
+    R=None,
+    det=None,
+    # debug
+    debug=None,
+    key_diag=None,
+    key_matrix=None,
+    key_data=None,
+    dalgo=None,
+    it=None,
+    # unused
+    **kwdargs,
+):
+
+    # --------------
+    # prepare figure
+    # --------------
+
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+
+    tit = (
+        "Debug singular inversion matrix\n"
+        f"key_diag = {key_diag}\n"
+        f"key_data = {key_data}\n"
+        f"key_matrix = {key_matrix}\n"
+        f"algo = {dalgo}\n"
+        f"it = {it}\n"
+    )
+    import pdb; pdb.set_trace()     # DB
+    fig.suptitle(tit, size=14, fontweight='bold')
+
+    # ----------
+    # Tn
+
+    ax = fig.add_subplot(141)
+    ax.imshow(Tn)
+    ax.colorbar()
+    ax.set_title('Tn')
+
+    # ----------
+    # TTn
+
+    ax = fig.add_subplot(142)
+    ax.imshow(TTn)
+    ax.colorbar()
+    ax.set_title('TTn')
+
+    # ----------
+    # mu0*R
+
+    ax = fig.add_subplot(143)
+    ax.imshow(mu0*R)
+    ax.colorbar()
+    ax.set_title(f'{mu0}* R')
+
+    # -----------
+    # TTn + mu0*R
+
+    ax = fig.add_subplot(144)
+    ax.imshow(TTn + mu0*R)
+    ax.colorbar()
+    ax.set_title('TTn + mu0R')
+
+    # ----------
+    # Print ranke and det
+
+    rank = np.linalg.matrix_rank(TTn + mu0*R)
+    msg = (
+        f"\ndet(TTn + mu0R) = {det}\n"
+        f"rank(TTn + mu0R) = {rank} / {TTn.shape[1]}"
+    )
+    print(msg)
+
+    return
 
 
 # ##################################################################

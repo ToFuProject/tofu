@@ -60,6 +60,8 @@ def compute_inversions(
     # ref vector specifier
     dref_vector=None,
     ref_vector_strategy=None,
+    # debug
+    debug=None,
 ):
 
     # -------------
@@ -79,6 +81,7 @@ def compute_inversions(
         crop, chain, kwdargs, method, options,
         solver, verb, store,
         keyinv, refinv, regul,
+        debug,
     ) = _checks._compute_check(**locals())
 
     data = ddata['data']
@@ -247,6 +250,11 @@ def compute_inversions(
             regularity=regularity,
             niter=niter,
             spec=spec,
+            # debug
+            debug=debug,
+            key_diag=key_diag,
+            key_matrix=key_matrix,
+            key_data=key_data,
         )
 
     elif dalgo['source'] == 'tomotok':
@@ -689,6 +697,11 @@ def _compute_inv_loop(
     regularity=None,
     niter=None,
     spec=None,
+    # debug
+    debug=None,
+    key_diag=None,
+    key_matrix=None,
+    key_data=None,
 ):
 
     # -----------------------------------
@@ -808,6 +821,13 @@ def _compute_inv_loop(
             bounds=bi,
             method=method,
             options=options,
+            # identify + debug
+            debug=debug,
+            key_diag=key_diag,
+            key_matrix=key_matrix,
+            key_data=key_data,
+            it=ii,
+            # others
             **kwdargs,
         )
 
@@ -875,6 +895,8 @@ def _compute_inv_loop(
                 f"niter = {niter[ii]}"
             )
             print(msg, end='\n', flush=True)
+
+    return
 
 
 # ##################################################################
