@@ -893,7 +893,7 @@ def _safety_check_nan(
     if c0:
         lk1 = ['sol0[indbsi]', 'Tni', 'TTni', 'Tyni', 'Ri', 'yni']
         lstr = []
-        for (k1, v1) in lk1:
+        for k1 in lk1:
 
             # val
             if k1.startswith('sol0'):
