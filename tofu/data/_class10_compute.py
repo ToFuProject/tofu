@@ -891,6 +891,22 @@ def _safety_check_nan(
     # --------------
 
     if c0:
+
+        # ----------------
+        # check vs maxiter
+
+        c1 = (
+            kwdargs['kwdargs'].get('maxiter') is not None
+            and kwdargs['kwdargs']['maxiter'] == kwdargs['niter'][ii]
+        )
+
+        if c1:
+            msg = "Could not converge within specified maxiter!"
+            raise Exception(msg)
+
+        # ----------------
+        # other issue
+
         lk1 = ['sol0[indbsi]', 'Tni', 'TTni', 'Tyni', 'Ri', 'yni']
         lstr = []
         for k1 in lk1:
