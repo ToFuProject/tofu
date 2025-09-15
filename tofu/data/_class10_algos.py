@@ -450,6 +450,24 @@ def inv_linear_augTikho_sparse(
         niter += 1                  # Update number of iterations
         mu0 = mu1
 
+    # --- DB ----
+    if np.isnan(res2/nchan):
+        msg = (
+            "Nan chi2n in algo0:\n"
+            f"\t- res2: {res2}\n"
+            f"\t- nchan: {nchan}\n"
+            f"\t- TTn: {np.any(np.isnan(TTn))}\n"
+            f"\t- mu0: {mu0}\n"
+            f"\t- R: {np.any(np.isnan(R))}\n"
+            f"\t- Tyn: {np.any(np.isnan(Tyn))}\n"
+            f"\t- sol0: {np.any(np.isnan(sol0))}\n"
+            f"\t- maxiter: {maxiter}\n"
+            f"\t- tol: {tol}\n"
+            f"\t- maxiter: {maxiter}\n"
+            f"\t- itconv: {itconv}\n"
+        )
+        raise Exception(msg)
+
     return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
 
