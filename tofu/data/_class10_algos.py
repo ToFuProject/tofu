@@ -446,27 +446,26 @@ def inv_linear_augTikho_sparse(
             niter=niter,
         )
 
-        # --- DB ----
-        if np.isnan(res2/nchan):
-            msg = (
-                "Nan chi2n in algo0:\n"
-                f"\t- res2: {res2}\n"
-                f"\t- nchan: {nchan}\n"
-                f"\t- TTn: {np.any(np.isnan(TTn.todense()))}\n"
-                f"\t- TTn: {TTn}\n"
-                f"\t- mu0: {mu0}\n"
-                f"\t- R: {np.any(np.isnan(R.todense()))}\n"
-                f"\t- R: {R}\n"
-                f"\t- M: {precond}\n"
-                f"\t- Tyn: {np.any(np.isnan(Tyn))}\n"
-                f"\t- sol0: {sol0}\n"
-                f"\t- tol: {tol}\n"
-                f"\t- conv / conv_crit: {conv} / {conv_crit}\n"
-                f"\t- niter / maxiter_outer: {niter} / {maxiter_outer}\n"
-                f"\t- itconv / maxiter: {itconv} / {maxiter}\n"
-                f"\t- sol: {sol}\n"
-            )
-            raise Exception(msg)
+        # if np.isnan(res2/nchan):
+            # msg = (
+                # "Nan chi2n in algo0:\n"
+                # f"\t- res2: {res2}\n"
+                # f"\t- nchan: {nchan}\n"
+                # f"\t- TTn: {np.any(np.isnan(TTn.todense()))}\n"
+                # f"\t- TTn: {TTn}\n"
+                # f"\t- mu0: {mu0}\n"
+                # f"\t- R: {np.any(np.isnan(R.todense()))}\n"
+                # f"\t- R: {R}\n"
+                # f"\t- M: {precond}\n"
+                # f"\t- Tyn: {np.any(np.isnan(Tyn))}\n"
+                # f"\t- sol0: {sol0}\n"
+                # f"\t- tol: {tol}\n"
+                # f"\t- conv / conv_crit: {conv} / {conv_crit}\n"
+                # f"\t- niter / maxiter_outer: {niter} / {maxiter_outer}\n"
+                # f"\t- itconv / maxiter: {itconv} / {maxiter}\n"
+                # f"\t- sol: {sol}\n"
+            # )
+            # raise Exception(msg)
 
         sol0[:] = sol[:]            # Update reference solution
         niter += 1                  # Update number of iterations
