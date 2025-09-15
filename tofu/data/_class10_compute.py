@@ -952,6 +952,7 @@ def _safety_check_nan(
             + f"\t- key_bs: {kwdargs['key_bs']}\n"
             + f"\t- key_data: {kwdargs['key_data']}\n"
             + f"\t- operator: {kwdargs['operator']}\n"
+            + f"\t- kwdargs: {kwdargs['kwdargs']}"
         )
         raise Exception(msg)
 
