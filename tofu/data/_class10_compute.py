@@ -931,6 +931,11 @@ def _safety_check_nan(
             + f"\t- chain: {kwdargs['chain']}\n"
             + f"\t- method: {kwdargs['method']}\n"
             + f"\t- dcon is not None: {kwdargs['dcon'] is not None}\n"
+            + f"\t- key_diag: {kwdargs['key_diag']}\n"
+            + f"\t- key_matrix: {kwdargs['key_matrix']}\n"
+            + f"\t- key_bs: {kwdargs['key_bs']}\n"
+            + f"\t- key_data: {kwdargs['key_data']}\n"
+            + f"\t- operator: {kwdargs['operator']}\n"
         )
         raise Exception(msg)
 
