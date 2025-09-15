@@ -164,8 +164,10 @@ def compute_inversions(
         Tn = mat0 / np.nanmean(sigma, axis=0)[:, None]
         TTn = Tn.T.dot(Tn)
 
-    # mu0 so TTn and R are comparable - DB
-    mu0 = np.mean(TTn[TTn > 0]) / np.mean(R[R > 0])
+    # mu0 so TTn and R are comparable
+    mu0 = None
+    if R is not None:
+        mu0 = np.mean(TTn[TTn > 0]) / np.mean(R[R > 0])
 
     # prepare output arrays
     sol = np.full((nt, nbs), np.nan)
