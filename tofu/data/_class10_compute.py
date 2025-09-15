@@ -254,7 +254,9 @@ def compute_inversions(
             debug=debug,
             key_diag=key_diag,
             key_matrix=key_matrix,
+            key_bs=keybs,
             key_data=key_data,
+            operator=operator,
         )
 
     elif dalgo['source'] == 'tomotok':
@@ -701,7 +703,9 @@ def _compute_inv_loop(
     debug=None,
     key_diag=None,
     key_matrix=None,
+    key_bs=None,
     key_data=None,
+    operator=None,
 ):
 
     # -----------------------------------
@@ -829,7 +833,9 @@ def _compute_inv_loop(
             debug=debug,
             key_diag=key_diag,
             key_matrix=key_matrix,
+            key_bs=key_bs,
             key_data=key_data,
+            operator=operator,
             algo=dalgo['name'],
             it=ii,
             # others

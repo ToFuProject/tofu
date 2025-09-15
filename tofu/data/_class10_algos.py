@@ -477,7 +477,9 @@ def inv_linear_augTikho_chol_dense(
     debug=None,
     key_diag=None,
     key_matrix=None,
+    key_bs=None,
     key_data=None,
+    operator=None,
     algo=None,
     it=None,
     # unused

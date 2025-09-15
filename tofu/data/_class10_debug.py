@@ -21,7 +21,9 @@ def _debug_singular(
     debug=None,
     key_diag=None,
     key_matrix=None,
+    key_bs=None,
     key_data=None,
+    operator=None,
     algo=None,
     it=None,
     # unused
@@ -47,6 +49,8 @@ def _debug_singular(
         f"key_diag = {key_diag}\n"
         f"key_data = {key_data}\n"
         f"key_matrix = {key_matrix}\n"
+        f"key_bs = {key_bs}\n"
+        f"operator = {operator}\n"
         f"algo = {algo}\n"
         f"it = {it}\n"
     )
