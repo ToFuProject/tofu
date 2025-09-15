@@ -55,31 +55,31 @@ def _debug_singular(
     # ----------
     # Tn
 
-    ax = fig.add_subplot(gs[0, 0])
-    im = ax.imshow(
+    ax0 = fig.add_subplot(gs[0, 0])
+    im = ax0.imshow(
         Tn,
         aspect='auto',
         interpolation='nearest',
     )
     plt.colorbar(im)
-    ax.set_title('Tn', size=fontsize, fontweight='bold')
+    ax0.set_title('Tn', size=fontsize, fontweight='bold')
 
     # ----------
     # TTn
 
-    ax = fig.add_subplot(gs[1, 0])
-    im = ax.imshow(
+    ax1 = fig.add_subplot(gs[1, 0])
+    im = ax1.imshow(
         TTn,
         aspect='auto',
         interpolation='nearest',
     )
     plt.colorbar(im)
-    ax.set_title('TTn', size=fontsize, fontweight='bold')
+    ax1.set_title('TTn', size=fontsize, fontweight='bold')
 
     # ----------
     # mu0*R
 
-    ax = fig.add_subplot(gs[0, 1])
+    ax = fig.add_subplot(gs[0, 1], sharex=ax1, sharey=ax1)
     im = ax.imshow(
         mu0*R,
         aspect='auto',
@@ -91,7 +91,7 @@ def _debug_singular(
     # -----------
     # TTn + mu0*R
 
-    ax = fig.add_subplot(gs[1, 1])
+    ax = fig.add_subplot(gs[1, 1], sharex=ax1, sharey=ax1)
     im = ax.imshow(
         TTn + mu0*R,
         aspect='auto',
