@@ -12,16 +12,19 @@ import scipy.sparse as scpsp
 import datastock as ds
 
 
+from . import _class10_debug as _debug
+
+
 dfail = {}
 try:
     import sksparse as sksp
-except Exception as err:
+except Exception:
     sksp = False
     dfail['sksparse'] = "For cholesk factorizations"
 
 try:
     import scikits.umfpack as skumf
-except Exception as err:
+except Exception:
     skumf = False
     dfail['umfpack'] = "For faster sparse matrices"
 
@@ -37,7 +40,7 @@ if len(dfail) > 0:
 # optional
 try:
     from .. import tomotok2tofu
-except Exception as err:
+except Exception:
     tomotok2tofu = False
 
 
@@ -475,6 +478,7 @@ def inv_linear_augTikho_chol_dense(
     key_diag=None,
     key_matrix=None,
     key_data=None,
+    algo=None,
     it=None,
     # unused
     **kwdargs,
@@ -506,15 +510,15 @@ def inv_linear_augTikho_chol_dense(
             try:
                 sol = scplin.solve(
                     TTn + mu0*R, Tyn,
-                    assume_a='sym',         # chol failed => not 'pos'
-                    overwrite_a=True,       # no significant gain
-                    overwrite_b=False,      # True faster, but a copy of Tyn needed
-                    check_finite=False,     # small speed gain compared to True
+                    assume_a='sym',      # chol failed => not 'pos'
+                    overwrite_a=True,    # no significant gain
+                    overwrite_b=False,   # True faster, but copy of Tyn needed
+                    check_finite=False,  # small speed gain compared to True
                     transposed=False,
                 )  # 3
             except Exception as err:
                 if debug is True:
-                    _debug_singular(**locals())
+                    _debug._debug_singular(**locals())
                 raise err
 
         else:
@@ -613,7 +617,7 @@ def inv_linear_augTikho_chol_sparse(
                     # re-use same factor
                     factor.cholesky_inplace(TTn + mu0*R, beta=0)
                 sol = factor.solve_A(Tyn)
-        except Exception as err:
+        except Exception:
             # call solver
             sol = scpsp.linalg.spsolve(
                 TTn + mu0*R, Tyn,
@@ -766,7 +770,7 @@ def _augTikho_update(
 
     # original formula
     mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
-    # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d  # rescale mu with noise estimate
+    # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d
 
     if verb >= 3:
         msg = (
@@ -844,7 +848,13 @@ def inv_linear_DisPrinc_sparse(
             end='\n',
         )
 
-    while niter < 2 or (np.abs(lchi2n[-1] - chi2n_obj) > chi2n_tol and niter < maxiter_outer):
+    while (
+        niter < 2
+        or (
+            np.abs(lchi2n[-1] - chi2n_obj) > chi2n_tol
+            and niter < maxiter_outer
+        )
+    ):
 
         sol, itconv = scpsp.linalg.cg(
             TTn + lmu[-1]*R, Tyn,
@@ -900,8 +910,11 @@ def inv_linear_DisPrinc_sparse(
             temp1 = f"{nchan} * {lchi2n[-1]:.3e} + {lmu[-1]:.3e} * {reg:.3e}"
             temp2 = f"{res2 + lmu[-1]*reg:.3e}"
             temp = f"{temp1} = {temp2}"
-            print(f"\t\t{niter} \t {temp}")
-            print(f"\t\t{niter} \t {temp}   \t   {np.abs(lchi2n[-1] - chi2n_obj):.3e}")
+            msg = (
+                f"\t\t{niter} \t {temp}   "
+                "\t   {np.abs(lchi2n[-1] - chi2n_obj):.3e}"
+            )
+            print(msg)
 
         sol0[:] = sol
         niter += 1
@@ -947,7 +960,7 @@ def inv_linear_leastsquares_bounds(
     # ---------
     # check inputs
 
-    verbscp = verb
+    # verbscp = verb
     if method is None:
         method = 'trf'
     if lsq_solver is None:
@@ -996,92 +1009,6 @@ def inv_linear_leastsquares_bounds(
         return (
             dconstraints['coefs'].dot(res.x) + dconstraints['offset']
         )
-
-
-# ##################################################################
-# ##################################################################
-#               debug singular matrix
-# ##################################################################
-
-
-def _debug_singular(
-    Tn=None,
-    TTn=None,
-    mu0=None,
-    R=None,
-    det=None,
-    # debug
-    debug=None,
-    key_diag=None,
-    key_matrix=None,
-    key_data=None,
-    dalgo=None,
-    it=None,
-    # unused
-    **kwdargs,
-):
-
-    # --------------
-    # prepare figure
-    # --------------
-
-    import matplotlib.pyplot as plt
-    fig = plt.figure()
-
-    tit = (
-        "Debug singular inversion matrix\n"
-        f"key_diag = {key_diag}\n"
-        f"key_data = {key_data}\n"
-        f"key_matrix = {key_matrix}\n"
-        f"algo = {dalgo}\n"
-        f"it = {it}\n"
-    )
-    import pdb; pdb.set_trace()     # DB
-    fig.suptitle(tit, size=14, fontweight='bold')
-
-    # ----------
-    # Tn
-
-    ax = fig.add_subplot(141)
-    ax.imshow(Tn)
-    ax.colorbar()
-    ax.set_title('Tn')
-
-    # ----------
-    # TTn
-
-    ax = fig.add_subplot(142)
-    ax.imshow(TTn)
-    ax.colorbar()
-    ax.set_title('TTn')
-
-    # ----------
-    # mu0*R
-
-    ax = fig.add_subplot(143)
-    ax.imshow(mu0*R)
-    ax.colorbar()
-    ax.set_title(f'{mu0}* R')
-
-    # -----------
-    # TTn + mu0*R
-
-    ax = fig.add_subplot(144)
-    ax.imshow(TTn + mu0*R)
-    ax.colorbar()
-    ax.set_title('TTn + mu0R')
-
-    # ----------
-    # Print ranke and det
-
-    rank = np.linalg.matrix_rank(TTn + mu0*R)
-    msg = (
-        f"\ndet(TTn + mu0R) = {det}\n"
-        f"rank(TTn + mu0R) = {rank} / {TTn.shape[1]}"
-    )
-    print(msg)
-
-    return
 
 
 # ##################################################################

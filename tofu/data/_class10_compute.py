@@ -724,7 +724,11 @@ def _compute_inv_loop(
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
 
-        def func_val(x, mu=mu0, Tn=Tn, yn=data_n[0, :], TTn=None, Tyn=None, R=R):
+        def func_val(
+            x,
+            mu=mu0, Tn=Tn, yn=data_n[0, :],
+            TTn=None, Tyn=None, R=R,
+        ):
             return np.sum((Tn.dot(x) - yn)**2) + mu*x.dot(R.dot(x))
 
         def func_jac(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn, R=R):
@@ -826,6 +830,7 @@ def _compute_inv_loop(
             key_diag=key_diag,
             key_matrix=key_matrix,
             key_data=key_data,
+            algo=dalgo['name'],
             it=ii,
             # others
             **kwdargs,
