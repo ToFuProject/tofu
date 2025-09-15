@@ -200,7 +200,7 @@ class Test01_Inversions():
     def teardown_class(cls):
         pass
 
-    def test01_run_all_and_plot(self):
+    def test01_run_all_and_plot(self, debug=None):
 
         dalgo = tf.data.get_available_inversions_algo(returnas=dict)
         # lstore = [True, False]
@@ -225,7 +225,7 @@ class Test01_Inversions():
 
             for jj, comb in enumerate(itt.product(dalgo.keys(), lop)):
 
-                if comb[0] in ['algo2', 'algo5']:
+                if comb[0] == 'algo5':
                     continue
 
                 if comb[1] == 'D2N2' and deg != 2:
@@ -275,6 +275,7 @@ class Test01_Inversions():
                     dref_vector={'units': 's'},
                     dconstraints=dconstraints,
                     verb=1,
+                    debug=debug,
                 )
                 ksig = f'{kdat}-sigma'
                 if ksig in self.coll.ddata.keys():
