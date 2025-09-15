@@ -74,13 +74,13 @@ class GeometryMatrix(Previous):
     # -------------------
 
     def _get_show_obj(self, which=None):
-        if which == self._which_gmat:
+        if which in [self._which_gmat, self._which_gmat.replace('_', ' ')]:
             return _show._show
         else:
             return super()._get_show_obj(which)
 
     def _get_show_details(self, which=None):
-        if which == self._which_gmat:
+        if which in [self._which_gmat, self._which_gmat.replace('_', ' ')]:
             return _show._show_details
         else:
             super()._get_show_details(which)

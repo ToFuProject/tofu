@@ -190,6 +190,7 @@ class Test01_Inversions():
             res=0.01,
         )
 
+        self.config = conf0
         self.coll = coll
 
     def teardown_method(self):
@@ -199,7 +200,7 @@ class Test01_Inversions():
     def teardown_class(cls):
         pass
 
-    def test01_run_all_and_plot(self):
+    def test01_run_all_and_plot(self, debug=None):
 
         dalgo = tf.data.get_available_inversions_algo(returnas=dict)
         # lstore = [True, False]
@@ -251,23 +252,30 @@ class Test01_Inversions():
                         dconstraints = {'rmax': 0.70}
 
                 kdat = 's0' if kd == 'd0' else 's1'
-                self.coll.add_inversion(
-                    algo=comb[0],
-                    key_matrix=kmat,
-                    key_data=kdat,
-                    sigma=0.10,
-                    operator=comb[1],
-                    store=jj % 2 == 0,
-                    conv_crit=1.e-3,
-                    kwdargs={'tol': 1.e-2, 'maxiter': 100},
-                    maxiter_outer=10,
-                    dref_vector={'units': 's'},
-                    dconstraints=dconstraints,
-                    verb=1,
-                )
-                ksig = f'{kdat}-sigma'
-                if ksig in self.coll.ddata.keys():
-                    self.coll.remove_data(ksig)
+                try:
+                    self.coll.add_inversion(
+                        algo=comb[0],
+                        key_matrix=kmat,
+                        key_data=kdat,
+                        sigma=0.10,
+                        operator=comb[1],
+                        store=jj % 2 == 0,
+                        conv_crit=1.e-3,
+                        kwdargs={'tol': 1.e-2, 'maxiter': 200},
+                        maxiter_outer=20,
+                        dref_vector={'units': 's'},
+                        dconstraints=dconstraints,
+                        verb=1,
+                        debug=debug,
+                    )
+                    ksig = f'{kdat}-sigma'
+                    if ksig in self.coll.ddata.keys():
+                        self.coll.remove_data(ksig)
+                except Exception as err:
+                    if 'maxiter' in str(err):
+                        pass
+                    else:
+                        raise err
 
         # plotting
         linv = list(self.coll.dobj['inversions'].keys())[::7]

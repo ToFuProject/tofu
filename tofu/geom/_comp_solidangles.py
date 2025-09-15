@@ -849,7 +849,10 @@ def _check_ap_dict(apertures=None):
         if isinstance(apertures, dict):
             msg += f"\t- apertures.keys() = {sorted(apertures.keys())}\n"
             if all([isinstance(vv, dict) for vv in apertures.values()]):
-                lstr = [f"\t\t- '{k0}': {sorted(v0.keys())}" for k0, v0 in apertures.items()]
+                lstr = [
+                    f"\t\t- '{k0}': {sorted(v0.keys())}"
+                    for k0, v0 in apertures.items()
+                ]
                 msg += (
                     "With sub-keys:\n"
                     + "\n".join(lstr)

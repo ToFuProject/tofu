@@ -140,7 +140,7 @@ def _compute_los(
             sli_mat[axis_pix] = ii
 
             # integrate
-            mat[tuple(sli_mat)] = scpinteg.simpson(
+            mat[tuple(sli_mat)] = scpinteg.trapezoid(
                 datai,
                 x=length[:, 0],
                 axis=axis,
@@ -179,10 +179,26 @@ def _compute_los(
     return dout, axis
 
 
-# #############################################################################
-# #############################################################################
-#                           VOS
-# #############################################################################
+# ################################################################
+# ################################################################
+#                      VOS
+# ################################################################
+
+
+def _get_sli(coll, k0):
+
+    is2d = coll.dobj['camera'][k0]['dgeom']['nd'] == '2d'
+    if is2d:
+        n0, n1 = coll.dobj['camera'][k0]['dgeom']['shape']
+
+        def sli(ii, n1=n1):
+            return (ii // n1, ii % n1, slice(None))
+    else:
+
+        def sli(ii):
+            return (ii, slice(None))
+
+    return sli
 
 
 def _compute_vos(
@@ -281,12 +297,7 @@ def _compute_vos(
         # -------------
         # slicing
 
-        is2d = coll.dobj['camera'][k0]['dgeom']['nd'] == '2d'
-        if is2d:
-            n0, n1 = coll.dobj['camera'][k0]['dgeom']['shape']
-            sli = lambda ii: (ii // n1, ii % n1, slice(None))
-        else:
-            sli = lambda ii: (ii, slice(None))
+        sli = _get_sli(coll, k0)
 
         # shape, key
         sh = tuple([npix if ss is None else ss for ss in shape_mat])

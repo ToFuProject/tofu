@@ -12,16 +12,19 @@ import scipy.sparse as scpsp
 import datastock as ds
 
 
+from . import _class10_debug as _debug
+
+
 dfail = {}
 try:
     import sksparse as sksp
-except Exception as err:
+except Exception:
     sksp = False
     dfail['sksparse'] = "For cholesk factorizations"
 
 try:
     import scikits.umfpack as skumf
-except Exception as err:
+except Exception:
     skumf = False
     dfail['umfpack'] = "For faster sparse matrices"
 
@@ -37,7 +40,7 @@ if len(dfail) > 0:
 # optional
 try:
     from .. import tomotok2tofu
-except Exception as err:
+except Exception:
     tomotok2tofu = False
 
 
@@ -443,6 +446,27 @@ def inv_linear_augTikho_sparse(
             niter=niter,
         )
 
+        # if np.isnan(res2/nchan):
+            # msg = (
+                # "Nan chi2n in algo0:\n"
+                # f"\t- res2: {res2}\n"
+                # f"\t- nchan: {nchan}\n"
+                # f"\t- TTn: {np.any(np.isnan(TTn.todense()))}\n"
+                # f"\t- TTn: {TTn}\n"
+                # f"\t- mu0: {mu0}\n"
+                # f"\t- R: {np.any(np.isnan(R.todense()))}\n"
+                # f"\t- R: {R}\n"
+                # f"\t- M: {precond}\n"
+                # f"\t- Tyn: {np.any(np.isnan(Tyn))}\n"
+                # f"\t- sol0: {sol0}\n"
+                # f"\t- tol: {tol}\n"
+                # f"\t- conv / conv_crit: {conv} / {conv_crit}\n"
+                # f"\t- niter / maxiter_outer: {niter} / {maxiter_outer}\n"
+                # f"\t- itconv / maxiter: {itconv} / {maxiter}\n"
+                # f"\t- sol: {sol}\n"
+            # )
+            # raise Exception(msg)
+
         sol0[:] = sol[:]            # Update reference solution
         niter += 1                  # Update number of iterations
         mu0 = mu1
@@ -470,6 +494,16 @@ def inv_linear_augTikho_chol_dense(
     verb=None,
     verb2head=None,
     maxiter_outer=None,
+    # debug
+    debug=None,
+    key_diag=None,
+    key_matrix=None,
+    key_bs=None,
+    key_data=None,
+    operator=None,
+    algo=None,
+    it=None,
+    # unused
     **kwdargs,
 ):
     """
@@ -492,7 +526,25 @@ def inv_linear_augTikho_chol_dense(
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     while niter <= 2 or (conv > conv_crit and niter < maxiter_outer):
-        try:
+
+        det = np.linalg.det(TTn + mu0*R)
+        if det == 0.:
+            # call solver
+            try:
+                sol = scplin.solve(
+                    TTn + mu0*R, Tyn,
+                    assume_a='sym',      # chol failed => not 'pos'
+                    overwrite_a=True,    # no significant gain
+                    overwrite_b=False,   # True faster, but copy of Tyn needed
+                    check_finite=False,  # small speed gain compared to True
+                    transposed=False,
+                )  # 3
+            except Exception as err:
+                if debug is True:
+                    _debug._debug_singular(**locals())
+                raise err
+
+        else:
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # (chol(A).T * chol(A) = A
             chol = scplin.cholesky(
@@ -507,16 +559,6 @@ def inv_linear_augTikho_chol_dense(
                 overwrite_b=None,
                 check_finite=True,
             )
-        except Exception as err:
-            # call solver
-            sol = scplin.solve(
-                TTn + mu0*R, Tyn,
-                assume_a='sym',         # chol failed => not 'pos'
-                overwrite_a=True,       # no significant gain
-                overwrite_b=False,      # True faster, but a copy of Tyn needed
-                check_finite=False,     # small speed gain compared to True
-                transposed=False,
-            )  # 3
 
         # call augmented Tikhonov update of mu
         mu1, conv, res2, reg, tau, lamb = _augTikho_update(
@@ -598,7 +640,7 @@ def inv_linear_augTikho_chol_sparse(
                     # re-use same factor
                     factor.cholesky_inplace(TTn + mu0*R, beta=0)
                 sol = factor.solve_A(Tyn)
-        except Exception as err:
+        except Exception:
             # call solver
             sol = scpsp.linalg.spsolve(
                 TTn + mu0*R, Tyn,
@@ -751,7 +793,7 @@ def _augTikho_update(
 
     # original formula
     mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
-    # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d  # rescale mu with noise estimate
+    # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d
 
     if verb >= 3:
         msg = (
@@ -829,7 +871,13 @@ def inv_linear_DisPrinc_sparse(
             end='\n',
         )
 
-    while niter < 2 or (np.abs(lchi2n[-1] - chi2n_obj) > chi2n_tol and niter < maxiter_outer):
+    while (
+        niter < 2
+        or (
+            np.abs(lchi2n[-1] - chi2n_obj) > chi2n_tol
+            and niter < maxiter_outer
+        )
+    ):
 
         sol, itconv = scpsp.linalg.cg(
             TTn + lmu[-1]*R, Tyn,
@@ -885,8 +933,11 @@ def inv_linear_DisPrinc_sparse(
             temp1 = f"{nchan} * {lchi2n[-1]:.3e} + {lmu[-1]:.3e} * {reg:.3e}"
             temp2 = f"{res2 + lmu[-1]*reg:.3e}"
             temp = f"{temp1} = {temp2}"
-            print(f"\t\t{niter} \t {temp}")
-            print(f"\t\t{niter} \t {temp}   \t   {np.abs(lchi2n[-1] - chi2n_obj):.3e}")
+            msg = (
+                f"\t\t{niter} \t {temp}   "
+                "\t   {np.abs(lchi2n[-1] - chi2n_obj):.3e}"
+            )
+            print(msg)
 
         sol0[:] = sol
         niter += 1
@@ -932,7 +983,7 @@ def inv_linear_leastsquares_bounds(
     # ---------
     # check inputs
 
-    verbscp = verb
+    # verbscp = verb
     if method is None:
         method = 'trf'
     if lsq_solver is None:
