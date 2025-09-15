@@ -54,6 +54,7 @@ def compute_vos(
     # cleanup
     cleanup_pts=None,
     cleanup_lamb=None,
+    compact_lamb=None,
     # bool
     visibility=None,
     convex=None,
@@ -86,6 +87,7 @@ def compute_vos(
         dkeep,
         cleanup_pts,
         cleanup_lamb,
+        compact_lamb,
         return_vector,
         convexHull,
         visibility,
@@ -109,6 +111,7 @@ def compute_vos(
         # cleanup
         cleanup_pts=cleanup_pts,
         cleanup_lamb=cleanup_lamb,
+        compact_lamb=compact_lamb,
         # bool
         keep_cross=keep_cross,
         keep_hor=keep_hor,
@@ -260,6 +263,7 @@ def compute_vos(
             # cleanup
             cleanup_pts=cleanup_pts,
             cleanup_lamb=cleanup_lamb,
+            compact_lamb=compact_lamb,
             # parameters
             margin_poly=margin_poly,
             config=config,
@@ -342,6 +346,7 @@ def _check(
     # cleanup
     cleanup_pts=None,
     cleanup_lamb=None,
+    compact_lamb=None,
     # bool
     visibility=None,
     check=None,
@@ -541,6 +546,15 @@ def _check(
     )
 
     # -----------
+    # compact_lamb
+
+    compact_lamb = ds._generic_check._check_var(
+        compact_lamb, 'compact_lamb',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
     # return_vector
 
     return_vector = ds._generic_check._check_var(
@@ -631,6 +645,7 @@ def _check(
         dkeep,
         cleanup_pts,
         cleanup_lamb,
+        compact_lamb,
         return_vector,
         convexHull,
         visibility,
@@ -878,9 +893,10 @@ def _check_vos_proj(
     for kproj in lproj:
         istr = f"ind_{kproj}"
         for kcam in key_cam:
-            dvos = doptics[kcam]['dvos']
+            dvos = doptics[kcam].get('dvos')
             c0 = (
-                dvos.get(istr) is not None
+                dvos is not None
+                and dvos.get(istr) is not None
                 and all([kk is not None for kk in dvos[istr]])
             )
             if c0 is True:
@@ -969,7 +985,7 @@ def _check_get_dvos(
     for kproj, lcam in dvosproj.items():
         lk_data += [f'sang_{kproj}', f'dV_{kproj}', f'ndV_{kproj}']
         if spectro is True:
-            lk_data += [f'ph_{kproj}', f'ncounts_{kproj}']
+            lk_data += [f'ph_{kproj}', f'ncounts_{kproj}', f"indlamb_{kproj}"]
 
         dk_tuple[f'ind_{kproj}'] = [f"indr_{kproj}"]
         dk_tuple[f'vect_{kproj}'] = [
@@ -1013,7 +1029,7 @@ def _check_get_dvos(
 
             # fill in with res
             for k1 in lk_asis:
-                dvos[k0][k1] = dop[k1]
+                dvos[k0][k1] = dop.get(k1)
 
             # fill in with the rest
             for k1 in lk_data:

@@ -5,4 +5,9 @@ from ._xray_thick_target import dcross_ei as get_xray_thick_dcross_ei
 from ._xray_thick_target import plot_dcross_ei as plot_xray_thick_dcross_ei
 from ._xray_thick_target import plot_dcross_vs_Salvat as plot_xray_thick_dcross_ei_vs_Salvat
 
-from ._xray_thin_target import get_bremss_maxwell as get_xray_thin_bremss_maxwell
+# from ._xray_thin_target import get_bremss_maxwell as get_xray_thin_bremss_maxwell
+from ._xray_thin_target import get_xray_thin_d3cross_ei
+from ._xray_thin_target import plot_xray_thin_d3cross_ei_vs_Literature
+from ._xray_thin_target_integrated import get_xray_thin_d2cross_ei_integrated_thetae_dphi
+from ._xray_thin_target_integrated import plot_xray_thin_d2cross_ei_vs_literature
+from ._xray_thin_target_integrated import plot_xray_thin_d2cross_ei_anisotropy

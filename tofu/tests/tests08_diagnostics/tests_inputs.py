@@ -1108,6 +1108,7 @@ def _compute_vos(
     n1=None,
     res_lamb=None,
     lamb=None,
+    compact_lamb=None,
 ):
 
     # ---------------
@@ -1141,7 +1142,7 @@ def _compute_vos(
     res_lamb = float(ds._generic_check._check_var(
         res_lamb, 'res_lamb',
         types=(int, float),
-        default=2e-12,
+        default=1e-13,
         sign='>0',
     ))
 
@@ -1180,6 +1181,10 @@ def _compute_vos(
         keep_cross = True
         keep_hor = (ii % 2 == 0)
         keep_3d = ii == 0
+        if compact_lamb is None:
+            compact_lambi = (ii % 2 == 0)
+        else:
+            compact_lambi = compact_lamb
 
         coll.compute_diagnostic_vos(
             # keys
@@ -1192,6 +1197,8 @@ def _compute_vos(
             keep_cross=keep_cross,
             keep_hor=keep_hor,
             keep_3d=keep_3d,
+            # compact
+            compact_lamb=compact_lambi,
             # spectro
             n0=n0,
             n1=n1,
@@ -1223,8 +1230,8 @@ def _compute_vos(
 
             v_3d = coll.ddata[k_3d]['data']
             v_cross = coll.ddata[k_cross]['data']
-            sum_3d = v_3d.sum(axis=-2 if spectro else -1)
-            sum_cross = np.sum(v_cross, axis=-2 if spectro else -1)
+            sum_3d = v_3d.sum(axis=(-2, -1) if spectro else -1)
+            sum_cross = np.sum(v_cross, axis=(-2, -1) if spectro else -1)
 
             if (
                 (sum_3d.shape != sum_cross.shape)
@@ -1370,7 +1377,13 @@ def _plot_coverage(
 
     for ii, k0 in enumerate(key_diag):
 
-        _ = coll.plot_diagnostic_geometrical_coverage(k0, plot_config=conf)
+        try:
+            _ = coll.plot_diagnostic_geometrical_coverage(k0, plot_config=conf)
+        except NotImplementedError as err:
+            if 'compact_lamb' in str(err):
+                pass
+            else:
+                raise err
 
         if close is not False:
             plt.close('all')

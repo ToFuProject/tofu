@@ -1,15 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-# Built-in
-# import copy
-
-
-# Common
-import numpy as np
-import datastock as ds
-
-
 # tofu
 from ._class09_GeometryMatrix import GeometryMatrix as Previous
 from . import _class10_compute as _compute
@@ -70,6 +61,8 @@ class Inversion(Previous):
         # ref vector specifier
         dref_vector=None,
         ref_vector_strategy=None,
+        # debug
+        debug=None,
     ):
         """ Compute tomographic inversion
 
@@ -109,6 +102,8 @@ class Inversion(Previous):
             # ref vector specifier
             dref_vector=dref_vector,
             ref_vector_strategy=ref_vector_strategy,
+            # debug
+            debug=debug,
         )
 
     # -----------------

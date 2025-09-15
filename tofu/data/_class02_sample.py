@@ -292,8 +292,8 @@ def main(
                 )(itoti)
 
             if out_l:
-                i1 = np.floor(itoti).astype(int)
-                i1[i1 == ioki.sum()] -= 1
+                i1 = np.floor(itoti - 1e-14).astype(int)
+                # i1[i1 == ioki.sum()] -= 1
 
                 llen[slin] = length1[sli2][i1]
                 lentot[slin] = length0[sli2][i1]

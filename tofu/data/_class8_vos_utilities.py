@@ -145,7 +145,7 @@ def _get_overall_polygons(
         ref_cam = coll.dobj[wcam][key_cam]['dgeom']['ref']
         shape_cam = coll.dobj[wcam][key_cam]['dgeom']['shape']
         ref = coll.ddata[kp0]['ref']
-        axis = np.array([ref_cam.index(rr) for rr in ref_cam], dtype=int)
+        axis = np.array([ref.index(rr) for rr in ref_cam], dtype=int)
         sli0 = np.array([slice(None) for ss in ref])
 
         i0 = 0
@@ -580,23 +580,23 @@ def _harmonize_reshape(
         if key in lpoly:
             if 'cross' in key:
                 kr0 = 'pcross_npts'
-                kref = f'{key_cam}_vos_pc_n'
+                kref = f'{key_diag}_{key_cam}_vos_pc_n'
                 kred = key.replace('pcross', 'pc')
             else:
                 kr0 = 'phor_npts'
-                kref = f'{key_cam}_vos_ph_n'
+                kref = f'{key_diag}_{key_cam}_vos_ph_n'
                 kred = key.replace('phor', 'ph')
 
         else:
             if key.endswith('_cross'):
                 kr0 = 'npts_cross'
-                kref = f'{key_cam}_vos_npts_cross'
+                kref = f'{key_diag}_{key_cam}_vos_npts_cross'
             elif key.endswith('_hor'):
                 kr0 = 'npts_hor'
-                kref = f'{key_cam}_vos_npts_hor'
+                kref = f'{key_diag}_{key_cam}_vos_npts_hor'
             elif key.endswith('_3d'):
                 kr0 = 'npts_3d'
-                kref = f'{key_cam}_vos_npts_3d'
+                kref = f'{key_diag}_{key_cam}_vos_npts_3d'
             else:
                 msg = f"Unknow field '{key}'"
                 raise Exception(msg)

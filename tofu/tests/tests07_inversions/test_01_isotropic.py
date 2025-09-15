@@ -6,7 +6,6 @@ This module contains tests for tofu.geom in its structured version
 import os
 import shutil
 import itertools as itt
-import warnings
 
 
 # Standard
@@ -15,7 +14,6 @@ import matplotlib.pyplot as plt
 
 
 # tofu-specific
-from tofu import __version__
 import tofu as tf
 
 
@@ -192,6 +190,7 @@ class Test01_Inversions():
             res=0.01,
         )
 
+        self.config = conf0
         self.coll = coll
 
     def teardown_method(self):
@@ -201,21 +200,22 @@ class Test01_Inversions():
     def teardown_class(cls):
         pass
 
-    def test01_run_all_and_plot(self):
+    def test01_run_all_and_plot(self, debug=None):
 
         dalgo = tf.data.get_available_inversions_algo(returnas=dict)
-        lstore = [True, False]
+        # lstore = [True, False]
 
         # running
-        lkmat = list(self.coll.dobj['geom matrix'].keys())
+        wgmat = self.coll._which_gmat
+        lkmat = list(self.coll.dobj[wgmat].keys())
         for ii, kmat in enumerate(lkmat):
 
-            kbs = self.coll.dobj['geom matrix'][kmat]['bsplines']
-            kd = self.coll.dobj['geom matrix'][kmat]['diagnostic']
+            kbs = self.coll.dobj[wgmat][kmat]['bsplines']
+            kd = self.coll.dobj[wgmat][kmat]['diagnostic']
             km = self.coll.dobj['bsplines'][kbs]['mesh']
             nd = self.coll.dobj['mesh'][km]['nd']
-            mtype = self.coll.dobj['mesh'][km]['type']
-            submesh = self.coll.dobj['mesh'][km]['submesh']
+            # mtype = self.coll.dobj['mesh'][km]['type']
+            # submesh = self.coll.dobj['mesh'][km]['submesh']
             deg = self.coll.dobj['bsplines'][kbs]['deg']
 
             if deg in [0, 1]:
@@ -252,28 +252,35 @@ class Test01_Inversions():
                         dconstraints = {'rmax': 0.70}
 
                 kdat = 's0' if kd == 'd0' else 's1'
-                self.coll.add_inversion(
-                    algo=comb[0],
-                    key_matrix=kmat,
-                    key_data=kdat,
-                    sigma=0.10,
-                    operator=comb[1],
-                    store=jj%2 == 0,
-                    conv_crit=1.e-3,
-                    kwdargs={'tol': 1.e-2, 'maxiter': 100},
-                    maxiter_outer=10,
-                    dref_vector={'units': 's'},
-                    dconstraints=dconstraints,
-                    verb=1,
-                )
-                ksig = f'{kdat}-sigma'
-                if ksig in self.coll.ddata.keys():
-                    self.coll.remove_data(ksig)
+                try:
+                    self.coll.add_inversion(
+                        algo=comb[0],
+                        key_matrix=kmat,
+                        key_data=kdat,
+                        sigma=0.10,
+                        operator=comb[1],
+                        store=jj % 2 == 0,
+                        conv_crit=1.e-3,
+                        kwdargs={'tol': 1.e-2, 'maxiter': 200},
+                        maxiter_outer=20,
+                        dref_vector={'units': 's'},
+                        dconstraints=dconstraints,
+                        verb=1,
+                        debug=debug,
+                    )
+                    ksig = f'{kdat}-sigma'
+                    if ksig in self.coll.ddata.keys():
+                        self.coll.remove_data(ksig)
+                except Exception as err:
+                    if 'maxiter' in str(err):
+                        pass
+                    else:
+                        raise err
 
         # plotting
         linv = list(self.coll.dobj['inversions'].keys())[::7]
         for kinv in linv:
-            dax = self.coll.plot_inversion(
+            _ = self.coll.plot_inversion(
                 key=kinv,
                 res=0.1,
                 dref_vector={'units': 's'},

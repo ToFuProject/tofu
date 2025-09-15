@@ -5617,7 +5617,7 @@ def compute_solid_angle_apertures_light(
             )
 
             if sca0 <= 0:
-                # print('skip', sca0)        # DB
+                # print(f'dd = {dd}, pp = {pp}, skip sca0 = {sca0}')        # DB
                 continue
 
             # flag
@@ -5688,7 +5688,7 @@ def compute_solid_angle_apertures_light(
 
             # go to next point
             if not isok:
-                # print('skip 2', sca, aa)        # DB
+                # print(f'dd = {dd}, pp = {pp}, skip 2 sca = {sca}, aa = {aa}')        # DB
                 continue
 
             # ----------------------------
@@ -5767,10 +5767,12 @@ def compute_solid_angle_apertures_light(
                     pts_y[pp],
                     pts_z[pp],
                 )
-                # print('tri', tt, solid_angle[dd, pp])        # DB
+                # print(f'\ttri tt = {tt} / {tri.shape[0]}, solid_angle[dd, pp] = {solid_angle[dd, pp]}')        # DB
 
     # -------
     # Return
+
+    # print(solid_angle)   # DB
 
     return solid_angle
 

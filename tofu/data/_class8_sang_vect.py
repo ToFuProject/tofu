@@ -329,8 +329,6 @@ def _compute(
             ]
             api = {kap: apertures[kap] for kap in lap}
 
-            sli = (indch, slice(None), slice(None))
-
             out = _comp_solidangles.calc_solidangle_apertures(
                 # observation points
                 pts_x=dpts['ptsx']['data'],
@@ -349,13 +347,14 @@ def _compute(
                 return_flat_det=False,
             )
 
+            sli = indch + tuple([slice(None) for ss in pts_shape])
             if return_vect is True:
-                sang[sli] = out[0]
-                vectx[sli] = out[1]
-                vecty[sli] = out[1]
-                vectz[sli] = out[1]
+                sang[sli] = out[0][0, ...]
+                vectx[sli] = out[1][0, ...]
+                vecty[sli] = out[1][0, ...]
+                vectz[sli] = out[1][0, ...]
             else:
-                sang = out
+                sang[sli] = out[0, ...]
 
     # ------------
     # extract

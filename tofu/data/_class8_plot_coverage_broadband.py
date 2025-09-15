@@ -317,8 +317,7 @@ def _plot_cross(
     dmargin=None,
     tit=None,
     cmap=None,
-    vmin=None,
-    vmax=None,
+    dvminmax=None,
     # unused
     **kwdargs,
 ):
@@ -327,32 +326,13 @@ def _plot_cross(
     # check input
     # ----------------
 
-    # tit
-    if tit is not False:
-        titdef = (
-            f"geometrical coverage of diag '{key}' "
-            "- integrated cross-section"
-        )
-        tit = ds._generic_check._check_var(
-            tit, 'tit',
-            types=str,
-            default=titdef,
-        )
-
-    if cmap is None:
-        cmap = plt.cm.viridis   # Greys
-
-    if vmin is None:
-        vmin = 0
-
-    if vmax is None:
-        vmax = np.nanmax(ndet)
-
-    # ----------------
-    # prepare data
-    # ----------------
-
-    # directions of observation
+    tit, cmap, _, _, dvminmax = _check_plot(
+        proj='cross',
+        key=key,
+        tit=tit,
+        cmap=cmap,
+        dvminmax=dvminmax,
+    )
 
     # ----------------
     # prepare figure
@@ -485,8 +465,8 @@ def _plot_cross(
             origin='lower',
             interpolation='bilinear',
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
+            vmin=dvminmax['ndet']['min'],
+            vmax=dvminmax['ndet']['max'],
         )
 
         # colorbar
@@ -516,8 +496,8 @@ def _plot_cross(
                 origin='lower',
                 interpolation='bilinear',
                 cmap=cmap,
-                vmin=0,
-                vmax=None,
+                vmin=dvminmax['dV']['min'],
+                vmax=dvminmax['dV']['max'],
             )
 
             # colorbar
@@ -549,8 +529,8 @@ def _plot_cross(
             origin='lower',
             interpolation='bilinear',
             cmap=cmap,
-            vmin=0,
-            vmax=None,
+            vmin=dvminmax['sang']['min'],
+            vmax=dvminmax['sang']['max'],
         )
 
         # colorbar
@@ -611,8 +591,7 @@ def _plot_hor(
     dmargin=None,
     tit=None,
     cmap=None,
-    vmin=None,
-    vmax=None,
+    dvminmax=None,
     # unused
     **kwdargs,
 ):
@@ -621,37 +600,15 @@ def _plot_hor(
     # check input
     # ----------------
 
-    # tit
-    if tit is not False:
-        titdef = (
-            f"geometrical coverage of diag '{key}' "
-            "- integrated vertically"
-        )
-        tit = ds._generic_check._check_var(
-            tit, 'tit',
-            types=str,
-            default=titdef,
-        )
-
-    if cmap is None:
-        cmap = plt.cm.viridis   # Greys
-
-    if vmin is None:
-        vmin = 0
-
-    if vmax is None:
-        vmax = np.nanmax(ndet)
-
-    if marker is None:
-        marker = 's'
-    if markersize is None:
-        markersize = 8
-
-    # ----------------
-    # prepare data
-    # ----------------
-
-    # directions of observation
+    tit, cmap, marker, markersize, dvminmax = _check_plot(
+        proj='hor',
+        key=key,
+        tit=tit,
+        cmap=cmap,
+        marker=marker,
+        markersize=markersize,
+        dvminmax=dvminmax,
+    )
 
     # ----------------
     # prepare figure
@@ -785,8 +742,8 @@ def _plot_hor(
             s=markersize,
             marker=marker,
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
+            vmin=dvminmax['ndet']['min'],
+            vmax=dvminmax['ndet']['max'],
         )
 
         # colorbar
@@ -816,8 +773,8 @@ def _plot_hor(
             s=markersize,
             marker=marker,
             cmap=cmap,
-            vmin=0,
-            vmax=None,
+            vmin=dvminmax['dV']['min'],
+            vmax=dvminmax['dV']['max'],
         )
 
         # colorbar
@@ -847,8 +804,8 @@ def _plot_hor(
             s=markersize,
             marker=marker,
             cmap=cmap,
-            vmin=0,
-            vmax=None,
+            vmin=dvminmax['sang']['min'],
+            vmax=dvminmax['sang']['max'],
         )
 
         # colorbar
@@ -880,3 +837,113 @@ def _plot_hor(
         fig.suptitle(tit, size=14, fontweight='bold')
 
     return dax
+
+
+# ################################################################
+# ################################################################
+#                       _check
+# ################################################################
+
+
+def _check_plot(
+    proj=None,
+    key=None,
+    tit=None,
+    cmap=None,
+    dvminmax=None,
+    # hor
+    marker=None,
+    markersize=None,
+    # unused
+    **kwdargs,
+):
+
+    # ---------------
+    # tit
+    # ---------------
+
+    if tit is not False:
+        if proj == 'cross':
+            titdef = (
+                f"geometrical coverage of diag '{key}' "
+                "- integrated cross-section"
+            )
+        else:
+            titdef = (
+                f"geometrical coverage of diag '{key}' "
+                "- integrated vertically"
+            )
+        tit = ds._generic_check._check_var(
+            tit, 'tit',
+            types=str,
+            default=titdef,
+        )
+
+    # ---------------
+    # cmap
+    # ---------------
+
+    if cmap is None:
+        cmap = plt.cm.viridis   # Greys
+
+    # -------------
+    # markers
+    # -------------
+
+    if marker is None:
+        marker = 's'
+
+    if markersize is None:
+        markersize = 8
+
+    # ---------------
+    # dvminmax
+    # ---------------
+
+    # -------
+    # default
+
+    if dvminmax is None:
+        dvminmax = {}
+
+    # ------------
+    # sanity check
+
+    lk = ['ndet', 'dV', 'sang']
+    c0 = (
+        isinstance(dvminmax, dict)
+        and all([
+            isinstance(v0, dict)
+            and k0 in lk
+            and (v0.get('min') is None or np.isscalar(v0['min']))
+            and (v0.get('max') is None or np.isscalar(v0['max']))
+            for k0, v0 in dvminmax.items()
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg 'dvminmax' must be a dict with a "
+            "{'min': float, 'max': float} subdict for each keys:\n"
+            f"\t- 'ndet': {'min': float, 'max': float}\n"
+            f"\t- 'dV': {'min': float, 'max': float}\n"
+            f"\t- 'sang': {'min': float, 'max': float}\n"
+            f"Provided:\n{dvminmax}\n"
+        )
+        raise Exception(msg)
+
+    # ----------
+    # completing
+
+    for k0 in lk:
+        if dvminmax.get(k0) is None:
+            dvminmax[k0] = {}
+        dvminmax[k0]['min'] = dvminmax[k0].get('min', 0.)
+        dvminmax[k0]['max'] = dvminmax[k0].get('max')
+
+    return (
+        tit,
+        cmap,
+        marker,
+        markersize,
+        dvminmax,
+    )

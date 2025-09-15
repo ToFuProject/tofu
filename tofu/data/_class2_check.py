@@ -34,7 +34,7 @@ def _start_vect(ax=None, ay=None, az=None, name=None):
             ls = [f"\t- {name}{k1}: {v1.shape}" for k1, v1 in dk.items()]
             msg = (
                 f"Args {name}_x, {name}_y, {name}_z must have same shape!\n"
-                "\n".join(ls)
+                + "\n".join(ls)
             )
             raise Exception(msg)
 

@@ -48,7 +48,7 @@ def main():
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    # _add_spectrometer(coll, conf, vos=True)   # , crystals=['c0'])
+    _add_spectrometer(coll, conf, vos=True)   # , crystals=['c0'])
 
     # add spectro-like without crystal
     # _add_spectrometer_like(coll, config=conf, key_diag='d02')
@@ -102,11 +102,11 @@ def _create_plasma():
     )
 
     # coll.add_mesh_2d_rect(
-        # key='m1',
-        # res=0.03,
-        # crop_poly=conf,
-        # units='m',
-        # deg=0,
+    # key='m1',
+    # res=0.03,
+    # crop_poly=conf,
+    # units='m',
+    # deg=0,
     # )
 
     # --------
@@ -141,10 +141,12 @@ def _create_plasma():
     # rho2d
     rho2d = (
         (1 + 0.1*np.cos(t[:, None, None]))
-        * (1. - np.exp(
-            -(apR[None, :, None]-2.5)**2/0.4**2
-            -(apZ[None, None, :]-0)**2/0.6**2
-        ))
+        * (
+            1. - np.exp(
+                - (apR[None, :, None] - 2.5)**2 / 0.4**2
+                - (apZ[None, None, :] - 0)**2 / 0.6**2
+            )
+        )
     )
 
     coll.add_data(
@@ -229,26 +231,26 @@ def _add_broadband(
     # add 2 pinhole cameras
 
     # coll.add_camera_pinhole(
-        # key='bb0',
-        # key_pinhole=None,
-        # key_diag=key_diag,
-        # cam_type='1d',
-        # R=3.3,
-        # z=-0.6,
-        # phi=0,
-        # theta=3.*np.pi/4,
-        # dphi=np.pi/10,
-        # tilt=np.pi/2,
-        # focal=0.1,
-        # pix_nb=10,
-        # pix_size=3e-3,
-        # pix_spacing=5e-3,
-        # pinhole_radius=None,
-        # pinhole_size=[2e-3, 1e-3],
-        # reflections_nb=0,
-        # reflections_type=None,
-        # compute=False,
-        # config=conf,
+    # key='bb0',
+    # key_pinhole=None,
+    # key_diag=key_diag,
+    # cam_type='1d',
+    # R=3.3,
+    # z=-0.6,
+    # phi=0,
+    # theta=3.*np.pi/4,
+    # dphi=np.pi/10,
+    # tilt=np.pi/2,
+    # focal=0.1,
+    # pix_nb=10,
+    # pix_size=3e-3,
+    # pix_spacing=5e-3,
+    # pinhole_radius=None,
+    # pinhole_size=[2e-3, 1e-3],
+    # reflections_nb=0,
+    # reflections_type=None,
+    # compute=False,
+    # config=conf,
     # )
 
     coll.add_camera_pinhole(
@@ -281,6 +283,7 @@ def _add_broadband(
             res_RZ=0.005,
             res_phi=0.01,
             visibility=False,
+            replace_poly=True,
             store=True,
         )
 
@@ -347,6 +350,7 @@ def _add_collimator(
 
     return
 
+
 def _add_2d(
     coll=None,
     key_diag=None,
@@ -388,6 +392,7 @@ def _add_2d(
             res_phi=0.02,
             visibility=False,
             store=True,
+            replace_poly=True,
         )
 
 
@@ -570,6 +575,8 @@ def _add_spectrometer(
         if k0 != 'c0':
             continue
 
+        rad = 100e-6 if v0['configuration'] == 'pinhole' else None
+
         loptics = coll.get_crystal_ideal_configuration(
             key=k0,
             configuration=v0['configuration'],
@@ -584,7 +591,7 @@ def _add_spectrometer(
             store=True,
             key_cam=f'{k0}_cam',
             aperture_dimensions=[100e-6, 1e-2],
-            pinhole_radius=100e-6 if v0['configuration'] == 'pinhole' else None,
+            pinhole_radius=rad,
             cam_pixels_nb=[21, 11],
             # cam_pixels_nb=[41, 41],
             # returnas
@@ -660,12 +667,12 @@ def _crystals(coll=None, crystals=None):
     if 'c0' in crystals:
 
         # load rocking curve
-        pfe = os.path.join(_PATH_HERE, 'Ge242.txt')
-        out = np.loadtxt(pfe)
-        drock = {
-            'angle_rel': out[:, 0],
-            'power_ratio': out[:, 1],
-        }
+        # pfe = os.path.join(_PATH_HERE, 'Ge242.txt')
+        # out = np.loadtxt(pfe)
+        # drock = {
+        # 'angle_rel': out[:, 0],
+        # 'power_ratio': out[:, 1],
+        # }
 
         size = 1.e-2
         rc = 1.03
@@ -684,7 +691,7 @@ def _crystals(coll=None, crystals=None):
             'dmat': {
                 'material': 'Germanium',
                 'name': 'Ge224',
-                'miller': np.r_[2,2,4],
+                'miller': np.r_[2, 2, 4],
                 # 'd_hkl': 0.944e-10 / (2*np.sin(24.2*np.pi/180.)),
                 'target': {'lamb': 0.944e-10},
             },
