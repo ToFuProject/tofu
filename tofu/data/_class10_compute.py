@@ -854,47 +854,7 @@ def _compute_inv_loop(
                 sol[ii, :] = sol[ii, :] + dcon['offset'][ic, :]
 
         # safety check
-        if np.isnan(chi2n[ii]) or (regul and np.isnan(regularity[ii])):
-            lk1 = [
-                (sol0[indbsi], 'sol0[indbsi]'),
-                (Tni, 'Tni'),
-                (TTni, 'TTni'),
-                (Tyni, 'Tyni'),
-                (Ri, 'Ri'),
-                (yni, 'yni'),
-            ]
-            lstr = []
-            for (k1, v1) in lk1:
-                if scpsp.issparse(k1):
-                    k1 = (
-                        f"isnan {np.any(np.isnan(k1.toarray()))}   "
-                        f"isinf {np.any(np.isinf(k1.toarray()))}"
-                    )
-                elif isinstance(k1, np.ndarray):
-                    k1 = (
-                        f"isnan {np.any(np.isnan(k1))}   "
-                        f"isinf {np.any(np.isinf(k1))}"
-                    )
-                else:
-                    k1 = type(k1)
-                lstr.append(f"\t- {v1}: {k1}")
-            msg = (
-                "Non-finite inversion step (post-check):\n"
-                + "\n".join(lstr)
-                + f"\n\t- ii: {ii} / {nt-1}\n"
-                + f"\t- chi2n[ii]: {chi2n[ii]}\n"
-                + f"\t- regularity[ii]: {regularity[ii]}\n"
-                + f"\t- mu0: {mu0}\n"
-                + f"\t- nbs: {nbs}\n"
-                + f"\t- nchan: {nchan}\n"
-                + f"\t- regul: {regul}\n"
-                + f"\t- algo: {dalgo['name']}\n"
-                + f"\t- pos: {positive}\n"
-                + f"\t- chain: {chain}\n"
-                + f"\t- method: {method}\n"
-                + f"\t- dcon is not None: {dcon is not None}\n"
-            )
-            raise Exception(msg)
+        _safety_check_nan(**locals())
 
         # post
         if chain:
@@ -908,6 +868,71 @@ def _compute_inv_loop(
                 f"niter = {niter[ii]}"
             )
             print(msg, end='\n', flush=True)
+
+    return
+
+
+def _safety_check_nan(
+    **kwdargs,
+):
+
+    # ---------------
+    # condition: nan
+    # --------------
+
+    c0 = (
+        np.isnan(kwdargs['chi2n'][kwdargs['ii']])
+        or (kwdargs['regul'] and np.isnan(kwdargs['regularity']))
+    )
+
+    # ---------------
+    # Error msg
+    # --------------
+
+    if c0:
+        lk1 = ['sol0[indbsi]', 'Tni', 'TTni', 'Tyni', 'Ri', 'yni']
+        lstr = []
+        for (k1, v1) in lk1:
+
+            # val
+            if k1.startswith('sol0'):
+                val = kwdargs['sol0'][kwdargs['indbsi']]
+            else:
+                val = kwdargs[k1]
+
+            # sparse
+            if scpsp.issparse(val):
+                val = val.toarray()
+
+            # string: nan or inf
+            if isinstance(k1, np.ndarray):
+                ss = (
+                    f"isnan {np.any(np.isnan(val))}   "
+                    f"isinf {np.any(np.isinf(val))}"
+                )
+            else:
+                ss = type(val)
+            lstr.append(f"\t- {k1}: {ss}")
+
+        # aggregate into msg
+        ii = kwdargs['ii']
+        msg = (
+            "Non-finite inversion step (post-check):\n"
+            + "\n".join(lstr)
+            + f"\n\t- ii: {ii} / {kwdargs['nt']-1}\n"
+            + f"\t- chi2n[ii]: {kwdargs['chi2n'][ii]}\n"
+            + f"\t- regularity[ii]: {kwdargs['regularity'][ii]}\n"
+            + f"\t- mu0: {kwdargs['mu0']}\n"
+            + f"\t- nbs: {kwdargs['nbs']}\n"
+            + f"\t- nchan: {kwdargs['nchan']}\n"
+            + f"\t- regul: {kwdargs['regul']}\n"
+            + f"\t- algo: {kwdargs['dalgo']['name']}\n"
+            + f"\t- pos: {kwdargs['positive']}\n"
+            + f"\t- chain: {kwdargs['chain']}\n"
+            + f"\t- method: {kwdargs['method']}\n"
+            + f"\t- dcon is not None: {kwdargs['dcon'] is not None}\n"
+        )
+        raise Exception(msg)
 
     return
 
