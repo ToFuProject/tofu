@@ -456,15 +456,16 @@ def inv_linear_augTikho_sparse(
             "Nan chi2n in algo0:\n"
             f"\t- res2: {res2}\n"
             f"\t- nchan: {nchan}\n"
-            f"\t- TTn: {np.any(np.isnan(TTn))}\n"
+            f"\t- TTn: {np.any(np.isnan(np.asarray(TTn)))}\n"
             f"\t- mu0: {mu0}\n"
-            f"\t- R: {np.any(np.isnan(R))}\n"
-            f"\t- Tyn: {np.any(np.isnan(Tyn))}\n"
-            f"\t- sol0: {np.any(np.isnan(sol0))}\n"
+            f"\t- R: {np.any(np.isnan(np.asarray(R)))}\n"
+            f"\t- Tyn: {np.any(np.isnan(np.asarray(Tyn)))}\n"
+            f"\t- sol0: {np.any(np.isnan(np.asarray(sol0)))}\n"
             f"\t- maxiter: {maxiter}\n"
             f"\t- tol: {tol}\n"
             f"\t- maxiter: {maxiter}\n"
             f"\t- itconv: {itconv}\n"
+            f"\t- sol: {sol}\n"
         )
         raise Exception(msg)
 
