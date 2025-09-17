@@ -2,15 +2,32 @@
 
 import numpy as np
 import scipy.constants as scpct
+import scipy.stats as scpstats
+import scipy.integrate as scpinteg
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import datastock as ds
 
 
-from ._distribution import get_maxwellian
+from . import _distribution
 
 
 plt.rcParams['text.usetex'] = True
+
+
+# ############################################
+# ############################################
+#        Default
+# ############################################
+
+
+_E_MAX_EV = 1e6
+_E_EV = np.logspace(0, np.log10(_E_MAX_EV), 1000)
+_PITCH = np.linspace(-1, 1, 51)
+
+_V_MAX_MS = np.sqrt(2.*_E_MAX_EV * scpct.e / scpct.m_e)
+_V_PAR_MS = np.linspace(-1, 1, 101) * _V_MAX_MS
+_V_PERP_MS = np.linspace(1e-9, 1, 51) * _V_MAX_MS
 
 
 # ############################################
@@ -25,7 +42,10 @@ def plot_maxwellian(
     ne_m3=None,
     jp_Am2=None,
     # coordinates
-    E_max_eV=None,
+    E_eV=None,
+    pitch=None,
+    v_par_ms=None,
+    v_perp_ms=None,
     # plotting
     dax=None,
     fontsize=None,
@@ -38,7 +58,8 @@ def plot_maxwellian(
 
     (
         Te_eV, ne_m3, jp_Am2,
-        E_max_eV,
+        E_eV, pitch,
+        v_par_ms, v_perp_ms,
         dprop,
     ) = _check(
         # plasma paremeters
@@ -46,28 +67,18 @@ def plot_maxwellian(
         ne_m3=ne_m3,
         jp_Am2=jp_Am2,
         # coordinates
-        E_max_eV=E_max_eV,
+        E_eV=E_eV,
+        pitch=pitch,
+        v_par_ms=v_par_ms,
+        v_perp_ms=v_perp_ms,
     )
-
-    # ----------------
-    # Prepare data
-    # ----------------
-
-    # E_eV, pitch
-    E_eV = np.linspace(0, E_max_eV, 1000)
-    pitch = np.linspace(-1, 1, 100)
-
-    # Velocity
-    me = scpct.m_e
-    v_max_ms = np.sqrt(2.*E_max_eV * scpct.e / me)
-    v_par_ms = v_max_ms * np.linspace(-1, 1, 1000)
-    v_perp_ms = v_max_ms * np.linspace(0, 1, 100)
 
     # ----------------
     # Compute
     # ----------------
 
-    dout_v = get_maxwellian(
+    # f2D_vpar_vperp
+    dout_v = _distribution.get_maxwellian(
         # plasma paremeters
         Te_eV=Te_eV,
         ne_m3=ne_m3,
@@ -77,9 +88,12 @@ def plot_maxwellian(
         v_par_ms=v_par_ms,
         # return as
         returnas=dict,
+        # version
+        version='f2d_cart_vpar_vperp',
     )
 
-    dout_E = get_maxwellian(
+    # f2D_E_pitch
+    dout_E = _distribution.get_maxwellian(
         # plasma paremeters
         Te_eV=Te_eV,
         ne_m3=ne_m3,
@@ -89,23 +103,70 @@ def plot_maxwellian(
         pitch=pitch,
         # return as
         returnas=dict,
+        # version
+        version='f2d_E_pitch',
     )
+
+    # f1D_E
+    dout_E_1d = _distribution.get_maxwellian(
+        # plasma paremeters
+        Te_eV=Te_eV,
+        ne_m3=ne_m3,
+        jp_Am2=jp_Am2,
+        # coordinate: energy
+        E_eV=E_eV,
+        # return as
+        returnas=dict,
+        version='f1d_E',
+    )
+
+    # ----------------
+    # Derive 1d
+    # ----------------
+
+    # E
+    dist_1d_E = scpinteg.trapezoid(
+        dout_E['dist']['data'],
+        x=pitch,
+        axis=-1,
+    )
+
+    # v
+    v_edge = 0.5*(v_perp_ms[1:] + v_perp_ms[:-1])
+    dv = v_perp_ms[1] - v_perp_ms[0]
+    v_edge = np.r_[v_edge[0] - dv, v_edge, v_edge[-1] + dv]
+    shape = dout_E['dist']['data'].shape[:-2] + (v_edge.size-1,)
+    dist_1d_v = np.full(shape, np.nan)
+    for ii, ind in enumerate(np.ndindex(shape[:-1])):
+        sli0 = ind + (slice(None),)
+        sli1 = ind + (slice(None), slice(None))
+        dist_1d_v[sli0] = scpstats.binned_statistic(
+            np.sqrt(v_par_ms[:, None]**2 + v_perp_ms[None, :]**2).ravel(),
+            dout_v['dist']['data'][sli1].ravel(),
+            statistic='sum',
+            bins=v_edge,
+        ).statistic
 
     # ----------------
     # plot
     # ----------------
 
     dax = _plot(
+        # plasma
+        Te_eV=Te_eV,
+        # coords
         E_eV=E_eV,
         pitch=pitch,
         v_par_ms=v_par_ms,
         v_perp_ms=v_perp_ms,
-        # parameters
-        E_max_eV=E_max_eV,
-        v_max_ms=v_max_ms,
         # distribution
         dout_E=dout_E,
+        dout_E_1d=dout_E_1d,
         dout_v=dout_v,
+        # 1d
+        v_edge=v_edge,
+        dist_1d_E=dist_1d_E,
+        dist_1d_v=dist_1d_v,
         # props
         dprop=dprop,
         # plotting
@@ -129,7 +190,10 @@ def _check(
     ne_m3=None,
     jp_Am2=None,
     # coordinates
-    E_max_eV=None,
+    E_eV=None,
+    pitch=None,
+    v_par_ms=None,
+    v_perp_ms=None,
 ):
 
     # -----------------
@@ -158,19 +222,52 @@ def _check(
         }
 
     # -----------------
-    # E_max_eV
+    # E_eV, pitch
     # -----------------
 
-    E_max_eV = ds._generic_check._check_var(
-        E_max_eV, 'E_max_eV',
-        types=(float, int),
-        sign='>0',
-        default=50e3,
+    # E_eV
+    if E_eV is None:
+        E_eV = _E_EV
+    E_eV = ds._generic_check._check_flat1darray(
+        E_eV, 'E_eV',
+        dtype=float,
+        sign='>=0',
+    )
+
+    # pitch
+    if pitch is None:
+        pitch = _PITCH
+    pitch = ds._generic_check._check_flat1darray(
+        pitch, 'pitch',
+        dtype=float,
+        sign=['>=-1', '<=1'],
+    )
+
+    # -----------------
+    # v_par, v_perp
+    # -----------------
+
+    # v_par_ms
+    if v_par_ms is None:
+        v_par_ms = _V_PAR_MS
+    v_par_ms = ds._generic_check._check_flat1darray(
+        v_par_ms, 'v_par_ms',
+        dtype=float,
+    )
+
+    # pitch
+    if v_perp_ms is None:
+        v_perp_ms = _V_PERP_MS
+    v_perp_ms = ds._generic_check._check_flat1darray(
+        v_perp_ms, 'v_perp_ms',
+        dtype=float,
+        sign='>=0',
     )
 
     return (
         Te_eV, ne_m3, jp_Am2,
-        E_max_eV,
+        E_eV, pitch,
+        v_par_ms, v_perp_ms,
         dprop,
     )
 
@@ -182,16 +279,21 @@ def _check(
 
 
 def _plot(
+    # plasma
+    Te_eV=None,
+    # coords
     E_eV=None,
     pitch=None,
     v_par_ms=None,
     v_perp_ms=None,
-    # parameters
-    E_max_eV=None,
-    v_max_ms=None,
     # distribution
     dout_E=None,
+    dout_E_1d=None,
     dout_v=None,
+    # 1d
+    v_edge=None,
+    dist_1d_E=None,
+    dist_1d_v=None,
     # props
     dprop=None,
     # plotting
@@ -223,24 +325,53 @@ def _plot(
         shape = dout_E['dist']['data'].shape[:-2]
         for ii, ind in enumerate(np.ndindex(shape)):
             sli = ind + (slice(None), slice(None))
+            val = dout_E['dist']['data'][sli]
+            levels = _get_levels(val)
+
             im = ax.contour(
                 E_eV*1e-3,
                 pitch,
-                np.log10(dout_E['dist']['data'][sli]).T,
-                levels=10,  # dout_E['dist']['levels'][ind],
+                val.T,
+                levels=levels,
                 colors=dprop[ind]['color'],
             )
 
-            plt.clabel(im, fmt=lambda vv: f"{10**vv:3.2e}", fontsize=fontsize)
+            plt.clabel(im, fmt='%1.2e', fontsize=fontsize)
 
-        ax.set_xlim(0, E_max_eV*1e-3)
         ax.set_ylim(-1, 1)
 
     # ----------------
-    # plot vs velocities
+    # plot vs velocities - 2D
     # ----------------
 
     kax = '(v_par, v_perp) - map'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        shape = dout_v['dist']['data'].shape[:-2]
+        for ii, ind in enumerate(np.ndindex(shape)):
+            sli = ind + (slice(None), slice(None))
+            val = dout_v['dist']['data'][sli]
+            levels = _get_levels(val)
+
+            im = ax.contour(
+                v_par_ms,
+                v_perp_ms,
+                val.T,
+                levels=levels,
+                colors=dprop[ind]['color'],
+            )
+
+            plt.clabel(im, fmt='%1.2e', fontsize=fontsize)
+
+        ax.axvline(0, c='k', ls='--')
+        ax.set_ylim(bottom=0)
+
+    # ----------------
+    # plot vs velocities - 3D
+    # ----------------
+
+    kax = '(v_par, v_perp)3D - map'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
@@ -257,10 +388,76 @@ def _plot(
 
             plt.clabel(im)
 
-        ax.set_xlim(-v_max_ms, v_max_ms)
-        ax.set_ylim(0, v_max_ms)
+        ax.axvline(0, c='k', ls='--')
+        ax.set_ylim(bottom=0)
+
+    # ----------------
+    # plot vs E 1D
+    # ----------------
+
+    kax = 'E1d'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        shape = dout_E['dist']['data'].shape[:-2]
+        for ii, ind in enumerate(np.ndindex(shape)):
+            sli = ind + (slice(None),)
+            ax.plot(
+                E_eV*1e-3,
+                dout_E_1d['dist']['data'][sli],
+                color=dprop[ind]['color'],
+                ls='-',
+            )
+
+            if Te_eV.size > 1:
+                ax.axvline(Te_eV[ind]*1e-3, c=dprop[ind]['color'], ls='--')
+        if Te_eV.size == 1:
+            ax.axvline(Te_eV*1e-3, c='k', ls='--')
+
+        ax.set_xlim(left=0)
+        ax.set_ylim(bottom=0)
+
+    # ----------------
+    # plot vs v 1D
+    # ----------------
+
+    kax = 'v1d'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        shape = dout_v['dist']['data'].shape[:-2]
+        for ii, ind in enumerate(np.ndindex(shape)):
+            sli = ind + (slice(None),)
+            ax.stairs(
+                dist_1d_v[sli],
+                edges=v_edge*1e-3,
+                fill=False,
+                baseline=0,
+                color=dprop[ind]['color'],
+            )
 
     return dax
+
+
+# #####################################################
+# #####################################################
+#               levels
+# #####################################################
+
+
+def _get_levels(val):
+
+    vmax = np.max(val)
+    vmin = np.min(val[val > 0.])
+    vmax_log10 = np.log10(vmax)
+    vmin_log10 = np.log10(vmin)
+
+    nn = int(np.ceil((vmax_log10 - vmin_log10) / 10))
+    levels = np.arange(np.floor(vmin_log10), np.ceil(vmax_log10)+1, nn)
+    levels = 10**(levels)
+    levels = np.unique(np.r_[levels, 0.99*vmax])
+
+    return levels
 
 
 # #####################################################
@@ -289,38 +486,10 @@ def _get_dax(
     # prepare data
     # --------------
 
-    str_fE = (
-        r"\begin{eqnarray*}"
-        r"dn_e = f^{2D}_{E, p}(E, p) dEdp\\"
-        r"n_e \sqrt{\frac{E}{\pi T^2_{\perp}T_{//}}}"
-        r"\exp\left("
-        r"-\frac{\left(p\sqrt{E} - \sqrt{m_e/2}v_{d//}\right)^2}{T_{//}}"
-        r"- \frac{(1-p^2)E}{T_{\perp}}"
-        r"\right)"
-        r"\end{eqnarray*}"
-    )
-
-    str_fv = (
-        r"\begin{eqnarray*}[c]"
-        r"dn_e = f^{2D}_{v_{//}, v_{\perp}}(v_{//}, v_{\perp}) dv_{//}dv_{\perp}\\"
-        r"\frac{2n_e v_{\perp}}{\sqrt{\pi} v_{T//} v^2_{T\perp}}"
-        r"\exp\left("
-        r"-\frac{\left(v_{//} - v_{d//}\right)^2}{v^2_{T//}}"
-        r"-\frac{v^2_{\perp}}{v^2_{T\perp}}"
-        r"\right)"
-        r"\end{eqnarray*}"
-    )
-
-    str_fv3D = (
-        r"\begin{eqnarray*}[c]"
-        r"dn_e = f^{2D}_{v_{//}, v_{\perp}}(v_{//}, v_{\perp}) dv_{//}dv_{\perp}\\"
-        r"\frac{2n_e v_{\perp}}{\sqrt{\pi} v_{T//} v^2_{T\perp}}"
-        r"\exp\left("
-        r"-\frac{\left(v_{//} - v_{d//}\right)^2}{v^2_{T//}}"
-        r"-\frac{v^2_{\perp}}{v^2_{T\perp}}"
-        r"\right)"
-        r"\end{eqnarray*}"
-    )
+    str_fE2d = _distribution._DFUNC['f2d_E_pitch']['latex']
+    str_fE1d = _distribution._DFUNC['f1d_E']['latex']
+    str_fv2d = _distribution._DFUNC['f2d_cart_vpar_vperp']['latex']
+    str_fv3d = _distribution._DFUNC['f3d_cart_vpar_vperp']['latex']
 
     # --------------
     # prepare axes
@@ -334,11 +503,11 @@ def _get_dax(
     if dmargin is None:
         dmargin = {
             'left': 0.08, 'right': 0.95,
-            'bottom': 0.06, 'top': 0.80,
-            'wspace': 0.2, 'hspace': 0.30,
+            'bottom': 0.06, 'top': 0.83,
+            'wspace': 0.2, 'hspace': 0.40,
         }
 
-    fig = plt.figure(figsize=(15, 12))
+    fig = plt.figure(figsize=(18, 14))
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
     gs = gridspec.GridSpec(ncols=3, nrows=2, **dmargin)
@@ -363,58 +532,109 @@ def _get_dax(
         fontweight='bold',
     )
     ax.set_title(
-        str_fE,
+        str_fE2d,
         size=fontsize,
         fontweight='bold',
     )
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
     # store
-    dax['(E, pitch) - map'] = {'handle': ax, 'type': 'isolines'}
+    dax['(E, pitch) - map'] = {'handle': ax, 'type': 'Ep'}
 
     # --------------
     # (v_par, v_perp) - map
 
-    ax = fig.add_subplot(gs[0, 1])
+    ax = fig.add_subplot(gs[0, 1], aspect='equal', adjustable='datalim')
     ax.set_xlabel(
-        "v_par (m/s)",
+        r"$v_{//}$ (m/s)",
         size=fontsize,
         fontweight='bold',
     )
     ax.set_ylabel(
-        "v_perp (m/s)",
+        r"$v_{\perp}$ (m/s)",
         size=fontsize,
         fontweight='bold',
     )
     ax.set_title(
-        str_fv,
+        str_fv2d,
         size=fontsize,
         fontweight='bold',
     )
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
     # store
-    dax['(v_par, v_perp) - map'] = {'handle': ax, 'type': 'isolines'}
+    dax['(v_par, v_perp) - map'] = {'handle': ax, 'type': 'vv2d'}
 
     # --------------
     # (v_par, v_perp)3D - map
 
-    ax = fig.add_subplot(gs[0, 2])
+    ax = fig.add_subplot(gs[0, 2], aspect='equal', adjustable='datalim')
     ax.set_xlabel(
-        "v_par (m/s)",
+        r"$v_{//}$ (m/s)",
         size=fontsize,
         fontweight='bold',
     )
     ax.set_ylabel(
-        "v_perp (m/s)",
+        r"$v_{\perp}$ (m/s)",
         size=fontsize,
         fontweight='bold',
     )
     ax.set_title(
-        str_fv3D,
+        str_fv3d,
         size=fontsize,
         fontweight='bold',
     )
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
     # store
-    dax['(v_par, v_perp)3D - map'] = {'handle': ax, 'type': 'isolines'}
+    dax['(v_par, v_perp)3D - map'] = {'handle': ax, 'type': 'vv3d'}
+
+    # --------------
+    # E1d
+
+    ax = fig.add_subplot(gs[1, 0], xscale='linear', yscale='linear')
+    ax.set_xlabel(
+        "E (keV)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(
+        "sum",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        str_fE1d,
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+
+    # store
+    dax['E1d'] = {'handle': ax, 'type': 'Ep'}
+
+    # --------------
+    # v1d
+
+    ax = fig.add_subplot(gs[1, 1], xscale='log', yscale='log')
+    ax.set_xlabel(
+        "v (m/s)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(
+        "sum",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        '',   # str_fE,
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+
+    # store
+    dax['v1d'] = {'handle': ax, 'type': 'Ep'}
 
     return dax

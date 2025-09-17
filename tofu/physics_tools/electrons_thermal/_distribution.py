@@ -27,6 +27,8 @@ def get_maxwellian(
     # coordinate: energy
     E_eV=None,
     pitch=None,
+    # version
+    version=None,
     # return as
     returnas=None,
     key=None,
@@ -48,7 +50,7 @@ def get_maxwellian(
     # check inputs
     # ---------------
 
-    dinputs, dcoord, ref = _check(**locals())
+    dinputs, dcoord, ref, version = _check(**locals())
 
     # -------------------
     # 1d Maxwellian vs p_perp and p_par
@@ -61,6 +63,8 @@ def get_maxwellian(
         # coord
         dcoord=dcoord,
         ref=ref,
+        # version
+        version=version,
     )
 
     return ddata
@@ -83,6 +87,8 @@ def _check(
     # coordinate: energy
     E_eV=None,
     pitch=None,
+    # version
+    version=None,
     # return as
     returnas=None,
     key=None,
@@ -216,6 +222,7 @@ def _check(
     lc = [
         v_par_ms is not None and v_perp_ms is not None,
         E_eV is not None and pitch is not None,
+        E_eV is not None and pitch is None,
     ]
     if np.sum(lc) != 1:
         lstr = [
@@ -227,6 +234,7 @@ def _check(
             "For distribution coordinates, please provide either (xor):\n"
             "\t- velocities: v_par_ms and v_perp_ms\n"
             "\t- Energy-pitch: E_eV and pitch\n"
+            "\t- Energy alone: E_eV\n"
             "Provided:\n"
             + "\n".join(lstr)
         )
@@ -242,21 +250,28 @@ def _check(
             'v_perp_ms': v_perp_ms,
         }
 
-    else:
+    elif lc[1]:
         dcoords = {
             'name': '(E_eV, pitch)',
             'E_eV': E_eV,
             'pitch': pitch,
         }
 
+    elif lc[2]:
+        dcoords = {
+            'name': '(E_eV,)',
+            'E_eV': E_eV,
+        }
+
     # -------------
     # extract
 
-    lname = dcoords['name'].strip('(').strip(')').split(', ')
+    lname = dcoords['name'][1:-1].split(',')
+    lname = [nn.strip(' ') for nn in lname if len(nn) > 0]
     if coll is not None:
         lk = [kk for kk in dcoords.keys() if kk != 'name']
         dref = _extract(dcoords, lk, coll)
-        ref_coords = dref[lname[0]] + dref[lname[1]]
+        ref_coords = tuple([dref[nn] for nn in lname])
 
     # -------------------
     # check broadcastable
@@ -271,27 +286,51 @@ def _check(
             dinputs['Te_eV'],
             dinputs['ne_m3'],
             dinputs['jp_Am2'],
-            dcoords[lname[0]],
-            dcoords[lname[1]],
+            *[dcoords[nn] for nn in lname],
         )
     except Exception:
         for k0, v0 in dinputs.items():
-            dinputs[k0] = v0[..., None, None]
+            axis = tuple(len(shapef) + np.arange(len(lname)))
+            dinputs[k0] = np.expand_dims(v0, axis)
 
         for ii, nn in enumerate(lname):
-            sh = (1,)*len(shapef) + ((-1, 1) if ii == 0 else (1, -1))
-            dcoords[nn] = dcoords[nn].reshape(sh)
+            axis = tuple(np.arange(len(shapef)))
+            if len(lname) > 1:
+                axis += (-1 - ii,)
+            dcoords[nn] = np.expand_dims(dcoords[nn], axis)
 
     # double check
     _ = np.broadcast_arrays(
         dinputs['Te_eV'],
         dinputs['ne_m3'],
         dinputs['jp_Am2'],
-        dcoords[lname[0]],
-        dcoords[lname[1]],
+        *[dcoords[nn] for nn in lname],
     )
 
-    return dinputs, dcoords, ref
+    # ----------------
+    # version
+    # ----------------
+
+    if dcoords.get('E_eV') is not None:
+        lok = ['f1d_E']
+        if dcoords.get('pitch') is not None:
+            lok.append('f2d_E_pitch')
+    else:
+        lok = [
+            'f3d_cart_vpar_vperp',
+            'f2d_cyl_vpar_vperp',
+            'f2d_cart_vpar_vperp',
+        ]
+
+    vdef = lok[-1]
+    version = ds._generic_check._check_var(
+        version, 'version',
+        types=str,
+        allowed=lok,
+        default=vdef,
+    )
+
+    return dinputs, dcoords, ref, version
 
 
 def _extract(din, lk, coll):
@@ -331,6 +370,8 @@ def _get_maxwellian_2d(
     # coord
     dcoord=None,
     ref=None,
+    # version
+    version=None,
 ):
 
     # ---------------
@@ -351,23 +392,19 @@ def _get_maxwellian_2d(
     # Maxwell - non-relativistic
     # ---------------
 
-    if dcoord['name'] == '(v_par_ms, v_perp_ms)':
-        dist, units = f2d_cart_vperp_vpar_norm(
-            v_par_ms=dcoord['v_par_ms'],
-            v_perp_ms=dcoord['v_perp_ms'],
-            vt_par_ms=vt_ms,
-            vt_perp_ms=vt_ms,
-            v0_par_ms=v0_par_ms,
-        )
-
-    else:
-        dist, units = f2d_E_pitch_norm(
-            E_eV=dcoord['E_eV'],
-            pitch=dcoord['pitch'],
-            kbT_par_J=kbT_J,
-            kbT_perp_J=kbT_J,
-            v0_par_ms=v0_par_ms,
-        )
+    dist, units = _DFUNC[version]['func'](
+        # coords
+        v_par_ms=dcoord.get('v_par_ms'),
+        v_perp_ms=dcoord.get('v_perp_ms'),
+        E_eV=dcoord.get('E_eV'),
+        pitch=dcoord.get('pitch'),
+        # parameters
+        vt_par_ms=vt_ms,
+        vt_perp_ms=vt_ms,
+        kbT_par_J=kbT_J,
+        kbT_perp_J=kbT_J,
+        v0_par_ms=v0_par_ms,
+    )
 
     # ---------------
     # scale
@@ -399,12 +436,14 @@ def _get_maxwellian_2d(
 # #####################################################
 
 
-def f3d_cart_vperp_vpar_norm(
+def f3d_cart_vpar_vperp_norm(
     v_par_ms=None,
     v_perp_ms=None,
     vt_par_ms=None,
     vt_perp_ms=None,
     v0_par_ms=None,
+    # unused
+    **kwdargs,
 ):
     term0 = 1. / (np.pi**1.5 * vt_par_ms * vt_perp_ms**2)
     term_par = (v_par_ms - v0_par_ms)**2 / vt_par_ms**2
@@ -415,14 +454,16 @@ def f3d_cart_vperp_vpar_norm(
     return dist, units
 
 
-def f3d_cyl_vperp_vpar_norm(
+def f3d_cyl_vpar_vperp_norm(
     v_par_ms=None,
     v_perp_ms=None,
     vt_par_ms=None,
     vt_perp_ms=None,
     v0_par_ms=None,
+    # unused
+    **kwdargs,
 ):
-    dist0, units0 = f3d_cart_vperp_vpar_norm(
+    dist0, units0 = f3d_cart_vpar_vperp_norm(
         v_par_ms,
         v_perp_ms,
         vt_par_ms,
@@ -434,14 +475,16 @@ def f3d_cyl_vperp_vpar_norm(
     return dist, units
 
 
-def f2d_cart_vperp_vpar_norm(
+def f2d_cart_vpar_vperp_norm(
     v_par_ms=None,
     v_perp_ms=None,
     vt_par_ms=None,
     vt_perp_ms=None,
     v0_par_ms=None,
+    # unused
+    **kwdargs,
 ):
-    dist0, units0 = f3d_cart_vperp_vpar_norm(
+    dist0, units0 = f3d_cart_vpar_vperp_norm(
         v_par_ms,
         v_perp_ms,
         vt_par_ms,
@@ -459,6 +502,8 @@ def f2d_E_pitch_norm(
     kbT_par_J=None,
     kbT_perp_J=None,
     v0_par_ms=None,
+    # unused
+    **kwdargs,
 ):
     me_kg = scpct.m_e
     qq = scpct.e
@@ -472,3 +517,129 @@ def f2d_E_pitch_norm(
     units = asunits.Unit('1/eV')
 
     return dist, units
+
+
+def f1d_E_norm(
+    E_eV=None,
+    kbT_par_J=None,
+    kbT_perp_J=None,
+    v0_par_ms=None,
+    # unused
+    **kwdargs,
+):
+
+    # ------------
+    # safety check
+    if not np.allclose(kbT_par_J, kbT_perp_J):
+        msg = "f1d_E_norm assumes kbT_par_J == kbT_perp_J"
+        raise Exception(msg)
+
+    me_kg = scpct.m_e
+    mev2 = 0.5*me_kg*v0_par_ms**2
+    qq = scpct.e
+    E_J = E_eV * qq
+
+    iok = v0_par_ms[..., 0] > 0.
+    shapef = np.broadcast_shapes(kbT_par_J.shape, v0_par_ms.shape, E_J.shape)
+    dist = np.full(shapef, np.nan)
+
+    if np.any(iok):
+        denom = (2. * np.pi * kbT_par_J[iok, :] * me_kg)
+        term0 = 1. / (v0_par_ms[iok, :] * np.sqrt(denom))
+        term_p = ((np.sqrt(E_J) + np.sqrt(mev2[iok, :]))**2 / kbT_par_J[iok, :])
+        term_m = ((np.sqrt(E_J) - np.sqrt(mev2[iok, :]))**2 / kbT_par_J[iok, :])
+
+        dist[iok, :] = qq * term0 * (np.exp(-term_m) - np.exp(-term_p))
+
+    if np.any(~iok):
+        i0 = ~iok
+        dist[i0, :] = 2. * f2d_E_pitch_norm(
+            E_eV=E_eV,
+            pitch=0.,
+            kbT_par_J=kbT_par_J[i0, :],
+            kbT_perp_J=kbT_perp_J[i0, :],
+            v0_par_ms=0.,
+        )[0]
+
+    units = asunits.Unit('1/eV')
+
+    return dist, units
+
+
+# #####################################################
+# #####################################################
+#           Dict of functions
+# #####################################################
+
+
+_DFUNC = {
+    'f3d_cart_vpar_vperp': {
+        'func': f3d_cart_vpar_vperp_norm,
+        'latex': (
+            r"$dn_e = $"
+            r"$f^{2D}_{v_{//}, v_{\perp}}(v_{//}, v_{\perp}) dv_{//}dv_{\perp}$"
+            + "\n" +
+            r"\begin{eqnarray*}"
+            r"\frac{n_e}{\pi^{3/2} v_{T//} v^2_{T\perp}}"
+            r"\exp\left("
+            r"-\frac{\left(v_{//} - v_{d//}\right)^2}{v^2_{T//}}"
+            r"-\frac{v^2_{\perp}}{v^2_{T\perp}}"
+            r"\right)"
+            r"\end{eqnarray*}"
+        ),
+    },
+    'f2d_cart_vpar_vperp': {
+        'func': f2d_cart_vpar_vperp_norm,
+        'latex': (
+            r"$dn_e = $"
+            r"$f^{2D}_{v_{//}, v_{\perp}}(v_{//}, v_{\perp}) dv_{//}dv_{\perp}$"
+            + "\n" +
+            r"\begin{eqnarray*}"
+            r"\frac{2n_e v_{\perp}}{\sqrt{\pi} v_{T//} v^2_{T\perp}}"
+            r"\exp\left("
+            r"-\frac{\left(v_{//} - v_{d//}\right)^2}{v^2_{T//}}"
+            r"-\frac{v^2_{\perp}}{v^2_{T\perp}}"
+            r"\right)"
+            r"\end{eqnarray*}"
+        ),
+    },
+    'f3d_cyl_vpar_vperp': {
+        'func': f3d_cyl_vpar_vperp_norm,
+        'latex': (
+        ),
+    },
+    'f2d_E_pitch': {
+        'func': f2d_E_pitch_norm,
+        'latex': (
+            r"$dn_e = f^{2D}_{E, p}(E, p) dEdp$"
+            + "\n" +
+            r"\begin{eqnarray*}"
+            r"n_e \sqrt{\frac{E}{\pi T^2_{\perp}T_{//}}}"
+            r"\exp\left("
+            r"-\frac{\left(p\sqrt{E} - \sqrt{m_e/2}v_{d//}\right)^2}{T_{//}}"
+            r"- \frac{(1-p^2)E}{T_{\perp}}"
+            r"\right)"
+            r"\end{eqnarray*}"
+        ),
+    },
+    'f1d_E': {
+        'func': f1d_E_norm,
+        'latex': (
+            "Assumes " + r"$T_{\perp} = T_{//} = T$"
+            + "\n" +
+            r"$dn_e = f^{1D}_{E}(E) dE$"
+            + "\n" +
+            r"\begin{eqnarray*}"
+            r"\frac{n_e}{v_{d//}\sqrt{\pi T 2m_e}}"
+            r"\left("
+            r"  \exp\left("
+            r"    \frac{\left(\sqrt{E} - \sqrt{m_e v_{d//}^2/2}\right)^2}{T}"
+            r"  \right)"
+            r"  - \exp\left("
+            r"    \frac{\left(\sqrt{E} + \sqrt{m_e v_{d//}^2/2}\right)^2}{T}"
+            r"  \right)"
+            r"\right)"
+            r"\end{eqnarray*}"
+        ),
+    },
+}
