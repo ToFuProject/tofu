@@ -1,6 +1,7 @@
 
 
 import os
+import copy
 
 
 import numpy as np
@@ -28,9 +29,57 @@ _E_E0_EV = 45e3
 _E_PH_EV = 40e3
 _THETA_PH = np.linspace(0, np.pi, 31)
 
+
 # Integration
 _NTHETAE = 31
 _NDPHI = 51
+
+
+# ANISOTROPY CASES
+_DCASES = {
+    0: {
+        'E_e0_eV': 20e3,
+        'E_ph_eV': 10e3,
+        'color': 'r',
+        'marker': '*',
+        'ms': 14,
+    },
+    1: {
+        'E_e0_eV': 100e3,
+        'E_ph_eV': 50e3,
+        'color': 'c',
+        'marker': '*',
+        'ms': 14,
+    },
+    2: {
+        'E_e0_eV': 100e3,
+        'E_ph_eV': 10e3,
+        'color': 'm',
+        'marker': '*',
+        'ms': 14,
+    },
+    3: {
+        'E_e0_eV': 1000e3,
+        'E_ph_eV': 10e3,
+        'color': (0.8, 0.8, 0),
+        'marker': '*',
+        'ms': 14,
+    },
+    4: {
+        'E_e0_eV': 10000e3,
+        'E_ph_eV': 10e3,
+        'color': (0., 0.8, 0.8),
+        'marker': '*',
+        'ms': 14,
+    },
+    5: {
+        'E_e0_eV': 1000e3,
+        'E_ph_eV': 50e3,
+        'color': (0.8, 0., 0.8),
+        'marker': '*',
+        'ms': 14,
+    },
+}
 
 
 # ####################################################
@@ -778,50 +827,7 @@ def _check_anisotropy(
     # dcases
     # ------------
 
-    ddef = {
-        0: {
-            'E_e0_eV': 20e3,
-            'E_ph_eV': 10e3,
-            'color': 'r',
-            'marker': '*',
-            'ms': 14,
-        },
-        1: {
-            'E_e0_eV': 100e3,
-            'E_ph_eV': 50e3,
-            'color': 'c',
-            'marker': '*',
-            'ms': 14,
-        },
-        2: {
-            'E_e0_eV': 100e3,
-            'E_ph_eV': 10e3,
-            'color': 'm',
-            'marker': '*',
-            'ms': 14,
-        },
-        3: {
-            'E_e0_eV': 1000e3,
-            'E_ph_eV': 10e3,
-            'color': (0.8, 0.8, 0),
-            'marker': '*',
-            'ms': 14,
-        },
-        4: {
-            'E_e0_eV': 10000e3,
-            'E_ph_eV': 10e3,
-            'color': (0., 0.8, 0.8),
-            'marker': '*',
-            'ms': 14,
-        },
-        5: {
-            'E_e0_eV': 1000e3,
-            'E_ph_eV': 50e3,
-            'color': (0.8, 0., 0.8),
-            'marker': '*',
-            'ms': 14,
-        },
-    }
+    ddef = copy.deepcopy(_DCASES)
     if dcases in [None, True]:
         dcases = ddef
 
