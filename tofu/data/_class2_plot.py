@@ -21,7 +21,19 @@ from . import _generic_plot
 # ###############################################################
 
 
-_LCOLORS = ['r', 'g', 'b', 'm', 'y', 'c']
+# _LCOLORS = ['r', 'g', 'b', 'm', 'y', 'c']
+_LCOLORS = [
+    'tab:blue',
+    'tab:orange',
+    'tab:green',
+    'tab:red',
+    'tab:purple',
+    'tab:brown',
+    'tab:pink',
+    'tab:gray',
+    'tab:olive',
+    'tab:cyan',
+]
 _COLOR = 'k'
 
 
