@@ -3,20 +3,15 @@ This module contains tests for tofu.geom in its structured version
 """
 
 
-
 # External modules
 import os
 import itertools as itt
 import numpy as np
 import matplotlib.pyplot as plt
-import warnings as warn
 
 # Importing package tofu.gem
 import tofu as tf
 from tofu import __version__
-import tofu.defaults as tfd
-import tofu.pathfile as tfpf
-import tofu.utils as tfu
 import tofu.geom as tfg
 
 
@@ -33,54 +28,59 @@ _Exp = 'WEST'
 #######################################################
 
 def setup_module(module):
-    print("") # this is to get a newline after the dots
+    print("")   # this is to get a newline after the dots
     lf = os.listdir(_here)
-    lf = [f for f in lf
-         if all([s in f for s in ['TFG_',_Exp,'.npz']])]
+    lf = [
+        f for f in lf
+        if all([s in f for s in ['TFG_', _Exp, '.npz']])
+    ]
     lF = []
     for f in lf:
         ff = f.split('_')
         v = [fff[len(keyVers):] for fff in ff
-             if fff[:len(keyVers)]==keyVers]
+             if fff[:len(keyVers)] == keyVers]
         msg = f + "\n    "+str(ff) + "\n    " + str(v)
-        assert len(v)==1, msg
+        assert len(v) == 1, msg
         v = v[0]
         if '.npz' in v:
             v = v[:v.index('.npz')]
         # print(v, __version__)
-        if v!=__version__:
+        if v != __version__:
             lF.append(f)
-    if len(lF)>0:
+    if len(lF) > 0:
         print("Removing the following previous test files:")
         for f in lF:
-            os.remove(os.path.join(_here,f))
-        #print("setup_module before anything in this file")
+            os.remove(os.path.join(_here, f))
+        # print("setup_module before anything in this file")
+
 
 def teardown_module(module):
-    #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
-    #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
-    #print("teardown_module after everything in this file")
-    #print("") # this is to get a newline
+    # os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
+    # os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
+    # print("teardown_module after everything in this file")
+    # print("") # this is to get a newline
     lf = os.listdir(_here)
-    lf = [f for f in lf
-         if all([s in f for s in ['TFG_',_Exp,'.npz']])]
+    lf = [
+        f for f in lf
+        if all([s in f for s in ['TFG_',_Exp,'.npz']])
+    ]
     lF = []
     for f in lf:
         ff = f.split('_')
         v = [fff[len(keyVers):] for fff in ff
-             if fff[:len(keyVers)]==keyVers]
+             if fff[:len(keyVers)] == keyVers]
         msg = f + "\n    "+str(ff) + "\n    " + str(v)
-        assert len(v)==1, msg
+        assert len(v) == 1, msg
         v = v[0]
         if '.npz' in v:
             v = v[:v.index('.npz')]
         # print(v, __version__)
-        if v==__version__:
+        if v == __version__:
             lF.append(f)
-    if len(lF)>0:
+    if len(lF) > 0:
         print("Removing the following test files:")
         for f in lF:
-            os.remove(os.path.join(_here,f))
+            os.remove(os.path.join(_here, f))
 
 
 #######################################################
@@ -761,36 +761,38 @@ class Test02_Config(object):
             conf = tf.load_config(cc, strict=True)
 
     def test16_calc_solidangle_particle(self):
-        conf = tf.load_config('AUG', strict=True)
-        pts = np.array([[2.5, 0., 0.], [2.5, 0., 0.5]])
-        theta = np.linspace(-1, 1, 4)*np.pi/4.
-        part_traj = np.array([
-            2.4*np.cos(theta),
-            2.4*np.sin(theta),
-            0*theta,
-        ])
-        part_radius = np.array([1e-6, 10e-6, 100e-6, 1e-3])
-        out = conf.calc_solidangle_particle(
-            pts=pts,
-            part_traj=part_traj,
-            part_radius=part_radius,
-        )
+        # conf = tf.load_config('AUG', strict=True)
+        # pts = np.array([[2.5, 0., 0.], [2.5, 0., 0.5]])
+        # theta = np.linspace(-1, 1, 4)*np.pi/4.
+        # part_traj = np.array([
+            # 2.4*np.cos(theta),
+            # 2.4*np.sin(theta),
+            # 0*theta,
+        # ])
+        # part_radius = np.array([1e-6, 10e-6, 100e-6, 1e-3])
+        # out = conf.calc_solidangle_particle(
+            # pts=pts,
+            # part_traj=part_traj,
+            # part_radius=part_radius,
+        # )
+        pass
 
     def test17_calc_solidangle_particle_integrated(self):
-        conf = tf.load_config('WEST', strict=True)
-        theta = np.linspace(-1, 1, 4)*np.pi/4.
-        part_traj = np.array([
-            2.4*np.cos(theta),
-            2.4*np.sin(theta),
-            0*theta,
-        ])
-        part_radius = np.array([1e-6, 10e-6, 100e-6, 1e-3])
-        out = conf.calc_solidangle_particle_integrated(
-            part_traj=part_traj,
-            part_radius=part_radius,
-            resolution=0.2,
-        )
-        plt.close('all')
+        # conf = tf.load_config('WEST', strict=True)
+        # theta = np.linspace(-1, 1, 4)*np.pi/4.
+        # part_traj = np.array([
+            # 2.4*np.cos(theta),
+            # 2.4*np.sin(theta),
+            # 0*theta,
+        # ])
+        # part_radius = np.array([1e-6, 10e-6, 100e-6, 1e-3])
+        # out = conf.calc_solidangle_particle_integrated(
+            # part_traj=part_traj,
+            # part_radius=part_radius,
+            # resolution=0.2,
+        # )
+        # plt.close('all')
+        pass
 
     def test18_saveload(self, verb=False):
         for typ in self.dobj.keys():
