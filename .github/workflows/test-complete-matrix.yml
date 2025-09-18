@@ -26,9 +26,8 @@ jobs:
           sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
           pip install latex
         elif [ "$RUNNER_OS" == "macOS" ]; then
-          sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
+          brew install --cask mactex
           pip install latex
-          # brew install --cask mactex
         else
           echo "$RUNNER_OS not supported"
           exit 1
