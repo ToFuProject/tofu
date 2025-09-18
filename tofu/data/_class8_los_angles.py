@@ -43,6 +43,8 @@ def compute_los_angles(
     compute_vos_from_los=None,
     # overwrite
     overwrite=None,
+    # debug
+    debug_vos_from_los=None,
     **kwdargs,
 ):
 
@@ -126,6 +128,8 @@ def compute_los_angles(
                 strict=strict,
                 res=res,
                 overwrite=overwrite,
+                # debug
+                debug=debug_vos_from_los,
             )
 
         # ----------------------------------------
@@ -196,6 +200,8 @@ def _vos_from_los(
     strict=None,
     res=None,
     overwrite=None,
+    # debug
+    debug=None,
 ):
 
     # --------------
@@ -209,6 +215,14 @@ def _vos_from_los(
         default=0.005,
         sign='>0',
     )
+
+    # debug
+    if not callable(debug):
+        debug = ds._generic_check._check_var(
+            debug, 'debug',
+            types=bool,
+            default=False,
+        )
 
     # -----------
     # prepare
@@ -245,6 +259,9 @@ def _vos_from_los(
     indok = np.ones(shape_cam, dtype=bool)
     for ii, ind in enumerate(np.ndindex(shape_cam)):
 
+        # debug ?
+        debugi = debug if isinstance(debug, bool) else debug(ind)
+
         if not v0['iok'][ind]:
             indok[ind] = False
             continue
@@ -253,19 +270,24 @@ def _vos_from_los(
         if pinhole is False:
             iref = v0['iref'][ind]
 
+        func_x01toxyz = coll.get_optics_x01toxyz(key=optics[iref])
+
         # -----------------------
         # get start / end points
 
+        x0m = np.mean(v0['x0'][sli])
+        x1m = np.mean(v0['x1'][sli])
+
         x0 = np.r_[
             v0['x0'][sli],
-            0.7*v0['x0'][sli],
-            0.3*v0['x0'][sli],
+            x0m + 0.7*(v0['x0'][sli] - x0m),
+            x0m + 0.3*(v0['x0'][sli] - x0m),
             v0['cents0'][ind],
         ]
         x1 = np.r_[
             v0['x1'][sli],
-            0.7*v0['x1'][sli],
-            0.3*v0['x1'][sli],
+            x1m + 0.7*(v0['x1'][sli] - x1m),
+            x1m + 0.3*(v0['x1'][sli] - x1m),
             v0['cents1'][ind],
         ]
 
@@ -281,7 +303,7 @@ def _vos_from_los(
             # end points
             x0=x0,
             x1=x1,
-            coords=coll.get_optics_x01toxyz(key=optics[iref]),
+            coords=func_x01toxyz,
             lspectro=lspectro,
             config=config,
             strict=strict,
@@ -369,6 +391,39 @@ def _vos_from_los(
             'phor0': phor0,
             'phor1': phor1,
         }
+
+        # ------------
+        # debug
+
+        if debugi is True:
+            dax = coll.plot_diagnostic(
+                key=key,
+                key_cam=key_cam,
+                elements='o',
+                plot_config=config,
+            )
+            dax.dax['cross']['handle'].plot(
+                np.hypot(v0['cx'][ind], v0['cy'][ind]),
+                v0['cz'][ind],
+                'o',
+                label='c',
+            )
+            dax.dax['cross']['handle'].plot(
+                np.hypot(ptsx, ptsy),
+                ptsz,
+                'x',
+                label='pts',
+            )
+            xyz = func_x01toxyz(x0, x1)
+            dax.dax['cross']['handle'].plot(
+                np.hypot(xyz[0], xyz[1]),
+                xyz[2],
+                's',
+                label='x01',
+            )
+            dax.dax['cross']['handle'].legend()
+            fig = dax.dax['cross']['handle'].figure
+            fig.suptitle(f"key = {key}\nkey_cam = {key_cam} - {ind}")
 
     # ------------------------
     # reshape / harmonize
