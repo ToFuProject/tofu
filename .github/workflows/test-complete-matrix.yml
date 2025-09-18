@@ -20,6 +20,14 @@ jobs:
             os: windows-latest
 
     steps:
+    - name: Install latex for matplotlib
+      run: brew install --cask mactex
+      on: 
+        os: macOS-latest
+    - name: Install latex for matplotlib
+      run: sudo apt-get install texlive texstudio 
+      on:
+        os: ubuntu-latest
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
