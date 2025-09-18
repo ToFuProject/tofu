@@ -21,13 +21,16 @@ jobs:
 
     steps:
     - name: Install latex for matplotlib
-      run: brew install --cask mactex
-      on: 
-        os: macOS-latest
-    - name: Install latex for matplotlib
-      run: sudo apt-get install texlive texstudio 
-      on:
-        os: ubuntu-latest
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
+          pip install latex
+        elif [ "$RUNNER_OS" == "MacOS" ]; then
+          brew install --cask mactex
+        else
+          echo "$RUNNER_OS not supported"
+          exit 1
+        fi
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
