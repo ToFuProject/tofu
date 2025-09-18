@@ -188,7 +188,10 @@ def compute_etendue_los(
         shape0 = cx.shape
         if analytical is True:
 
-            etend0 = np.full(tuple(np.r_[3 + (spectro is True), shape0]), np.nan)
+            etend0 = np.full(
+                tuple(np.r_[3 + (spectro is True), shape0]),
+                np.nan,
+            )
 
             # 0th order
             etend0[0, ...] = ap_area * det_area / distances**2
@@ -735,7 +738,6 @@ def _loop_on_pix(
         + los_z * plane_nin[2]
     )
 
-
     # -----------
     # surfaces
     # -----------
@@ -1140,7 +1142,7 @@ def _compute_etendue_numerical_spectro(
     los = np.r_[np.nanmean(los_x), np.nanmean(los_y), np.nanmean(los_z)]
     los_n = los / np.linalg.norm(los)
 
-    e0_cam = coll.dobj['camera'][key_cam]['dgeom']['e0']
+    # e0_cam = coll.dobj['camera'][key_cam]['dgeom']['e0']
     e1_cam = coll.dobj['camera'][key_cam]['dgeom']['e1']
 
     e0 = np.cross(e1_cam, los_n)
@@ -1150,7 +1152,7 @@ def _compute_etendue_numerical_spectro(
     e1 = e1 / np.linalg.norm(e1)
 
     # get length along los
-    k_los = (1. + margin_par) * np.max(sca1)
+    # k_los = (1. + margin_par) * np.max(sca1)
 
     # -------------------------
     # grid perpendicular to los

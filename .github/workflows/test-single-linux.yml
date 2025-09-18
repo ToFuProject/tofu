@@ -17,6 +17,10 @@ jobs:
     strategy:
       max-parallel: 5
     steps:
+    - name: Install latex for matplotlib
+      run: |
+          sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
+          pip install latex
     - uses: actions/checkout@v4
     - name: Set up Python 3.9
       uses: actions/setup-python@v5

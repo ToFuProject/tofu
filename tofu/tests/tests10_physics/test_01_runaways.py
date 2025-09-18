@@ -100,19 +100,19 @@ class Test02_Runaways():
     def test01_convert(self):
 
         # from gamma
-        beta = tfpt.runaways.convert_momentum_velocity_energy(
+        beta = tfpt.electrons_runaways.convert_momentum_velocity_energy(
             gamma=[1, 2, 3],
         )['beta']['data']
         assert np.all((beta >= 0.) & (beta <= 1.))
 
         # from momentum normalized
-        gamma = tfpt.runaways.convert_momentum_velocity_energy(
+        gamma = tfpt.electrons_runaways.convert_momentum_velocity_energy(
             momentum_normalized=10,
         )['gamma']['data']
         assert np.all(gamma >= 1.)
 
         # from kinetic energy
-        dout = tfpt.runaways.convert_momentum_velocity_energy(
+        dout = tfpt.electrons_runaways.convert_momentum_velocity_energy(
             energy_kinetic_eV=(1e3, 10e3),
         )
         assert isinstance(dout, dict)
@@ -120,13 +120,13 @@ class Test02_Runaways():
         assert np.all(dout['velocity_ms']['data'] < 3e8)
 
         # from velocity
-        dout = tfpt.runaways.convert_momentum_velocity_energy(
+        dout = tfpt.electrons_runaways.convert_momentum_velocity_energy(
             velocity_ms=1e6,
         )
         assert isinstance(dout, dict)
 
     def test02_electric_fields(self):
-        dout = tfpt.runaways.get_critical_dreicer_electric_fields(
+        dout = tfpt.electrons_runaways.get_critical_dreicer_electric_fields(
             ne_m3=np.r_[1e19, 1e20][None, :],
             kTe_eV=np.r_[1, 2, 3][:, None]*1e3,
             lnG=20,
@@ -134,7 +134,7 @@ class Test02_Runaways():
         assert isinstance(dout, dict)
 
     def test03_growth_source_terms(self):
-        dout = tfpt.runaways.get_growth_source_terms(
+        dout = tfpt.electrons_runaways.get_growth_source_terms(
             ne_m3=np.r_[1e19, 1e20][None, :],
             lnG=15,
             Epar_Vm=1,
@@ -152,7 +152,7 @@ class Test02_Runaways():
         Emax = 10e6
 
         # compute
-        dout = tfpt.runaways.get_normalized_momentum_distribution(
+        dout = tfpt.electrons_runaways.get_normalized_momentum_distribution(
             momentum_normalized=pp[:, None],
             ne_m3=ne_m3[None, :],
             Zeff=2.,
@@ -165,10 +165,10 @@ class Test02_Runaways():
 
     def test05_emission_thick_anisotropy(self):
         E = np.r_[1, 10, 100] * 1e3
-        gamma = tfpt.runaways.convert_momentum_velocity_energy(
+        gamma = tfpt.electrons_runaways.convert_momentum_velocity_energy(
             energy_kinetic_eV=E,
         )['gamma']['data']
-        anis = tfpt.runaways.emission.get_xray_thick_anisotropy(
+        anis = tfpt.electrons_runaways.emission.get_xray_thick_anisotropy(
             gamma=gamma[None, :],
             costheta=np.linspace(-1, 1, 100)[:, None],
         )
@@ -177,7 +177,7 @@ class Test02_Runaways():
     def test06_emission_get_xray_thick_dcross_ei(self):
         E_re = np.r_[1, 10, 100] * 1e3
         E_ph = np.linspace(1, 20, 50) * 1e3
-        dout = tfpt.runaways.emission.get_xray_thick_dcross_ei(
+        dout = tfpt.electrons_runaways.emission.get_xray_thick_dcross_ei(
             E_re_eV=E_re[None, :],
             E_ph_eV=E_ph[:, None],
             atomic_nb=13,
@@ -188,6 +188,6 @@ class Test02_Runaways():
         assert isinstance(dout, dict)
 
     def test07_plot_xray_thick_dcross_ei_vs_Salvat(self):
-        dax = tfpt.runaways.emission.plot_xray_thick_dcross_ei_vs_Salvat()
+        dax = tfpt.electrons_runaways.emission.plot_xray_thick_dcross_ei_vs_Salvat()
         plt.close('all')
         assert isinstance(dax, dict)

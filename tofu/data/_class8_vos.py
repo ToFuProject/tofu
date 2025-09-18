@@ -284,6 +284,10 @@ def compute_vos(
             dt22=dt22,
         )
 
+        # clean
+        if dvos[k0] is None:
+            del dvos[k0], dref[k0]
+
     # timing
     if timing:
         t2 = dtm.datetime.now()     # DB
