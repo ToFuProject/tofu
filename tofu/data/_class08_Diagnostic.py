@@ -376,6 +376,9 @@ class Diagnostic(Previous):
         margin_perp=None,
         vect=None,
         segment=None,
+        # e0, e1
+        transpose=None,
+        e0e1=None,
         # mesh slice
         key_mesh=None,
         phi=None,
@@ -422,6 +425,9 @@ class Diagnostic(Previous):
             margin_perp=margin_perp,
             vect=vect,
             segment=segment,
+            # e0, e1
+            transpose=transpose,
+            e0e1=e0e1,
             # mesh slice
             key_mesh=key_mesh,
             phi=phi,
