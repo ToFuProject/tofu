@@ -1,6 +1,5 @@
 
 
-from . import test00_preliminary
 from . import tests01_geom
 # from . import tests02_data
 from . import tests04_spectro
