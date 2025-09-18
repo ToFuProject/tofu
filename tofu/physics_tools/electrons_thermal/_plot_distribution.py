@@ -12,7 +12,10 @@ import datastock as ds
 from . import _distribution
 
 
-plt.rcParams['text.usetex'] = True
+try:
+    plt.rcParams['text.usetex'] = True
+except Exception:
+    pass
 
 
 # ############################################
