@@ -130,6 +130,7 @@ def _vos(
                 f"user_limits: {user_limits}\n"
             )
             raise Exception(msg)
+        axis_pts = None
 
     else:
 
@@ -143,6 +144,19 @@ def _vos(
         kph0, kph1 = doptics[key_cam]['dvos']['phor']
         phor0 = coll.ddata[kph0]['data']
         phor1 = coll.ddata[kph1]['data']
+
+        # ------------------------------------------------
+        # axis_pts for robustness vs old versions of tofu
+        axis_pts = [
+            ii for ii, rr in enumerate(coll.ddata[kpc0]['ref'])
+            if rr.endswith('_n')
+        ][0]
+        if axis_pts == 0:
+            pcross0 = np.moveaxis(pcross0, 0, -1)
+            pcross1 = np.moveaxis(pcross1, 0, -1)
+            phor0 = np.moveaxis(phor0, 0, -1)
+            phor1 = np.moveaxis(phor1, 0, -1)
+
 
     # pinhole?
     pinhole = doptics[key_cam]['pinhole']
@@ -190,6 +204,7 @@ def _vos(
         # -----------------
         # slices
 
+        # robustness
         sli_poly = ind + (slice(None),)
         sli_poly0 = ind + (0,)
 
@@ -395,6 +410,7 @@ def _vos(
 
         # ----- DEBUG --------
         if debugi:
+            dd = np.sqrt((xx - 5.13)**2 + yy**2 + (zz + 3.15)**2)
             fig = plt.figure()
             fig.suptitle(f"pixel ind = {ind}", size=14, fontweight='bold')
             ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
@@ -465,13 +481,16 @@ def _vos(
     if timing:
         t22 = dtm.datetime.now()     # DB
 
-    ddata, dref = _utilities._harmonize_reshape(
-        douti=douti,
-        indok=indok,
-        key_diag=key_diag,
-        key_cam=key_cam,
-        ref_cam=coll.dobj['camera'][key_cam]['dgeom']['ref'],
-    )
+    if len(douti) > 0:
+        ddata, dref = _utilities._harmonize_reshape(
+            douti=douti,
+            indok=indok,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            ref_cam=coll.dobj['camera'][key_cam]['dgeom']['ref'],
+        )
+    else:
+        ddata, dref = None, None
 
     if timing:
         t33 = dtm.datetime.now()
