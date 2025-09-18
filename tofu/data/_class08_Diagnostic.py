@@ -264,7 +264,9 @@ class Diagnostic(Previous):
         plot=None,
         store=None,
         overwrite=None,
+        # debug
         debug=None,
+        debug_vos_from_los=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
 
@@ -319,6 +321,8 @@ class Diagnostic(Previous):
                 dcompute=dcompute,
                 compute_vos_from_los=compute_vos_from_los,
                 overwrite=overwrite,
+                # debug
+                debug_vos_from_los=debug_vos_from_los,
             )
 
         if return_dcompute is True:

@@ -266,6 +266,8 @@ def equivalent_apertures(
             ii=ii,
             ij=ij,
             debug=debug,
+            key=key,
+            key_cam=key_cam,
             # timing
             # dt=dt,
         )
@@ -573,7 +575,7 @@ def _get_centroid(p0, p1, cent, debug=None):
     # --------------
     # debug
 
-    if debug:
+    if debug is True:
 
         indclose = np.r_[np.arange(p0.size), 0]
         plt.figure()
@@ -856,11 +858,12 @@ def _check(
     # -----------
     # debug
 
-    debug = ds._generic_check._check_var(
-        debug, 'debug',
-        default=False,
-        allowed=['intersect', False, True]
-    )
+    if not callable(debug):
+        debug = ds._generic_check._check_var(
+            debug, 'debug',
+            default=False,
+            allowed=['intersect', False, True]
+        )
 
     return (
         key,
@@ -907,8 +910,15 @@ def _get_equivalent_aperture(
     # debug
     ii=None,
     debug=None,
+    key=None,
+    key_cam=None,
     **kwdargs,
 ):
+
+    if callable(debug):
+        debugi = debug((ii,))
+    else:
+        debugi = debug
 
     # --------------
     # loop on optics
@@ -935,8 +945,17 @@ def _get_equivalent_aperture(
             return None, None
 
         # --- DEBUG ---------
-        if debug is True:
-            _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        if debugi is True:
+            _debug_plot(
+                p_a=p_a,
+                pa0=p0,
+                pa1=p1,
+                tit=(
+                    "local coords\n"
+                    f"key_diag {key} - key_cam {key_cam}\n"
+                    f"ind = {ii}"
+                ),
+            )
         # --------------------
 
         # -------
@@ -1229,7 +1248,7 @@ def _debug_intersect(
     axs[1, 1].set_title("det_up")
     axs[1, 2].set_title("det_lo")
 
-    print('kA\n',kA)
+    print('kA\n', kA)
     print('det_up\n', det_up)
     print('det_lo\n', det_lo)
 
@@ -1312,7 +1331,6 @@ def _debug_plot(
     pb1=None,
     pc0=None,
     pc1=None,
-    ii=None,
     tit=None,
 ):
 
@@ -1381,14 +1399,8 @@ def _debug_plot(
         )
 
     plt.legend()
-
-    if ii is not None:
-        tit0 = f'ii = {ii}'
-        if tit is None:
-            tit = tit0
-        else:
-            tit = tit0 + ', ' + tit
-        plt.gca().set_title(tit, size=12)
+    plt.gca().set_title(tit, size=12)
+    return
 
 
 def _debug_plot2(
