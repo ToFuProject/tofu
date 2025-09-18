@@ -21,7 +21,7 @@ from . import _generic_plot
 # ###############################################################
 
 
-_LCOLORS = ['r', 'g', 'b', 'm', 'c', 'y']
+_LCOLORS = ['r', 'g', 'b', 'm', 'y', 'c']
 _COLOR = 'k'
 
 
@@ -288,7 +288,10 @@ def _plot_rays_check(
     # color_dict
 
     if color_dict is None:
-        color_dict = {k0: _LCOLORS[ii] for ii, k0 in enumerate(key)}
+        color_dict = {
+            k0: _LCOLORS[ii % len(_LCOLORS)]
+            for ii, k0 in enumerate(key)
+        }
     elif mcolors.is_color_like(color_dict):
         color_dict = {k0: color_dict for k0 in key}
 
