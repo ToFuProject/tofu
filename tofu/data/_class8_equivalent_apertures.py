@@ -999,6 +999,8 @@ def _get_equivalent_aperture_spectro(
     ii=None,
     ij=None,
     debug=None,
+    # unused
+    **kwdargs,
 ):
 
     # -----------------------------
