@@ -13,7 +13,9 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]    # , windows-latest
+        os: [ubuntu-latest]
+          # macOS-latest: issue with latex
+          # windows-latest: issue with TcL install error
         python-version: ['3.8', '3.9', '3.10', '3.11']
         exclude:
           - python-version: ['3.11']
@@ -26,6 +28,7 @@ jobs:
           sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
           pip install latex
         elif [ "$RUNNER_OS" == "macOS" ]; then
+        # not enough to fix latex issue  
           brew install --cask mactex
           pip install latex
         else
