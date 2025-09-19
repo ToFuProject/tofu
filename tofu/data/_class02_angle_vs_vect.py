@@ -105,10 +105,11 @@ def main(
             print(msg)
 
         # sampel
-        R, Z, phi, ll = coll.sample_rays(
+        R, Z, phi, length = coll.sample_rays(
             key=kray,
             res=res,
             mode='abs',
+            segment=segment,
             return_coords=['R', 'z', 'phi', 'l'],
         )
 
@@ -213,11 +214,20 @@ def main(
         # store
 
         ddata[kray] = {
-            'key': None,
-            'data': angle,
-            'ref': ref,
-            'dim': 'angle',
-            'units': 'rad',
+            'angle': {
+                'key': None,
+                'data': angle,
+                'ref': ref,
+                'dim': 'angle',
+                'units': 'rad',
+            },
+            'length': {
+                'key': None,
+                'data': length,
+                'ref': (None,) + coll.dobj[wrays][kray]['ref'][1:],
+                'dim': 'distance',
+                'units': 'm',
+            },
         }
 
     return ddata
