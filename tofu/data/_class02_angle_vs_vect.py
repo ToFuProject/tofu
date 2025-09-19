@@ -70,7 +70,7 @@ def main(
     # prepare sepR, sepZ
     # ----------------
 
-    nstep = 3
+    nstep = 4
     if key_sepR is not False:
         sepR, sepZ, sli_sep, ind_sep = _prepare_sep(
             coll=coll,
@@ -158,8 +158,7 @@ def main(
         vx, vy, vz = coll.get_rays_vect(kray, segment=segment)
 
         # reshape for broadcast
-        ndim_vect = len(coll.ddata[dkeys['key_XR']]['ref']) - 2
-        axis = tuple(np.arange(0, ndim_vect))
+        axis = tuple(np.arange(0, ux.ndim - vx.ndim))
         vx = np.expand_dims(vx, axis)
         vy = np.expand_dims(vy, axis)
         vz = np.expand_dims(vz, axis)
@@ -176,7 +175,7 @@ def main(
 
             # verb
             if verb >= 2:
-                msg = "\t\t- separatrix... (4/4)"
+                msg = f"\t\t- separatrix... (4/{nstep})"
                 print(msg)
 
             # apply separatrix
@@ -193,6 +192,22 @@ def main(
                 kray=kray,
                 angle=angle,
             )
+
+        # --------------
+        # cleanup
+
+        # verb
+        if verb >= 2:
+            msg = f"\t\t- cleanup... (5/{nstep})"
+            print(msg)
+
+        axis = tuple([ii for ii, rr in enumerate(ref) if rr is not None])
+        iok = np.any(np.isfinite(angle), axis=axis)
+        sli = tuple([
+            iok if rr is None else slice(None)
+            for ii, rr in enumerate(ref)
+        ])
+        angle = angle[sli]
 
         # --------------
         # store
@@ -462,7 +477,7 @@ def _local_unit_vect(
         # ---------------
         # normalize
 
-        un = np.sqrt(uX**2 + uY**2 + vZphi**2)
+        un = np.sqrt(uX**2 + uY**2 + vYZ**2)
         ux = uX / un
         uy = uY / un
         uz = vYZ / un
