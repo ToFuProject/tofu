@@ -202,6 +202,7 @@ def main(
             msg = f"\t\t- cleanup... (5/{nstep})"
             print(msg)
 
+        # angle
         axis = tuple([ii for ii, rr in enumerate(ref) if rr is not None])
         iok = np.any(np.isfinite(angle), axis=axis)
         sli = tuple([
@@ -209,6 +210,12 @@ def main(
             for ii, rr in enumerate(ref)
         ])
         angle = angle[sli]
+
+        # R, Z, phi, length
+        R = R[iok, ...]
+        Z = Z[iok, ...]
+        phi = phi[iok, ...]
+        length = length[iok, ...]
 
         # --------------
         # store
