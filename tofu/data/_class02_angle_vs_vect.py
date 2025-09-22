@@ -202,6 +202,7 @@ def main(
             msg = f"\t\t- cleanup... (5/{nstep})"
             print(msg)
 
+        # angle
         axis = tuple([ii for ii, rr in enumerate(ref) if rr is not None])
         iok = np.any(np.isfinite(angle), axis=axis)
         sli = tuple([
@@ -210,8 +211,16 @@ def main(
         ])
         angle = angle[sli]
 
+        # R, Z, phi, length
+        R = R[iok, ...]
+        Z = Z[iok, ...]
+        phi = phi[iok, ...]
+        length = length[iok, ...]
+
         # --------------
         # store
+
+        refpts = (None,) + coll.dobj[wrays][kray]['ref'][1:]
 
         ddata[kray] = {
             'angle': {
@@ -224,9 +233,30 @@ def main(
             'length': {
                 'key': None,
                 'data': length,
-                'ref': (None,) + coll.dobj[wrays][kray]['ref'][1:],
+                'ref': refpts,
                 'dim': 'distance',
                 'units': 'm',
+            },
+            'R': {
+                'key': None,
+                'data': R,
+                'units': 'm',
+                'dim': 'distance',
+                'ref': refpts,
+            },
+            'Z': {
+                'key': None,
+                'data': Z,
+                'units': 'm',
+                'dim': 'distance',
+                'ref': refpts,
+            },
+            'phi': {
+                'key': None,
+                'data': phi,
+                'units': 'm',
+                'dim': 'distance',
+                'ref': refpts,
             },
         }
 
