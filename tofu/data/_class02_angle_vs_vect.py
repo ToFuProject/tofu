@@ -213,6 +213,8 @@ def main(
         # --------------
         # store
 
+        refpts = (None,) + coll.dobj[wrays][kray]['ref'][1:]
+
         ddata[kray] = {
             'angle': {
                 'key': None,
@@ -224,9 +226,30 @@ def main(
             'length': {
                 'key': None,
                 'data': length,
-                'ref': (None,) + coll.dobj[wrays][kray]['ref'][1:],
+                'ref': refpts,
                 'dim': 'distance',
                 'units': 'm',
+            },
+            'R': {
+                'key': None,
+                'data': R,
+                'units': 'm',
+                'dim': 'distance',
+                'ref': refpts,
+            },
+            'Z': {
+                'key': None,
+                'data': Z,
+                'units': 'm',
+                'dim': 'distance',
+                'ref': refpts,
+            },
+            'phi': {
+                'key': None,
+                'data': phi,
+                'units': 'm',
+                'dim': 'distance',
+                'ref': refpts,
             },
         }
 
