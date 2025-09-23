@@ -313,6 +313,9 @@ def _plot(
         dax = _get_dax(
             fontsize=fontsize,
             dmargin=dmargin,
+            units_E_pitch=dout_E['dist']['units'],
+            units_E=dout_E_1d['dist']['units'],
+            units_v=dout_v['dist']['units'],
         )
 
     dax = ds._generic_check._check_dax(dax)
@@ -472,6 +475,10 @@ def _get_levels(val):
 def _get_dax(
     fontsize=None,
     dmargin=None,
+    # units
+    units_E_pitch=None,
+    units_E=None,
+    units_v=None,
 ):
     # --------------
     # check inputs
@@ -481,7 +488,7 @@ def _get_dax(
     fontsize = ds._generic_check._check_var(
         fontsize, 'fontsize',
         types=(int, float),
-        default=14,
+        default=12,
         sign='>0',
     )
 
@@ -489,10 +496,19 @@ def _get_dax(
     # prepare data
     # --------------
 
-    str_fE2d = _distribution._DFUNC['f2d_E_pitch']['latex']
-    str_fE1d = _distribution._DFUNC['f1d_E']['latex']
+    str_fE2d = (
+        _distribution._DFUNC['f2d_E_pitch']['latex']
+        + f'\n{units_E_pitch}'
+    )
+    str_fE1d = (
+        _distribution._DFUNC['f1d_E']['latex']
+        + f'\n{units_E}'
+    )
     str_fv2d = _distribution._DFUNC['f2d_cart_vpar_vperp']['latex']
-    str_fv3d = _distribution._DFUNC['f3d_cart_vpar_vperp']['latex']
+    str_fv3d = (
+        _distribution._DFUNC['f3d_cart_vpar_vperp']['latex']
+        + f'\n{units_v}'
+    )
 
     # --------------
     # prepare axes
@@ -507,7 +523,7 @@ def _get_dax(
         dmargin = {
             'left': 0.08, 'right': 0.95,
             'bottom': 0.06, 'top': 0.83,
-            'wspace': 0.2, 'hspace': 0.40,
+            'wspace': 0.2, 'hspace': 0.50,
         }
 
     fig = plt.figure(figsize=(18, 14))

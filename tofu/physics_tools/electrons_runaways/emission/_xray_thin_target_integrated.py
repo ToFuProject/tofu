@@ -106,6 +106,7 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
     version=None,
     # verb
     verb=None,
+    verb_tab=None,
 ):
 
     # ------------
@@ -116,7 +117,7 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
         E_e0_eV, E_ph_eV, theta_ph,
         nthetae, ndphi,
         shape, shape_theta_e, shape_dphi,
-        verb,
+        verb, verb_tab,
     ) = _check(
         # inputs
         E_e0_eV=E_e0_eV,
@@ -127,6 +128,7 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
         ndphi=ndphi,
         # verb
         verb=verb,
+        verb_tab=verb_tab,
     )
 
     # ------------------
@@ -149,8 +151,8 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
     # get d3cross
     # ------------------
 
-    if verb is True:
-        msg = "Computing d3cross..."
+    if verb >= 1:
+        msg = f"{verb_tab}Computing d3cross for shape {shape}... "
         print(msg)
 
     d3cross = _xray_thin_target.get_xray_thin_d3cross_ei(
@@ -214,8 +216,8 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
     # integrate
     # ------------------
 
-    if verb is True:
-        msg = "Integrating..."
+    if verb >= 1:
+        msg = f"{verb_tab}Integrating..."
         print(msg)
 
     for vv, vcross in d3cross['cross'].items():
@@ -248,6 +250,7 @@ def _check(
     ndphi=None,
     # verb
     verb=None,
+    verb_tab=None,
 ):
 
     # -----------
@@ -318,17 +321,31 @@ def _check(
     # verb
     # -----------
 
-    verb = ds._generic_check._check_var(
+    lok = [False, True, 0, 1, 2]
+    verb = int(ds._generic_check._check_var(
         verb, 'verb',
-        types=bool,
-        default=True,
+        types=(int, bool),
+        default=lok[-1],
+        allowed=lok,
+    ))
+
+    # -----------
+    # verb_tab
+    # -----------
+
+    verb_tab = ds._generic_check._check_var(
+        verb_tab, 'verb_tab',
+        types=int,
+        default=0,
+        sign='>=0',
     )
+    verb_tab = '\t'*verb_tab
 
     return (
         E_e0_eV, E_ph_eV, theta_ph,
         nthetae, ndphi,
         shape, shape_theta_e, shape_dphi,
-        verb,
+        verb, verb_tab,
     )
 
 

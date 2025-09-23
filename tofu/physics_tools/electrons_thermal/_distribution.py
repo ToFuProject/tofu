@@ -327,7 +327,7 @@ def _check(
         if dcoords.get('pitch') is not None:
             lok.append('f2d_E_pitch')
         if dcoords.get('theta') is not None:
-            lok.append('f2d_E_theta')
+            lok += ['f2d_E_theta', 'f3d_E_theta']
     else:
         lok = [
             'f3d_cart_vpar_vperp',
@@ -535,6 +535,30 @@ def f2d_E_pitch_norm(
     return dist, units
 
 
+def f3d_E_theta_norm(
+    E_eV=None,
+    theta=None,
+    kbT_par_J=None,
+    kbT_perp_J=None,
+    v0_par_ms=None,
+    # unused
+    **kwdargs,
+):
+
+    dist0, units0 = f2d_E_pitch_norm(
+        E_eV=E_eV,
+        pitch=np.cos(theta),
+        kbT_par_J=kbT_par_J,
+        kbT_perp_J=kbT_perp_J,
+        v0_par_ms=v0_par_ms,
+    )
+
+    dist = np.sin(theta) * dist0 / (2.*np.pi)
+    units = units0 * asunits.Unit('1/rad^2')
+
+    return dist, units
+
+
 def f2d_E_theta_norm(
     E_eV=None,
     theta=None,
@@ -547,7 +571,7 @@ def f2d_E_theta_norm(
 
     dist0, units0 = f2d_E_pitch_norm(
         E_eV=E_eV,
-        pitch=None,
+        pitch=np.cos(theta),
         kbT_par_J=kbT_par_J,
         kbT_perp_J=kbT_perp_J,
         v0_par_ms=v0_par_ms,
@@ -658,6 +682,22 @@ _DFUNC = {
             + "\n" +
             r"\begin{eqnarray*}"
             r"n_e \sqrt{\frac{E}{\pi T^2_{\perp}T_{//}}}"
+            r"\exp\left("
+            r"-\frac{\left(p\sqrt{E} - \sqrt{m_e/2}v_{d//}\right)^2}{T_{//}}"
+            r"- \frac{(1-p^2)E}{T_{\perp}}"
+            r"\right)"
+            r"\end{eqnarray*}"
+        ),
+    },
+    'f3d_E_theta': {
+        'func': f3d_E_theta_norm,
+        'latex': (
+            r"$dn_e = \int_0^\infty \int_0\pi \int_0^{2\pi}$"
+            r"$f^{3D}_{E, \theta}(E, \theta) dEd\thetad\phi$"
+            + "\n" +
+            r"\begin{eqnarray*}"
+            r"\frac{n_e}{2\pi}"
+            r"\sin{\theta}\sqrt{\frac{E}{\pi T^2_{\perp}T_{//}}}"
             r"\exp\left("
             r"-\frac{\left(p\sqrt{E} - \sqrt{m_e/2}v_{d//}\right)^2}{T_{//}}"
             r"- \frac{(1-p^2)E}{T_{\perp}}"
