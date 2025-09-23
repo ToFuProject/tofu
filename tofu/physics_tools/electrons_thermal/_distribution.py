@@ -27,6 +27,7 @@ def get_maxwellian(
     # coordinate: energy
     E_eV=None,
     pitch=None,
+    theta=None,
     # version
     version=None,
     # return as
@@ -87,6 +88,7 @@ def _check(
     # coordinate: energy
     E_eV=None,
     pitch=None,
+    theta=None,
     # version
     version=None,
     # return as
@@ -221,19 +223,21 @@ def _check(
 
     lc = [
         v_par_ms is not None and v_perp_ms is not None,
-        E_eV is not None and pitch is not None,
-        E_eV is not None and pitch is None,
+        E_eV is not None and pitch is not None and theta is None,
+        E_eV is not None and theta is not None and pitch is None,
+        E_eV is not None and pitch is None and theta is None,
     ]
     if np.sum(lc) != 1:
         lstr = [
             (v_par_ms, 'v_par_ms'), (v_perp_ms, 'v_perp_ms'),
-            (E_eV, 'E_J'), (pitch, 'pitch'),
+            (E_eV, 'E_J'), (pitch, 'pitch'), (theta, 'theta')
         ]
         lstr = [f'\t- {ss[1]}' for ss in lstr if ss[0] is not None]
         msg = (
             "For distribution coordinates, please provide either (xor):\n"
             "\t- velocities: v_par_ms and v_perp_ms\n"
             "\t- Energy-pitch: E_eV and pitch\n"
+            "\t- Energy-theta: E_eV and theta\n"
             "\t- Energy alone: E_eV\n"
             "Provided:\n"
             + "\n".join(lstr)
@@ -258,6 +262,13 @@ def _check(
         }
 
     elif lc[2]:
+        dcoords = {
+            'name': '(E_eV, theta)',
+            'E_eV': E_eV,
+            'theta': theta,
+        }
+
+    elif lc[3]:
         dcoords = {
             'name': '(E_eV,)',
             'E_eV': E_eV,
@@ -315,6 +326,8 @@ def _check(
         lok = ['f1d_E']
         if dcoords.get('pitch') is not None:
             lok.append('f2d_E_pitch')
+        if dcoords.get('theta') is not None:
+            lok.append('f2d_E_theta')
     else:
         lok = [
             'f3d_cart_vpar_vperp',
@@ -398,6 +411,7 @@ def _get_maxwellian_2d(
         v_perp_ms=dcoord.get('v_perp_ms'),
         E_eV=dcoord.get('E_eV'),
         pitch=dcoord.get('pitch'),
+        theta=dcoord.get('theta'),
         # parameters
         vt_par_ms=vt_ms,
         vt_perp_ms=vt_ms,
@@ -410,7 +424,9 @@ def _get_maxwellian_2d(
     # scale
     # ---------------
 
+    # add density
     dist = dist * ne_m3
+    units = units * asunits.Unit('1/m3')
 
     # ---------------
     # Format ouput
@@ -450,7 +466,7 @@ def f3d_cart_vpar_vperp_norm(
     term_perp = v_perp_ms**2 / vt_perp_ms**2
 
     dist = term0 * np.exp(- term_par - term_perp)
-    units = asunits.Unit('s^3/m^6')
+    units = asunits.Unit('s^3/m^3')
     return dist, units
 
 
@@ -513,8 +529,32 @@ def f2d_E_pitch_norm(
     term_par = (pitch * np.sqrt(E_J) - np.sqrt(me_kg/2.) * v0_par_ms)**2
     term_perp = (1 - pitch**2) * E_J
 
-    dist = qq * term0 * np.exp(- term_par / kbT_par_J - term_perp / kbT_perp_J)
+    dist = qq * term0 * np.exp(-term_par / kbT_par_J - term_perp / kbT_perp_J)
     units = asunits.Unit('1/eV')
+
+    return dist, units
+
+
+def f2d_E_theta_norm(
+    E_eV=None,
+    theta=None,
+    kbT_par_J=None,
+    kbT_perp_J=None,
+    v0_par_ms=None,
+    # unused
+    **kwdargs,
+):
+
+    dist0, units0 = f2d_E_pitch_norm(
+        E_eV=E_eV,
+        pitch=None,
+        kbT_par_J=kbT_par_J,
+        kbT_perp_J=kbT_perp_J,
+        v0_par_ms=v0_par_ms,
+    )
+
+    dist = np.sin(theta) * dist0
+    units = units0 * asunits.Unit('1/rad')
 
     return dist, units
 
@@ -546,8 +586,8 @@ def f1d_E_norm(
     if np.any(iok):
         denom = (2. * np.pi * kbT_par_J[iok, :] * me_kg)
         term0 = 1. / (v0_par_ms[iok, :] * np.sqrt(denom))
-        term_p = ((np.sqrt(E_J) + np.sqrt(mev2[iok, :]))**2 / kbT_par_J[iok, :])
-        term_m = ((np.sqrt(E_J) - np.sqrt(mev2[iok, :]))**2 / kbT_par_J[iok, :])
+        term_p = (np.sqrt(E_J) + np.sqrt(mev2[iok, :]))**2 / kbT_par_J[iok, :]
+        term_m = (np.sqrt(E_J) - np.sqrt(mev2[iok, :]))**2 / kbT_par_J[iok, :]
 
         dist[iok, :] = qq * term0 * (np.exp(-term_m) - np.exp(-term_p))
 
@@ -576,8 +616,9 @@ _DFUNC = {
     'f3d_cart_vpar_vperp': {
         'func': f3d_cart_vpar_vperp_norm,
         'latex': (
-            r"$dn_e = $"
-            r"$f^{2D}_{v_{//}, v_{\perp}}(v_{//}, v_{\perp}) dv_{//}dv_{\perp}$"
+            r"$dn_e = \int_0^\infty \int_{-\infty}^\infty$"
+            r"$f^{2D}_{v_{//}, v_{\perp}}(v_{//}, v_{\perp})$"
+            r"$dv_{//}dv_{\perp}$"
             + "\n" +
             r"\begin{eqnarray*}"
             r"\frac{n_e}{\pi^{3/2} v_{T//} v^2_{T\perp}}"
@@ -591,8 +632,9 @@ _DFUNC = {
     'f2d_cart_vpar_vperp': {
         'func': f2d_cart_vpar_vperp_norm,
         'latex': (
-            r"$dn_e = $"
-            r"$f^{2D}_{v_{//}, v_{\perp}}(v_{//}, v_{\perp}) dv_{//}dv_{\perp}$"
+            r"$dn_e = \int_0^\infty \int_{-\infty}^\infty$"
+            r"$f^{2D}_{v_{//}, v_{\perp}}(v_{//}, v_{\perp})$"
+            r"$dv_{//}dv_{\perp}$"
             + "\n" +
             r"\begin{eqnarray*}"
             r"\frac{2n_e v_{\perp}}{\sqrt{\pi} v_{T//} v^2_{T\perp}}"
@@ -611,10 +653,26 @@ _DFUNC = {
     'f2d_E_pitch': {
         'func': f2d_E_pitch_norm,
         'latex': (
-            r"$dn_e = f^{2D}_{E, p}(E, p) dEdp$"
+            r"$dn_e = \int_0^{\infty} \int_{-1}^1$"
+            r"$f^{2D}_{E, p}(E, p) dEdp$"
             + "\n" +
             r"\begin{eqnarray*}"
             r"n_e \sqrt{\frac{E}{\pi T^2_{\perp}T_{//}}}"
+            r"\exp\left("
+            r"-\frac{\left(p\sqrt{E} - \sqrt{m_e/2}v_{d//}\right)^2}{T_{//}}"
+            r"- \frac{(1-p^2)E}{T_{\perp}}"
+            r"\right)"
+            r"\end{eqnarray*}"
+        ),
+    },
+    'f2d_E_theta': {
+        'func': f2d_E_theta_norm,
+        'latex': (
+            r"$dn_e = \int_0^\infty \int_0\pi$"
+            r"$f^{2D}_{E, \theta}(E, \theta) dEd\theta$"
+            + "\n" +
+            r"\begin{eqnarray*}"
+            r"n_e \sin{\theta}\sqrt{\frac{E}{\pi T^2_{\perp}T_{//}}}"
             r"\exp\left("
             r"-\frac{\left(p\sqrt{E} - \sqrt{m_e/2}v_{d//}\right)^2}{T_{//}}"
             r"- \frac{(1-p^2)E}{T_{\perp}}"
@@ -627,7 +685,7 @@ _DFUNC = {
         'latex': (
             "Assumes " + r"$T_{\perp} = T_{//} = T$"
             + "\n" +
-            r"$dn_e = f^{1D}_{E}(E) dE$"
+            r"$dn_e = \int_0^\infty f^{1D}_{E}(E) dE$"
             + "\n" +
             r"\begin{eqnarray*}"
             r"\frac{n_e}{v_{d//}\sqrt{\pi T 2m_e}}"
