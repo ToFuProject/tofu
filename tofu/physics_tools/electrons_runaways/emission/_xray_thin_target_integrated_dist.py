@@ -20,10 +20,10 @@ from ._xray_thin_target_integrated import get_xray_thin_d2cross_ei_integrated_th
 # ############################################
 
 
-_THETA_PH_VSB = np.linspace(0, np.pi, 31)
-_THETA_E0_VSB_NPTS = 15
-_PHI_E0_VSB_NPTS = 25
-_E_PH_EV = np.linspace(1, 30, 30) * 1e3
+_THETA_PH_VSB = np.linspace(0, np.pi, 17)
+_THETA_E0_VSB_NPTS = 19
+_PHI_E0_VSB_NPTS = 29
+_E_PH_EV = np.linspace(5, 30, 25) * 1e3
 
 
 # ############################################
@@ -114,13 +114,18 @@ def get_xray_thin_integ_dist(
         print(msg)
 
     # theta_ph_vs_e in (theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
-    theta_ph_vs_e = np.arccos(
+    cos = (
         np.cos(theta_e0_vsB[None, :, None])
         * np.cos(theta_ph_vsB[:, None, None])
         + np.sin(theta_e0_vsB[None, :, None])
         * np.sin(theta_ph_vsB[:, None, None])
         * np.cos(phi_e0_vsB[None, None, :])
     )
+
+    ieps = np.abs(cos) > 1.
+    assert np.all(np.abs(cos[ieps]) - 1. < 1e-13)
+    cos[ieps] = np.sign(cos[ieps])
+    theta_ph_vs_e = np.arccos(cos)
 
     # --------------------
     # get d2cross integrated over phi (from dist)
@@ -186,8 +191,8 @@ def get_xray_thin_integ_dist(
         ne_m3=ne_m3,
         jp_Am2=jp_Am2,
         # Energy, theta
-        E_eV=E_e0_eV[:, None],
-        theta=theta_e0_vsB[None, :],
+        E_eV=E_e0_eV,
+        theta=theta_e0_vsB,
         # version
         version='f3d_E_theta',
         returnas=dict,
@@ -275,8 +280,8 @@ def get_xray_thin_integ_dist(
 
     # units
     units = (
-        ddist['dist']['units']
-        * d2cross['cross'][version_cross]['units']
+        ddist['dist']['units']                      # 1 / (m3.rad2.eV)
+        * d2cross['cross'][version_cross]['units']  # m2 / (eV.sr)
         * asunits.Unit('m/s')
         * asunits.Unit('eV.rad^2')
     )
@@ -294,12 +299,12 @@ def get_xray_thin_integ_dist(
         },
     }
 
-    return demiss
+    return demiss, ddist
 
 
 # ############################################
 # ############################################
-#             Main
+#             Check
 # ############################################
 
 
@@ -317,6 +322,9 @@ def _check(
     # ----------
     # E_ph_eV
     # ----------
+
+    if E_ph_eV is None:
+        E_ph_eV = _E_PH_EV
 
     E_ph_eV = ds._generic_check._check_flat1darray(
         E_ph_eV, 'E_ph_eV',
@@ -346,7 +354,7 @@ def _check(
 
         else:
             msg = (
-                f"Several points ({nok} / {E_e0_eV.size}) "
+                f"Some points ({E_e0_eV.size - nok} / {E_e0_eV.size}) "
                 "are removed from E_e0_eV (< E_ph_eV.min())"
             )
             warnings.warn(msg)
@@ -363,6 +371,9 @@ def _check(
     # ------------
     # theta_ph_vsB
     # ------------
+
+    if theta_ph_vsB is None:
+        theta_ph_vsB = _THETA_PH_VSB
 
     theta_ph_vsB = ds._generic_check._check_flat1darray(
         theta_ph_vsB, 'theta_ph_vsB',
