@@ -58,15 +58,22 @@ def get_maxwellian(
     # -------------------
 
     ddata = _get_maxwellian_2d(
-        Te_eV=dinputs['Te_eV'],
-        ne_m3=dinputs['ne_m3'],
-        jp_Am2=dinputs['jp_Am2'],
+        Te_eV=dinputs['Te_eV']['data'],
+        ne_m3=dinputs['ne_m3']['data'],
+        jp_Am2=dinputs['jp_Am2']['data'],
         # coord
         dcoord=dcoord,
         ref=ref,
         # version
         version=version,
     )
+
+    # -------------
+    # add inputs & coords
+    # -------------
+
+    ddata.update(**dinputs)
+    ddata.update(**dcoord)
 
     return ddata
 
@@ -130,9 +137,18 @@ def _check(
     # ---------------
 
     dinputs = {
-        'Te_eV': Te_eV,
-        'ne_m3': ne_m3,
-        'jp_Am2': jp_Am2,
+        'Te_eV': {
+            'data': Te_eV,
+            'units': 'eV',
+        },
+        'ne_m3': {
+            'data': ne_m3,
+            'units': '1/m^3',
+        },
+        'jp_Am2': {
+            'data': jp_Am2,
+            'units': 'A/m^2',
+        },
     }
 
     # ------------
@@ -141,7 +157,7 @@ def _check(
     if returnas is dict:
         lout = [
             kk for kk, vv in dinputs.items()
-            if not isinstance(vv, (int, float, np.ndarray))
+            if not isinstance(vv['data'], (int, float, np.ndarray))
         ]
         if len(lout) > 0:
             lstr = [f"\t- {kk}: {dinputs[kk]}" for kk in lout]
@@ -169,17 +185,17 @@ def _check(
     # extract data
 
     if coll is not None:
-        dref = _extract(dinputs, dinputs.keys(), coll)
+        _extract(dinputs, coll)
 
     # ---------------
     # check data
 
     for k0, v0 in dinputs.items():
-        dinputs[k0] = np.atleast_1d(v0)
+        dinputs[k0]['data'] = np.atleast_1d(v0['data'])
 
-        iok = np.isfinite(dinputs[k0])
+        iok = np.isfinite(dinputs[k0]['data'])
         if 'j' not in k0:
-            iok[iok] = dinputs[k0][iok] >= 0.
+            iok[iok] = dinputs[k0]['data'][iok] >= 0.
 
         if np.any(~iok):
             msg = (
@@ -201,7 +217,7 @@ def _check(
 
     # ref_inputs
     if coll is not None:
-        refu = set(list(dref.values()))
+        refu = set([v0['ref'] for v0 in dinputs.values()])
         if len(refu) == 1:
             ref_inputs = list(refu)[0]
         else:
@@ -249,84 +265,124 @@ def _check(
 
     if lc[0]:
         dcoords = {
-            'name': '(v_par_ms, v_perp_ms)',
-            'v_par_ms': v_par_ms,
-            'v_perp_ms': v_perp_ms,
+            'x0': {
+                'key': 'v_par_ms',
+                'data': v_par_ms,
+                'units': 'm/s',
+                'ref': (None,)
+            },
+            'x1': {
+                'key': 'v_perp_ms',
+                'data': v_perp_ms,
+                'units': 'm/s',
+                'ref': (None,)
+            },
         }
 
     elif lc[1]:
         dcoords = {
-            'name': '(E_eV, pitch)',
-            'E_eV': E_eV,
-            'pitch': pitch,
+            'x0': {
+                'key': 'E_eV',
+                'data': E_eV,
+                'units': 'eV',
+                'ref': (None,)
+            },
+            'x1': {
+                'key': 'pitch',
+                'data': pitch,
+                'units': None,
+                'ref': (None,)
+            },
         }
 
     elif lc[2]:
         dcoords = {
-            'name': '(E_eV, theta)',
-            'E_eV': E_eV,
-            'theta': theta,
+            'x0': {
+                'key': 'E_eV',
+                'data': E_eV,
+                'units': 'eV',
+                'ref': (None,)
+            },
+            'x1': {
+                'key': 'theta',
+                'data': theta,
+                'units': 'rad',
+                'ref': (None,)
+            },
         }
 
     elif lc[3]:
         dcoords = {
-            'name': '(E_eV,)',
-            'E_eV': E_eV,
+            'x0': {
+                'key': 'E_eV',
+                'data': E_eV,
+                'units': 'eV',
+                'ref': (None,)
+            },
         }
 
     # -------------
     # extract
 
-    lname = dcoords['name'][1:-1].split(',')
-    lname = [nn.strip(' ') for nn in lname if len(nn) > 0]
     if coll is not None:
-        lk = [kk for kk in dcoords.keys() if kk != 'name']
-        dref = _extract(dcoords, lk, coll)
-        ref_coords = tuple([dref[nn] for nn in lname])
+        _extract(dcoords, coll)
+
+    lcoords = sorted(dcoords.keys())
+    ref_coords = tuple([dcoords[k0]['ref'] for k0 in lcoords])
+    shapef_coords = tuple([dcoords[k0]['data'].size for k0 in lcoords])
 
     # -------------------
-    # check broadcastable
+    # check coords 1d
+
+    dout = {
+        v0['key']: v0['data'].shape
+        for k0, v0 in dcoords.items()
+        if v0['data'].ndim != 1
+    }
+    if len(dout) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
+        msg = (
+            "Args must be flat 1d arrays!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # -------------------
+    # make all broadcastable
     # -------------------
 
     ref = None
     if coll is not None:
         ref = ref_inputs + ref_coords
 
-    try:
-        _ = np.broadcast_arrays(
-            dinputs['Te_eV'],
-            dinputs['ne_m3'],
-            dinputs['jp_Am2'],
-            *[dcoords[nn] for nn in lname],
-        )
-    except Exception:
-        for k0, v0 in dinputs.items():
-            axis = tuple(len(shapef) + np.arange(len(lname)))
-            dinputs[k0] = np.expand_dims(v0, axis)
+    for k0, v0 in dinputs.items():
+        axis = tuple(len(shapef) + np.arange(len(shapef_coords)))
+        dinputs[k0]['data'] = np.expand_dims(v0['data'], axis)
 
-        for ii, nn in enumerate(lname):
-            axis = tuple(np.arange(len(shapef)))
-            if len(lname) > 1:
-                axis += (-1 - ii,)
-            dcoords[nn] = np.expand_dims(dcoords[nn], axis)
+    for ii, nn in enumerate(lcoords):
+        axis = tuple(np.arange(len(shapef)))
+        if len(lcoords) > 1:
+            axis_add = np.delete(np.arange(len(lcoords)) + 1, ii)
+            axis += tuple(axis[-1] + axis_add)
+        dcoords[nn]['data'] = np.expand_dims(dcoords[nn]['data'], axis)
 
     # double check
     _ = np.broadcast_arrays(
-        dinputs['Te_eV'],
-        dinputs['ne_m3'],
-        dinputs['jp_Am2'],
-        *[dcoords[nn] for nn in lname],
+        dinputs['Te_eV']['data'],
+        dinputs['ne_m3']['data'],
+        dinputs['jp_Am2']['data'],
+        *[dcoords[nn]['data'] for nn in lcoords],
     )
 
     # ----------------
     # version
     # ----------------
 
-    if dcoords.get('E_eV') is not None:
+    if dcoords['x0']['key'] == 'E_eV':
         lok = ['f1d_E']
-        if dcoords.get('pitch') is not None:
+        if dcoords.get('x1', {}).get('key') == 'pitch':
             lok.append('f2d_E_pitch')
-        if dcoords.get('theta') is not None:
+        if dcoords.get('x1', {}).get('key') == 'theta':
             lok += ['f2d_E_theta', 'f3d_E_theta']
     else:
         lok = [
@@ -346,18 +402,17 @@ def _check(
     return dinputs, dcoords, ref, version
 
 
-def _extract(din, lk, coll):
+def _extract(din, coll):
 
-    dref = {}
     dout = {}
-    for k0 in lk:
-        units0 = asunits.Unit(k0.split('_')[-1])
-        units1 = asunits.Unit(coll.ddata[din[k0]]['units'])
-        if units0 != units1:
-            dout[k0] = f"expected {units0}, got {units1}"
+    for k0, v0 in din.items():
+        if isinstance(v0['data'], str):
+            units0 = asunits.Unit(v0['units'])
+            units1 = asunits.Unit(coll.ddata[din[k0]['data']]['units'])
+            if units0 != units1:
+                dout[v0.get('key', k0)] = f"expected {units0}, got {units1}"
 
-        dref[k0] = coll.ddata[din[k0]]['ref']
-        din[k0] = coll.ddata[din[k0]]['data']
+            din[k0]['data'] = coll.ddata[din[k0]['data']]['data']
 
     if len(dout) > 0.:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
@@ -367,7 +422,7 @@ def _extract(din, lk, coll):
         )
         warnings.warn(msg)
 
-    return dref
+    return
 
 
 # ############################################
@@ -407,11 +462,11 @@ def _get_maxwellian_2d(
 
     dist, units = _DFUNC[version]['func'](
         # coords
-        v_par_ms=dcoord.get('v_par_ms'),
-        v_perp_ms=dcoord.get('v_perp_ms'),
-        E_eV=dcoord.get('E_eV'),
-        pitch=dcoord.get('pitch'),
-        theta=dcoord.get('theta'),
+        v_par_ms=dcoord['x0']['data'],
+        v_perp_ms=dcoord.get('x1', {}).get('data'),
+        E_eV=dcoord['x0']['data'],
+        pitch=dcoord.get('x1', {}).get('data'),
+        theta=dcoord.get('x1', {}).get('data'),
         # parameters
         vt_par_ms=vt_ms,
         vt_perp_ms=vt_ms,
@@ -429,17 +484,35 @@ def _get_maxwellian_2d(
     units = units * asunits.Unit('1/m3')
 
     # ---------------
+    # integrate to compare vs ne
+    # ---------------
+
+    integ, units_integ, ref_integ = _integrate(
+        dist=dist,
+        units=units,
+        dcoord=dcoord,
+    )
+
+    # ---------------
     # Format ouput
     # ---------------
 
     ddata = {
         'dist': {
             'key': None,
+            'type': 'maxwell',
             'data': dist,
             'units': units,
             'ref': ref,
             'dim': 'PDF',
-            'coords': dcoord['name'],
+        },
+        'dist_integ': {
+            'key': None,
+            'type': 'maxwell',
+            'data': integ,
+            'units': units_integ,
+            'ref': ref_integ,
+            'dim': None,
         },
     }
 
@@ -628,6 +701,42 @@ def f1d_E_norm(
     units = asunits.Unit('1/eV')
 
     return dist, units
+
+
+# #####################################################
+# #####################################################
+#           Integrate numerically
+# #####################################################
+
+
+def _integrate(
+    dist=None,
+    units=None,
+    dcoord=None,
+):
+
+    # ---------
+    # integrate
+    # ---------
+
+    integ = None
+
+    # ---------
+    # ref
+    # ---------
+
+    ref_integ = None
+
+    # ---------
+    # units
+    # ---------
+
+    units_integ = units
+    for k0, v0 in dcoord.items():
+        if v0['units'] not in ['', None]:
+            units_integ = units_integ * asunits.Unit(v0['units'])
+
+    return integ, units_integ, ref_integ
 
 
 # #####################################################

@@ -24,8 +24,8 @@ except Exception:
 # ############################################
 
 
-_E_MAX_EV = 1e6
-_E_EV = np.logspace(0, np.log10(_E_MAX_EV), 1000)
+_E_MAX_EV = 100e3
+_E_EV = np.logspace(0, np.log10(_E_MAX_EV), 500)
 _PITCH = np.linspace(-1, 1, 51)
 
 _V_MAX_MS = np.sqrt(2.*_E_MAX_EV * scpct.e / scpct.m_e)
