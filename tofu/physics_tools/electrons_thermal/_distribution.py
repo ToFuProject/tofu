@@ -208,9 +208,9 @@ def _check(
     # check broadcastable
     # -------------------
 
-    dinputs, shapef = ds._generic_check._check_all_broadcastable(
+    _, shapef = ds._generic_check._check_all_broadcastable(
         return_full_arrays=None,
-        **dinputs,
+        **{kk: vv['data'] for kk, vv in dinputs.items()},
     )
 
     if shapef is None:
