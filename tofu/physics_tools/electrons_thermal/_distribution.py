@@ -493,6 +493,7 @@ def _get_maxwellian_2d(
         units=units,
         dcoord=dcoord,
         ref=ref,
+        version=version,
     )
 
     # ---------------
@@ -515,6 +516,20 @@ def _get_maxwellian_2d(
             'units': units_integ,
             'ref': ref_integ,
             'dim': None,
+        },
+        'v0_par_ms': {
+            'key': None,
+            'data': v0_par_ms,
+            'units': 'm/s',
+            'ref': None,
+            'dim': 'velocity',
+        },
+        'vt_ms': {
+            'key': None,
+            'data': vt_ms,
+            'units': 'm/s',
+            'ref': None,
+            'dim': 'velocity',
         },
     }
 
@@ -716,21 +731,35 @@ def _integrate(
     units=None,
     dcoord=None,
     ref=None,
+    version=None,
 ):
 
     # ---------
     # integrate
     # ---------
 
-    integ = scpinteg.trapezoid(
-        scpinteg.trapezoid(
+    # integrate over x1
+    if dcoord.get('x1') is None:
+        integ = dist
+        x0 = dcoord['x0']['data']
+    else:
+        integ = scpinteg.trapezoid(
             dist,
             x=dcoord['x1']['data'],
             axis=-1,
-        ),
-        x=dcoord['x0']['data'][..., 0],
+        )
+        x0 = dcoord['x0']['data'][..., 0]
+
+    # integrate over x0
+    integ = scpinteg.trapezoid(
+        integ,
+        x=x0,
         axis=-1,
     )
+
+    # adjust if needed
+    if version == 'f3d_E_theta':
+        integ = integ * (2.*np.pi)
 
     # ---------
     # ref
@@ -749,6 +778,10 @@ def _integrate(
     for k0, v0 in dcoord.items():
         if v0['units'] not in ['', None]:
             units_integ = units_integ * asunits.Unit(v0['units'])
+
+    # adjust of needed
+    if version == 'f3d_E_theta':
+        units_integ = units_integ * asunits.Unit('rad')
 
     return integ, units_integ, ref_integ
 
