@@ -37,6 +37,7 @@ def get_xray_thin_integ_dist(
     # electron distribution
     Te_eV=None,
     ne_m3=None,
+    nZ_m3=None,
     jp_Am2=None,
     re_fraction_Ip=None,
     # ----------------
@@ -204,6 +205,11 @@ def get_xray_thin_integ_dist(
     # ref_plasma = (None,) * len(shape_plasma)
     # ref_dist = (None,) * len(shape_dist)
 
+    # ------------
+    # add nZ_m3
+
+    _add_nZ(ddist, nZ_m3, shape_plasma)
+
     # --------------------
     # get velocity
     # --------------------
@@ -278,13 +284,25 @@ def get_xray_thin_integ_dist(
     # prepare output
     # ----------------
 
+    # multiply by nZ_m3
+    emiss *= ddist['nZ_m3']['data'][..., None, None]
+
     # units
     units = (
         ddist['dist']['units']                      # 1 / (m3.rad2.eV)
         * d2cross['cross'][version_cross]['units']  # m2 / (eV.sr)
         * asunits.Unit('m/s')
         * asunits.Unit('eV.rad^2')
+        * asunits.Unit(ddist['nZ_m3']['units'])    # 1/m^3
     )
+
+    # ----------------
+    # safety
+    # ----------------
+
+    if np.any((~np.isfinite(emiss)) | (emiss < 0.)):
+        msg = "\n! Some non-finite or negative values in emissivity !\n"
+        warnings.warn(msg)
 
     # ----------------
     # format output
@@ -336,11 +354,12 @@ def _check(
     # E_e0_eV
     # ----------
 
-    E_e0_eV = ds._generic_check._check_flat1darray(
+    E_e0_eV = np.unique(ds._generic_check._check_flat1darray(
         E_e0_eV, 'E_e0_eV',
         dtype=float,
+        unique=True,
         sign='>=0',
-    )
+    ))
 
     iok = E_e0_eV >= E_ph_eV.min()
     nok = np.sum(iok)
@@ -441,3 +460,57 @@ def _check(
         version_cross,
         verb,
     )
+
+
+# ###########################################
+# ###########################################
+#        ad nZ_m3
+# ###########################################
+
+
+def _add_nZ(
+    ddist=None,
+    nZ_m3=None,
+    shape_plasma=None,
+):
+
+    # -------------
+    # nZ_m3
+    # -------------
+
+    if nZ_m3 is None:
+        nZ_m3 = ddist['ne_m3']['data'][..., 0, 0]
+
+    nZ_m3 = np.atleast_1d(nZ_m3)
+    if np.any((~np.isfinite(nZ_m3)) | (nZ_m3 < 0.)):
+        msg = "Arg nZ_m3 has non-finite of negative values!"
+        raise Exception(msg)
+
+    # -------------
+    # broadcastable
+    # -------------
+
+    try:
+        _ = np.broadcast_shapes(shape_plasma, nZ_m3.shape)
+
+    except Exception:
+        lk = [kk for kk in ddist.keys() if kk != 'dist']
+        lstr = [f"\t- {k0}: {ddist[k0]['data'].shape}" for k0 in lk]
+        msg = (
+            "Arg nZ_m3 must be boradcast-able to othe plasma parameters!\n"
+            + "\n".join(lstr)
+            + "\t- nZ_m3: {nZ_m3.shape}\n"
+        )
+        raise Exception(msg)
+
+    # -------------
+    # store
+    # -------------
+
+    ddist['nZ_m3'] = {
+        'key': 'nZ',
+        'data': nZ_m3,
+        'units': '1/m^3'
+    }
+
+    return
