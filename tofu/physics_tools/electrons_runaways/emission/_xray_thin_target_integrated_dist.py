@@ -91,7 +91,7 @@ def get_xray_thin_integ_dist(
     # --------------------
 
     (
-        E_ph_eV, E_e0_eV,
+        E_ph_eV, E_e0_eV, iok,
         theta_e0_vsB, theta_ph_vsB,
         phi_e0_vsB,
         version_cross,
@@ -144,7 +144,8 @@ def get_xray_thin_integ_dist(
         if verb >= 2:
             iEstr = f"({ind[0]} / {shape_emiss[0]})"
             itstr = f"({ind[1]} / {shape_emiss[1]})"
-            ish = f"{shape_integ}"
+            ish = f"{iok.sum()} / {shape_integ[0]}"
+            ish = f"({ish}, {shape_integ[1]}, {shape_integ[2]})"
             msg = f"\tE_ph_eV {iEstr}, theta_ph_vsB {itstr} for shape {ish}"
             print(msg)
 
@@ -154,7 +155,7 @@ def get_xray_thin_integ_dist(
             # inputs
             Z=Z,
             E_ph_eV=E_ph_eV[ind[0]],
-            E_e0_eV=E_e0_eV[:, None, None],
+            E_e0_eV=E_e0_eV[iok, None, None],
             theta_ph=theta_ph_vs_e[None, ind[1], :, :],
             # hypergeometric parameter
             ninf=ninf,
@@ -173,7 +174,7 @@ def get_xray_thin_integ_dist(
 
         # integrate over phi
         # MULTIPLY BY SIN PHI ?????
-        d2cross_phi[ind[0], ind[1], :, :] = scpinteg.trapezoid(
+        d2cross_phi[ind[0], ind[1], iok, :] = scpinteg.trapezoid(
             d2cross['cross'][version_cross]['data'],
             x=phi_e0_vsB,
             axis=-1,
@@ -305,6 +306,20 @@ def get_xray_thin_integ_dist(
         warnings.warn(msg)
 
     # ----------------
+    # anisotropy
+    # ----------------
+
+    axis = -1
+    vmax = np.max(emiss, axis=axis)
+    anis = (vmax - np.min(emiss, axis=axis)) / vmax
+    imax = np.argmax(emiss, axis=axis)
+    theta_peak = theta_ph_vsB[imax]
+    if ref is None:
+        refmax = None
+    else:
+        refmax = ref[:-1]
+
+    # ----------------
     # format output
     # ----------------
 
@@ -314,6 +329,18 @@ def get_xray_thin_integ_dist(
             'data': emiss,
             'units': units,
             'ref': ref,
+        },
+        'anis': {
+            'key': None,
+            'data': anis,
+            'units': None,
+            'ref': refmax,
+        },
+        'theta_peak': {
+            'key': None,
+            'data': theta_peak,
+            'units': 'rad',
+            'ref': refmax,
         },
     }
 
@@ -378,7 +405,6 @@ def _check(
             )
             warnings.warn(msg)
 
-    E_e0_eV = E_e0_eV[iok]
     if E_e0_eV.max() < E_ph_eV.max():
         msg = (
             "Arg E_e0_eV should not have a max value below E_ph_eV.min()!\n"
@@ -454,7 +480,7 @@ def _check(
     ))
 
     return (
-        E_ph_eV, E_e0_eV,
+        E_ph_eV, E_e0_eV, iok,
         theta_e0_vsB, theta_ph_vsB,
         phi_e0_vsB,
         version_cross,
