@@ -15,25 +15,29 @@ from . import _xray_thin_target_integrated_dist
 # ############################################
 
 
-# _DPLASMA = {
-    # 'Te_eV': np.r_[1, 1, 5, 1]*1e3,
-    # 'ne_m3': np.r_[1e19, 1e20, 1e19, 1e19],
-    # 'jp_Am2': np.r_[1e6, 1e6, 1e6, 10e6],
-    # 're_fraction_Ip': 0.,
-# }
-_DPLASMA = {
-    'Te_eV': np.r_[1., 5.]*1e3,
-    'ne_m3': np.r_[1e19, 1e19],
-    'jp_Am2': np.r_[1e6, 1e6],
+_DPLASMA_ANISOTROPY_MAP = {
+    'Te_eV': np.r_[1, 2, 3, 5, 8, 10, 15, 20]*1e3,
+    'ne_m3': np.r_[1, 2, 3, 5, 10, 20, 30, 50, 100]*1e19,
+    'jp_Am2': np.r_[0, 1, 2, 3, 5, 8, 10]*1e6,
+}
+
+
+_DPLASMA_ANGULAR_PROFILES = {
+    'Te_eV': np.r_[1, 1, 10, 1]*1e3,
+    'ne_m3': np.r_[1e19, 1e20, 1e19, 1e19],
+    'jp_Am2': np.r_[1e6, 1e6, 1e6, 10e6],
     're_fraction_Ip': 0.,
 }
 
 
-_THETA_PH_VSB = np.linspace(0, np.pi, 3)    # 7
-_THETA_E0_VSB_NPTS = 13                     # 19
-_PHI_E0_VSB_NPTS = 21                       # 29
+_THETA_PH_VSB = np.linspace(0, np.pi, 7)    # 7
+# _THETA_E0_VSB_NPTS = 15                     # 19
+_THETA_E0_VSB_NPTS = 9                       # 19
+_PHI_E0_VSB_NPTS = _THETA_E0_VSB_NPTS*2 + 1
+# _E_PH_EV = np.r_[5., 10., 15., 20., 30., 50.] * 1e3
 _E_PH_EV = np.r_[5., 15., 30.] * 1e3
-_E_E0_EV = np.linspace(_E_PH_EV.min()*1e-3 + 1e-9, 500, 31)*1e3      # 31
+# _E_E0_EV = np.logspace(-2, 4, 61)*1e3      # 31
+_E_E0_EV = np.logspace(-2, 4, 31)*1e3      # 31
 
 
 # ############################################
@@ -66,6 +70,9 @@ def plot_xray_thin_integ_dist(
     ndphi=None,
     # output customization
     version_cross=None,
+    # plots
+    plot_angular_spectra=None,
+    plot_anisotropy_map=None,
     # verb
     verb=None,
 ):
@@ -87,6 +94,9 @@ def plot_xray_thin_integ_dist(
         E_ph_eV, E_e0_eV,
         theta_ph_vsB,
         theta_e0_vsB_npts, phi_e0_vsB_npts,
+        version_cross,
+        plot_angular_spectra,
+        plot_anisotropy_map,
         verb,
     ) = _check(
         # electron distribution
@@ -100,6 +110,10 @@ def plot_xray_thin_integ_dist(
         theta_e0_vsB_npts=theta_e0_vsB_npts,
         phi_e0_vsB_npts=phi_e0_vsB_npts,
         theta_ph_vsB=theta_ph_vsB,
+        version_cross=version_cross,
+        # plots
+        plot_angular_spectra=plot_angular_spectra,
+        plot_anisotropy_map=plot_anisotropy_map,
         verb=verb,
     )
 
@@ -135,12 +149,19 @@ def plot_xray_thin_integ_dist(
     )
 
     # -------------
-    # plot
+    # plots
     # -------------
 
-    dax = _plot(
-        **locals(),
-    )
+    if plot_angular_spectra is True:
+        dax = _plot_angular_spectra(
+            **locals(),
+        )
+
+    if plot_anisotropy_map is True:
+        dax = _plot_anisotropy_map(
+            **locals(),
+        )
+        pass
 
     return dax, demiss, ddist, dplasma
 
@@ -167,58 +188,40 @@ def _check(
     theta_ph_vsB=None,
     # version
     version_cross=None,
+    # plots
+    plot_angular_spectra=None,
+    plot_anisotropy_map=None,
     verb=None,
 ):
+
+    # --------------------
+    # plot_angular_spectra
+    # --------------------
+
+    plot_angular_spectra = ds._generic_check._check_var(
+        plot_angular_spectra, 'plot_angular_spectra',
+        types=bool,
+        default=True,
+    )
+
+    # --------------------
+    # plot_anisotropy_map
+    # --------------------
+
+    plot_anisotropy_map = ds._generic_check._check_var(
+        plot_anisotropy_map, 'plot_anisotropy_map',
+        types=bool,
+        default=True,
+    )
 
     # -------------------------------------
     # Te_eV, ne_m3, jp_Am2, re_fraction_Ip
     # -------------------------------------
 
-    dplasma = {
-        'Te_eV': Te_eV,
-        'ne_m3': ne_m3,
-        'jp_Am2': jp_Am2,
-        're_fraction_Ip': re_fraction_Ip,
-    }
-
-    # default + np.ndarray
-    size = 1
-    for k0, v0 in dplasma.items():
-        if v0 is None:
-            v0 = _DPLASMA[k0]
-        v0 = np.atleast_1d(v0).ravel()
-        dplasma[k0] = v0
-        size = max(size, v0.size)
-
-    # shape consistency
-    dout = {
-        k0: v0.size for k0, v0 in dplasma.items()
-        if v0.size not in [1, size]
-    }
-    if len(dout) > 0:
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
-        msg = (
-            "All plasma parameter args must be either scalar "
-            "or flat arrays of same size!\n"
-            f"\t- max detected size: {size}\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
-
-    # format to shape
-    for k0, v0 in dplasma.items():
-        dplasma[k0] = np.broadcast_to(v0, (size,))
-
-    # --------------
-    # add isotropic
-    # --------------
-
-    for k0, v0 in dplasma.items():
-        if k0 == 'jp_Am2':
-            v00 = 0.
-        else:
-            v00 = v0[0]
-        dplasma[k0] = np.r_[v00, v0]
+    if plot_anisotropy_map is False:
+        dplasma = _dplasma_asis()
+    else:
+        dplasma = _dplasma_map()
 
     # ----------
     # E_ph_eV
@@ -281,6 +284,18 @@ def _check(
     ))
 
     # --------------------
+    # version_cross
+    # --------------------
+
+    lok = ['BHE', 'EH']
+    version_cross = ds._generic_check._check_var(
+        version_cross, 'version_cross',
+        types=str,
+        allowed=lok,
+        default=lok[0],
+    )
+
+    # --------------------
     # verb
     # --------------------
 
@@ -297,20 +312,131 @@ def _check(
         E_ph_eV, E_e0_eV,
         theta_ph_vsB,
         theta_e0_vsB_npts, phi_e0_vsB_npts,
+        version_cross,
+        plot_angular_spectra,
+        plot_anisotropy_map,
         verb,
     )
 
 
+def _dplasma_asis(
+    Te_eV=None,
+    ne_m3=None,
+    jp_Am2=None,
+):
+
+    # -----------------
+    # initialize
+    # -----------------
+
+    dplasma = {
+        'Te_eV': Te_eV,
+        'ne_m3': ne_m3,
+        'jp_Am2': jp_Am2,
+        # 're_fraction_Ip': re_fraction_Ip,
+    }
+
+    # -----------------
+    # set default + array
+    # -----------------
+
+    # default + np.ndarray
+    size = 1
+    for k0, v0 in dplasma.items():
+        if v0 is None:
+            v0 = _DPLASMA_ANGULAR_PROFILES[k0]
+        v0 = np.atleast_1d(v0).ravel()
+        dplasma[k0] = v0
+        size = max(size, v0.size)
+
+    # -----------------
+    # broadcastable
+    # -----------------
+
+    # shape consistency
+    dout = {
+        k0: v0.size for k0, v0 in dplasma.items()
+        if v0.size not in [1, size]
+    }
+    if len(dout) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
+        msg = (
+            "All plasma parameter args must be either scalar "
+            "or flat arrays of same size!\n"
+            f"\t- max detected size: {size}\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # format to shape
+    for k0, v0 in dplasma.items():
+        dplasma[k0] = np.broadcast_to(v0, (size,))
+
+    # --------------
+    # add isotropic
+    # --------------
+
+    for k0, v0 in dplasma.items():
+        if k0 == 'jp_Am2':
+            v00 = 0.
+        else:
+            v00 = v0[0]
+        dplasma[k0] = np.r_[v00, v0]
+
+    return dplasma
+
+
+def _dplasma_map(
+    Te_eV=None,
+    ne_m3=None,
+    jp_Am2=None,
+):
+
+    # -----------------
+    # initialize
+    # -----------------
+
+    dplasma = {
+        'Te_eV': Te_eV,
+        'ne_m3': ne_m3,
+        'jp_Am2': jp_Am2,
+        # 're_fraction_Ip': re_fraction_Ip,
+    }
+
+    # -----------------
+    # set default + array
+    # -----------------
+
+    # default + np.ndarray
+    for k0, v0 in dplasma.items():
+        if v0 is None:
+            v0 = _DPLASMA_ANISOTROPY_MAP[k0]
+        v0 = np.atleast_1d(v0).ravel()
+        dplasma[k0] = v0
+
+    # ---------------------
+    # broadcast
+    # ---------------------
+
+    dplasma = {
+        'Te_eV': dplasma['Te_eV'][:, None, None],
+        'ne_m3': dplasma['ne_m3'][None, :, None],
+        'jp_Am2': dplasma['jp_Am2'][None, None, :],
+    }
+
+    return dplasma
+
+
 # ############################################
 # ############################################
-#             Check
+#           Plot angular spectra
 # ############################################
 
 
-def _plot(
+def _plot_angular_spectra(
     E_ph_eV=None,
     theta_ph_vsB=None,
-    dplasma=None,
+    ddist=None,
     demiss=None,
     # plotting
     dax=None,
@@ -327,7 +453,7 @@ def _plot(
     # inputs
     # ----------------
 
-    dparam = _check_plot(
+    dparam = _check_plot_angular_spectra(
         E_ph_eV=E_ph_eV,
         dparam=dparam,
     )
@@ -337,8 +463,8 @@ def _plot(
     # ----------------
 
     if dax is None:
-        dax = _get_dax(
-            dplasma=dplasma,
+        dax = _get_dax_angular_spectra(
+            ddist=ddist,
             demiss=demiss,
             dmargin=dmargin,
             fs=fs,
@@ -356,10 +482,10 @@ def _plot(
     # shapes
 
     vmax0 = 0
-    for ii, ind in enumerate(np.ndindex(dplasma['Te_eV'].shape)):
+    for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
 
         # kax
-        kax0 = _get_kax(ii, dplasma)
+        kax0 = _get_kax(ind, ddist)
         kax = f"{kax0} - shape"
 
         # get ax
@@ -369,7 +495,7 @@ def _plot(
 
         # plot - shape
         for iE, ee in enumerate(E_ph_eV):
-            sli = ind + (iE, slice(None))
+            sli = ind[:-2] + (iE, slice(None))
             vmax = np.max(demiss['emiss']['data'][sli])
             ax.plot(
                 theta_ph_vsB*180/np.pi,
@@ -384,15 +510,15 @@ def _plot(
             ax.set_ylim(0, 1)
 
         # legend
-        ax.legend()
+        ax.legend(title=r"$E_{ph}$ (keV)", fontsize=fontsize)
 
     # -----------
     # abs
 
-    for ii, ind in enumerate(np.ndindex(dplasma['Te_eV'].shape)):
+    for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
 
         # kax
-        kax0 = _get_kax(ii, dplasma)
+        kax0 = _get_kax(ind, ddist)
         kax = f"{kax0} - abs"
 
         # get ax
@@ -402,7 +528,7 @@ def _plot(
 
         # plot - abs
         for iE, ee in enumerate(E_ph_eV):
-            sli = ind + (iE, slice(None))
+            sli = ind[:-2] + (iE, slice(None))
             ax.semilogy(
                 theta_ph_vsB*180/np.pi,
                 demiss['emiss']['data'][sli],
@@ -413,8 +539,31 @@ def _plot(
         if ii == 0:
             ax.set_ylim(0, vmax0)
 
-        # legend
-        ax.legend()
+    # -----------
+    # spect
+
+    for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
+
+        # kax
+        kax0 = _get_kax(ind, ddist)
+        kax = f"{kax0} - spect"
+
+        # get ax
+        if dax.get(kax) is None:
+            continue
+        ax = dax[kax]['handle']
+
+        # plot - spect
+        for it, tt in enumerate(theta_ph_vsB):
+            sli = ind[:-2] + (slice(None), it)
+            ax.semilogy(
+                E_ph_eV*1e-3,
+                demiss['emiss']['data'][sli],
+                ls='-',
+                label=f"{tt*180/np.pi:3.0f}",
+            )
+
+        ax.legend(title=r"$\theta$ (deg)", fontsize=fontsize)
 
     return dax
 
@@ -425,7 +574,7 @@ def _plot(
 # ############################################
 
 
-def _check_plot(
+def _check_plot_angular_spectra(
     E_ph_eV=None,
     dparam=None,
 ):
@@ -444,7 +593,7 @@ def _check_plot(
             'ls': '-',
             'lw': 1,
             'marker': 'None',
-            'label': f'E_ph = {ee*1e-3:3.1f} keV',
+            'label': f'{ee*1e-3:3.0f}',
         }
 
     if dparam is None:
@@ -482,12 +631,12 @@ def _check_plot(
 
 # ############################################
 # ############################################
-#             _get_dax
+#             _get_dax_angular_spectra
 # ############################################
 
 
-def _get_dax(
-    dplasma=None,
+def _get_dax_angular_spectra(
+    ddist=None,
     demiss=None,
     dmargin=None,
     fs=None,
@@ -500,7 +649,7 @@ def _get_dax(
 
     # fs
     if fs is None:
-        fs = (16, 10)
+        fs = (17, 10)
 
     fs = tuple(ds._generic_check._check_flat1darray(
         fs, 'fs',
@@ -537,30 +686,34 @@ def _get_dax(
     # ---------------
 
     tit = (
-        f"{version_cross} Bremsstrhlung cross-section integrated over "
+        f"{version_cross} Bremsstrahlung cross-section integrated over "
         "electron distribution"
     )
 
     fig = plt.figure(figsize=fs)
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
-    gs = gridspec.GridSpec(ncols=len(dplasma['Te_eV']), nrows=2, **dmargin)
+    gs = gridspec.GridSpec(
+        ncols=ddist['Te_eV']['data'].size,
+        nrows=3,
+        **dmargin,
+    )
     dax = {}
 
     # ---------------
     # prepare axes
     # --------------
 
-    ax0s, ax0a = None, None
-    for ii in range(len(dplasma['Te_eV'])):
+    ax0n, ax0a, ax0s = None, None, None
+    for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
 
         # kax
-        kax0 = _get_kax(ii, dplasma)
+        kax0 = _get_kax(ind, ddist)
 
         # ---------------
         # create - shape
 
-        ax = fig.add_subplot(gs[0, ii], sharex=ax0s, sharey=ax0s)
+        ax = fig.add_subplot(gs[0, ii], sharex=ax0n, sharey=ax0n)
         ax.set_xlabel(
             xlab,
             fontweight='bold',
@@ -571,15 +724,16 @@ def _get_dax(
             fontweight='bold',
             size=fontsize,
         )
+        ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
         # ax0
         if ii == 0:
             ax.set_ylabel(
-                ylab,
+                "Normalized (a.u.)",
                 fontweight='bold',
                 size=fontsize,
             )
-            ax0s = ax
+            ax0n = ax
 
         # store
         dax[f"{kax0} - shape"] = {'handle': ax}
@@ -587,12 +741,13 @@ def _get_dax(
         # ---------------
         # create - abs
 
-        ax = fig.add_subplot(gs[1, ii], sharex=ax0s, sharey=ax0a)
+        ax = fig.add_subplot(gs[1, ii], sharex=ax0n, sharey=ax0a)
         ax.set_xlabel(
             xlab,
             fontweight='bold',
             size=fontsize,
         )
+        ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
         # ax0
         if ii == 0:
@@ -606,18 +761,222 @@ def _get_dax(
         # store
         dax[f"{kax0} - abs"] = {'handle': ax}
 
+        # ---------------
+        # create - spect
+
+        ax = fig.add_subplot(gs[2, ii], sharex=ax0s, sharey=ax0a)
+        ax.set_xlabel(
+            "E_ph (keV)",
+            fontweight='bold',
+            size=fontsize,
+        )
+        ax.tick_params(axis='both', which='major', labelsize=fontsize)
+
+        # ax0
+        if ii == 0:
+            ax.set_ylabel(
+                ylab,
+                fontweight='bold',
+                size=fontsize,
+            )
+            ax0s = ax
+
+        # store
+        dax[f"{kax0} - spect"] = {'handle': ax}
+
     return dax
 
 
-def _get_kax(ii, dplasma):
-    Te = dplasma['Te_eV'][ii]
-    ne = dplasma['ne_m3'][ii]
-    jp = dplasma['jp_Am2'][ii]
+def _get_kax(ind, ddist):
+    Te = ddist['Te_eV']['data'][ind]
+    ne = ddist['ne_m3']['data'][ind]
+    jp = ddist['jp_Am2']['data'][ind]
+    integ = 100 * (ddist['dist_integ']['data'][ind[:-2]] / ne - 1.)
+    vdvt = ddist['v0_par_ms']['data'][ind] / ddist['vt_ms']['data'][ind]
     kax = (
         f"Te = {Te*1e-3} keV, "
         f"ne = {ne:1.1e} /m3, "
-        f"jp = {jp*1e-6} MA/m2"
+        f"jp = {jp*1e-6} MA/m2\n"
+        f"integral = {integ:3.1f} % error\n"
+        + r"$v_0 / v_T = \frac{j}{en_e}\frac{m_e}{\sqrt{2k_BT_e}}$ = "
+        + f"{vdvt:3.3f}"
     )
-    if ii == 0:
+    if np.sum(ind) == 0:
         kax = f'isotropic\n{kax}'
     return kax
+
+
+# ############################################
+# ############################################
+#           Plot anisotropy map
+# ############################################
+
+
+def _plot_anisotropy_map(
+    E_ph_eV=None,
+    theta_ph_vsB=None,
+    ddist=None,
+    demiss=None,
+    # plotting
+    dax=None,
+    dparam=None,
+    dmargin=None,
+    fs=None,
+    fontsize=None,
+    version_cross=None,
+    # unused
+    **kwdargs,
+):
+
+    # ----------------
+    # inputs
+    # ----------------
+
+    # dparam = _check_plot_anisotropy_map(
+        # E_ph_eV=E_ph_eV,
+        # dparam=dparam,
+    # )
+
+    # ----------------
+    # prepare data
+    # ----------------
+
+    stream = ddist['v0_par_ms']['data'] / ddist['vt_ms']['data']
+
+    anis = demiss['anis']['data']
+    theta_peak = demiss['theta_peak']['data']
+
+    # ----------------
+    # prepare dax
+    # ----------------
+
+    if dax is None:
+        dax = _get_dax_anisotropy_map(
+            ddist=ddist,
+            demiss=demiss,
+            dmargin=dmargin,
+            fs=fs,
+            fontsize=fontsize,
+            version_cross=version_cross,
+        )
+
+    dax = ds._generic_check._check_dax(dax)
+
+    # ----------------
+    # plot
+    # ----------------
+
+    kax = 'map'
+    if dax.get(dax) is not None:
+        ax = dax[kax]['handle']
+
+        # anisotropy vs streaming parameter
+        ax.scatter(
+            stream.ravel(),
+            anis,
+            c=theta_peak,
+            marker='.',
+            ls='None',
+            cmap=plt.cm.viridis,
+        )
+
+    return
+
+
+# ############################################
+# ############################################
+#       _get_dax_anisotropy_map
+# ############################################
+
+
+def _get_dax_anisotropy_map(
+    demiss=None,
+    dmargin=None,
+    fs=None,
+    fontsize=None,
+    version_cross=None,
+):
+    # ---------------
+    # check inputs
+    # --------------
+
+    # fs
+    if fs is None:
+        fs = (17, 10)
+
+    fs = tuple(ds._generic_check._check_flat1darray(
+        fs, 'fs',
+        dtype=float,
+        sign='>0',
+        size=2,
+    ))
+
+    # fontsize
+    fontsize = ds._generic_check._check_var(
+        fontsize, 'fontsize',
+        types=(int, float),
+        default=12,
+        sign='>0',
+    )
+
+    # dmargin
+    if dmargin is None:
+        dmargin = {
+            'left': 0.06, 'right': 0.98,
+            'bottom': 0.06, 'top': 0.90,
+            'wspace': 0.20, 'hspace': 0.20,
+        }
+
+    # ---------------
+    # prepare data
+    # ---------------
+
+    xlab = (
+        r"$\xi_{Th} = \frac{v_d}{v_{Th}} $"
+        r"$= \frac{j_{Th}}{en_e}\sqrt{\frac{m_e}{T_e[J]}}$"
+    )
+    ylab = r"$\epsilon_{max} - \epsilon_{min}$"
+
+    # ---------------
+    # prepare figure
+    # ---------------
+
+    tit = (
+        f"{version_cross} Bremsstrahlung cross-section integrated over "
+        "electron distribution\nAnisotropy dependency"
+    )
+
+    fig = plt.figure(figsize=fs)
+    fig.suptitle(tit, size=fontsize+2, fontweight='bold')
+
+    gs = gridspec.GridSpec(
+        ncols=1,
+        nrows=1,
+        **dmargin,
+    )
+    dax = {}
+
+    # ---------------
+    # prepare axes
+    # --------------
+
+    # ---------------
+    # create - map
+
+    ax = fig.add_subplot(gs[0, 0])
+    ax.set_xlabel(
+        xlab,
+        fontweight='bold',
+        size=fontsize,
+    )
+    ax.set_xlabel(
+        ylab,
+        fontweight='bold',
+        size=fontsize,
+    )
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+
+    # store
+    dax["map"] = {'handle': ax}
+
+    return dax
