@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 import scipy.constants as scpct
+import scipy.integrate as scpinteg
 import astropy.units as asunits
 import datastock as ds
 import tofu as tf
@@ -491,6 +492,7 @@ def _get_maxwellian_2d(
         dist=dist,
         units=units,
         dcoord=dcoord,
+        ref=ref,
     )
 
     # ---------------
@@ -713,19 +715,31 @@ def _integrate(
     dist=None,
     units=None,
     dcoord=None,
+    ref=None,
 ):
 
     # ---------
     # integrate
     # ---------
 
-    integ = None
+    integ = scpinteg.trapezoid(
+        scpinteg.trapezoid(
+            dist,
+            x=dcoord['x1']['data'],
+            axis=-1,
+        ),
+        x=dcoord['x0']['data'][..., 0],
+        axis=-1,
+    )
 
     # ---------
     # ref
     # ---------
 
-    ref_integ = None
+    if ref is None:
+        ref_integ = None
+    else:
+        ref_integ = ref[:-2]
 
     # ---------
     # units
