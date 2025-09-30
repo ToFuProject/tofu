@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.lines as mlines
 import datastock as ds
 
 
@@ -16,9 +17,9 @@ from . import _xray_thin_target_integrated_dist
 
 
 _DPLASMA_ANISOTROPY_MAP = {
-    'Te_eV': np.r_[1, 2, 3, 5, 8, 10, 15, 20]*1e3,
-    'ne_m3': np.r_[1, 2, 3, 5, 10, 20, 30, 50, 100]*1e19,
-    'jp_Am2': np.r_[0, 1, 2, 3, 5, 8, 10]*1e6,
+    'Te_eV': np.r_[1, 5, 10, 20]*1e3,
+    'ne_m3': np.r_[1, 3, 5, 10, 30, 50, 100]*1e19,
+    'jp_Am2': np.r_[0, 1, 3, 5, 8, 10]*1e6,
 }
 
 
@@ -832,19 +833,18 @@ def _plot_anisotropy_map(
     # inputs
     # ----------------
 
-    # dparam = _check_plot_anisotropy_map(
-        # E_ph_eV=E_ph_eV,
-        # dparam=dparam,
-    # )
-
     # ----------------
     # prepare data
     # ----------------
 
-    stream = ddist['v0_par_ms']['data'] / ddist['vt_ms']['data']
+    # shape_plasma
+    stream = np.squeeze(ddist['v0_par_ms']['data'] / ddist['vt_ms']['data'])
 
+    # shape_plasma + (nE_ph,)
     anis = demiss['anis']['data']
     theta_peak = demiss['theta_peak']['data']
+
+    Te = ddist['Te_eV']['data'].ravel()
 
     # ----------------
     # prepare dax
@@ -852,7 +852,6 @@ def _plot_anisotropy_map(
 
     if dax is None:
         dax = _get_dax_anisotropy_map(
-            ddist=ddist,
             demiss=demiss,
             dmargin=dmargin,
             fs=fs,
@@ -867,17 +866,76 @@ def _plot_anisotropy_map(
     # ----------------
 
     kax = 'map'
-    if dax.get(dax) is not None:
+    if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        # anisotropy vs streaming parameter
-        ax.scatter(
-            stream.ravel(),
-            anis,
-            c=theta_peak,
-            marker='.',
-            ls='None',
-            cmap=plt.cm.viridis,
+        lcolor = ['r', 'g', 'b', 'm', 'y', 'c']
+        lls = ['-', '--', ':', '-.']
+        for iE, ee in enumerate(E_ph_eV):
+
+            color = lcolor[iE % len(lcolor)]
+            for iT, tt in enumerate(Te):
+
+                slip = (iT, slice(None), slice(None))
+                sli = slip + (iE,)
+                if iT == 0:
+                    lab = f'{ee*1e-3:3.0f}'
+                else:
+                    lab = None
+                ls = lls[iT % len(lls)]
+
+                # indices
+                iok = stream[slip].ravel() > 1e-3
+                i0 = iok & (theta_peak[sli].ravel() < 5*np.pi/180)
+                i1 = iok & (theta_peak[sli].ravel() > 5*np.pi/180)
+
+                # anisotropy vs streaming parameter
+                inds = np.argsort(stream[slip].ravel()[i0])
+                l0, = ax.semilogx(
+                    stream[slip].ravel()[i0][inds],
+                    anis[sli].ravel()[i0][inds],
+                    marker='.',
+                    ms=12,
+                    ls=ls,
+                    c=color,
+                    label=lab,
+                )
+
+                # paeked at > 5 degrees
+                inds = np.argsort(stream[slip].ravel()[i1])
+                ax.semilogx(
+                    stream[slip].ravel()[i1][inds],
+                    anis[sli].ravel()[i1][inds],
+                    marker='s',
+                    markerfacecolor='None',
+                    ms=10,
+                    ls=ls,
+                    c=color,
+                )
+
+        # lims
+        ax.set_xlim(left=0)
+        ax.set_ylim(bottom=0)
+
+        # legend - E_ph
+        leg = ax.legend(title=r"$E_{ph}$ (keV)", fontsize=fontsize, loc=2)
+        ax.add_artist(leg)
+
+        # legend - Te
+        lh = [
+            mlines.Line2D(
+                [], [],
+                c='k',
+                ls=lls[iT % len(lls)],
+                label=f"{tt*1e-3:3.0f}",
+            )
+            for iT, tt in enumerate(Te)
+        ]
+        ax.legend(
+            handles=lh,
+            title=r"$T_{e}$ (keV)",
+            fontsize=fontsize,
+            loc=6,
         )
 
     return
@@ -902,7 +960,7 @@ def _get_dax_anisotropy_map(
 
     # fs
     if fs is None:
-        fs = (17, 10)
+        fs = (12, 8)
 
     fs = tuple(ds._generic_check._check_flat1darray(
         fs, 'fs',
@@ -923,7 +981,7 @@ def _get_dax_anisotropy_map(
     if dmargin is None:
         dmargin = {
             'left': 0.06, 'right': 0.98,
-            'bottom': 0.06, 'top': 0.90,
+            'bottom': 0.10, 'top': 0.90,
             'wspace': 0.20, 'hspace': 0.20,
         }
 
@@ -935,7 +993,7 @@ def _get_dax_anisotropy_map(
         r"$\xi_{Th} = \frac{v_d}{v_{Th}} $"
         r"$= \frac{j_{Th}}{en_e}\sqrt{\frac{m_e}{T_e[J]}}$"
     )
-    ylab = r"$\epsilon_{max} - \epsilon_{min}$"
+    ylab = r"$\epsilon_{max} / \epsilon_{min}$"
 
     # ---------------
     # prepare figure
@@ -969,7 +1027,7 @@ def _get_dax_anisotropy_map(
         fontweight='bold',
         size=fontsize,
     )
-    ax.set_xlabel(
+    ax.set_ylabel(
         ylab,
         fontweight='bold',
         size=fontsize,
