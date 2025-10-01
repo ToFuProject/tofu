@@ -311,7 +311,7 @@ def get_xray_thin_integ_dist(
 
     axis = -1
     vmax = np.max(emiss, axis=axis)
-    anis = vmax / np.min(emiss, axis=axis)
+    anis = (vmax - np.min(emiss, axis=axis)) / vmax
     imax = np.argmax(emiss, axis=axis)
     theta_peak = theta_ph_vsB[imax]
     if ref is None:
