@@ -252,7 +252,7 @@ def _check_cross(
 
     Z = ds._generic_check._check_var(
         Z, 'Z',
-        types=int,
+        types=(int, float),
         sign='>0',
         default=1,
     )
