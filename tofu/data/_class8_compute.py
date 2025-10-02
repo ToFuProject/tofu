@@ -54,7 +54,7 @@ def get_optics_outline(
     if dgeom['type'] == '3d':
 
         msg = (
-            "Approximate outline for {cls} '{key}' due to 3d polygon!"
+            f"Approximate outline for {cls} '{key}' due to 3d polygon!"
         )
         warnings.warn(msg)
 
@@ -69,6 +69,7 @@ def get_optics_outline(
 
         p0 = (px - cx) * e0[0] + (py - cy) * e0[1] + (pz - cz) * e0[2]
         p1 = (px - cx) * e1[0] + (py - cy) * e1[1] + (pz - cz) * e1[2]
+        lp = [p0, p1]
 
     if cls == 'camera' and total:
         # get centers
@@ -101,11 +102,13 @@ def get_optics_outline(
             cx1[0] - dx1, cx1[0] - dx1,
             cx1[-1] + dx1, cx1[-1] + dx1,
         ]
+        lp = [p0, p1]
 
-    else:
+    elif dgeom.get('outline') is not None:
         out = dgeom['outline']
         p0 = coll.ddata[out[0]]['data']
         p1 = coll.ddata[out[1]]['data']
+        lp = [p0, p1]
 
     # -----------
     # add_points
@@ -120,7 +123,7 @@ def get_optics_outline(
                 add_points = 3
 
     return _interp_poly(
-        lp=[p0, p1],
+        lp=lp,
         add_points=add_points,
         mode=mode,
         isclosed=False,
@@ -196,6 +199,7 @@ def get_optics_poly(
             )
 
         else:
+            p0, p1 = None, None
             px, py, pz = dgeom['poly']
             px = coll.ddata[px]['data']
             py = coll.ddata[py]['data']
@@ -865,8 +869,6 @@ def _dplot(
             )
 
             dplot[k0]['o'] = {
-                'x0': p0 + dx0,
-                'x1': p1 + dx1,
                 'x': px,
                 'y': py,
                 'z': pz,
@@ -877,6 +879,12 @@ def _dplot(
                     'c': color,
                 },
             }
+
+            if p0 is not None:
+                dplot[k0]['o'].update({
+                    'x0': p0 + dx0,
+                    'x1': p1 + dx1,
+                })
 
         # center
         if 'c' in elements:
