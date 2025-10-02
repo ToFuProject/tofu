@@ -91,7 +91,7 @@ def plot_xray_thin_integ_dist(
     # -------------
 
     (
-        dplasma,
+        dplasma, indplot,
         E_ph_eV, E_e0_eV,
         theta_ph_vsB,
         theta_e0_vsB_npts, phi_e0_vsB_npts,
@@ -219,10 +219,18 @@ def _check(
     # Te_eV, ne_m3, jp_Am2, re_fraction_Ip
     # -------------------------------------
 
-    if plot_anisotropy_map is False:
-        dplasma = _dplasma_asis()
-    else:
-        dplasma = _dplasma_map()
+    dplasma, indplot = _dplasma_asis(
+        Te_eV=Te_eV,
+        ne_m3=ne_m3,
+        jp_Am2=jp_Am2,
+    )
+    if plot_anisotropy_map is True:
+        dplasma, indplot = _dplasma_map(
+            Te_eV=Te_eV,
+            ne_m3=ne_m3,
+            jp_Am2=jp_Am2,
+            dplasma0=dplasma,
+        )
 
     # ----------
     # E_ph_eV
@@ -309,7 +317,7 @@ def _check(
     ))
 
     return (
-        dplasma,
+        dplasma, indplot,
         E_ph_eV, E_e0_eV,
         theta_ph_vsB,
         theta_e0_vsB_npts, phi_e0_vsB_npts,
@@ -384,13 +392,20 @@ def _dplasma_asis(
             v00 = v0[0]
         dplasma[k0] = np.r_[v00, v0]
 
-    return dplasma
+    # --------------
+    # indplot
+    # --------------
+
+    indplot = np.ones(dplasma[k0].shape, dtype=bool)
+
+    return dplasma, indplot
 
 
 def _dplasma_map(
     Te_eV=None,
     ne_m3=None,
     jp_Am2=None,
+    dplasma0=None,
 ):
 
     # -----------------
@@ -425,7 +440,20 @@ def _dplasma_map(
         'jp_Am2': dplasma['jp_Am2'][None, None, :],
     }
 
-    return dplasma
+    # --------------
+    # indplot
+    # --------------
+
+    shapef = np.broadcast_shapes(*[vv.shape for vv in dplasma.values()])
+    indplot = np.zeros(shapef, dtype=bool)
+
+    for ind in np.ndindex(dplasma0['Te_eV'].shape):
+        iTe = np.argmin(np.abs(dplasma['Te_eV'] - dplasma0['Te_eV'][ind]))
+        ine = np.argmin(np.abs(dplasma['ne_m3'] - dplasma0['ne_m3'][ind]))
+        ijp = np.argmin(np.abs(dplasma['jp_Am2'] - dplasma0['jp_Am2'][ind]))
+        indplot[iTe, ine, ijp] = True
+
+    return dplasma, indplot
 
 
 # ############################################
@@ -439,6 +467,7 @@ def _plot_angular_spectra(
     theta_ph_vsB=None,
     ddist=None,
     demiss=None,
+    indplot=None,
     # plotting
     dax=None,
     dparam=None,
@@ -467,6 +496,7 @@ def _plot_angular_spectra(
         dax = _get_dax_angular_spectra(
             ddist=ddist,
             demiss=demiss,
+            indplot=indplot,
             dmargin=dmargin,
             fs=fs,
             fontsize=fontsize,
@@ -483,7 +513,13 @@ def _plot_angular_spectra(
     # shapes
 
     vmax0 = 0
-    for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
+    shapef = np.broadcast_shapes(
+        *[ddist[kk]['data'].shape for kk in ['Te_eV', 'ne_m3', 'jp_Am2']]
+    )
+    for ii, ind in enumerate(np.ndindex(shapef)):
+
+        if not indplot[ind[:-2]]:
+            continue
 
         # kax
         kax0 = _get_kax(ind, ddist)
@@ -518,6 +554,9 @@ def _plot_angular_spectra(
 
     for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
 
+        if not indplot[ind[:-2]]:
+            continue
+
         # kax
         kax0 = _get_kax(ind, ddist)
         kax = f"{kax0} - abs"
@@ -544,6 +583,9 @@ def _plot_angular_spectra(
     # spect
 
     for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
+
+        if not indplot[ind[:-2]]:
+            continue
 
         # kax
         kax0 = _get_kax(ind, ddist)
@@ -639,6 +681,7 @@ def _check_plot_angular_spectra(
 def _get_dax_angular_spectra(
     ddist=None,
     demiss=None,
+    indplot=None,
     dmargin=None,
     fs=None,
     fontsize=None,
@@ -707,6 +750,9 @@ def _get_dax_angular_spectra(
 
     ax0n, ax0a, ax0s = None, None, None
     for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
+
+        if not indplot[ind[:-2]]:
+            continue
 
         # kax
         kax0 = _get_kax(ind, ddist)
