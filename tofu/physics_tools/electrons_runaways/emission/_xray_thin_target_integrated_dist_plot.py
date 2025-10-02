@@ -153,18 +153,19 @@ def plot_xray_thin_integ_dist(
     # plots
     # -------------
 
+    dax0 = None
     if plot_angular_spectra is True:
-        dax = _plot_angular_spectra(
+        dax0 = _plot_angular_spectra(
             **locals(),
         )
 
+    dax1 = None
     if plot_anisotropy_map is True:
-        dax = _plot_anisotropy_map(
+        dax1 = _plot_anisotropy_map(
             **locals(),
         )
-        pass
 
-    return dax, demiss, ddist, dplasma
+    return dax0, dax1, demiss, ddist, dplasma
 
 
 # ############################################
@@ -552,7 +553,7 @@ def _plot_angular_spectra(
     # -----------
     # abs
 
-    for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
+    for ii, ind in enumerate(np.ndindex(shapef)):
 
         if not indplot[ind[:-2]]:
             continue
@@ -582,7 +583,7 @@ def _plot_angular_spectra(
     # -----------
     # spect
 
-    for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
+    for ii, ind in enumerate(np.ndindex(shapef)):
 
         if not indplot[ind[:-2]]:
             continue
@@ -718,6 +719,13 @@ def _get_dax_angular_spectra(
             'wspace': 0.20, 'hspace': 0.20,
         }
 
+    # shapef
+    shapef = np.broadcast_shapes(*[
+        v0['data'].shape
+        for k0, v0 in ddist.items()
+        if k0 in ['Te_eV', 'ne_m3', 'jp_Am2']
+    ])
+
     # ---------------
     # prepare data
     # ---------------
@@ -738,7 +746,7 @@ def _get_dax_angular_spectra(
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
     gs = gridspec.GridSpec(
-        ncols=ddist['Te_eV']['data'].size,
+        ncols=indplot.sum(),
         nrows=3,
         **dmargin,
     )
@@ -749,7 +757,8 @@ def _get_dax_angular_spectra(
     # --------------
 
     ax0n, ax0a, ax0s = None, None, None
-    for ii, ind in enumerate(np.ndindex(ddist['Te_eV']['data'].shape)):
+    i0 = 0
+    for ii, ind in enumerate(np.ndindex(shapef)):
 
         if not indplot[ind[:-2]]:
             continue
@@ -760,7 +769,7 @@ def _get_dax_angular_spectra(
         # ---------------
         # create - shape
 
-        ax = fig.add_subplot(gs[0, ii], sharex=ax0n, sharey=ax0n)
+        ax = fig.add_subplot(gs[0, i0], sharex=ax0n, sharey=ax0n)
         ax.set_xlabel(
             xlab,
             fontweight='bold',
@@ -788,7 +797,7 @@ def _get_dax_angular_spectra(
         # ---------------
         # create - abs
 
-        ax = fig.add_subplot(gs[1, ii], sharex=ax0n, sharey=ax0a)
+        ax = fig.add_subplot(gs[1, i0], sharex=ax0n, sharey=ax0a)
         ax.set_xlabel(
             xlab,
             fontweight='bold',
@@ -811,7 +820,7 @@ def _get_dax_angular_spectra(
         # ---------------
         # create - spect
 
-        ax = fig.add_subplot(gs[2, ii], sharex=ax0s, sharey=ax0a)
+        ax = fig.add_subplot(gs[2, i0], sharex=ax0s, sharey=ax0a)
         ax.set_xlabel(
             "E_ph (keV)",
             fontweight='bold',
@@ -831,15 +840,30 @@ def _get_dax_angular_spectra(
         # store
         dax[f"{kax0} - spect"] = {'handle': ax}
 
+        i0 += 1
+
     return dax
 
 
 def _get_kax(ind, ddist):
-    Te = ddist['Te_eV']['data'][ind]
-    ne = ddist['ne_m3']['data'][ind]
-    jp = ddist['jp_Am2']['data'][ind]
-    integ = 100 * (ddist['dist_integ']['data'][ind[:-2]] / ne - 1.)
-    vdvt = ddist['v0_par_ms']['data'][ind] / ddist['vt_ms']['data'][ind]
+
+    if len(ind) == 5:
+        indTe = (ind[0], 0, 0, 0, 0)
+        indne = (0, ind[1], 0, 0, 0)
+        indjp = (0, 0, ind[2], 0, 0)
+        indv0 = (0, ind[1], ind[2], 0, 0)
+        ind_int = ind[:-2]
+    else:
+        indTe, indne, indjp, indv0, ind_int = ind, ind, ind, ind, ind[0]
+
+    Te = ddist['Te_eV']['data'][indTe]
+    ne = ddist['ne_m3']['data'][indne]
+    jp = ddist['jp_Am2']['data'][indjp]
+    integ = 100 * (ddist['dist_integ']['data'][ind_int] / ne - 1.)
+    vdvt = (
+        ddist['v0_par_ms']['data'][indv0]
+        / ddist['vt_ms']['data'][indTe]
+    )
     kax = (
         f"Te = {Te*1e-3} keV, "
         f"ne = {ne:1.1e} /m3, "
