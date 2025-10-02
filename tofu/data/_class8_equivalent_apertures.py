@@ -179,8 +179,14 @@ def equivalent_apertures(
     # add pts to initial polygon only if curved
 
     if spectro:
-        assert pinhole is True, "How to handle spectr with pinhole = False here ?"
-        rcurv = np.r_[coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['curve_r']]
+
+        if pinhole is not True:
+            msg = "How to handle spectro with pinhole = False here ?"
+            raise Exception(msg)
+
+        rcurv = np.r_[
+            coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['curve_r']
+        ]
         ind = ~np.isinf(rcurv)
         if np.any(rcurv[ind] > 0):
             addp0 = add_points

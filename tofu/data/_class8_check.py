@@ -348,7 +348,7 @@ def _check_doptics_basics(
 
         if doptics[k0]['paths'] is not None:
 
-            pinhole = np.all(doptics[k0]['paths'])
+            pinhole = bool(np.all(doptics[k0]['paths']))
             if pinhole is True:
                 doptics[k0]['paths'] = None
 
@@ -360,6 +360,22 @@ def _check_doptics_basics(
             optics=doptics[k0]['optics'],
         )[1]
 
+        # ----------------
+        # pinhole + 3d => reshuffle
+
+        if pinhole is True and not any([cc == 'cryst' for cc in lcls]):
+            is3d = [
+                coll.dobj[ocls][kop]['dgeom']['type'] == '3d'
+                for ocls, kop in zip(lcls, doptics[k0]['optics'])
+            ]
+            if is3d[-1] is True and is3d[0] is False:
+                doptics[k0]['optics'] = (
+                    [doptics[k0]['optics'][-1]]
+                    + doptics[k0]['optics'][1:-1]
+                    + [doptics[k0]['optics'][0]]
+                )
+                lcls = [lcls[-1]] + lcls[1:-1] + [lcls[0]]
+
         # ---------------------
         # populate doptics2
 
@@ -367,7 +383,7 @@ def _check_doptics_basics(
             'camera': k0,
             'optics': doptics[k0]['optics'],
             'cls': lcls,
-            'pinhole': bool(pinhole),
+            'pinhole': pinhole,
             'paths': doptics[k0]['paths'],
             'los': None,
             'etendue': None,
