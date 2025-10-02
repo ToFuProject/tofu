@@ -20,9 +20,8 @@ from ._xray_thin_target_integrated import get_xray_thin_d2cross_ei_integrated_th
 # ############################################
 
 
-_THETA_PH_VSB = np.linspace(0, np.pi, 17)
-_THETA_E0_VSB_NPTS = 19
-_PHI_E0_VSB_NPTS = 29
+_THETA_PH_VSB = np.linspace(0, np.pi, 15)
+_THETA_E0_VSB_NPTS = 17
 _E_PH_EV = np.linspace(5, 30, 25) * 1e3
 
 
@@ -142,8 +141,8 @@ def get_xray_thin_integ_dist(
     for i0, ind in enumerate(np.ndindex(shape_emiss)):
 
         if verb >= 2:
-            iEstr = f"({ind[0]} / {shape_emiss[0]})"
-            itstr = f"({ind[1]} / {shape_emiss[1]})"
+            iEstr = f"({ind[0] + 1} / {shape_emiss[0]})"
+            itstr = f"({ind[1] + 1} / {shape_emiss[1]})"
             ish = f"{iok.sum()} / {shape_integ[0]}"
             ish = f"({ish}, {shape_integ[1]}, {shape_integ[2]})"
             msg = f"\tE_ph_eV {iEstr}, theta_ph_vsB {itstr} for shape {ish}"
@@ -324,6 +323,18 @@ def get_xray_thin_integ_dist(
     # ----------------
 
     demiss = {
+        'E_ph_eV': {
+            'key': None,
+            'data': E_ph_eV,
+            'units': 'eV',
+            'ref': None,
+        },
+        'theta_ph_vsB': {
+            'key': None,
+            'data': theta_ph_vsB,
+            'units': 'rad',
+            'ref': None,
+        },
         'emiss': {
             'key': None,
             'data': emiss,
@@ -380,6 +391,13 @@ def _check(
     # ----------
     # E_e0_eV
     # ----------
+
+    if E_e0_eV is None:
+        E_e0_eV = np.logspace(
+            np.log10(E_ph_eV.min()),
+            np.ceil(np.log10(E_ph_eV.max())) + 1,
+            41,
+        )
 
     E_e0_eV = np.unique(ds._generic_check._check_flat1darray(
         E_e0_eV, 'E_e0_eV',
@@ -453,7 +471,7 @@ def _check(
         phi_e0_vsB_npts, 'phi_e0_vsB_npts',
         types=(int, float),
         sign='>=5',
-        default=_PHI_E0_VSB_NPTS,
+        default=2*theta_e0_vsB_npts + 1,
     ))
     phi_e0_vsB = np.linspace(-np.pi, np.pi, phi_e0_vsB_npts)
 
