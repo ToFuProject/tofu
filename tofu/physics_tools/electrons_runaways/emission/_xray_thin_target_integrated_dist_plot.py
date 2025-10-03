@@ -67,8 +67,8 @@ def plot_xray_thin_integ_dist(
     # integration parameters
     nthetae=None,
     ndphi=None,
-    # output customization
     version_cross=None,
+    # -----------------
     # plots
     plot_angular_spectra=None,
     plot_anisotropy_map=None,

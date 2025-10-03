@@ -22,7 +22,7 @@ def get_maxwellian(
     Te_eV=None,
     ne_m3=None,
     jp_Am2=None,
-    # coordinate: momentum
+    # coordinate: velocity
     v_perp_ms=None,
     v_par_ms=None,
     # coordinate: energy
@@ -90,6 +90,10 @@ def _check(
     Te_eV=None,
     ne_m3=None,
     jp_Am2=None,
+    # for RE
+    Zeff=None,
+    electric_field_par_Vm=None,
+    energy_kinetic_max_eV=None,
     # coordinate: momentum
     v_perp_ms=None,
     v_par_ms=None,
@@ -150,7 +154,38 @@ def _check(
             'data': jp_Am2,
             'units': 'A/m^2',
         },
+        'Zeff': {
+            'data': Zeff,
+            'units': None,
+        },
+        'electric_field_par_Vm': {
+            'data': electric_field_par_Vm,
+            'units': 'V/m',
+        },
+        'energy_kinetic_max_eV': {
+            'data': energy_kinetic_max_eV,
+            'units': 'eV',
+        },
     }
+
+    # ------------
+    # consistency check
+
+    lc = [
+        Zeff is None,
+        electric_field_par_Vm is None,
+        energy_kinetic_max_eV is None,
+    ]
+    if np.sum(lc) not in [0, 3]:
+        lstr = ['Zeff', 'electric_field_par_Vm', 'energy_kinetic_max_eV']
+        lstr = [f"\t- {kk}" for kk in lstr]
+        msg = (
+            "Args shall be either all None or all provided:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    dinputs = {kk: vv for kk, vv in dinputs.items() if vv['data'] is not None}
 
     # ------------
     # safety check

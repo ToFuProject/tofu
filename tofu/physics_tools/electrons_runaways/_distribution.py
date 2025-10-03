@@ -152,7 +152,7 @@ def get_normalized_momentum_distribution(
 
     Parameters:
         - ne:_m3 background electron density (1/m3)
-        - Zeff: effectove charge
+        - Zeff: effective charge
         - Epar_Vm: parallel electric field (V/m)
         - Emax_eV: maximum kinetic energy (eV)
     All assumed to be broadcastable against each other
