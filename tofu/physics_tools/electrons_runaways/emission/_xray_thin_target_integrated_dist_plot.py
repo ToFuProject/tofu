@@ -31,10 +31,8 @@ _DPLASMA_ANGULAR_PROFILES = {
 }
 
 
-_THETA_PH_VSB = np.linspace(0, np.pi, 7)    # 7
-# _THETA_E0_VSB_NPTS = 15                     # 19
-_THETA_E0_VSB_NPTS = 9                       # 19
-_PHI_E0_VSB_NPTS = _THETA_E0_VSB_NPTS*2 + 1
+_THETA_PH_VSB = np.linspace(0, np.pi, 11)    # 7
+_THETA_E0_VSB_NPTS = 17                      # 19
 # _E_PH_EV = np.r_[5., 10., 15., 20., 30., 50.] * 1e3
 _E_PH_EV = np.r_[5., 15., 30.] * 1e3
 # _E_E0_EV = np.logspace(-2, 4, 61)*1e3      # 31
@@ -94,7 +92,7 @@ def plot_xray_thin_integ_dist(
         dplasma, indplot,
         E_ph_eV, E_e0_eV,
         theta_ph_vsB,
-        theta_e0_vsB_npts, phi_e0_vsB_npts,
+        theta_e0_vsB_npts,
         version_cross,
         plot_angular_spectra,
         plot_anisotropy_map,
@@ -109,7 +107,6 @@ def plot_xray_thin_integ_dist(
         E_ph_eV=E_ph_eV,
         E_e0_eV=E_e0_eV,
         theta_e0_vsB_npts=theta_e0_vsB_npts,
-        phi_e0_vsB_npts=phi_e0_vsB_npts,
         theta_ph_vsB=theta_ph_vsB,
         version_cross=version_cross,
         # plots
@@ -186,7 +183,6 @@ def _check(
     E_ph_eV=None,
     E_e0_eV=None,
     theta_e0_vsB_npts=None,
-    phi_e0_vsB_npts=None,
     theta_ph_vsB=None,
     # version
     version_cross=None,
@@ -283,17 +279,6 @@ def _check(
     ))
 
     # --------------------
-    # phi_e0_vsB
-    # --------------------
-
-    phi_e0_vsB_npts = int(ds._generic_check._check_var(
-        phi_e0_vsB_npts, 'phi_e0_vsB_npts',
-        types=(int, float),
-        sign='>=5',
-        default=_PHI_E0_VSB_NPTS,
-    ))
-
-    # --------------------
     # version_cross
     # --------------------
 
@@ -321,7 +306,7 @@ def _check(
         dplasma, indplot,
         E_ph_eV, E_e0_eV,
         theta_ph_vsB,
-        theta_e0_vsB_npts, phi_e0_vsB_npts,
+        theta_e0_vsB_npts,
         version_cross,
         plot_angular_spectra,
         plot_anisotropy_map,
