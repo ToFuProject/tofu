@@ -114,7 +114,8 @@ def main(
         ioki = Etild[iok] > 5.
         units0 = None
         if np.any(ioki):
-            kwdargsi = {k0: v0[ioki] for k0, v0 in kwdargs.items()}
+            sli = (ioki,) + (None,)*len(dcoords)
+            kwdargsi = {k0: v0[sli] for k0, v0 in kwdargs.items()}
             kwdargsi.update(**dcoords)
             iok0 = np.copy(iok)
             iok0[iok0] = ioki
@@ -125,7 +126,8 @@ def main(
         ioki = (2 < Cs[iok]) & (Cs[iok] < 1 + Etild[iok])
         units1 = None
         if np.any(ioki):
-            kwdargsi = {k0: v0[ioki] for k0, v0 in kwdargs.items()}
+            sli = (ioki,) + (None,)*len(dcoords)
+            kwdargsi = {k0: v0[sli] for k0, v0 in kwdargs.items()}
             kwdargsi.update(**dcoords)
             iok0 = np.copy(iok)
             iok0[iok0] = ioki
