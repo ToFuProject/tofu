@@ -1,5 +1,6 @@
 
 
+import os
 import warnings
 
 
@@ -18,6 +19,9 @@ from ._xray_thin_target_integrated import get_xray_thin_d2cross_ei_integrated_th
 # ############################################
 #             Default
 # ############################################
+
+
+_PATH_HERE = os.path.dirname(__file__)
 
 
 _THETA_PH_VSB = np.linspace(0, np.pi, 15)
@@ -56,6 +60,9 @@ def get_xray_thin_integ_dist(
     ndphi=None,
     # output customization
     version_cross=None,
+    # save / load
+    d2cross_phi=None,
+    save_d2cross_phi=None,
     # verb
     verb=None,
 ):
@@ -137,47 +144,11 @@ def get_xray_thin_integ_dist(
 
     shape_emiss = (E_ph_eV.size, theta_ph_vsB.size)
     shape_integ = (E_e0_eV.size, theta_e0_vsB.size, phi_e0_vsB.size)
-    d2cross_phi = np.zeros(shape_emiss + shape_integ[:-1], dtype=float)
-    for i0, ind in enumerate(np.ndindex(shape_emiss)):
 
-        if verb >= 2:
-            iEstr = f"({ind[0] + 1} / {shape_emiss[0]})"
-            itstr = f"({ind[1] + 1} / {shape_emiss[1]})"
-            ish = f"{iok.sum()} / {shape_integ[0]}"
-            ish = f"({ish}, {shape_integ[1]}, {shape_integ[2]})"
-            msg = f"\tE_ph_eV {iEstr}, theta_ph_vsB {itstr} for shape {ish}"
-            print(msg)
-
-        # get integrated cross-section
-        # theta_ph_vs_e = (theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
-        d2cross = get_xray_thin_d2cross_ei_integrated_thetae_dphi(
-            # inputs
-            Z=Z,
-            E_ph_eV=E_ph_eV[ind[0]],
-            E_e0_eV=E_e0_eV[iok, None, None],
-            theta_ph=theta_ph_vs_e[None, ind[1], :, :],
-            # hypergeometric parameter
-            ninf=ninf,
-            source=source,
-            # integration parameters
-            nthetae=nthetae,
-            ndphi=ndphi,
-            # output customization
-            per_energy_unit='eV',
-            # version
-            version=version_cross,
-            # verb
-            verb=verb > 2,
-            verb_tab=2,
-        )
-
-        # integrate over phi
-        # MULTIPLY BY SIN PHI ?????
-        d2cross_phi[ind[0], ind[1], iok, :] = scpinteg.trapezoid(
-            d2cross['cross'][version_cross]['data'],
-            x=phi_e0_vsB,
-            axis=-1,
-        )
+    d2cross_phi = _get_d2cross_phi(
+        save=save_d2cross_phi,
+        **locals(),
+    )
 
     # --------------------
     # get distribution
@@ -504,6 +475,152 @@ def _check(
         version_cross,
         verb,
     )
+
+
+# ###########################################
+# ###########################################
+#        get d2cross_phi
+# ###########################################
+
+
+def _get_d2cross_phi(
+    shape_emiss=None,
+    shape_integ=None,
+    # params
+    Z=None,
+    E_ph_eV=None,
+    E_e0_eV=None,
+    theta_ph_vsB=None,
+    theta_ph_vs_e=None,
+    phi_e0_vsB=None,
+    # hypergeometric parameter
+    ninf=None,
+    source=None,
+    # integration parameters
+    nthetae=None,
+    ndphi=None,
+    # iok
+    iok=None,
+    # version
+    version_cross=None,
+    # verb
+    verb=None,
+    # load / save
+    d2cross_phi=None,
+    save=None,
+    # unused
+    **kwdargs,
+):
+
+    # ----------------
+    # inputs
+    # ----------------
+
+    # save
+    save = ds._generic_check._check_var(
+        save, 'save',
+        types=bool,
+        default=False,
+    )
+
+    # d2cross_phi
+    if d2cross_phi is not None:
+        c0 = (
+            isinstance(d2cross_phi, str)
+            and os.path.isfile(d2cross_phi)
+            and d2cross_phi.endwith('.npz')
+        )
+        if not c0:
+            msg = (
+                "To load a d2cross_phi, it must be a valid .npz file!\n"
+                f"Provided: {d2cross_phi}"
+            )
+            raise Exception(msg)
+
+    # ----------------
+    # compute
+    # ----------------
+
+    if d2cross_phi is None:
+
+        d2cross_phi = np.zeros(shape_emiss + shape_integ[:-1], dtype=float)
+        for i0, ind in enumerate(np.ndindex(shape_emiss)):
+
+            if verb >= 2:
+                iEstr = f"({ind[0] + 1} / {shape_emiss[0]})"
+                itstr = f"({ind[1] + 1} / {shape_emiss[1]})"
+                ish = f"{iok.sum()} / {shape_integ[0]}"
+                ish = f"({ish}, {shape_integ[1]}, {shape_integ[2]})"
+                msg = f"\tE_ph_eV {iEstr}, theta_ph_vsB {itstr} for shape {ish}"
+                print(msg)
+
+            # get integrated cross-section
+            # theta_ph_vs_e = (theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
+            d2cross = get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+                # inputs
+                Z=Z,
+                E_ph_eV=E_ph_eV[ind[0]],
+                E_e0_eV=E_e0_eV[iok, None, None],
+                theta_ph=theta_ph_vs_e[None, ind[1], :, :],
+                # hypergeometric parameter
+                ninf=ninf,
+                source=source,
+                # integration parameters
+                nthetae=nthetae,
+                ndphi=ndphi,
+                # output customization
+                per_energy_unit='eV',
+                # version
+                version=version_cross,
+                # verb
+                verb=verb > 2,
+                verb_tab=2,
+            )
+
+            # integrate over phi
+            # MULTIPLY BY SIN PHI ?????
+            d2cross_phi[ind[0], ind[1], iok, :] = scpinteg.trapezoid(
+                d2cross['cross'][version_cross]['data'],
+                x=phi_e0_vsB,
+                axis=-1,
+            )
+
+        # -------------------
+        # temporary save
+        # -------------------
+
+        if save is True:
+            units = d2cross['cross'][version_cross]['units']
+            units *= asunits.Unit('rad')
+            fn = f"d2cross_phi_nEph{E_ph_eV.size}_ntheta{theta_ph_vsB.size}"
+            pfe = os.path.join(_PATH_HERE, f'{fn}.npz')
+            np.savez(
+                pfe,
+                d2cross_phi={
+                    'data': d2cross_phi,
+                    'units': units,
+                },
+                E_ph_eV=E_ph_eV,
+                theta_ph_vsB=theta_ph_vsB,
+                E_e0_eV=E_e0_eV,
+                Z=Z,
+                nthetae=nthetae,
+                ndphi=ndphi,
+                version_cross=version_cross,
+                ninf=ninf,
+                source=source,
+            )
+            msg = f"Saved in\n\t{pfe}"
+            print(msg)
+
+    # ----------------
+    # load
+    # ----------------
+
+    else:
+        d2cross_phi = np.load(d2cross_phi)
+
+    return d2cross_phi
 
 
 # ###########################################
