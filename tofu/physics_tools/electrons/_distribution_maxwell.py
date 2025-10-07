@@ -152,6 +152,7 @@ def f2d_ppar_pperp(
     # unused
     **kwdargs,
 ):
+    """ Integral not unit => problem somewhere !"""
 
     dist0, units0 = f2d_cart_vpar_vperp(
         v_par_ms=p_par_norm * scpct.c,
@@ -161,8 +162,8 @@ def f2d_ppar_pperp(
         v0_par_ms=v0_par_ms,
     )
 
-    dist = dist0 * (1/scpct.c**2)
-    units = units0 * asunits.Unit('s^2/m^2')
+    dist = dist0 * scpct.c**2
+    units = units0 * asunits.Unit('m^2/s^2')
 
     return dist, units
 

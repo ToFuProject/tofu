@@ -1,2 +1,5 @@
-from ._convert import convert_energy_momentum_velocity
+from ._convert import convert_momentum_velocity_energy
+from ._runaway_growth import get_RE_critical_dreicer_electric_fields
+from ._runaway_growth import get_RE_growth_source_terms
 from ._distribution import main as get_distribution
+from ._distribution_plot import main as plot_distribution

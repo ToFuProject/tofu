@@ -30,22 +30,39 @@ def f2d_ppar_pperp(
         doi: 10.1088/1402-4896/aaded0.
     """
 
+    shape = np.broadcast_shapes(
+        p_par_norm.shape,
+        p_perp_norm.shape,
+        Etild.shape,
+    )
+    iok = np.broadcast_to(p_par_norm > 0, shape)
+    p_par_norm = np.broadcast_to(p_par_norm, shape)
+
     # pper2par
-    pperp2par = p_perp_norm**2 / p_par_norm
+    pperp2par = np.zeros(shape, dtype=float)
+    pperp2par[iok] = (
+        np.broadcast_to(p_perp_norm**2, shape)[iok]
+        / p_par_norm[iok]
+    )
 
     # Hypergeometric confluent Kummer function
     term1 = 1 - Cs / (Etild + 1)
     term2 = ((Etild + 1) / (2.*(1. + Zeff))) * pperp2par
-    F1 = scpsp.hyp1f1(term1, 1, term2)
+    F1 = np.zeros(shape, dtype=float)
+    F1[iok] = scpsp.hyp1f1(np.broadcast_to(term1, shape)[iok], 1, term2[iok])
 
     # ppar_exp_inv
-    ppar_exp_inv = 1./(p_par_norm**((Cs - 2.) / (Etild - 1.)))
+    ppar_exp_inv = np.zeros(shape, dtype=float)
+    power = np.broadcast_to((Cs - 2.) / (Etild - 1.), shape)[iok]
+    ppar_exp_inv[iok] = 1. / (p_par_norm[iok]**power)
 
     # exponential
     exponential = np.exp(-((Etild + 1) / (2 * (1 + Zeff))) * pperp2par)
 
     # distribution
-    dist = ppar_exp_inv * exponential * F1
+    dist = np.zeros(shape, dtype=float)
+    iok = np.isfinite(F1)
+    dist[iok] = ppar_exp_inv[iok] * exponential[iok] * F1[iok]
 
     # units
     units = asunits.Unit('')
@@ -67,11 +84,17 @@ def f2d_momentum_pitch(
     """
     B = (E_hat + 1) / (Zeff + 1)
 
-    dist = (
-        np.exp(-0.5*B * (1 - pitch**2) * pnorm / np.abs(pitch))
-        / (pnorm * np.abs(pitch))
+    shape = np.broadcast_shapes(
+        pnorm.shape,
+        pitch.shape,
+        E_hat.shape,
     )
-    dist[pitch*pnorm < 0.] = 0
+    iok = np.broadcast_to((pitch > 0.) & (pnorm > 0.), shape)
+    dist = np.zeros(shape, dtype=float)
+    dist[iok] = (
+        np.exp(-0.5*B * (1 - pitch**2) * pnorm / np.abs(pitch))[iok]
+        / np.broadcast_to(pnorm * pitch, shape)[iok]
+    )
     units = asunits.Unit('')
     return dist, units
 
@@ -85,7 +108,7 @@ def f2d_momentum_theta(
     # unused
     **kwdargs,
 ):
-    dist0, units = f2d_momentum_pitch(
+    dist0, units0 = f2d_momentum_pitch(
         pnorm=pnorm,
         pitch=np.cos(theta),
         # params
@@ -94,6 +117,7 @@ def f2d_momentum_theta(
     )
 
     dist = np.sin(theta) * dist0
+    units = units0 * asunits.Unit('1/rad')
 
     return dist, units
 

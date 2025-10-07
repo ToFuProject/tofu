@@ -5,10 +5,12 @@ import copy
 
 import numpy as np
 import scipy.integrate as scpinteg
+import scipy.constants as scpct
 import astropy.units as asunits
 
 
 from . import _distribution_check as _check
+from . import _convert
 
 
 # #######################################################
@@ -135,6 +137,13 @@ def main(
             version=version,
         )
 
+    # -------------
+    # add inputs & coords
+    # -------------
+
+    ddist['plasma'] = dplasma
+    ddist['coords'] = dcoords
+
     # --------------
     # scale
     # --------------
@@ -149,6 +158,7 @@ def main(
         dplasma=dplasma,
         ddist=ddist,
         dcoords=dcoords,
+        version=version,
     )
 
     # --------------
@@ -161,18 +171,27 @@ def main(
         print(msg)
 
     # integrate
-    _integrate(
-        ddist=ddist,
-        dcoords=dcoords,
-        version=version,
-    )
+    for kdist in ddist['dist'].keys():
+        ne, units_ne, jp, units_jp, ref_integ = _integrate(
+            ddist=ddist,
+            kdist=kdist,
+            dcoords=dcoords,
+            version=version,
+        )
 
-    # -------------
-    # add inputs & coords
-    # -------------
-
-    ddist['plasma'] = dplasma
-    ddist['coords'] = dcoords
+        # store
+        ddist['dist'][kdist].update({
+            'integ_ne': {
+                'data': ne,
+                'units': units_ne,
+                'ref': ref_integ,
+            },
+            'integ_jp': {
+                'data': jp,
+                'units': units_jp,
+                'ref': ref_integ,
+            },
+        })
 
     return ddist
 
@@ -193,84 +212,100 @@ def _scale(
     dplasma=None,
     dcoords=None,
     ddist=None,
+    version=None,
 ):
+
+    ne_units = asunits.Unit(dplasma['ne_m3']['units'])
 
     # --------------------------
     # start with non-Maxwellian (current fraction of RE)
     # --------------------------
 
     ne_re = 0.
-    kdist = [kk for kk in ddist['dist'].items() if kk != 'maxwell']
+    kdist = [kk for kk in ddist['dist'].keys() if kk != 'maxwell']
     if len(kdist) == 1:
         kdist = kdist[0]
-
-        velocity = None
-        units = asunits.Unit('m/s')
-
-        integ = velocity * ddist['dist'][kdist]['dist']['data']
-        units = asunits.Unit('m/s') * ddist['dist'][kdist]['dist']['units']
-
-        for k0 in ['x1', 'x0']:
-            if dcoords.get(k0) is not None:
-                integ = scpinteg.trapezoid(
-                    integ,
-                    x=dcoords[k0]['data'],
-                    axis=-1,
-                )
-                units *= dcoords[k0]['units']
-
-        # ---------------
-        # sanity check
-
-        if units != asunits.Unit('A/m2'):
-            msg = (
-                "Wrong integrated current units!\n"
-                "\t- {units} vs A/m2\n"
-            )
-            raise Exception(msg)
-
-        # -------------
-        # scale
-
-        ddist['dist'][kdist]['data'] = (
-            dplasma['jp_Am2']['data']
-            * dplasma['jp_fraction_re']['data']
-            / integ
+        ne_re, units_ne, jp_re, units_jp, ref_integ = _integrate(
+            ddist=ddist,
+            kdist=kdist,
+            dcoords=dcoords,
+            version=version,
         )
 
-        # -----------------
-        # drive RE density
+        sli = (slice(None),)*jp_re.ndim + (None,)*len(ddist['coords'])
+        coef = (
+            dplasma['jp_Am2']['data']
+            * dplasma['jp_fraction_re']['data']
+            / jp_re
+        )
 
-        ne_re = ddist['dist'][kdist]['dist']['data']
-        units = ddist['dist'][kdist]['dist']['units']
+        # scale vs current
+        ddist['dist'][kdist]['dist']['data'] *= coef[sli]
+        ddist['dist'][kdist]['dist']['units'] *= ne_units
 
-        for k0 in ['x1', 'x0']:
-            if dcoords.get(k0) is not None:
-                ne_re = scpinteg.trapezoid(
-                    ne_re,
-                    x=dcoords[k0]['data'],
-                    axis=-1,
-                )
-                units *= dcoords[k0]['units']
-
-        # ---------------
-        # sanity check
-
-        if units != asunits.Unit('1/m3'):
-            msg = (
-                "Wrong integrated density units!\n"
-                "\t- {units} vs 1/m3\n"
-            )
-            raise Exception(msg)
+        # adjust ne_re
+        ne_re *= coef
 
     # --------------------------
     # Maxwellian (density)
     # --------------------------
 
     ne_max = dplasma['ne_m3']['data'] - ne_re
-    ddist['dist']['maxwell']['dist']['data'] *= ne_max
+    sli = (slice(None),)*jp_re.ndim + (None,)*len(ddist['coords'])
+
+    ne, units_ne, jp, units_jp, ref_integ = _integrate(
+        ddist=ddist,
+        kdist='maxwell',
+        dcoords=dcoords,
+        version=version,
+    )
+
+    ddist['dist']['maxwell']['dist']['data'] *= (ne_max / ne)[sli]
+    ddist['dist']['maxwell']['dist']['units'] *= ne_units
 
     return
+
+
+# #####################################################
+# #####################################################
+#           Get velocity
+# #####################################################
+
+
+def _get_velocity(ddist, kdist):
+
+    kcoords = tuple([
+        ddist['coords'][kk]['key'] for kk in ['x0', 'x1']
+        if ddist['coords'].get(kk) is not None
+    ])
+    shape = ddist['dist'][kdist]['dist']['data'].shape
+    if kcoords == ('E_eV', 'theta'):
+
+        sli = (None,)*(len(shape)-2) + (slice(None), None)
+        E = ddist['coords']['x0']['data'][sli]
+        Ef = np.broadcast_to(E, shape)
+
+        velocity = _convert.convert_momentum_velocity_energy(
+            energy_kinetic_eV=Ef,
+        )['velocity_ms']
+
+    elif kcoords == ('p_par_norm', 'p_perp_norm'):
+
+        sli = (None,)*(len(shape)-2) + (slice(None),)*2
+        pnorm = np.sqrt(
+            ddist['coords']['x0']['data'][:, None]**2
+            + ddist['coords']['x1']['data'][None, :]**2
+        )[sli]
+        pnorm = np.broadcast_to(pnorm, shape)
+
+        velocity = _convert.convert_momentum_velocity_energy(
+            momentum_normalized=pnorm,
+        )['velocity_ms']
+
+    else:
+        raise NotImplementedError(kcoords)
+
+    return velocity
 
 
 # #####################################################
@@ -281,6 +316,7 @@ def _scale(
 
 def _integrate(
     ddist=None,
+    kdist=None,
     dcoords=None,
     version=None,
 ):
@@ -289,61 +325,66 @@ def _integrate(
     # integrate
     # ---------
 
-    for kdist in ddist['dist'].keys():
+    # velocity
+    velocity = _get_velocity(ddist, kdist)
 
-        # integrate over x1
-        if dcoords.get('x1') is None:
-            integ = ddist['dist'][kdist]['dist']['data']
-            x0 = dcoords['x0']['data']
-        else:
-            integ = scpinteg.trapezoid(
-                ddist['dist'][kdist]['dist']['data'],
-                x=dcoords['x1']['data'],
-                axis=-1,
-            )
-            x0 = dcoords['x0']['data'][..., 0]
-
-        # integrate over x0
-        integ = scpinteg.trapezoid(
-            integ,
-            x=x0,
+    # integrate over x1
+    if dcoords.get('x1') is None:
+        current = velocity['data'] * ddist['dist'][kdist]['dist']['data']
+        ne = ddist['dist'][kdist]['dist']['data']
+        x0 = dcoords['x0']['data']
+    else:
+        current = scpct.e * scpinteg.trapezoid(
+            velocity['data'] * ddist['dist'][kdist]['dist']['data'],
+            x=dcoords['x1']['data'],
             axis=-1,
         )
+        ne = scpinteg.trapezoid(
+            ddist['dist'][kdist]['dist']['data'],
+            x=dcoords['x1']['data'],
+            axis=-1,
+        )
+        x0 = dcoords['x0']['data']
 
-        # adjust if needed
-        if version == 'f3d_E_theta':
-            integ = integ * (2.*np.pi)
+    # integrate over x0
+    current = scpinteg.trapezoid(
+        current,
+        x=x0,
+        axis=-1,
+    )
+    ne = scpinteg.trapezoid(
+        ne,
+        x=x0,
+        axis=-1,
+    )
 
-        # ---------
-        # ref
-        # ---------
+    # adjust if needed
+    if version == 'f3d_E_theta':
+        current = current * (2.*np.pi)
+        ne = ne * (2.*np.pi)
 
-        if ddist['dist'][kdist]['dist'].get('ref') is None:
-            ref_integ = None
-        else:
-            ref_integ = ddist['dist'][kdist]['dist']['ref'][:-2]
+    # ---------
+    # ref
+    # ---------
 
-        # ---------
-        # units
-        # ---------
+    if ddist['dist'][kdist]['dist'].get('ref') is None:
+        ref_integ = None
+    else:
+        ref_integ = ddist['dist'][kdist]['dist']['ref'][:-2]
 
-        units_integ = ddist['dist'][kdist]['dist']['units']
-        for k0, v0 in dcoords.items():
-            if v0['units'] not in ['', None]:
-                units_integ = units_integ * asunits.Unit(v0['units'])
+    # ---------
+    # units
+    # ---------
 
-        # adjust of needed
-        if version == 'f3d_E_theta':
-            units_integ = units_integ * asunits.Unit('rad')
+    units_ne = asunits.Unit(ddist['dist'][kdist]['dist']['units'])
+    for k0, v0 in dcoords.items():
+        if v0['units'] not in ['', None]:
+            units_ne = units_ne * asunits.Unit(v0['units'])
 
-        # -----------
-        # store
-        # -----------
+    # adjust of needed
+    if version == 'f3d_E_theta':
+        units_ne = units_ne * asunits.Unit('rad')
 
-        ddist['dist'][kdist]['integ_m0'] = {
-            'data': integ,
-            'units': units_integ,
-            'ref': ref_integ,
-        }
+    units_jp = units_ne * asunits.Unit(velocity['units']) * asunits.Unit('C')
 
-    return integ, units_integ, ref_integ
+    return ne, units_ne, current, units_jp, ref_integ

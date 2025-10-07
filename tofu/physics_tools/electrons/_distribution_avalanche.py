@@ -32,22 +32,35 @@ def f2d_ppar_pperp(
         doi: 10.1088/1402-4896/aaded0.
     """
 
+    shape = np.broadcast_shapes(
+        p_par_norm.shape,
+        p_perp_norm.shape,
+        E_hat.shape,
+    )
+    p_par_norm = np.broadcast_to(p_par_norm, shape)
+    iok = p_par_norm > 0.
+
     # fermi decay factor, adim
-    fermi = 1. / (np.exp((p_par_norm - p_max_norm) / sigmap) + 1.)
-
-    # ratio2
-    pperp2par = p_perp_norm**2 / np.abs(p_par_norm)
-
-    # distribution, adim
-    dist = (
-        (E_hat / (2.*np.pi*Cz*lnG))
-        * (1./np.abs(p_par_norm))     # Not in formula, but necessary
-        * np.exp(- p_par_norm / (Cz * lnG) - 0.5*E_hat*pperp2par)
-        * fermi
+    fermi = np.broadcast_to(
+        1. / (np.exp((p_par_norm - p_max_norm) / sigmap) + 1.),
+        shape,
     )
 
-    dist[(p_perp_norm * p_par_norm) < 0] = 0.   # needed
-    dist[np.isnan(dist)] = 0.
+    # ratio2
+    pperp2par = np.zeros(shape, dtype=float)
+    pperp2par[iok] = (
+        np.broadcast_to(p_perp_norm, shape)[iok]**2
+        / p_par_norm[iok]
+    )
+
+    # distribution, adim
+    dist = np.zeros(shape, dtype=float)
+    dist[iok] = (
+        np.broadcast_to(E_hat / (2.*np.pi*Cz*lnG), shape)[iok]
+        * (1. / p_par_norm[iok])     # Not in formula, but necessary
+        * np.exp(- p_par_norm / (Cz * lnG) - 0.5*E_hat*pperp2par)[iok]
+        * fermi[iok]
+    )
 
     # critical momentum
     iout = np.sqrt(p_par_norm**2 + p_perp_norm**2) < p_crit
@@ -89,7 +102,7 @@ def f2d_momentum_theta(
 
     # dist
     dist = jac * dist0
-    units = units0
+    units = units0 * asunits.Unit('1/rad')
 
     return dist, units
 
