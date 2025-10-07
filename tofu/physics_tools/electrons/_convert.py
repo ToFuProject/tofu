@@ -41,9 +41,13 @@ def convert_momentum_velocity_energy(
     din = {k0: v0 for k0, v0 in din0.items() if v0 is not None}
 
     if len(din) != 1:
-        lstr = [f"\t- {k0}" for k0 in din.keys()]
+        nmax = np.max([len(k0) for k0 in din0.keys()])
+        lstr = [
+            f"\t- {k0.ljust(nmax)} is None: {v0 is None}"
+            for k0, v0 in din0.items()
+        ]
         msg = (
-            "Please provide only one input of the following:\n"
+            "Please provide exactly one input of the following:\n"
             + "\n".join(lstr)
         )
         raise Exception(msg)
