@@ -37,16 +37,16 @@ _DPLASMA = {
         'def': 1.,
         'units': 'A/m2',
     },
-    'E_kin_max_eV': {
+    'Ekin_max_eV': {
         'def': 10e6,
         'units': 'A/m2',
     },
-    'electric_field_par_Vm': {
+    'Efield_par_Vm': {
         'def': 1.,
         'units': 'A/m2',
     },
     'lnG': {
-        'def': 1.,
+        'def': 20.,
         'units': '',
     },
     'sigmap': {
@@ -106,7 +106,10 @@ def main(
     # plasma parameters
     # -------------------------
 
-    dplasma = _plasma(**kwdargs)
+    dplasma = _plasma(
+        ddef=_DPLASMA,
+        **kwdargs,
+    )
 
     # adjust
     if dist == ('maxwell',):
@@ -128,7 +131,19 @@ def main(
         dist=dist,
     )
 
-    return dist, dplasma, dcoords, dfunc, coll
+    # -------------------------
+    # verb
+    # -------------------------
+
+    lok = [False, True, 0, 1, 2]
+    verb = int(ds._generic_check._check_var(
+        kwdargs['verb'], 'verb',
+        types=(bool, int),
+        default=lok[-1],
+        allowed=lok,
+    ))
+
+    return dist, dplasma, dcoords, dfunc, coll, verb
 
 
 # #######################################################
@@ -139,6 +154,8 @@ def main(
 
 def _dist(
     dist=None,
+    # unused
+    **kwdargs,
 ):
 
     # -----------
@@ -179,6 +196,8 @@ def _dist(
 
 def _returnas(
     returnas=None,
+    # unused
+    **kwdargs,
 ):
 
     if returnas is None:
@@ -217,6 +236,7 @@ def _returnas(
 
 
 def _plasma(
+    ddef=None,
     **kwdargs,
 ):
 
@@ -225,17 +245,17 @@ def _plasma(
     # -------------------
 
     # initialize
-    lk = list(_DPLASMA.keys())
+    lk = list(ddef.keys())
     dinputs = {kk: kwdargs[kk] for kk in lk}
 
     # coll
-    coll = kwdargs['coll']
+    coll = kwdargs.get('coll')
 
     # -------------------
     # loop
     # -------------------
 
-    dout = _extract(dinputs, coll, _DPLASMA)
+    dout = _extract(dinputs, coll, ddef)
 
     # Exception
     if len(dout) > 0.:
@@ -277,7 +297,7 @@ def _extract(din, coll, ddef):
 
         # check vs None
         if din.get(k0) is None:
-            data = np.asarray(ddef[k0])
+            data = np.asarray(ddef[k0]['def'])
         else:
             data = din[k0]
 
@@ -304,12 +324,12 @@ def _extract(din, coll, ddef):
             # ref = None
             data = np.atleast_1d(data)
 
-            # set subdict
-            din[k0] = {
-                'data': data,
-                'units': units,
-                # 'ref': ref,   # not relevant due to later broadcasting
-            }
+        # set subdict
+        din[k0] = {
+            'data': data,
+            'units': units,
+            # 'ref': ref,   # not relevant due to later broadcasting
+        }
 
     return dout
 
@@ -333,7 +353,7 @@ def _coords(
     dcoords = {kk: kwdargs[kk] for kk in lk if kwdargs[kk] is not None}
 
     # coll
-    coll = kwdargs['coll']
+    coll = kwdargs.get('coll')
 
     # -------------------
     # loop
@@ -428,7 +448,6 @@ def _dfunc(
     # dfunc
     # --------------
 
-    dout = {}
     dfunc = {}
     for kdist in dist:
 
@@ -438,29 +457,12 @@ def _dfunc(
         else:
             mod = _re
 
-        # get func
-        if not hasattr(mod, version):
-            dout[kdist] = "Dist `{kdist}` version `{version}` unavailable!"
-            continue
-
-        func = getattr(mod, version)
+        func = getattr(mod, 'main')
 
         # store
         dfunc[kdist] = {
             'version': version,
             'func': func,
         }
-
-    # -----------
-    # Exception
-    # -----------
-
-    if len(dout) > 0:
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
-        msg = (
-            "The following distribution functions could not be found:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
 
     return dcoords, dfunc

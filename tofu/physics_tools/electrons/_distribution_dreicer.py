@@ -15,7 +15,7 @@ from . import _convert
 # #####################################################
 
 
-def f2d_ppar_pperp_dreicer(
+def f2d_ppar_pperp(
     p_par_norm=None,
     p_perp_norm=None,
     Cs=None,
@@ -53,7 +53,7 @@ def f2d_ppar_pperp_dreicer(
     return dist, units
 
 
-def f2d_momentum_pitch_dreicer(
+def f2d_momentum_pitch(
     pnorm=None,
     pitch=None,
     # params
@@ -68,14 +68,15 @@ def f2d_momentum_pitch_dreicer(
     B = (E_hat + 1) / (Zeff + 1)
 
     dist = (
-        np.exp(-0.5*B * (1 - pitch**2) * pnorm / pitch)
-        / (pnorm * pitch)
+        np.exp(-0.5*B * (1 - pitch**2) * pnorm / np.abs(pitch))
+        / (pnorm * np.abs(pitch))
     )
+    dist[pitch*pnorm < 0.] = 0
     units = asunits.Unit('')
     return dist, units
 
 
-def f2d_momentum_theta_dreicer(
+def f2d_momentum_theta(
     pnorm=None,
     theta=None,
     # params
@@ -84,7 +85,7 @@ def f2d_momentum_theta_dreicer(
     # unused
     **kwdargs,
 ):
-    dist0, units = f2d_momentum_pitch_dreicer(
+    dist0, units = f2d_momentum_pitch(
         pnorm=pnorm,
         pitch=np.cos(theta),
         # params
@@ -97,7 +98,7 @@ def f2d_momentum_theta_dreicer(
     return dist, units
 
 
-def f2d_E_theta_dreicer(
+def f2d_E_theta(
     E_eV=None,
     theta=None,
     # params
@@ -117,7 +118,7 @@ def f2d_E_theta_dreicer(
     # ---------
     # get dist0
 
-    dist0, units0 = f2d_momentum_theta_dreicer(
+    dist0, units0 = f2d_momentum_theta(
         pnorm=pnorm,
         theta=theta,
         # params
@@ -135,7 +136,9 @@ def f2d_E_theta_dreicer(
     )['gamma']['data']
     mc2_eV = scpct.m_e * scpct.c**2 / scpct.e
 
-    dist = dist0 * gamma / np.sqrt(gamma**2 - 1) / mc2_eV
+    jac = gamma / np.sqrt(gamma**2 - 1) / mc2_eV
+
+    dist = dist0 * jac
     units = units0 * asunits.Unit('1/eV')
 
     return dist, units
@@ -149,7 +152,7 @@ def f2d_E_theta_dreicer(
 
 _DFUNC = {
     'f2d_E_theta_dreicer': {
-        'func': f2d_E_theta_dreicer,
+        'func': f2d_E_theta,
         'latex': (
             r"$dn_e = \int_{E_{min}}^{E_{max}} \int_0^{\pi}$"
             r"$f^{2D}_{E, \theta}(E, \theta) dEd\theta$"

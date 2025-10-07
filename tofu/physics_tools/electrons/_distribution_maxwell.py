@@ -7,6 +7,78 @@ import astropy.units as asunits
 
 # #####################################################
 # #####################################################
+#           Main
+# #####################################################
+
+
+def main(
+    # coordinates
+    dcoords=None,
+    version=None,
+    # plasma
+    dplasma=None,
+    # unused
+    **kwdargs,
+):
+
+    # --------------
+    # prepare
+    # --------------
+
+    # electron mass
+    me = scpct.m_e
+
+    # kbTe_J
+    kbT_J = dplasma['Te_eV']['data'] * scpct.e
+
+    # v0_par from current  (m/s)
+    v0_par_ms = (
+        dplasma['jp_Am2']['data']
+        / (scpct.e * dplasma['ne_m3']['data'])
+    )
+    vt_ms = np.sqrt(2. * kbT_J / me)
+
+    # --------------
+    # format output
+    # --------------
+
+    dist, units = eval(version)(
+        vt_par_ms=vt_ms,
+        vt_perp_ms=vt_ms,
+        v0_par_ms=v0_par_ms,
+        kbT_par_J=kbT_J,
+        kbT_perp_J=kbT_J,
+        **dcoords,
+    )
+
+    # --------------
+    # format output
+    # --------------
+
+    dout = {
+        'dist': {
+            'data': dist,
+            'units': units,
+        },
+        'v0_par_ms': {
+            'data': v0_par_ms,
+            'units': 'm/s',
+        },
+        'vt_ms': {
+            'data': vt_ms,
+            'units': 'm/s',
+        },
+        'kbT_J': {
+            'data': kbT_J,
+            'units': 'J',
+        },
+    }
+
+    return dout
+
+
+# #####################################################
+# #####################################################
 #           Elementary Maxwellians
 # #####################################################
 
@@ -68,6 +140,30 @@ def f2d_cart_vpar_vperp(
     )
     dist = 2. * np.pi * v_perp_ms * dist0
     units = units0 * asunits.Unit('m/s')
+    return dist, units
+
+
+def f2d_ppar_pperp(
+    p_par_norm=None,
+    p_perp_norm=None,
+    vt_par_ms=None,
+    vt_perp_ms=None,
+    v0_par_ms=None,
+    # unused
+    **kwdargs,
+):
+
+    dist0, units0 = f2d_cart_vpar_vperp(
+        v_par_ms=p_par_norm * scpct.c,
+        v_perp_ms=p_perp_norm * scpct.c,
+        vt_par_ms=vt_par_ms,
+        vt_perp_ms=vt_perp_ms,
+        v0_par_ms=v0_par_ms,
+    )
+
+    dist = dist0 * (1/scpct.c**2)
+    units = units0 * asunits.Unit('s^2/m^2')
+
     return dist, units
 
 
