@@ -107,8 +107,12 @@ def main(
     # compute
     # --------------
 
+    lkdist = ['RE', 'maxwell']
     ddist = {'dist': {}}
-    for kdist in dist:
+    for kdist in lkdist:
+
+        if dfunc.get(kdist) is None:
+            continue
 
         # ----------
         # verb
@@ -137,29 +141,20 @@ def main(
             version=version,
         )
 
+        # scale
+        _scale(
+            dplasma=dplasma,
+            ddist=ddist,
+            dcoords=dcoords,
+            version=version,
+        )
+
     # -------------
     # add inputs & coords
     # -------------
 
     ddist['plasma'] = dplasma
     ddist['coords'] = dcoords
-
-    # --------------
-    # scale
-    # --------------
-
-    # verb
-    if verb >= 1:
-        msg = "Scaling all..."
-        print(msg)
-
-    # scale
-    _scale(
-        dplasma=dplasma,
-        ddist=ddist,
-        dcoords=dcoords,
-        version=version,
-    )
 
     # --------------
     # get numerical density, current
@@ -212,7 +207,9 @@ def _scale(
     dplasma=None,
     dcoords=None,
     ddist=None,
+    kdist=None,
     version=None,
+    ne_re=0.,
 ):
 
     ne_units = asunits.Unit(dplasma['ne_m3']['units'])
@@ -221,10 +218,8 @@ def _scale(
     # start with non-Maxwellian (current fraction of RE)
     # --------------------------
 
-    ne_re = 0.
-    kdist = [kk for kk in ddist['dist'].keys() if kk != 'maxwell']
-    if len(kdist) == 1:
-        kdist = kdist[0]
+    if kdist == 'RE':
+
         ne_re, units_ne, jp_re, units_jp, ref_integ = _integrate(
             ddist=ddist,
             kdist=kdist,
@@ -250,20 +245,21 @@ def _scale(
     # Maxwellian (density)
     # --------------------------
 
-    ne_max = dplasma['ne_m3']['data'] - ne_re
-    sli = (slice(None),)*jp_re.ndim + (None,)*len(ddist['coords'])
+    else:
+        ne_max = dplasma['ne_m3']['data'] - ne_re
+        sli = (slice(None),)*jp_re.ndim + (None,)*len(ddist['coords'])
 
-    ne, units_ne, jp, units_jp, ref_integ = _integrate(
-        ddist=ddist,
-        kdist='maxwell',
-        dcoords=dcoords,
-        version=version,
-    )
+        ne, units_ne, jp, units_jp, ref_integ = _integrate(
+            ddist=ddist,
+            kdist='maxwell',
+            dcoords=dcoords,
+            version=version,
+        )
 
-    ddist['dist']['maxwell']['dist']['data'] *= (ne_max / ne)[sli]
-    ddist['dist']['maxwell']['dist']['units'] *= ne_units
+        ddist['dist']['maxwell']['dist']['data'] *= (ne_max / ne)[sli]
+        ddist['dist']['maxwell']['dist']['units'] *= ne_units
 
-    return
+    return ne_re
 
 
 # #####################################################
