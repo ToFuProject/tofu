@@ -103,12 +103,22 @@ def main(
                 axis,
             )
 
+    # -------------
+    # prepare
+    # -------------
+
+    ddist = {
+        'dist': {},
+        'plasma': dplasma,
+        'coords': dcoords,
+    }
+
     # --------------
     # compute
     # --------------
 
     lkdist = ['RE', 'maxwell']
-    ddist = {'dist': {}}
+    ne_re = 0.
     for kdist in lkdist:
 
         if dfunc.get(kdist) is None:
@@ -126,6 +136,7 @@ def main(
 
         if kdist == 'maxwell':
             fraction = 1. - din['jp_fraction_re']['data']
+            din['ne_m3']['data'] -= ne_re
         else:
             fraction = din['jp_fraction_re']['data']
         din['jp_Am2']['data'] = jp_Am20 * fraction
@@ -142,19 +153,14 @@ def main(
         )
 
         # scale
-        _scale(
-            dplasma=dplasma,
+        ne_re = _scale(
+            din=din,
             ddist=ddist,
+            kdist=kdist,
             dcoords=dcoords,
             version=version,
         )
 
-    # -------------
-    # add inputs & coords
-    # -------------
-
-    ddist['plasma'] = dplasma
-    ddist['coords'] = dcoords
 
     # --------------
     # get numerical density, current
@@ -204,7 +210,7 @@ def main(
 
 
 def _scale(
-    dplasma=None,
+    din=None,
     dcoords=None,
     ddist=None,
     kdist=None,
@@ -212,7 +218,8 @@ def _scale(
     ne_re=0.,
 ):
 
-    ne_units = asunits.Unit(dplasma['ne_m3']['units'])
+    ne_re = 0.
+    ne_units = asunits.Unit(din['ne_m3']['units'])
 
     # --------------------------
     # start with non-Maxwellian (current fraction of RE)
@@ -229,34 +236,34 @@ def _scale(
 
         sli = (slice(None),)*jp_re.ndim + (None,)*len(ddist['coords'])
         coef = (
-            dplasma['jp_Am2']['data']
-            * dplasma['jp_fraction_re']['data']
-            / jp_re
+            din['jp_Am2']['data']
+            * din['jp_fraction_re']['data']
+            / jp_re[sli]
         )
 
         # scale vs current
-        ddist['dist'][kdist]['dist']['data'] *= coef[sli]
+        ddist['dist'][kdist]['dist']['data'] *= coef
         ddist['dist'][kdist]['dist']['units'] *= ne_units
 
         # adjust ne_re
-        ne_re *= coef
+        ne_re = ne_re[sli] * coef
 
     # --------------------------
     # Maxwellian (density)
     # --------------------------
 
     else:
-        ne_max = dplasma['ne_m3']['data'] - ne_re
-        sli = (slice(None),)*jp_re.ndim + (None,)*len(ddist['coords'])
 
         ne, units_ne, jp, units_jp, ref_integ = _integrate(
             ddist=ddist,
-            kdist='maxwell',
+            kdist=kdist,
             dcoords=dcoords,
             version=version,
         )
 
-        ddist['dist']['maxwell']['dist']['data'] *= (ne_max / ne)[sli]
+        ne_max = din['ne_m3']['data']
+        sli = (slice(None),)*jp.ndim + (None,)*len(ddist['coords'])
+        ddist['dist']['maxwell']['dist']['data'] *= (ne_max / ne[sli])
         ddist['dist']['maxwell']['dist']['units'] *= ne_units
 
     return ne_re
