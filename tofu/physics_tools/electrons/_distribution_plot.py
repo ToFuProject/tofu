@@ -358,8 +358,8 @@ def _plot(
         vmaxRE = np.max(RE[RE > maxwell])
         vmin = np.min(RE[RE > 0.])
         levels = np.unique(np.r_[
-            np.logspace(np.log10(vmin), np.log10(vmaxRE), 6),
-            np.logspace(np.log10(vmaxRE), np.log10(vmax), 6),
+            np.logspace(np.log10(vmin), np.log10(vmaxRE), 20),
+            np.logspace(np.log10(vmaxRE), np.log10(vmax), 4),
         ])
 
         for ii, ind in enumerate(np.ndindex(shape_plasma)):
@@ -438,8 +438,8 @@ def _plot(
         vmaxRE = np.max(RE[RE > maxwell])
         vmin = np.min(RE[RE > 0.])
         levels = np.unique(np.r_[
-            np.logspace(np.log10(vmin), np.log10(vmaxRE), 6),
-            np.logspace(np.log10(vmaxRE), np.log10(vmax), 6),
+            np.logspace(np.log10(vmin), np.log10(vmaxRE), 30),
+            np.logspace(np.log10(vmaxRE), np.log10(vmax), 4),
         ])
 
         for ii, ind in enumerate(np.ndindex(shape_plasma)):
