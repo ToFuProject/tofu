@@ -67,11 +67,11 @@ _DPLASMA = {
 
 
 # DCOORDS
-_EMAX_EV = 10e6
+_EMAX_EV = 20e6
 _DCOORDS = {
-    'E_eV': np.logspace(2, np.log10(_EMAX_EV), 61),
-    'ntheta': 31,
-    'nperp': 41,
+    'E_eV': np.logspace(1, np.log10(_EMAX_EV), 81),
+    'ntheta': 41,
+    'nperp': 201,
 }
 
 
@@ -265,9 +265,13 @@ def _check(
     # v_par, v_perp
     # -----------------
 
+    pmin_norm = _convert.convert_momentum_velocity_energy(
+        energy_kinetic_eV=E_eV.min(),
+    )['momentum_normalized']['data'][0]
+
     pmax_norm = _convert.convert_momentum_velocity_energy(
         energy_kinetic_eV=E_eV.max(),
-    )['momentum_normalized']['data']
+    )['momentum_normalized']['data'][0]
 
     # npar, nperp
     nperp = int(ds._generic_check._check_var(
@@ -277,8 +281,9 @@ def _check(
         sign='>0',
     ))
 
-    p_par_norm = np.linspace(-1, 1, 2*nperp+1) * pmax_norm
-    p_perp_norm = np.linspace(0, 1, nperp) * pmax_norm
+    p_perp_norm = np.logspace(np.log10(pmin_norm), np.log10(pmax_norm), nperp)
+    p_par_norm = np.r_[-p_perp_norm[::-1], 0, p_perp_norm]
+    p_perp_norm = np.r_[0., p_perp_norm]
 
     dcoords = {
         'E_eV': E_eV,
@@ -360,17 +365,14 @@ def _plot(
         for ii, ind in enumerate(np.ndindex(shape_plasma)):
             sli = ind + (slice(None), slice(None))
             val = maxwell[sli] + RE[sli]
-            # levels = _get_levels(val, 20)
 
-            im = ax.contour(
+            ax.contour(
                 ddist_E_theta['coords']['x0']['data']*1e-3,
                 ddist_E_theta['coords']['x1']['data']*180/np.pi,
                 val.T,
                 levels=levels,
                 colors=dprop[ind]['color'],
             )
-
-            plt.clabel(im, fmt='%1.2e', fontsize=fontsize)
 
         ax.set_ylim(0, 180)
         ax.set_xlim(left=0.)
@@ -440,22 +442,17 @@ def _plot(
             np.logspace(np.log10(vmaxRE), np.log10(vmax), 6),
         ])
 
-        import pdb; pdb.set_trace()     # DB
-
         for ii, ind in enumerate(np.ndindex(shape_plasma)):
             sli = ind + (slice(None), slice(None))
             val = maxwell[sli] + RE[sli]
-            # levels = _get_levels(val, 20)
 
-            im = ax.contour(
+            ax.contour(
                 ddist_ppar_pperp['coords']['x0']['data'],
                 ddist_ppar_pperp['coords']['x1']['data'],
                 val.T,
                 levels=levels,
                 colors=dprop[ind]['color'],
             )
-
-            plt.clabel(im, fmt='%1.2e', fontsize=fontsize)
 
         ax.set_ylim(bottom=0.)
 

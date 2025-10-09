@@ -1,6 +1,7 @@
 
 
 import copy
+import warnings
 
 
 import numpy as np
@@ -161,7 +162,6 @@ def main(
             version=version,
         )
 
-
     # --------------
     # get numerical density, current
     # --------------
@@ -235,11 +235,7 @@ def _scale(
         )
 
         sli = (slice(None),)*jp_re.ndim + (None,)*len(ddist['coords'])
-        coef = (
-            din['jp_Am2']['data']
-            * din['jp_fraction_re']['data']
-            / jp_re[sli]
-        )
+        coef = din['jp_Am2']['data'] / jp_re[sli]
 
         # scale vs current
         ddist['dist'][kdist]['dist']['data'] *= coef
@@ -262,8 +258,23 @@ def _scale(
         )
 
         ne_max = din['ne_m3']['data']
+        jp_max = din['jp_Am2']['data']
         sli = (slice(None),)*jp.ndim + (None,)*len(ddist['coords'])
-        ddist['dist']['maxwell']['dist']['data'] *= (ne_max / ne[sli])
+
+        # ------------
+        # sanity check
+
+        err_ne = np.max(np.abs(ne - 1.))
+        err_jp = np.max(np.abs(jp[sli]*ne_max/jp_max - 1.))
+        if err_ne > 0.05 or err_jp > 0.05:
+            msg = (
+                "Numerical error on integrated maxwellian:\n"
+                f"\t- ne: {err_ne*100} %\n"
+                f"\t- jp: {err_jp*100} %\n"
+            )
+            warnings.warn(msg)
+
+        ddist['dist']['maxwell']['dist']['data'] *= ne_max
         ddist['dist']['maxwell']['dist']['units'] *= ne_units
 
     return ne_re
@@ -275,7 +286,7 @@ def _scale(
 # #####################################################
 
 
-def _get_velocity(ddist, kdist):
+def _get_velocity_par(ddist, kdist):
 
     kcoords = tuple([
         ddist['coords'][kk]['key'] for kk in ['x0', 'x1']
@@ -288,9 +299,14 @@ def _get_velocity(ddist, kdist):
         E = ddist['coords']['x0']['data'][sli]
         Ef = np.broadcast_to(E, shape)
 
+        # abs(velocity)
         velocity = _convert.convert_momentum_velocity_energy(
             energy_kinetic_eV=Ef,
         )['velocity_ms']
+
+        # get cos
+        sli = (None,)*(len(shape)-2) + (None, slice(None))
+        cos = np.cos(ddist['coords']['x1']['data'][sli])
 
     elif kcoords == ('p_par_norm', 'p_perp_norm'):
 
@@ -301,14 +317,33 @@ def _get_velocity(ddist, kdist):
         )[sli]
         pnorm = np.broadcast_to(pnorm, shape)
 
+        # abs(velocity)
         velocity = _convert.convert_momentum_velocity_energy(
             momentum_normalized=pnorm,
         )['velocity_ms']
 
+        # sign
+        sli = (None,)*(len(shape)-2) + (slice(None), None)
+        cos = np.zeros(pnorm.shape, dtype=float)
+        iok = pnorm > 0.
+        cos[iok] = (
+            np.broadcast_to(ddist['coords']['x0']['data'][sli], shape)[iok]
+            / pnorm[iok]
+        )
+
     else:
         raise NotImplementedError(kcoords)
 
-    return velocity
+    # ---------------
+    # abs() => v_par
+    # ---------------
+
+    velocity_par = {
+        'data': velocity['data'] * cos,
+        'units': asunits.Unit(velocity['units']),
+    }
+
+    return velocity_par
 
 
 # #####################################################
@@ -329,16 +364,22 @@ def _integrate(
     # ---------
 
     # velocity
-    velocity = _get_velocity(ddist, kdist)
+    velocity_par = _get_velocity_par(ddist, kdist)
 
     # integrate over x1
     if dcoords.get('x1') is None:
-        current = velocity['data'] * ddist['dist'][kdist]['dist']['data']
+        current = (
+            scpct.e
+            * velocity_par['data']
+            * ddist['dist'][kdist]['dist']['data']
+        )
         ne = ddist['dist'][kdist]['dist']['data']
         x0 = dcoords['x0']['data']
     else:
-        current = scpct.e * scpinteg.trapezoid(
-            velocity['data'] * ddist['dist'][kdist]['dist']['data'],
+        current = scpinteg.trapezoid(
+            scpct.e
+            * velocity_par['data']
+            * ddist['dist'][kdist]['dist']['data'],
             x=dcoords['x1']['data'],
             axis=-1,
         )
@@ -388,6 +429,6 @@ def _integrate(
     if version == 'f3d_E_theta':
         units_ne = units_ne * asunits.Unit('rad')
 
-    units_jp = units_ne * asunits.Unit(velocity['units']) * asunits.Unit('C')
+    units_jp = units_ne * velocity_par['units'] * asunits.Unit('C')
 
     return ne, units_ne, current, units_jp, ref_integ
