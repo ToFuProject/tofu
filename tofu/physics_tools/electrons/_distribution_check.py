@@ -76,7 +76,7 @@ _DFUNC = {
     ('p_par_norm', 'p_perp_norm'): ['f2d_ppar_pperp'],
     ('E_eV',): ['f1d_E'],
     ('E_eV', 'pitch'): ['f2d_E_pitch'],
-    ('E_eV', 'theta'): ['f2d_E_theta'],
+    ('E_eV', 'theta'): ['f2d_E_theta', 'f3d_E_theta'],
 }
 
 

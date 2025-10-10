@@ -222,7 +222,7 @@ def f3d_E_theta(
     # ---------
     # get dist0
 
-    dist0, units0 = f3d_E_theta(
+    dist0, units0 = f2d_E_theta(
         E_eV=E_eV,
         theta=theta,
         p_max_norm=p_max_norm,
