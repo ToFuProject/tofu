@@ -1,13 +1,31 @@
 
 
 import os
+import warnings
 
 
 import numpy as np
+import scipy.integrate as scpinteg
+import astropy.units as asunits
 import datastock as ds
 
 
 from . import _xray_thin_target_integrated as _mod
+
+
+# ############################################
+# ############################################
+#             Default
+# ############################################
+
+
+_PATH_HERE = os.path.dirname(__file__)
+
+
+_THETA_PH_VSB = np.linspace(0, np.pi, 15)
+_THETA_E0_VSB_NPTS = 17
+_E_PH_EV = np.linspace(5, 30, 25) * 1e3
+_E_E0_EV_NPTS = 41
 
 
 # ###########################################
@@ -22,10 +40,10 @@ def get_d2cross_phi(
     # params
     Z=None,
     E_ph_eV=None,
-    E_e0_eV=None,
+    E_e0_eV_npts=None,
     theta_ph_vsB=None,
-    theta_ph_vs_e=None,
-    phi_e0_vsB=None,
+    theta_e0_vsB_npts=None,
+    phi_e0_vsB_npts=None,
     # hypergeometric parameter
     ninf=None,
     source=None,
@@ -49,7 +67,13 @@ def get_d2cross_phi(
     # inputs
     # ----------------
 
-    save, pfe = _check(**locals())
+    (
+        save, pfe, verb,
+    ) = _check(
+        pfe=pfe,
+        save=save,
+        verb=verb,
+    )
 
     # ----------------
     # compute
@@ -57,17 +81,20 @@ def get_d2cross_phi(
 
     if pfe is None:
 
-        # -----------------
-        # compute
+        # check compute
+        (
+            E_ph_eV, E_e0_eV, iok,
+            theta_e0_vsB, theta_ph_vsB,
+            phi_e0_vsB,
+            version_cross,
+        ) = _check_compute(**locals())
 
+        # compute
         d2cross_phi = _compute(**locals())
 
-        # -------------------
         # optional save
-
         if save is True:
-
-            _save(**locals())
+            _save(d2cross_phi)
 
     # ----------------
     # load
@@ -88,8 +115,7 @@ def get_d2cross_phi(
 def _check(
     pfe=None,
     save=None,
-    # unused
-    **kwdargs,
+    verb=None,
 ):
 
     # -------------
@@ -119,8 +145,168 @@ def _check(
                 "Arg pfe must be a valid path to a .npz file!"
             )
             raise Exception(msg)
+        save = False
 
-    return save, pfe
+    # --------------------
+    # verb
+    # --------------------
+
+    lok = [False, True, 0, 1, 2, 3]
+    verb = int(ds._generic_check._check_var(
+        verb, 'verb',
+        types=(int, bool),
+        default=lok[-1],
+        allowed=lok,
+    ))
+
+    return (
+        save, pfe, verb,
+    )
+
+
+# ###########################################
+# ###########################################
+#        check_compute
+# ###########################################
+
+
+def _check_compute(
+    # params
+    E_ph_eV=None,
+    E_e0_eV=None,
+    E_e0_eV_npts=None,
+    theta_e0_vsB_npts=None,
+    phi_e0_vsB_npts=None,
+    theta_ph_vsB=None,
+    # version
+    version_cross=None,
+    # unused
+    **kwdargs,
+):
+
+    # ----------
+    # E_ph_eV
+    # ----------
+
+    if E_ph_eV is None:
+        E_ph_eV = _E_PH_EV
+
+    E_ph_eV = ds._generic_check._check_flat1darray(
+        E_ph_eV, 'E_ph_eV',
+        dtype=float,
+        sign='>=0',
+    )
+
+    # ----------
+    # E_e0_eV
+    # ----------
+
+    E_e0_eV_npts = int(ds._generic_check._check_var(
+        E_e0_eV_npts, 'E_e0_eV_npts',
+        types=(int, float),
+        sign='>=3',
+        default=_E_E0_EV_NPTS,
+    ))
+
+    if E_e0_eV is None:
+        E_e0_eV = np.logspace(
+            np.log10(E_ph_eV.min()),
+            np.ceil(np.log10(E_ph_eV.max())) + 1,
+            E_e0_eV_npts,
+        )
+
+    E_e0_eV = np.unique(ds._generic_check._check_flat1darray(
+        E_e0_eV, 'E_e0_eV',
+        dtype=float,
+        unique=True,
+        sign='>=0',
+    ))
+
+    iok = E_e0_eV >= E_ph_eV.min()
+    nok = np.sum(iok)
+    if nok < E_e0_eV.size:
+        if nok == 0:
+            msg = (
+                f"All points ({E_e0_eV.size}) "
+                "are removed from E_e0_eV (< E_ph_eV.min())"
+            )
+            raise Exception(msg)
+
+        else:
+            msg = (
+                f"Some points ({E_e0_eV.size - nok} / {E_e0_eV.size}) "
+                "are removed from E_e0_eV (< E_ph_eV.min())"
+            )
+            warnings.warn(msg)
+
+    if E_e0_eV.max() < E_ph_eV.max():
+        msg = (
+            "Arg E_e0_eV should not have a max value below E_ph_eV.min()!\n"
+            f"\t- E_ph_eV.max() = {E_ph_eV.max()}\n"
+            f"\t- E_e0_eV.max() = {E_e0_eV.max()}\n"
+        )
+        raise Exception(msg)
+
+    # ------------
+    # theta_ph_vsB
+    # ------------
+
+    if theta_ph_vsB is None:
+        theta_ph_vsB = _THETA_PH_VSB
+
+    theta_ph_vsB = ds._generic_check._check_flat1darray(
+        theta_ph_vsB, 'theta_ph_vsB',
+        dtype=float,
+    )
+    theta_ph_vsB = np.arctan2(np.sin(theta_ph_vsB), np.cos(theta_ph_vsB))
+    iout = (theta_ph_vsB < 0.) | (theta_ph_vsB > np.pi)
+    if np.any(iout):
+        msg = (
+            "Arg theta_ph_vsB must be within [0, pi]\n"
+            f"Provided:\n{theta_ph_vsB}\n"
+        )
+        raise Exception(msg)
+
+    # ------------
+    # theta_e0_vsB
+    # ------------
+
+    theta_e0_vsB_npts = int(ds._generic_check._check_var(
+        theta_e0_vsB_npts, 'theta_e0_vsB_npts',
+        types=(int, float),
+        sign='>=3',
+        default=_THETA_E0_VSB_NPTS,
+    ))
+    theta_e0_vsB = np.linspace(0, np.pi, theta_e0_vsB_npts)
+
+    # --------------------
+    # phi_e0_vsB
+    # --------------------
+
+    phi_e0_vsB_npts = int(ds._generic_check._check_var(
+        phi_e0_vsB_npts, 'phi_e0_vsB_npts',
+        types=(int, float),
+        sign='>=5',
+        default=2*theta_e0_vsB_npts + 1,
+    ))
+    phi_e0_vsB = np.linspace(-np.pi, np.pi, phi_e0_vsB_npts)
+
+    # --------------------
+    # version_cross
+    # --------------------
+
+    version_cross = ds._generic_check._check_var(
+        version_cross, 'version_cross',
+        types=str,
+        default='BHE',
+    )
+
+    return (
+        E_ph_eV, E_e0_eV, iok,
+        theta_e0_vsB, theta_ph_vsB,
+        phi_e0_vsB,
+        version_cross,
+    )
 
 
 # ###########################################
@@ -132,9 +318,10 @@ def _check(
 def _compute(
     E_ph_eV=None,
     E_e0_eV=None,
-    theta_e0_vsB_npts=None,
-    phi_e0_vsB_npts=None,
+    theta_e0_vsB=None,
+    phi_e0_vsB=None,
     theta_ph_vsB=None,
+    iok=None,
     # inputs
     Z=None,
     # hypergeometric parameter
@@ -145,6 +332,9 @@ def _compute(
     ndphi=None,
     # output customization
     version_cross=None,
+    verb=None,
+    # unused
+    **kwdargs,
 ):
 
     # theta_ph_vs_e in (theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
@@ -206,7 +396,36 @@ def _compute(
             axis=-1,
         )
 
-    return
+    # ----------
+    # units
+    # ----------
+
+    units = d2cross['cross'][version_cross]['units']
+    units *= asunits.Unit('rad')
+
+    # -------------
+    # format output
+    # -------------
+
+    dout = {
+        'd2cross_phi': {
+            'data': d2cross_phi,
+            'units': units,
+        },
+        'E_e0_eV': E_e0_eV,
+        'E_ph_eV': E_ph_eV,
+        'theta_e0_vsB': theta_e0_vsB,
+        'theta_ph_vsB': theta_ph_vsB,
+        'phi_e0_vsB': phi_e0_vsB,
+        'Z': Z,
+        'nthetae': d2cross['theta_e']['data'].size,
+        'ndphi': d2cross['dphi']['data'].size,
+        'version_cross': version_cross,
+        'ninf': ninf,
+        'source': source,
+    }
+
+    return dout
 
 
 # ###########################################
@@ -217,21 +436,73 @@ def _compute(
 
 def _load(
     pfe=None,
+    **kwdargs,
 ):
 
     # ----------
     # load
     # ----------
 
-    d2cross_phi = dict(np.load(pfe, allow_pickle=True))
+    d2cross_phi = {
+        kk: vv.tolist() if vv.dtype == 'object' else vv
+        for kk, vv in dict(np.load(pfe, allow_pickle=True)).items()
+    }
 
     # ----------
     # compare with input
     # ----------
 
+    dout = {}
     for k0, v0 in d2cross_phi.items():
 
-        pass
+        if k0 == 'd2cross_phi':
+            continue
+
+        # npts vs field
+        knpts = [k1 for k1 in kwdargs.keys() if k1 == f"{k0}_npts"]
+        if len(knpts) == 1:
+            n1 = kwdargs[knpts[0]]
+            if n1 is not None:
+                n0 = v0.size
+                if n0 != n1:
+                    dout[k0] = f"wrong number of points: {n1} vs {n0}"
+            continue
+
+        elif len(knpts) > 1:
+            msg = "weird glitch"
+            raise Exception(msg)
+
+        if kwdargs.get(k0) is None:
+            continue
+
+        if not isinstance(kwdargs[k0], v0.__class__):
+            dout[k0] = f"wrong type: {type(kwdargs[k0])} vs {type(v0)}"
+            continue
+
+        if isinstance(v0, np.ndarray):
+            if v0.shape != kwdargs[k0].shape:
+                dout[k0] = f"wrong shape: {kwdargs[k0].shape} vs {v0.shape}"
+                continue
+            if not np.allclose(v0, kwdargs[k0]):
+                dout[k0] = "Wrong array values"
+                continue
+
+        else:
+            if v0 != kwdargs[k0]:
+                dout[k0] = "wrong value"
+
+    # -----------------------
+    # Raise wraning if needed
+    # -----------------------
+
+    if len(dout) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
+        msg = (
+            "Specified args do not match loaded from file:\n"
+            f"pfe: {pfe}\n"
+            + "\n".join(lstr)
+        )
+        warnings.warn(msg)
 
     return d2cross_phi
 
@@ -243,44 +514,23 @@ def _load(
 
 
 def _save(
-    d2cross=None,
-    version_cross=None,
+    d2cross_phi=None,
 ):
-
-    # ----------
-    # units
-    # ----------
-
-    units = d2cross['cross'][version_cross]['units']
-    units *= asunits.Unit('rad')
 
     # ----------
     # pfe
     # ----------
 
-    fn = f"d2cross_phi_nEph{E_ph_eV.size}_ntheta{theta_ph_vsB.size}"
+    nE = d2cross_phi['E_ph_eV'].size
+    ntheta = d2cross_phi['theta_ph_vsB'].size
+    fn = f"d2cross_phi_nEph{nE}_ntheta{ntheta}"
     pfe = os.path.join(_PATH_HERE, f'{fn}.npz')
 
     # ----------
     # save
     # ----------
 
-    np.savez(
-        pfe,
-        d2cross_phi={
-            'data': d2cross_phi,
-            'units': units,
-        },
-        E_ph_eV=E_ph_eV,
-        theta_ph_vsB=theta_ph_vsB,
-        E_e0_eV=E_e0_eV,
-        Z=Z,
-        nthetae=nthetae,
-        ndphi=ndphi,
-        version_cross=version_cross,
-        ninf=ninf,
-        source=source,
-    )
+    np.savez(pfe, **d2cross_phi)
     msg = f"Saved in\n\t{pfe}"
     print(msg)
 
