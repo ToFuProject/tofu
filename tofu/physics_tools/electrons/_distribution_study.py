@@ -33,7 +33,7 @@ _DPLASMA = {
         'units': 'A/m^2',
     },
     'jp_fraction_re': {
-        'def': np.linspace(0.01, 1, 51)[None, :, None, None],
+        'def': np.linspace(0.01, 0.99, 51)[None, :, None, None],
         'units': None,
     },
 }
