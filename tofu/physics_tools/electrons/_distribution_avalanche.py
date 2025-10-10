@@ -202,3 +202,41 @@ def f2d_E_theta(
     units = units0 * asunits.Unit('1/eV')
 
     return dist, units
+
+
+def f3d_E_theta(
+    E_eV=None,
+    theta=None,
+    p_max_norm=None,
+    p_crit=None,
+    Cz=None,
+    lnG=None,
+    E_hat=None,
+    sigmap=None,
+    # unused
+    **kwdargs,
+):
+    """ Based on f2d_E_theta / 2pi
+    """
+
+    # ---------
+    # get dist0
+
+    dist0, units0 = f3d_E_theta(
+        E_eV=E_eV,
+        theta=theta,
+        p_max_norm=p_max_norm,
+        p_crit=p_crit,
+        Cz=Cz,
+        lnG=lnG,
+        E_hat=E_hat,
+        sigmap=sigmap,
+    )
+
+    # ---------
+    # adjust
+
+    dist = dist0 / (2.*np.pi)
+    units = units0 * asunits.Unit('1/rad')
+
+    return dist, units

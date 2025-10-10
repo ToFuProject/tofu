@@ -168,6 +168,36 @@ def f2d_E_theta(
     return dist, units
 
 
+def f3d_E_theta(
+    E_eV=None,
+    theta=None,
+    # params
+    E_hat=None,
+    Zeff=None,
+    # unused
+    **kwdargs,
+):
+
+    # ---------
+    # get dist0
+
+    dist0, units0 = f2d_E_theta(
+        E_eV=E_eV,
+        theta=theta,
+        # params
+        E_hat=E_hat,
+        Zeff=Zeff,
+    )
+
+    # ---------
+    # adjust
+
+    dist = dist0 / (2.*np.pi)
+    units = units0 * asunits.Unit('1/rad')
+
+    return dist, units
+
+
 # #####################################################
 # #####################################################
 #           Dict of functions
