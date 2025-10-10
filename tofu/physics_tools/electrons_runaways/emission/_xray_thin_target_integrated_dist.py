@@ -11,6 +11,7 @@ import datastock as ds
 
 from .. import _utils
 from . import _xray_thin_target_integrated_d2crossphi
+from ...electrons import _distribution_check
 from ...electrons import get_distribution
 
 
@@ -18,6 +19,26 @@ from ...electrons import get_distribution
 # ############################################
 #             Default
 # ############################################
+
+
+_DPLASMA = {
+    'Te_eV': {
+        'def': np.linspace(1, 10, 10)[:, None, None, None] * 1e3,
+        'units': 'eV',
+    },
+    'ne_m3': {
+        'def': np.r_[1e19, 1e20][None, None, :, None],
+        'units': '1/m^3',
+    },
+    'jp_Am2': {
+        'def': np.r_[1e6, 10e6][None, None, None, :],
+        'units': 'A/m^2',
+    },
+    'jp_fraction_re': {
+        'def': np.linspace(0.01, 0.99, 11)[None, :, None, None],
+        'units': None,
+    },
+}
 
 
 # ############################################
@@ -89,6 +110,7 @@ def get_xray_thin_integ_dist(
     # --------------------
 
     (
+        dplasma,
         verb,
     ) = _check(**locals())
 
@@ -126,27 +148,25 @@ def get_xray_thin_integ_dist(
     # --------------------
 
     if verb >= 1:
-        msg = "Computing maxwellian..."
+        msg = "Computing e distributions..."
         print(msg)
 
     ddist = get_distribution(
-        Te_eV=Te_eV,
-        ne_m3=ne_m3,
-        jp_Am2=jp_Am2,
-        jp_fraction_re=jp_fraction_re,
         # Energy, theta
         E_eV=E_e0_eV,
         theta=theta_e0_vsB,
         # version
         version='f3d_E_theta',
         returnas=dict,
+        # plasma parameters
+        **{kk: vv['data'] for kk, vv in dplasma.items()}
     )
 
     # shape
-    shape_plasma = ddist['dist']['data'].shape[:-2]
-    shape_dist = ddist['dist']['data'].shape[-2:]
-    # ref_plasma = (None,) * len(shape_plasma)
-    # ref_dist = (None,) * len(shape_dist)
+    shape_plasma = ddist['plasma']['Te_eV']['data'].shape
+    shape_dist = ddist['dist']['maxwell']['dist']['data'].shape
+    shape_cross = d2cross_phi.shape
+    shape_emiss = shape_plasma + (E_ph_eV.size, theta_ph_vsB.size)
 
     # ------------
     # add nZ_m3
@@ -173,91 +193,120 @@ def get_xray_thin_integ_dist(
     ref = None  # ref_plasma + ref_cross
 
     # shape
-    shape = shape_plasma + shape_emiss
-    emiss = np.zeros(shape, dtype=float)
+    demiss = {
+        kdist: {
+            'emiss': {
+                'data': np.zeros(shape_emiss, dtype=float),
+                'units': None,
+            },
+            'anis': {
+                'data': np.zeros(shape_emiss[:-1], dtype=float),
+                'units': None,
+            },
+            'theta_peak': {
+                'data': np.zeros(shape_emiss[:-1], dtype=float),
+                'units': 'rad',
+            },
+        }
+        for kdist in ddist['dist'].keys()
+    }
 
     # --------------------
     # integrate
     # --------------------
 
-    # d2cross = (E_ph_eV, E_e0_eV, theta_ph_vsB)
-    #         = (E_ph_eV, E_e0_eV, theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
-    # dist = shape_plasma + (E_e0_eV, theta_e0_vsB, phi_e0_vsB)
+    # d2cross_phi = (E_ph_eV, theta_ph_vsB, E_e0_eV, theta_e0_vsB)
+    # dist = shape_plasma + (E_e0_eV, theta_e0_vsB)
+    for kdist in sorted(ddist['dist'].keys()):
 
-    if verb >= 1:
-        msg = "Integrating d2cross_phi over maxwellian..."
-
-    # loop on plasma parameters
-    sli0_None = tuple([slice(None) for ss in shape_emiss])
-    sli1_None = tuple([slice(None) for ss in shape_dist])
-    for i0, ind in enumerate(np.ndindex(shape_plasma)):
-
-        # verb
-        if verb >= 2 and len(ind) > 0:
-            msg = f"\tplasma parameters {ind} / {shape_plasma}"
+        if verb >= 1:
+            msg = f"Integrating d2cross_phi over {kdist}..."
             print(msg)
 
-        # slices
-        if len(ind) == 0:
-            sli0 = sli0_None
-            sli1 = (None, None) + sli1_None
-        else:
-            sli0 = ind + sli0_None
-            sli1 = ind + (None, None) + sli1_None
+        # loop on plasma parameters
+        sli0_None = (slice(None), slice(None))
+        sli1_None = (None, None, slice(None), slice(None))
+        for i0, ind in enumerate(np.ndindex(shape_plasma)):
 
-        # integrate over theta_e
-        integ_phi_theta = scpinteg.trapezoid(
-            v_e
-            * d2cross_phi
-            * ddist['dist']['data'][sli1][None, None, :, :],
-            x=theta_e0_vsB,
-            axis=-1,
-        )
+            # verb
+            if verb >= 2 and len(ind) > 0:
+                msg = f"\tplasma parameters {ind} / {shape_plasma}"
+                print(msg)
 
-        # integrate over E_e0_eV
-        emiss[sli0] = scpinteg.trapezoid(
-            integ_phi_theta,
-            x=E_e0_eV,
-            axis=-1,
-        )
+            # slices
+            if len(ind) == 0:
+                sli0 = sli0_None
+                sli1 = sli1_None
+            else:
+                sli0 = ind + sli0_None
+                sli1 = ind + sli1_None
+
+            import pdb; pdb.set_trace()      # DB
+
+            # integrate over theta_e
+            integ_phi_theta = scpinteg.trapezoid(
+                v_e
+                * d2cross_phi
+                * ddist['dist'][kdist]['dist']['data'][sli1],
+                x=theta_e0_vsB,
+                axis=-1,
+            )
+
+            # integrate over E_e0_eV
+            demiss[kdist]['emiss']['data'][sli0] = scpinteg.trapezoid(
+                integ_phi_theta,
+                x=E_e0_eV,
+                axis=-1,
+            )
 
     # ----------------
     # prepare output
     # ----------------
 
     # multiply by nZ_m3
-    emiss *= ddist['nZ_m3']['data'][..., None, None]
+    sli = (slice(None),)*len(shape_plasma) + (None, None)
+    for kdist in ddist['dist'].keys():
+        demiss[kdist]['emiss']['data'] *= ddist['plasma']['nZ_m3']['data'][sli]
 
     # units
     units = (
-        ddist['dist']['units']                      # 1 / (m3.rad2.eV)
-        * units_d2cross_phi                         # m2.rad / (eV.sr)
+        ddist['dist'][kdist]['dist']['units']   # 1 / (m3.rad2.eV)
+        * units_d2cross_phi                     # m2.rad / (eV.sr)
         * asunits.Unit('m/s')
         * asunits.Unit('eV.rad')
-        * asunits.Unit(ddist['nZ_m3']['units'])    # 1/m^3
+        * ddist['plasma']['nZ_m3']['units']               # 1/m^3
     )
 
+    for kdist in ddist['dist'].keys():
+        demiss[kdist]['emiss']['units'] = units
+
     # ----------------
-    # safety
+    # sanity check
     # ----------------
 
-    if np.any((~np.isfinite(emiss)) | (emiss < 0.)):
-        msg = "\n! Some non-finite or negative values in emissivity !\n"
-        warnings.warn(msg)
+    for kdist in ddist['dist'].keys():
+        iok = np.isfinite(demiss[kdist]['emiss']['data'])
+        iok[iok] = demiss[kdist]['emiss']['data'][iok] >= 0.
+        if np.any(~iok):
+            msg = f"\nSome non-finite or negative values in emiss {kdist} !\n"
+            warnings.warn(msg)
 
     # ----------------
     # anisotropy
     # ----------------
 
     axis = -1
-    vmax = np.max(emiss, axis=axis)
-    anis = (vmax - np.min(emiss, axis=axis)) / vmax
-    imax = np.argmax(emiss, axis=axis)
-    theta_peak = theta_ph_vsB[imax]
-    if ref is None:
-        refmax = None
-    else:
-        refmax = ref[:-1]
+    danis = {}
+    for kdist in ddist['dist'].keys():
+        vmax = np.max(demiss[kdist]['emiss']['data'], axis=axis)
+        vmin = np.min(demiss[kdist]['emiss']['data'], axis=axis)
+        demiss[kdist]['anis']['data'][...] = (vmax - vmin) / vmax
+        imax = np.argmax(demiss[kdist]['emiss']['data'], axis=axis)
+        demiss[kdist]['theta_peak']['data'][...] = theta_ph_vsB[imax]
+        if ref is None:
+            refmax = None
+        else:
+            refmax = ref[:-1]
 
     # ----------------
     # format output
@@ -276,27 +325,10 @@ def get_xray_thin_integ_dist(
             'units': 'rad',
             'ref': None,
         },
-        'emiss': {
-            'key': None,
-            'data': emiss,
-            'units': units,
-            'ref': ref,
-        },
-        'anis': {
-            'key': None,
-            'data': anis,
-            'units': None,
-            'ref': refmax,
-        },
-        'theta_peak': {
-            'key': None,
-            'data': theta_peak,
-            'units': 'rad',
-            'ref': refmax,
-        },
+        'emiss': demiss,
     }
 
-    return demiss, ddist
+    return demiss, ddist, d2cross_phi
 
 
 # ############################################
@@ -311,6 +343,15 @@ def _check(
     **kwdargs,
 ):
 
+    # -----------------
+    # plasma parameters
+    # -----------------
+
+    dplasma = _distribution_check._plasma(
+        ddef=_DPLASMA,
+        **kwdargs,
+    )
+
     # --------------------
     # verb
     # --------------------
@@ -324,6 +365,7 @@ def _check(
     ))
 
     return (
+        dplasma,
         verb,
     )
 
@@ -345,7 +387,7 @@ def _add_nZ(
     # -------------
 
     if nZ_m3 is None:
-        nZ_m3 = ddist['ne_m3']['data'][..., 0, 0]
+        nZ_m3 = ddist['plasma']['ne_m3']['data']
 
     nZ_m3 = np.atleast_1d(nZ_m3)
     if np.any((~np.isfinite(nZ_m3)) | (nZ_m3 < 0.)):
@@ -360,10 +402,10 @@ def _add_nZ(
         _ = np.broadcast_shapes(shape_plasma, nZ_m3.shape)
 
     except Exception:
-        lk = [kk for kk in ddist.keys() if kk != 'dist']
-        lstr = [f"\t- {k0}: {ddist[k0]['data'].shape}" for k0 in lk]
+        lk = list(ddist['plasma'].keys())
+        lstr = [f"\t- {k0}: {ddist['plasma'][k0]['data'].shape}" for k0 in lk]
         msg = (
-            "Arg nZ_m3 must be boradcast-able to othe plasma parameters!\n"
+            "Arg nZ_m3 must be broadcast-able to othe plasma parameters!\n"
             + "\n".join(lstr)
             + "\t- nZ_m3: {nZ_m3.shape}\n"
         )
@@ -373,10 +415,10 @@ def _add_nZ(
     # store
     # -------------
 
-    ddist['nZ_m3'] = {
+    ddist['plasma']['nZ_m3'] = {
         'key': 'nZ',
         'data': nZ_m3,
-        'units': '1/m^3'
+        'units': asunits.Unit(ddist['plasma']['ne_m3']['units']),
     }
 
     return

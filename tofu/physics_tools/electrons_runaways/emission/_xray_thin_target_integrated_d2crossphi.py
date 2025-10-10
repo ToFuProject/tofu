@@ -367,6 +367,8 @@ def _compute(
 
         # get integrated cross-section
         # theta_ph_vs_e = (theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
+        # d2cross = (E_ph_eV, E_e0_eV, theta_ph_vsB)
+        #         = (E_ph_eV, E_e0_eV, theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
         d2cross = _mod.get_xray_thin_d2cross_ei_integrated_thetae_dphi(
             # inputs
             Z=Z,
