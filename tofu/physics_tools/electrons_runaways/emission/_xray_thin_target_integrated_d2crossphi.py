@@ -25,7 +25,7 @@ _PATH_HERE = os.path.dirname(__file__)
 _THETA_PH_VSB = np.linspace(0, np.pi, 17)
 _THETA_E0_VSB_NPTS = 19
 _E_PH_EV = np.linspace(5, 40, 25) * 1e3
-_E_E0_EV_NPTS = 41
+_E_E0_EV_NPTS = 61
 
 
 # ###########################################
