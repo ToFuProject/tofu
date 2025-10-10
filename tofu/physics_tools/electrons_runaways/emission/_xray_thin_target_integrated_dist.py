@@ -76,6 +76,9 @@ def get_xray_thin_integ_dist(
     # save / load
     pfe_d2cross_phi=None,
     save_d2cross_phi=None,
+    # ---------------------
+    # optional responsivity
+    dresponsivity=None,
     # verb
     verb=None,
 ):
@@ -137,9 +140,6 @@ def get_xray_thin_integ_dist(
     E_ph_eV = d2cross_phi['E_ph_eV']
     theta_e0_vsB = d2cross_phi['theta_e0_vsB']
     theta_ph_vsB = d2cross_phi['theta_ph_vsB']
-    Z = d2cross_phi['Z']
-    units_d2cross_phi = d2cross_phi['d2cross_phi']['units']
-    d2cross_phi = d2cross_phi['d2cross_phi']['data']
 
     shape_emiss = (E_ph_eV.size, theta_ph_vsB.size)
 
@@ -165,7 +165,7 @@ def get_xray_thin_integ_dist(
     # shape
     shape_plasma = ddist['plasma']['Te_eV']['data'].shape
     shape_dist = ddist['dist']['maxwell']['dist']['data'].shape
-    shape_cross = d2cross_phi.shape
+    shape_cross = d2cross_phi['d2cross_phi']['data'].shape
     shape_emiss = shape_plasma + (E_ph_eV.size, theta_ph_vsB.size)
 
     # ------------
@@ -231,7 +231,8 @@ def get_xray_thin_integ_dist(
             # verb
             if verb >= 2 and len(ind) > 0:
                 msg = f"\tplasma parameters {ind} / {shape_plasma}"
-                print(msg)
+                msg = msg.ljust(len(msg) + 4)
+                print(msg, end='\r')
 
             # slices
             if len(ind) == 0:
@@ -244,7 +245,7 @@ def get_xray_thin_integ_dist(
             # integrate over theta_e
             integ_phi_theta = scpinteg.trapezoid(
                 v_e
-                * d2cross_phi
+                * d2cross_phi['d2cross_phi']['data']
                 * ddist['dist'][kdist]['dist']['data'][sli1],
                 x=theta_e0_vsB,
                 axis=-1,
@@ -269,10 +270,10 @@ def get_xray_thin_integ_dist(
     # units
     units = (
         ddist['dist'][kdist]['dist']['units']   # 1 / (m3.rad2.eV)
-        * units_d2cross_phi                     # m2.rad / (eV.sr)
+        * d2cross_phi['d2cross_phi']['units']   # m2.rad / (eV.sr)
         * asunits.Unit('m/s')
         * asunits.Unit('eV.rad')
-        * ddist['plasma']['nZ_m3']['units']               # 1/m^3
+        * ddist['plasma']['nZ_m3']['units']     # 1/m^3
     )
 
     for kdist in ddist['dist'].keys():
@@ -288,6 +289,17 @@ def get_xray_thin_integ_dist(
         if np.any(~iok):
             msg = f"\nSome non-finite or negative values in emiss {kdist} !\n"
             warnings.warn(msg)
+
+    # ---------------------
+    # optional responsivity
+    # ---------------------
+
+    if dresponsivity is not None:
+        _responsivity(
+            E_ph_eV=E_ph_eV,
+            demiss=demiss,
+            dresponsivity=dresponsivity,
+        )
 
     # ----------------
     # anisotropy
@@ -418,5 +430,77 @@ def _add_nZ(
         'data': nZ_m3,
         'units': asunits.Unit(ddist['plasma']['ne_m3']['units']),
     }
+
+    return
+
+
+# ###########################################
+# ###########################################
+#        add responsivity
+# ###########################################
+
+
+def _responsivity(
+    E_ph_eV=None,
+    demiss=None,
+    dresponsivity=None,
+):
+
+    # --------------
+    # check
+    # --------------
+
+    c0 = (
+        isinstance(dresponsivity, dict)
+        and isinstance(dresponsivity.get('E_eV'), dict)
+        and isinstance(dresponsivity['E_eV'].get('data'), np.ndarray)
+        and np.allclose(dresponsivity['E_eV']['data'], E_ph_eV)
+        and isinstance(dresponsivity.get('responsivity'), dict)
+        and isinstance(dresponsivity['responsivity'].get('data'), np.ndarray)
+        and (
+            dresponsivity['responsivity']['data'].shape
+            == dresponsivity['E_eV']['data'].shape
+        )
+    )
+    if not c0:
+        msg = (
+            "Arg dresponsivity must be a dict of the form:\n"
+            "- 'E_eV': {'data': (npts,), 'units': 'eV'}\n"
+            "- 'responsivity': {'data': (npts,), 'units': str}\n"
+        )
+        raise Exception(msg)
+
+    # --------------
+    # compute
+    # --------------
+
+    for kdist in demiss['emiss'].keys():
+
+        # data
+        data = scpinteg.trapezoid(
+            demiss['emiss'][kdist]['emiss']['data']
+            * dresponsivity['responsivity']['data'],
+            x=E_ph_eV,
+            axis=-2,
+        )
+
+        # units
+        units = (
+            demiss['emiss'][kdist]['emiss']['units']
+            * dresponsivity['responsivity']['units']
+            * asunits.Unit('eV')
+        )
+
+        # store
+        demiss['emiss'][kdist]['emiss_integ'] = {
+            'data': data,
+            'units': units,
+        }
+
+    # -------------------
+    # store dresponsivity
+    # -------------------
+
+    demiss['responsivity'] = dresponsivity
 
     return
