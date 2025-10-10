@@ -1,5 +1,6 @@
 
 
+import copy
 import warnings
 
 
@@ -338,6 +339,9 @@ def get_xray_thin_integ_dist(
         'emiss': demiss,
     }
 
+    if dresponsivity is not None:
+        demiss['responsivity'] = dresponsivity
+
     return demiss, ddist, d2cross_phi
 
 
@@ -454,53 +458,95 @@ def _responsivity(
         isinstance(dresponsivity, dict)
         and isinstance(dresponsivity.get('E_eV'), dict)
         and isinstance(dresponsivity['E_eV'].get('data'), np.ndarray)
-        and np.allclose(dresponsivity['E_eV']['data'], E_ph_eV)
+        and dresponsivity['E_eV']['data'].ndim == 1
         and isinstance(dresponsivity.get('responsivity'), dict)
         and isinstance(dresponsivity['responsivity'].get('data'), np.ndarray)
         and (
             dresponsivity['responsivity']['data'].shape
             == dresponsivity['E_eV']['data'].shape
         )
+        and isinstance(dresponsivity.get('ph_vs_E'), str)
     )
     if not c0:
         msg = (
             "Arg dresponsivity must be a dict of the form:\n"
             "- 'E_eV': {'data': (npts,), 'units': 'eV'}\n"
             "- 'responsivity': {'data': (npts,), 'units': str}\n"
+            "- 'ph_vs_E': 'ph' or 'E'\n"
+            f"Provided:\n{dresponsivity}\n"
         )
         raise Exception(msg)
+
+    # ph vs E
+    dresponsivity['ph_vs_E'] = ds._generic_check._check_var(
+        dresponsivity['ph_vs_E'], 'ph_vs_E',
+        types=str,
+        allowed=['ph', 'E'],
+        extra_msg="dresponsivity['ph_vs_E'] integrated photons or energy",
+    )
+
+    dresponsivity = copy.deepcopy(dresponsivity)
+
+    # --------------
+    # interpolate if needed
+    # --------------
+
+    c0 = (
+        dresponsivity['E_eV']['data'].size == E_ph_eV.size
+        and np.allclose(dresponsivity['E_eV']['data'], E_ph_eV)
+    )
+    if c0:
+        resp_data = dresponsivity['responsivity']['data']
+    else:
+        resp_data = np.interp(
+            E_ph_eV,
+            dresponsivity['E_eV']['data'],
+            dresponsivity['responsivity']['data'],
+            left=0,
+            right=0,
+        )
 
     # --------------
     # compute
     # --------------
 
-    for kdist in demiss['emiss'].keys():
-
-        # data
-        data = scpinteg.trapezoid(
-            demiss['emiss'][kdist]['emiss']['data']
-            * dresponsivity['responsivity']['data'],
-            x=E_ph_eV,
-            axis=-2,
-        )
+    sli = [None]*demiss['maxwell']['emiss']['data'].ndim
+    sli[-2] = slice(None)
+    sli = tuple(sli)
+    for kdist in demiss.keys():
 
         # units
         units = (
-            demiss['emiss'][kdist]['emiss']['units']
+            demiss[kdist]['emiss']['units']
             * dresponsivity['responsivity']['units']
             * asunits.Unit('eV')
         )
 
+        # adjust
+        integrand = demiss[kdist]['emiss']['data']
+        if dresponsivity['ph_vs_E'] == 'E':
+            integrand *= E_ph_eV[sli]
+            units *= asunits.Unit('eV')
+
+        # data
+        data = scpinteg.trapezoid(
+            integrand
+            * resp_data[sli],
+            x=E_ph_eV,
+            axis=-2,
+        )
+
         # store
-        demiss['emiss'][kdist]['emiss_integ'] = {
+        demiss[kdist]['emiss_integ'] = {
             'data': data,
             'units': units,
         }
 
     # -------------------
-    # store dresponsivity
+    # update dresponsivity
     # -------------------
 
-    demiss['responsivity'] = dresponsivity
+    dresponsivity['E_eV']['data'] = demiss[kdist]['emiss']['data']
+    dresponsivity['responsivity']['data'] = resp_data
 
     return
