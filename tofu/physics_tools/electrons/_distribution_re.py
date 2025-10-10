@@ -146,6 +146,14 @@ def main(
 
         units = units0 if units1 is None else units1
 
+        # -------------------
+        # threshold on p_crit
+
+        pnorm = np.broadcast_to(_get_pnorm(dcoords), re_dist.shape)
+        iok = np.copy(np.broadcast_to(iok, re_dist.shape))
+        iok[iok] = pnorm[iok] < np.broadcast_to(p_crit, re_dist.shape)[iok]
+        re_dist[iok] = 0.
+
     # --------------
     # format output
     # --------------
@@ -182,3 +190,30 @@ def main(
     }
 
     return dout
+
+
+# ##############################################
+# ##############################################
+#               _get_pp
+# ##############################################
+
+
+def _get_pnorm(dcoords):
+
+    if dcoords.get('E_eV') is not None:
+
+        pnorm = _convert.convert_momentum_velocity_energy(
+            energy_kinetic_eV=dcoords['E_eV'],
+        )['momentum_normalized']['data']
+
+    elif dcoords.get('p_par_norm') is not None:
+
+        pnorm = np.sqrt(
+            dcoords['p_par_norm']**2
+            + dcoords['p_perp_norm']**2
+        )
+
+    else:
+        raise NotImplementedError(sorted(dcoords.keys))
+
+    return pnorm
