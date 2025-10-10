@@ -5,6 +5,7 @@ import numpy as np
 import scipy.integrate as scpinteg
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.lines as mlines
 import astropy.units as asunits
 import datastock as ds
 
@@ -28,7 +29,7 @@ except Exception:
 
 _DPLASMA = {
     'Te_eV': {
-        'def': 1e3,
+        'def': np.r_[1, 1, 5, 5]*1e3,
         'units': 'eV',
     },
     'ne_m3': {
@@ -40,7 +41,7 @@ _DPLASMA = {
         'units': 'A/m2',
     },
     'jp_fraction_re': {
-        'def': np.r_[0., 0.1, 0.9],
+        'def': np.r_[0.1, 0.9, 0.1, 0.9],
         'units': None,
     },
     'Zeff': {
@@ -155,7 +156,7 @@ def main(
 
     # E
     units = ddist_E_theta['dist']['RE']['dist']['units'] * asunits.Unit('rad')
-    ddist_E = {
+    ddist_E_num = {
         kdist: {
             'data': scpinteg.trapezoid(
                 ddist_E_theta['dist'][kdist]['dist']['data'],
@@ -191,7 +192,7 @@ def main(
         ddist_E_theta=ddist_E_theta,
         ddist_ppar_pperp=ddist_ppar_pperp,
         # 1d
-        ddist_E=ddist_E,
+        ddist_E_num=ddist_E_num,
         # dist_1d_v=dist_1d_v,
         # v_edge=v_edge,
         # props
@@ -310,7 +311,7 @@ def _plot(
     ddist_ppar_pperp=None,
     # 1d
     v_edge=None,
-    ddist_E=None,
+    ddist_E_num=None,
     ddist_p=None,
     # props
     dprop=None,
@@ -358,7 +359,8 @@ def _plot(
         vmaxRE = np.max(RE[RE > maxwell])
         vmin = np.min(RE[RE > 0.])
         levels = np.unique(np.r_[
-            np.logspace(np.log10(vmin), np.log10(vmaxRE), 20),
+            vmin, max(vmin, vmaxRE/10.),
+            np.logspace(np.log10(max(vmin, vmaxRE/10.)), np.log10(vmaxRE), 6),
             np.logspace(np.log10(vmaxRE), np.log10(vmax), 4),
         ])
 
@@ -385,40 +387,56 @@ def _plot(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
+        lh = []
         for ii, ind in enumerate(np.ndindex(shape_plasma)):
             sli = ind + (slice(None),)
-            maxwell = ddist_E['maxwell']['data'][sli]
-            re = ddist_E['RE']['data'][sli]
+            maxwell_num = ddist_E_num['maxwell']['data'][sli]
+            re_num = ddist_E_num['RE']['data'][sli]
+            color = dprop[ind]['color']
 
             # maxwell
             ax.semilogy(
                 ddist_E_theta['coords']['x0']['data']*1e-3,
-                maxwell,
+                maxwell_num,
                 ls='-',
                 lw=1,
-                color=dprop[ind]['color'],
-                label="Maxwell",
+                color=color,
+                label="Maxwell_num",
             )
 
             # RE
             ax.semilogy(
                 ddist_E_theta['coords']['x0']['data']*1e-3,
-                re,
+                re_num,
                 ls='--',
                 lw=1,
-                color=dprop[ind]['color'],
-                label="RE",
+                color=color,
+                label="RE_num",
             )
 
             # total
             ax.semilogy(
                 ddist_E_theta['coords']['x0']['data']*1e-3,
-                maxwell + re,
+                maxwell_num + re_num,
                 ls='-',
                 lw=2,
-                color=dprop[ind]['color'],
+                color=color,
             )
 
+            # label
+            nei = ddist_E_theta['plasma']['ne_m3']['data'][ind]
+            jpi = ddist_E_theta['plasma']['jp_Am2']['data'][ind]
+            Tei = ddist_E_theta['plasma']['Te_eV']['data'][ind]
+            jp_fraci = ddist_E_theta['plasma']['jp_fraction_re']['data'][ind]
+            lab = (
+                f"ne = {nei:1.0e} /m3  jp = {jpi*1e-6:1.0f} MA/m2"
+                f"Te = {Tei*1e-3:1.0e} keV  jp_frac = {jp_fraci:1.1f}"
+            )
+
+            lh.append(mlines.Line2D([], [], c=color, ls='-', label=lab))
+
+        # legend & lims
+        ax.legend(handles=lh, loc='upper right', fontsize=12)
         ax.set_xlim(left=0.)
 
     # ----------------
@@ -438,7 +456,8 @@ def _plot(
         vmaxRE = np.max(RE[RE > maxwell])
         vmin = np.min(RE[RE > 0.])
         levels = np.unique(np.r_[
-            np.logspace(np.log10(vmin), np.log10(vmaxRE), 30),
+            vmin, max(vmin, vmaxRE/10.),
+            np.logspace(np.log10(max(vmin, vmaxRE/10.)), np.log10(vmaxRE), 6),
             np.logspace(np.log10(vmaxRE), np.log10(vmax), 4),
         ])
 
@@ -446,14 +465,17 @@ def _plot(
             sli = ind + (slice(None), slice(None))
             val = maxwell[sli] + RE[sli]
 
+            # plot
+            color = dprop[ind]['color']
             ax.contour(
                 ddist_ppar_pperp['coords']['x0']['data'],
                 ddist_ppar_pperp['coords']['x1']['data'],
                 val.T,
                 levels=levels,
-                colors=dprop[ind]['color'],
+                colors=color,
             )
 
+        # legend & lims
         ax.set_ylim(bottom=0.)
 
     # ----------------
