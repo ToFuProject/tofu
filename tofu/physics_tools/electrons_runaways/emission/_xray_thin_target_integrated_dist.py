@@ -1,6 +1,5 @@
 
 
-import os
 import warnings
 
 
@@ -21,14 +20,6 @@ from ...electrons import get_distribution
 # ############################################
 
 
-_PATH_HERE = os.path.dirname(__file__)
-
-
-_THETA_PH_VSB = np.linspace(0, np.pi, 15)
-_THETA_E0_VSB_NPTS = 17
-_E_PH_EV = np.linspace(5, 30, 25) * 1e3
-
-
 # ############################################
 # ############################################
 #             Main
@@ -42,11 +33,12 @@ def get_xray_thin_integ_dist(
     ne_m3=None,
     nZ_m3=None,
     jp_Am2=None,
-    re_fraction_Ip=None,
+    jp_fraction_re=None,
     # ----------------
     # cross-section
     E_ph_eV=None,
     E_e0_eV=None,
+    E_e0_eV_npts=None,
     theta_e0_vsB_npts=None,
     phi_e0_vsB_npts=None,
     theta_ph_vsB=None,
@@ -61,7 +53,7 @@ def get_xray_thin_integ_dist(
     # output customization
     version_cross=None,
     # save / load
-    d2cross_phi=None,
+    pfe_d2cross_phi=None,
     save_d2cross_phi=None,
     # verb
     verb=None,
@@ -97,20 +89,8 @@ def get_xray_thin_integ_dist(
     # --------------------
 
     (
-        E_ph_eV, E_e0_eV, iok,
-        theta_e0_vsB, theta_ph_vsB,
-        phi_e0_vsB,
-        version_cross,
         verb,
-    ) = _check(
-        E_ph_eV=E_ph_eV,
-        E_e0_eV=E_e0_eV,
-        theta_e0_vsB_npts=theta_e0_vsB_npts,
-        phi_e0_vsB_npts=phi_e0_vsB_npts,
-        theta_ph_vsB=theta_ph_vsB,
-        version_cross=version_cross,
-        verb=verb,
-    )
+    ) = _check(**locals())
 
     # --------------------
     # get d2cross integrated over phi (from dist)
@@ -120,9 +100,25 @@ def get_xray_thin_integ_dist(
         msg = "Integrating d2cross over phi from distribution..."
         print(msg)
 
+    dinputs = {
+        kk.replace('_d2cross_phi', ''): vv
+        for kk, vv in locals().items()
+    }
     d2cross_phi = _xray_thin_target_integrated_d2crossphi.get_d2cross_phi(
-        **locals(),
+        **dinputs,
     )
+
+    # ----------
+    # extract
+
+    E_e0_eV = d2cross_phi['E_e0_eV']
+    E_ph_eV = d2cross_phi['E_ph_eV']
+    theta_e0_vsB = d2cross_phi['theta_e0_vsB']
+    theta_ph_vsB = d2cross_phi['theta_ph_vsB']
+    Z = d2cross_phi['Z']
+    units_d2cross_phi = d2cross_phi['d2cross_phi']['units']
+    d2cross_phi = d2cross_phi['d2cross_phi']['data']
+
     shape_emiss = (E_ph_eV.size, theta_ph_vsB.size)
 
     # --------------------
@@ -137,6 +133,7 @@ def get_xray_thin_integ_dist(
         Te_eV=Te_eV,
         ne_m3=ne_m3,
         jp_Am2=jp_Am2,
+        jp_fraction_re=jp_fraction_re,
         # Energy, theta
         E_eV=E_e0_eV,
         theta=theta_e0_vsB,
@@ -208,8 +205,6 @@ def get_xray_thin_integ_dist(
             sli0 = ind + sli0_None
             sli1 = ind + (None, None) + sli1_None
 
-        # theta_ph_vs_e = f(theta_ph, theta_e, phi_e)
-
         # integrate over theta_e
         integ_phi_theta = scpinteg.trapezoid(
             v_e
@@ -236,9 +231,9 @@ def get_xray_thin_integ_dist(
     # units
     units = (
         ddist['dist']['units']                      # 1 / (m3.rad2.eV)
-        * d2cross['cross'][version_cross]['units']  # m2 / (eV.sr)
+        * units_d2cross_phi                         # m2.rad / (eV.sr)
         * asunits.Unit('m/s')
-        * asunits.Unit('eV.rad^2')
+        * asunits.Unit('eV.rad')
         * asunits.Unit(ddist['nZ_m3']['units'])    # 1/m^3
     )
 
@@ -311,125 +306,10 @@ def get_xray_thin_integ_dist(
 
 
 def _check(
-    E_ph_eV=None,
-    E_e0_eV=None,
-    theta_e0_vsB_npts=None,
-    phi_e0_vsB_npts=None,
-    theta_ph_vsB=None,
-    # version
-    version_cross=None,
     verb=None,
+    # unused
+    **kwdargs,
 ):
-
-    # ----------
-    # E_ph_eV
-    # ----------
-
-    if E_ph_eV is None:
-        E_ph_eV = _E_PH_EV
-
-    E_ph_eV = ds._generic_check._check_flat1darray(
-        E_ph_eV, 'E_ph_eV',
-        dtype=float,
-        sign='>=0',
-    )
-
-    # ----------
-    # E_e0_eV
-    # ----------
-
-    if E_e0_eV is None:
-        E_e0_eV = np.logspace(
-            np.log10(E_ph_eV.min()),
-            np.ceil(np.log10(E_ph_eV.max())) + 1,
-            41,
-        )
-
-    E_e0_eV = np.unique(ds._generic_check._check_flat1darray(
-        E_e0_eV, 'E_e0_eV',
-        dtype=float,
-        unique=True,
-        sign='>=0',
-    ))
-
-    iok = E_e0_eV >= E_ph_eV.min()
-    nok = np.sum(iok)
-    if nok < E_e0_eV.size:
-        if nok == 0:
-            msg = (
-                f"All points ({E_e0_eV.size}) "
-                "are removed from E_e0_eV (< E_ph_eV.min())"
-            )
-            raise Exception(msg)
-
-        else:
-            msg = (
-                f"Some points ({E_e0_eV.size - nok} / {E_e0_eV.size}) "
-                "are removed from E_e0_eV (< E_ph_eV.min())"
-            )
-            warnings.warn(msg)
-
-    if E_e0_eV.max() < E_ph_eV.max():
-        msg = (
-            "Arg E_e0_eV should not have a max value below E_ph_eV.min()!\n"
-            f"\t- E_ph_eV.max() = {E_ph_eV.max()}\n"
-            f"\t- E_e0_eV.max() = {E_e0_eV.max()}\n"
-        )
-        raise Exception(msg)
-
-    # ------------
-    # theta_ph_vsB
-    # ------------
-
-    if theta_ph_vsB is None:
-        theta_ph_vsB = _THETA_PH_VSB
-
-    theta_ph_vsB = ds._generic_check._check_flat1darray(
-        theta_ph_vsB, 'theta_ph_vsB',
-        dtype=float,
-    )
-    theta_ph_vsB = np.arctan2(np.sin(theta_ph_vsB), np.cos(theta_ph_vsB))
-    iout = (theta_ph_vsB < 0.) | (theta_ph_vsB > np.pi)
-    if np.any(iout):
-        msg = (
-            "Arg theta_ph_vsB must be within [0, pi]\n"
-            f"Provided:\n{theta_ph_vsB}\n"
-        )
-        raise Exception(msg)
-
-    # ------------
-    # theta_e0_vsB
-    # ------------
-
-    theta_e0_vsB_npts = int(ds._generic_check._check_var(
-        theta_e0_vsB_npts, 'theta_e0_vsB_npts',
-        types=(int, float),
-        sign='>=3',
-        default=_THETA_E0_VSB_NPTS,
-    ))
-    theta_e0_vsB = np.linspace(0, np.pi, theta_e0_vsB_npts)
-
-    # --------------------
-    # phi_e0_vsB
-    # --------------------
-
-    phi_e0_vsB_npts = int(ds._generic_check._check_var(
-        phi_e0_vsB_npts, 'phi_e0_vsB_npts',
-        types=(int, float),
-        sign='>=5',
-        default=2*theta_e0_vsB_npts + 1,
-    ))
-    phi_e0_vsB = np.linspace(-np.pi, np.pi, phi_e0_vsB_npts)
-
-    # --------------------
-    # version_cross
-    # --------------------
-
-    version_cross = ds._generic_check._check_var(
-        version_cross, 'version_cross',
-        types=str,
-        default='BHE',
-    )
 
     # --------------------
     # verb
@@ -444,10 +324,6 @@ def _check(
     ))
 
     return (
-        E_ph_eV, E_e0_eV, iok,
-        theta_e0_vsB, theta_ph_vsB,
-        phi_e0_vsB,
-        version_cross,
         verb,
     )
 
