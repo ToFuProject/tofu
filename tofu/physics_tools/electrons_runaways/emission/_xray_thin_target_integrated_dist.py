@@ -241,8 +241,6 @@ def get_xray_thin_integ_dist(
                 sli0 = ind + sli0_None
                 sli1 = ind + sli1_None
 
-            import pdb; pdb.set_trace()      # DB
-
             # integrate over theta_e
             integ_phi_theta = scpinteg.trapezoid(
                 v_e

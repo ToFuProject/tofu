@@ -219,7 +219,6 @@ def _scale(
     ddist=None,
     kdist=None,
     version=None,
-    ne_re=0.,
 ):
 
     ne_re = 0.
