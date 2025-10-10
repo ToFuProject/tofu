@@ -20,6 +20,7 @@ _DPLASMA_ANISOTROPY_MAP = {
     'Te_eV': np.r_[1, 5, 10, 20]*1e3,
     'ne_m3': np.r_[1, 3, 5, 10, 30, 50, 100]*1e19,
     'jp_Am2': np.r_[0, 1, 3, 5, 8, 10]*1e6,
+    'jp_fraction_re': 0.1,
 }
 
 
@@ -27,7 +28,7 @@ _DPLASMA_ANGULAR_PROFILES = {
     'Te_eV': np.r_[1, 1, 10, 1]*1e3,
     'ne_m3': np.r_[1e19, 1e20, 1e19, 1e19],
     'jp_Am2': np.r_[1e6, 1e6, 1e6, 10e6],
-    're_fraction_Ip': 0.,
+    'jp_fraction_re': 0.,
 }
 
 
@@ -51,7 +52,7 @@ def plot_xray_thin_integ_dist(
     Te_eV=None,
     ne_m3=None,
     jp_Am2=None,
-    re_fraction_Ip=None,
+    jp_fraction_re=None,
     # ----------------
     # cross-section
     E_ph_eV=None,
@@ -68,6 +69,10 @@ def plot_xray_thin_integ_dist(
     nthetae=None,
     ndphi=None,
     version_cross=None,
+    pfe_d2cross_phi=None,
+    # -----------------
+    # optional responsivity
+    dresponsivity=None,
     # -----------------
     # plots
     plot_angular_spectra=None,
@@ -102,7 +107,7 @@ def plot_xray_thin_integ_dist(
         Te_eV=Te_eV,
         ne_m3=ne_m3,
         jp_Am2=jp_Am2,
-        re_fraction_Ip=re_fraction_Ip,
+        jp_fraction_re=jp_fraction_re,
         # cross-section
         E_ph_eV=E_ph_eV,
         E_e0_eV=E_e0_eV,
@@ -120,7 +125,7 @@ def plot_xray_thin_integ_dist(
     # -------------
 
     (
-        demiss, ddist,
+        demiss, ddist, d2cross_phi,
     ) = _xray_thin_target_integrated_dist.get_xray_thin_integ_dist(
         # ----------------
         # cross-section
@@ -139,12 +144,22 @@ def plot_xray_thin_integ_dist(
         ndphi=ndphi,
         # output customization
         version_cross=version_cross,
+        pfe_d2cross_phi=pfe_d2cross_phi,
         # verb
         verb=verb-1,
+        # optional responsivity
+        dresponsivity=dresponsivity,
         # ----------------
         # electron distribution
         **dplasma,
     )
+
+    # --------------
+    # extract
+    # --------------
+
+    theta_ph_vsB = d2cross_phi['theta_ph_vsB']
+    E_ph_eV = d2cross_phi['E_ph_eV']
 
     # -------------
     # plots
@@ -177,7 +192,7 @@ def _check(
     Te_eV=None,
     ne_m3=None,
     jp_Am2=None,
-    re_fraction_Ip=None,
+    jp_fraction_re=None,
     # ----------------
     # cross-section
     E_ph_eV=None,
@@ -220,12 +235,14 @@ def _check(
         Te_eV=Te_eV,
         ne_m3=ne_m3,
         jp_Am2=jp_Am2,
+        jp_fraction_re=jp_fraction_re,
     )
     if plot_anisotropy_map is True:
         dplasma, indplot = _dplasma_map(
             Te_eV=Te_eV,
             ne_m3=ne_m3,
             jp_Am2=jp_Am2,
+            jp_fraction_re=jp_fraction_re,
             dplasma0=dplasma,
         )
 
@@ -318,6 +335,7 @@ def _dplasma_asis(
     Te_eV=None,
     ne_m3=None,
     jp_Am2=None,
+    jp_fraction_re=None,
 ):
 
     # -----------------
@@ -328,7 +346,7 @@ def _dplasma_asis(
         'Te_eV': Te_eV,
         'ne_m3': ne_m3,
         'jp_Am2': jp_Am2,
-        # 're_fraction_Ip': re_fraction_Ip,
+        'jp_fraction_re': jp_fraction_re,
     }
 
     # -----------------
@@ -391,6 +409,7 @@ def _dplasma_map(
     Te_eV=None,
     ne_m3=None,
     jp_Am2=None,
+    jp_fraction_re=None,
     dplasma0=None,
 ):
 
@@ -402,7 +421,7 @@ def _dplasma_map(
         'Te_eV': Te_eV,
         'ne_m3': ne_m3,
         'jp_Am2': jp_Am2,
-        # 're_fraction_Ip': re_fraction_Ip,
+        'jp_fraction_re': jp_fraction_re,
     }
 
     # -----------------
@@ -421,9 +440,10 @@ def _dplasma_map(
     # ---------------------
 
     dplasma = {
-        'Te_eV': dplasma['Te_eV'][:, None, None],
-        'ne_m3': dplasma['ne_m3'][None, :, None],
-        'jp_Am2': dplasma['jp_Am2'][None, None, :],
+        'Te_eV': dplasma['Te_eV'][:, None, None, None],
+        'ne_m3': dplasma['ne_m3'][None, :, None, None],
+        'jp_Am2': dplasma['jp_Am2'][None, None, :, None],
+        'jp_fraction_re': dplasma['jp_fraction_re'][None, None, None, :],
     }
 
     # --------------
@@ -437,7 +457,10 @@ def _dplasma_map(
         iTe = np.argmin(np.abs(dplasma['Te_eV'] - dplasma0['Te_eV'][ind]))
         ine = np.argmin(np.abs(dplasma['ne_m3'] - dplasma0['ne_m3'][ind]))
         ijp = np.argmin(np.abs(dplasma['jp_Am2'] - dplasma0['jp_Am2'][ind]))
-        indplot[iTe, ine, ijp] = True
+        ijf = np.argmin(np.abs(
+            dplasma['jp_fraction_re'] - dplasma0['jp_fraction_re'][ind]
+        ))
+        indplot[iTe, ine, ijp, ijf] = True
 
     return dplasma, indplot
 
@@ -499,12 +522,14 @@ def _plot_angular_spectra(
     # shapes
 
     vmax0 = 0
+    lkp = ['Te_eV', 'ne_m3', 'jp_Am2', 'jp_fraction_re']
     shapef = np.broadcast_shapes(
-        *[ddist[kk]['data'].shape for kk in ['Te_eV', 'ne_m3', 'jp_Am2']]
+        *[ddist['plasma'][kk]['data'].shape for kk in lkp]
     )
+    kdist = 'maxwell'
     for ii, ind in enumerate(np.ndindex(shapef)):
 
-        if not indplot[ind[:-2]]:
+        if not indplot[ind]:
             continue
 
         # kax
@@ -518,11 +543,11 @@ def _plot_angular_spectra(
 
         # plot - shape
         for iE, ee in enumerate(E_ph_eV):
-            sli = ind[:-2] + (iE, slice(None))
-            vmax = np.max(demiss['emiss']['data'][sli])
+            sli = ind + (iE, slice(None))
+            vmax = np.max(demiss['emiss'][kdist]['emiss']['data'][sli])
             ax.plot(
                 theta_ph_vsB*180/np.pi,
-                demiss['emiss']['data'][sli] / vmax,
+                demiss['emiss'][kdist]['emiss']['data'][sli] / vmax,
                 **dparam[iE],
             )
             vmax0 = max(vmax0, vmax)
@@ -540,7 +565,7 @@ def _plot_angular_spectra(
 
     for ii, ind in enumerate(np.ndindex(shapef)):
 
-        if not indplot[ind[:-2]]:
+        if not indplot[ind]:
             continue
 
         # kax
@@ -554,10 +579,10 @@ def _plot_angular_spectra(
 
         # plot - abs
         for iE, ee in enumerate(E_ph_eV):
-            sli = ind[:-2] + (iE, slice(None))
+            sli = ind + (iE, slice(None))
             ax.semilogy(
                 theta_ph_vsB*180/np.pi,
-                demiss['emiss']['data'][sli],
+                demiss['emiss'][kdist]['emiss']['data'][sli],
                 **dparam[iE],
             )
 
@@ -570,7 +595,7 @@ def _plot_angular_spectra(
 
     for ii, ind in enumerate(np.ndindex(shapef)):
 
-        if not indplot[ind[:-2]]:
+        if not indplot[ind]:
             continue
 
         # kax
@@ -584,10 +609,10 @@ def _plot_angular_spectra(
 
         # plot - spect
         for it, tt in enumerate(theta_ph_vsB):
-            sli = ind[:-2] + (slice(None), it)
+            sli = ind + (slice(None), it)
             ax.semilogy(
                 E_ph_eV*1e-3,
-                demiss['emiss']['data'][sli],
+                demiss['emiss'][kdist]['emiss']['data'][sli],
                 ls='-',
                 label=f"{tt*180/np.pi:3.0f}",
             )
@@ -707,16 +732,17 @@ def _get_dax_angular_spectra(
     # shapef
     shapef = np.broadcast_shapes(*[
         v0['data'].shape
-        for k0, v0 in ddist.items()
-        if k0 in ['Te_eV', 'ne_m3', 'jp_Am2']
+        for k0, v0 in ddist['plasma'].items()
+        if k0 in ['Te_eV', 'ne_m3', 'jp_Am2', 'jp_fraction_re']
     ])
 
     # ---------------
     # prepare data
     # ---------------
 
+    kdist = 'maxwell'
     xlab = r"$\theta_B$ (deg)"
-    ylab = r"$\epsilon$" + f"({demiss['emiss']['units']})"
+    ylab = r"$\epsilon$" + f"({demiss['emiss'][kdist]['emiss']['units']})"
 
     # ---------------
     # prepare figure
@@ -745,7 +771,7 @@ def _get_dax_angular_spectra(
     i0 = 0
     for ii, ind in enumerate(np.ndindex(shapef)):
 
-        if not indplot[ind[:-2]]:
+        if not indplot[ind]:
             continue
 
         # kax
@@ -830,29 +856,34 @@ def _get_dax_angular_spectra(
     return dax
 
 
-def _get_kax(ind, ddist):
+def _get_kax(ind, ddist, kdist='maxwell'):
 
-    if len(ind) == 5:
-        indTe = (ind[0], 0, 0, 0, 0)
-        indne = (0, ind[1], 0, 0, 0)
-        indjp = (0, 0, ind[2], 0, 0)
-        indv0 = (0, ind[1], ind[2], 0, 0)
-        ind_int = ind[:-2]
+    if len(ind) == 4:
+        indTe = (ind[0], 0, 0, 0)
+        indne = (0, ind[1], 0, 0)
+        indjp = (0, 0, ind[2], 0)
+        indjf = (0, 0, 0, ind[3])
+        indv0 = (0, ind[1], ind[2], 0, 0, 0)
+        indvt = indTe + (0, 0)
+        ind_int = ind
     else:
-        indTe, indne, indjp, indv0, ind_int = ind, ind, ind, ind, ind[0]
+        indTe, indne, indjp, indjf = ind, ind, ind, ind
+        indv0, indvt, ind_int = ind, ind, ind[0]
 
-    Te = ddist['Te_eV']['data'][indTe]
-    ne = ddist['ne_m3']['data'][indne]
-    jp = ddist['jp_Am2']['data'][indjp]
-    integ = 100 * (ddist['dist_integ']['data'][ind_int] / ne - 1.)
+    Te = ddist['plasma']['Te_eV']['data'][indTe]
+    ne = ddist['plasma']['ne_m3']['data'][indne]
+    jp = ddist['plasma']['jp_Am2']['data'][indjp]
+    jf = ddist['plasma']['jp_Am2']['data'][indjf]
+    integ = 100 * (ddist['dist'][kdist]['integ_ne']['data'][ind_int] / ne - 1.)
     vdvt = (
-        ddist['v0_par_ms']['data'][indv0]
-        / ddist['vt_ms']['data'][indTe]
+        ddist['dist'][kdist]['v0_par_ms']['data'][indv0]
+        / ddist['dist'][kdist]['vt_ms']['data'][indvt]
     )
     kax = (
         f"Te = {Te*1e-3} keV, "
         f"ne = {ne:1.1e} /m3, "
         f"jp = {jp*1e-6} MA/m2\n"
+        f"jf = {jf}\n"
         f"integral = {integ:3.1f} % error\n"
         + r"$v_0 / v_T = \frac{j}{en_e}\frac{m_e}{\sqrt{2k_BT_e}}$ = "
         + f"{vdvt:3.3f}"
@@ -892,14 +923,20 @@ def _plot_anisotropy_map(
     # prepare data
     # ----------------
 
+    kdist = 'maxwell'
+
     # shape_plasma
-    stream = np.squeeze(ddist['v0_par_ms']['data'] / ddist['vt_ms']['data'])
+    stream = (
+        ddist['dist'][kdist]['v0_par_ms']['data']
+        / ddist['dist'][kdist]['vt_ms']['data']
+    )
 
     # shape_plasma + (nE_ph,)
-    anis = demiss['anis']['data']
-    theta_peak = demiss['theta_peak']['data']
+    kdist = 'maxwell'
+    anis = demiss['emiss'][kdist]['anis']['data']
+    theta_peak = demiss['emiss'][kdist]['theta_peak']['data']
 
-    Te = ddist['Te_eV']['data'].ravel()
+    Te = np.unique(ddist['plasma']['Te_eV']['data'])
 
     # ----------------
     # prepare dax
@@ -931,7 +968,8 @@ def _plot_anisotropy_map(
             color = lcolor[iE % len(lcolor)]
             for iT, tt in enumerate(Te):
 
-                slip = (iT, slice(None), slice(None))
+                slip = (iT, slice(None), slice(None), slice(None))
+                slipf = slip + (0, 0)
                 sli = slip + (iE,)
                 if iT == 0:
                     lab = f'{ee*1e-3:3.0f}'
@@ -940,15 +978,17 @@ def _plot_anisotropy_map(
                 ls = lls[iT % len(lls)]
 
                 # indices
-                iok = stream[slip].ravel() > 1e-3
+                streamf = stream[slipf].ravel()
+                anisf = anis[sli].ravel()
+                iok = streamf > 1e-3
                 i0 = iok & (theta_peak[sli].ravel() < 5*np.pi/180)
                 i1 = iok & (theta_peak[sli].ravel() > 5*np.pi/180)
 
                 # anisotropy vs streaming parameter
-                inds = np.argsort(stream[slip].ravel()[i0])
+                inds = np.argsort(streamf[i0])
                 l0, = ax.semilogx(
-                    stream[slip].ravel()[i0][inds],
-                    anis[sli].ravel()[i0][inds],
+                    streamf[i0][inds],
+                    anisf[i0][inds],
                     marker='.',
                     ms=12,
                     ls=ls,
@@ -956,11 +996,11 @@ def _plot_anisotropy_map(
                     label=lab,
                 )
 
-                # paeked at > 5 degrees
-                inds = np.argsort(stream[slip].ravel()[i1])
+                # peaked at > 5 degrees
+                inds = np.argsort(streamf[i1])
                 ax.semilogx(
-                    stream[slip].ravel()[i1][inds],
-                    anis[sli].ravel()[i1][inds],
+                    streamf[i1][inds],
+                    anisf[i1][inds],
                     marker='s',
                     markerfacecolor='None',
                     ms=10,
