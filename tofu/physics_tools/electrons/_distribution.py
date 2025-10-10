@@ -153,6 +153,10 @@ def main(
             version=version,
         )
 
+        # nan => 0
+        inan = np.isnan(ddist['dist'][kdist]['dist']['data'])
+        ddist['dist'][kdist]['dist']['data'][inan] = 0.
+
         # scale
         ne_re = _scale(
             din=din,
