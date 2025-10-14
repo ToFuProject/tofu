@@ -154,6 +154,21 @@ def main(
         iok[iok] = pnorm[iok] < np.broadcast_to(p_crit, re_dist.shape)[iok]
         re_dist[iok] = 0.
 
+    else:
+        kwdargsi = {
+            'sigmap': np.r_[1.],
+            'p_max_norm': np.r_[10],
+            'Etild': np.r_[1.5],
+            'Zeff': np.r_[1],
+            'E_hat': np.r_[2.],
+            'Cz': np.r_[2.5],
+            'Cs': np.r_[2.],
+            'lnG': np.r_[20.],
+            'p_crit': np.r_[0.1],
+        }
+        kwdargsi.update(**dcoords)
+        units = getattr(_avalanche, version)(**kwdargsi)[1]
+
     # --------------
     # format output
     # --------------
