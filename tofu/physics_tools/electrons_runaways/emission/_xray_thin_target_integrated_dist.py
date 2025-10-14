@@ -401,7 +401,7 @@ def _add_nZ(
     # -------------
 
     if nZ_m3 is None:
-        nZ_m3 = ddist['plasma']['ne_m3']['data']
+        nZ_m3 = np.copy(ddist['plasma']['ne_m3']['data'])
 
     nZ_m3 = np.atleast_1d(nZ_m3)
     if np.any((~np.isfinite(nZ_m3)) | (nZ_m3 < 0.)):
