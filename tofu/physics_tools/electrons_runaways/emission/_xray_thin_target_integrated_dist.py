@@ -80,6 +80,7 @@ def get_xray_thin_integ_dist(
     # ---------------------
     # optional responsivity
     dresponsivity=None,
+    plot_responsivity_integration=None,
     # verb
     verb=None,
 ):
@@ -300,6 +301,7 @@ def get_xray_thin_integ_dist(
             E_ph_eV=E_ph_eV,
             demiss=demiss,
             dresponsivity=dresponsivity,
+            plot=plot_responsivity_integration,
         )
 
     # ----------------
@@ -448,11 +450,19 @@ def _responsivity(
     E_ph_eV=None,
     demiss=None,
     dresponsivity=None,
+    plot=None,
 ):
 
     # --------------
     # check
     # --------------
+
+    # plot
+    plot = ds._generic_check._check_var(
+        plot, 'plot',
+        types=bool,
+        default=False,
+    )
 
     c0 = (
         isinstance(dresponsivity, dict)
@@ -513,6 +523,7 @@ def _responsivity(
     sli = [None]*demiss['maxwell']['emiss']['data'].ndim
     sli[-2] = slice(None)
     sli = tuple(sli)
+    dintegrand = {}
     for kdist in demiss.keys():
 
         # units
@@ -527,6 +538,12 @@ def _responsivity(
         if dresponsivity['ph_vs_E'] == 'E':
             integrand *= E_ph_eV[sli]
             units *= asunits.Unit('eV')
+
+        # for plot
+        dintegrand[kdist] = {
+            'data': integrand,
+            'units': units,
+        }
 
         # data
         data = scpinteg.trapezoid(
@@ -548,5 +565,38 @@ def _responsivity(
 
     dresponsivity['E_eV']['data'] = demiss[kdist]['emiss']['data']
     dresponsivity['responsivity']['data'] = resp_data
+
+    # ------------
+    # plot
+    # ------------
+
+    if plot is True:
+
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+
+        ax0 = fig.add_subplot(211)
+        ax1 = fig.add_subplot(212)
+
+        ax0.set_ylabel(units, fontsize=12)
+        ax1.set_xlabel('E (eV)')
+
+        for kdist in demiss.keys():
+
+            imax = np.argmax(np.max(dintegrand[kdist]['data'], axis=(-2, -1)))
+            ax0.semilogy(
+                E_ph_eV,
+                dintegrand[kdist]['data'][imax, :, 0],
+                '-',
+                label=kdist,
+            )
+
+        ax1.semilogy(
+            E_ph_eV,
+            resp_data,
+            '-k',
+        )
+
+        ax0.legend()
 
     return
