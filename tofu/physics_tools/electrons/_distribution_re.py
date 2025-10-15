@@ -67,6 +67,8 @@ def main(
     Cz = np.full(Etild.shape, np.nan)
     Cs = np.full(Etild.shape, np.nan)
 
+    dominant = np.full(Etild.shape, np.nan)
+
     # ---------------------------
     # intermediate check on Etild
     # ---------------------------
@@ -121,6 +123,7 @@ def main(
             iok0[iok0] = ioki
             sli = (iok0[sli0],) + sli_coords
             re_dist[sli], units0 = getattr(_avalanche, version)(**kwdargsi)
+            dominant[sli] = 0.
 
         # Dreicer-dominated
         ioki = (2 < Cs[iok]) & (Cs[iok] < 1 + Etild[iok])
@@ -133,6 +136,8 @@ def main(
             iok0[iok0] = ioki
             sli = (iok0[sli0],) + sli_coords
             re_dist[sli], units1 = getattr(_dreicer, version)(**kwdargsi)
+
+            dominant[sli] = 1.
 
         # sanity check
         if units0 is not None and units1 is not None:
@@ -201,6 +206,15 @@ def main(
         'p_crit': {
             'data': p_crit,
             'units': None,
+        },
+        'p_max': {
+            'data': pmax,
+            'units': None,
+        },
+        'dominant': {
+            'data': dominant,
+            'units': None,
+            'meaning': {0: 'avalanche', 1: 'dreicer'}
         },
     }
 
