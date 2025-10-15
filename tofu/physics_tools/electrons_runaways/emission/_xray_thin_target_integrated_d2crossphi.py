@@ -22,10 +22,10 @@ from . import _xray_thin_target_integrated as _mod
 _PATH_HERE = os.path.dirname(__file__)
 
 
-_THETA_PH_VSB = np.linspace(0, np.pi, 17)
-_THETA_E0_VSB_NPTS = 19
-_E_PH_EV = np.linspace(5, 40, 25) * 1e3
-_E_E0_EV_NPTS = 61
+_THETA_PH_VSB = np.linspace(0, np.pi, 29)
+_THETA_E0_VSB_NPTS = 31
+_E_PH_EV = np.logspace(np.log10(5e3), np.log10(60e3), 25)
+_E_E0_EV_NPTS = 51
 
 
 # ###########################################
@@ -211,7 +211,7 @@ def _check_compute(
     if E_e0_eV is None:
         E_e0_eV = np.logspace(
             np.log10(E_ph_eV.min()),
-            np.ceil(np.log10(E_ph_eV.max())) + 1,
+            np.ceil(np.log10(E_ph_eV.max())) + 2,
             E_e0_eV_npts,
         )
 
