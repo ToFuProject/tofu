@@ -70,7 +70,7 @@ _DPLASMA = {
 # DCOORDS
 _EMAX_EV = 20e6
 _DCOORDS = {
-    'E_eV': np.logspace(1, np.log10(_EMAX_EV), 81),
+    'E_eV': np.logspace(1, np.log10(_EMAX_EV), 201),
     'ntheta': 41,
     'nperp': 201,
 }
@@ -485,17 +485,7 @@ def _plot(
     kax = 'p1d'
     if dax.get(kax) is not None and False:
         ax = dax[kax]['handle']
-
-        shape = dout_v['dist']['data'].shape[:-2]
-        for ii, ind in enumerate(np.ndindex(shape)):
-            sli = ind + (slice(None),)
-            ax.stairs(
-                dist_1d_v[sli],
-                edges=v_edge*1e-3,
-                fill=False,
-                baseline=0,
-                color=dprop[ind]['color'],
-            )
+        pass
 
     return dax
 
@@ -551,20 +541,6 @@ def _get_dax(
     # prepare data
     # --------------
 
-    # str_fE2d = (
-        # _distribution._DFUNC['f2d_E_pitch']['latex']
-        # + f'\n{units_E_pitch}'
-    # )
-    # str_fE1d = (
-        # _distribution._DFUNC['f1d_E']['latex']
-        # + f'\n{units_E}'
-    # )
-    # str_fv2d = _distribution._DFUNC['f2d_cart_vpar_vperp']['latex']
-    # str_fv3d = (
-        # _distribution._DFUNC['f3d_cart_vpar_vperp']['latex']
-        # + f'\n{units_v}'
-    # )
-
     # --------------
     # prepare axes
     # --------------
@@ -605,11 +581,6 @@ def _get_dax(
         size=fontsize,
         fontweight='bold',
     )
-    # ax.set_title(
-        # str_fE2d,
-        # size=fontsize,
-        # fontweight='bold',
-    # )
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
     # store
@@ -629,11 +600,6 @@ def _get_dax(
         size=fontsize,
         fontweight='bold',
     )
-    # ax.set_title(
-        # str_fv2d,
-        # size=fontsize,
-        # fontweight='bold',
-    # )
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
     # store
@@ -658,11 +624,6 @@ def _get_dax(
         size=fontsize,
         fontweight='bold',
     )
-    # ax.set_title(
-        # str_fE1d,
-        # size=fontsize,
-        # fontweight='bold',
-    # )
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
     # store
