@@ -35,15 +35,15 @@ _DPLASMA = {
     },
     'Zeff': {
         'def': 1.,
-        'units': 'A/m2',
+        'units': None,
     },
     'Ekin_max_eV': {
         'def': 10e6,
-        'units': 'A/m2',
+        'units': 'eV',
     },
     'Efield_par_Vm': {
         'def': 1.,
-        'units': 'A/m2',
+        'units': 'V/m',
     },
     'lnG': {
         'def': 20.,
