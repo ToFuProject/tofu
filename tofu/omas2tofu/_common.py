@@ -604,7 +604,10 @@ def _add_rhopn_from_psi(
     # ---------
     # compute
 
-    rhopn = np.sqrt((psi - psi0) / (psi1 - psi0))
+    rhopn = np.full(psi.shape, np.nan)
+    rhopn2 = (psi - psi0) / (psi1 - psi0)
+    iok = rhopn2 >= 0.
+    rhopn[iok] = np.sqrt(rhopn2[iok])
 
     # ---------
     # add data
