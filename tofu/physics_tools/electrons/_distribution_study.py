@@ -41,7 +41,7 @@ _DPLASMA = {
 
 _EMAX_EV = 20e6
 _DCOORDS = {
-    'E_eV': np.logspace(1, np.log10(_EMAX_EV), 151),
+    'E_eV': np.logspace(1, np.log10(_EMAX_EV), 201),
     'ntheta': 41,
 }
 
@@ -61,6 +61,12 @@ def study_RE_vs_Maxwellian_distribution(
     ne_m3=None,
     jp_Am2=None,
     jp_fraction_re=None,
+    # RE-specific
+    Zeff=None,
+    Ekin_max_eV=None,
+    Efield_par_Vm=None,
+    lnG=None,
+    sigmap=None,
     # coords
     E_eV=None,
     ntheta=None,
@@ -83,6 +89,12 @@ def study_RE_vs_Maxwellian_distribution(
         # coordinate: momentum
         E_eV=dcoords['E_eV'],
         theta=dcoords['theta'],
+        # RE-specific
+        Zeff=Zeff,
+        Ekin_max_eV=Ekin_max_eV,
+        Efield_par_Vm=Efield_par_Vm,
+        lnG=lnG,
+        sigmap=sigmap,
         # return as
         returnas=dict,
         # version
@@ -151,7 +163,6 @@ def _check(
         ddef=_DPLASMA,
         **kwdargs,
     )
-    shape_plasma = dplasma['Te_eV']['data'].shape
 
     # -----------------
     # levels_E_eV
