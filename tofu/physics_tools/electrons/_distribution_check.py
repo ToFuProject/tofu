@@ -245,7 +245,7 @@ def _plasma(
     # -------------------
 
     # initialize
-    lk = list(ddef.keys())
+    lk = list(_DPLASMA.keys())
     dinputs = {kk: kwdargs[kk] for kk in lk}
 
     # coll
@@ -255,7 +255,7 @@ def _plasma(
     # loop
     # -------------------
 
-    dout = _extract(dinputs, coll, ddef)
+    dout = _extract(dinputs, coll, ddef, _DPLASMA)
 
     # Exception
     if len(dout) > 0.:
@@ -288,16 +288,16 @@ def _plasma(
 # #######################################################
 
 
-def _extract(din, coll, ddef):
+def _extract(din, coll, ddef, ddef0):
 
     dout = {}
     for k0 in din.keys():
         # units
-        units = ddef[k0]['units']
+        units = ddef.get(k0, ddef0[k0]).get('units')
 
         # check vs None
         if din.get(k0) is None:
-            data = np.asarray(ddef[k0]['def'])
+            data = np.asarray(ddef.get(k0, ddef0[k0]).get('def'))
         else:
             data = din[k0]
 
@@ -359,7 +359,7 @@ def _coords(
     # loop
     # -------------------
 
-    dout = _extract(dcoords, coll, _DCOORDS)
+    dout = _extract(dcoords, coll, _DCOORDS, _DCOORDS)
 
     # Exception
     if len(dout) > 0.:
