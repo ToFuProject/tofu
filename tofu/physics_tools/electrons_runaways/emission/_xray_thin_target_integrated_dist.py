@@ -308,6 +308,7 @@ def get_xray_thin_integ_dist(
             demiss=demiss,
             dresponsivity=dresponsivity,
             plot=plot_responsivity_integration,
+            dplasma=dplasma,
         )
 
     # ----------------
@@ -457,6 +458,7 @@ def _responsivity(
     demiss=None,
     dresponsivity=None,
     plot=None,
+    dplasma=None,
 ):
 
     # --------------
@@ -577,32 +579,111 @@ def _responsivity(
     # ------------
 
     if plot is True:
-
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-
-        ax0 = fig.add_subplot(211)
-        ax1 = fig.add_subplot(212)
-
-        ax0.set_ylabel(units, fontsize=12)
-        ax1.set_xlabel('E (eV)')
-
-        for kdist in demiss.keys():
-
-            imax = np.argmax(np.max(dintegrand[kdist]['data'], axis=(-2, -1)))
-            ax0.semilogy(
-                E_ph_eV,
-                dintegrand[kdist]['data'][imax, :, 0],
-                '-',
-                label=kdist,
-            )
-
-        ax1.semilogy(
-            E_ph_eV,
-            resp_data,
-            '-k',
+        _plot_responsivity_integration(
+            dintegrand=dintegrand,
+            units=units,
+            demiss=demiss,
+            E_ph_eV=E_ph_eV,
+            dresponsivity=dresponsivity,
+            data=data,
+            dplasma=dplasma,
         )
 
-        ax0.legend()
+    return
 
+
+# #############################################
+# #############################################
+#          plot responsivity
+# #############################################
+
+
+def _plot_responsivity_integration(
+    dintegrand=None,
+    units=None,
+    demiss=None,
+    E_ph_eV=None,
+    dresponsivity=None,
+    data=None,
+    dplasma=None,
+):
+
+    # -----------------
+    # prepare data
+    # -----------------
+
+    ldist = list(demiss.keys())
+    iok = np.all(
+        np.isfinite(dintegrand[ldist[0]]['data'])
+        & np.isfinite(dintegrand[ldist[1]]['data']),
+        axis=(-1, -2),
+    )
+
+    iokn = iok.nonzero()
+    sli = iokn + (slice(None), slice(None))
+    ind = np.argmax(np.sum(dintegrand['RE']['data'][sli], axis=(-1, -2)))
+    ind = tuple([ii[ind] for ii in iokn])
+
+    # dplasma
+    dp = {
+        kp: vp['data'][ind]
+        for kp, vp in dplasma.items()
+    }
+    dc = {
+        'Te_eV': (1e-3, 'keV'),
+        'ne_m3': (1e-20, '1e20 /m3'),
+        'jp_Am2': (1e-6, 'MA/m2'),
+        'Ekin_max_eV': (1e-3, 'keV')
+    }
+    lstr = []
+    for kp, vp in dp.items():
+        val = vp * dc.get(kp, (1.,))[0]
+        units = dc.get(kp, (1, dplasma[kp]['units']))[1]
+        lstr.append(f"{kp}: {val:1.3f} {'' if units is None else units}")
+
+    tit = "Integration of emissivity\n" + "\n".join(lstr)
+
+    # -----------------
+    # prepare figure
+    # -----------------
+
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+
+    ax0 = fig.add_subplot(211)
+    ax1 = fig.add_subplot(212)
+
+    ax0.set_ylabel(
+        dintegrand[ldist[0]]['units'],
+        fontsize=12,
+        fontweight='bold',
+    )
+    ax0.set_title(tit, fontsize=14, fontweight='bold')
+    ax1.set_xlabel('E (eV)', fontweight='bold')
+    ax1.set_ylabel(
+        dresponsivity['responsivity']['units'],
+        fontsize=12,
+        fontweight='bold',
+    )
+
+    # -----------------
+    # plot
+    # -----------------
+
+    sli = ind + (slice(None), 0)
+    for kdist in ldist:
+        ax0.semilogy(
+            E_ph_eV,
+            dintegrand[kdist]['data'][sli],
+            '-',
+            label=f"{kdist} {data[ind + (0,)]:1.3e} {units}",
+        )
+
+    ax1.semilogy(
+        E_ph_eV,
+        dresponsivity['responsivity']['data'],
+        '-k',
+    )
+
+    ax0.legend(fontsize=12)
     return
