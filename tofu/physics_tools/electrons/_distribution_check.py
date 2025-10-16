@@ -50,7 +50,7 @@ _DPLASMA = {
         'units': '',
     },
     'sigmap': {
-        'def': 1.,
+        'def': 0.1,
         'units': '',
     },
 }
