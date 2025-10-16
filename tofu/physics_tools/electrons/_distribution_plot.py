@@ -3,6 +3,7 @@
 import numpy as np
 # import scipy.stats as scpstats
 import scipy.integrate as scpinteg
+import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.lines as mlines
@@ -168,21 +169,32 @@ def main(
         for kdist in ddist_E_theta['dist'].keys()
     }
 
-    # v
-    # v_edge = 0.5*(v_perp_ms[1:] + v_perp_ms[:-1])
-    # dv = v_perp_ms[1] - v_perp_ms[0]
-    # v_edge = np.r_[v_edge[0] - dv, v_edge, v_edge[-1] + dv]
-    # shape = dout_E['dist']['data'].shape[:-2] + (v_edge.size-1,)
-    # dist_1d_v = np.full(shape, np.nan)
-    # for ii, ind in enumerate(np.ndindex(shape[:-1])):
-    # sli0 = ind + (slice(None),)
-    # sli1 = ind + (slice(None), slice(None))
-    # dist_1d_v[sli0] = scpstats.binned_statistic(
-    # np.sqrt(v_par_ms[:, None]**2 + v_perp_ms[None, :]**2).ravel(),
-    # dout_v['dist']['data'][sli1].ravel(),
-    # statistic='sum',
-    # bins=v_edge,
-    # ).statistic
+    # pnorm
+    pnorm = np.sqrt(
+        ddist_ppar_pperp['coords']['x0']['data'][:, None]**2
+        + ddist_ppar_pperp['coords']['x1']['data'][None, :]**2
+    )
+    pnmin = np.nanmin(pnorm[pnorm > 0.])
+    pnmax = np.nanmax(pnorm)
+    pbins = np.logspace(
+        np.log10(pnmin),
+        np.log10(pnmax),
+        int(np.min(pnorm.shape) - 1),
+    )
+    pbins = np.r_[0., pbins]
+    shape_plasma = ddist_E_theta['dist']['maxwell']['dist']['data'].shape[:-2]
+    ddist_pnorm_num = {
+        kdist: {
+            'data': scpstats.binned_statistic(
+                pnorm.ravel(),
+                vdist['dist']['data'].reshape(shape_plasma + (-1,)),
+                statistic='sum',
+                bins=pbins,
+            ).statistic,
+            'units': None,
+        }
+        for kdist, vdist in ddist_ppar_pperp['dist'].items()
+    }
 
     # ----------------
     # plot
@@ -193,8 +205,8 @@ def main(
         ddist_ppar_pperp=ddist_ppar_pperp,
         # 1d
         ddist_E_num=ddist_E_num,
-        # dist_1d_v=dist_1d_v,
-        # v_edge=v_edge,
+        ddist_pnorm_num=ddist_pnorm_num,
+        pbins=pbins,
         # props
         dprop=dprop,
         # plotting
@@ -310,9 +322,9 @@ def _plot(
     ddist_E_theta=None,
     ddist_ppar_pperp=None,
     # 1d
-    v_edge=None,
     ddist_E_num=None,
-    ddist_p=None,
+    ddist_pnorm_num=None,
+    pbins=None,
     # props
     dprop=None,
     # plotting
@@ -483,9 +495,69 @@ def _plot(
     # ----------------
 
     kax = 'p1d'
-    if dax.get(kax) is not None and False:
+    if dax.get(kax) is not None:
         ax = dax[kax]['handle']
-        pass
+
+        lh = []
+        for ii, ind in enumerate(np.ndindex(shape_plasma)):
+            sli = ind + (slice(None),)
+            maxwell_num = ddist_pnorm_num['maxwell']['data'][sli]
+            re_num = ddist_pnorm_num['RE']['data'][sli]
+            color = dprop[ind]['color']
+
+            # maxwell
+            ax.stairs(
+                maxwell_num,
+                edges=pbins,
+                orientation='vertical',
+                baseline=0.,
+                fill=False,
+                ls='-',
+                lw=1,
+                color=color,
+                label="Maxwell_num",
+            )
+
+            # RE
+            ax.stairs(
+                re_num,
+                edges=pbins,
+                orientation='vertical',
+                baseline=0.,
+                fill=False,
+                ls='--',
+                lw=1,
+                color=color,
+                label="RE_num",
+            )
+
+            # total
+            ax.stairs(
+                maxwell_num + re_num,
+                edges=pbins,
+                orientation='vertical',
+                baseline=0.,
+                fill=False,
+                ls='-',
+                lw=2,
+                color=color,
+            )
+
+            # label
+            nei = ddist_E_theta['plasma']['ne_m3']['data'][ind]
+            jpi = ddist_E_theta['plasma']['jp_Am2']['data'][ind]
+            Tei = ddist_E_theta['plasma']['Te_eV']['data'][ind]
+            jp_fraci = ddist_E_theta['plasma']['jp_fraction_re']['data'][ind]
+            lab = (
+                f"ne = {nei:1.0e} /m3  jp = {jpi*1e-6:1.0f} MA/m2"
+                f"Te = {Tei*1e-3:1.0e} keV  jp_frac = {jp_fraci:1.1f}"
+            )
+
+            lh.append(mlines.Line2D([], [], c=color, ls='-', label=lab))
+
+        # legend & lims
+        ax.legend(handles=lh, loc='upper right', fontsize=12)
+        ax.set_xlim(left=0.)
 
     return dax
 
