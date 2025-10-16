@@ -55,10 +55,12 @@ def f2d_ppar_pperp(
 
     # distribution, adim
     dist = np.zeros(shape, dtype=float)
+    exp = np.zeros(shape, dtype=float)
+    exp[iok] = np.exp(-p_par_norm / (Cz*lnG) - 0.5*E_hat*pperp2par)[iok]
     dist[iok] = (
         np.broadcast_to(E_hat / (2.*np.pi*Cz*lnG), shape)[iok]
         * (1. / p_par_norm[iok])     # Not in formula, but necessary
-        * np.exp(- p_par_norm / (Cz * lnG) - 0.5*E_hat*pperp2par)[iok]
+        * exp[iok]
         * fermi[iok]
     )
 
