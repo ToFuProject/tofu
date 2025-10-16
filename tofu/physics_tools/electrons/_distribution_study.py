@@ -21,7 +21,7 @@ from . import _distribution_check
 
 _DPLASMA = {
     'Te_eV': {
-        'def': np.linspace(1, 20, 39)[:, None, None, None] * 1e3,
+        'def': np.linspace(0.5, 15, 59)[:, None, None, None] * 1e3,
         'units': 'eV',
     },
     'ne_m3': {
@@ -72,7 +72,17 @@ def study_RE_vs_Maxwellian_distribution(
     ntheta=None,
     # levels
     levels_E_eV=None,
+    colors=None,
+    # plotting
+    dax=None,
+    fontsize=None,
+    dmargin=None,
 ):
+    """
+
+    Return dax, ddist
+
+    """
 
     # --------------
     # check inputs
@@ -89,12 +99,6 @@ def study_RE_vs_Maxwellian_distribution(
         # coordinate: momentum
         E_eV=dcoords['E_eV'],
         theta=dcoords['theta'],
-        # RE-specific
-        Zeff=Zeff,
-        Ekin_max_eV=Ekin_max_eV,
-        Efield_par_Vm=Efield_par_Vm,
-        lnG=lnG,
-        sigmap=sigmap,
         # return as
         returnas=dict,
         # version
@@ -140,6 +144,10 @@ def study_RE_vs_Maxwellian_distribution(
         ddist_E_num=ddist_E_num,
         ddata=ddata,
         levels_E_eV=levels_E_eV,
+        colors=colors,
+        dax=dax,
+        fontsize=fontsize,
+        dmargin=dmargin,
     )
 
     return dax, ddist
@@ -292,6 +300,7 @@ def _plot(
     ddist_E_num=None,
     ddata=None,
     levels_E_eV=None,
+    colors=None,
     # plotting
     dax=None,
     fontsize=None,
@@ -340,8 +349,11 @@ def _plot(
             lab = f"ne = {nei:1.0e} /m3  jp = {jpi*1e-6:1.0f} MA/m2"
 
             # plot
-            color = lc[ii % len(lc)]
-            im = ax.contour(
+            if colors is None:
+                color = lc[ii % len(lc)]
+            else:
+                color = colors
+            im = ax.contourf(
                 Te_eV*1e-3,
                 jp_fraction_re,
                 1e-3*E_min[sli].T,
