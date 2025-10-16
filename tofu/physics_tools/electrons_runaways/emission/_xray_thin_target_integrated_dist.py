@@ -56,6 +56,12 @@ def get_xray_thin_integ_dist(
     nZ_m3=None,
     jp_Am2=None,
     jp_fraction_re=None,
+    # RE-specific
+    Zeff=None,
+    Ekin_max_eV=None,
+    Efield_par_Vm=None,
+    lnG=None,
+    sigmap=None,
     # ----------------
     # cross-section
     E_ph_eV=None,
