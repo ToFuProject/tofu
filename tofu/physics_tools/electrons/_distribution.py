@@ -237,14 +237,20 @@ def _scale(
             version=version,
         )
 
-        sli = (slice(None),)*jp_re.ndim + (None,)*len(ddist['coords'])
-        coef = din['jp_Am2']['data'] / jp_re[sli]
+        iok = np.isfinite(ne_re)
+        iok[iok] = ne_re[iok] > 0.
+        sli0 = (iok,) + (None,)*len(ddist['coords'])
+        sli1 = (iok,) + (slice(None),)*len(ddist['coords'])
+        coef = np.zeros(din['jp_Am2']['data'].shape, dtype=float)
+        coef[sli1] = din['jp_Am2']['data'][sli1] / jp_re[sli0]
 
         # scale vs current
         ddist['dist'][kdist]['dist']['data'] *= coef
         ddist['dist'][kdist]['dist']['units'] *= ne_units
 
         # adjust ne_re
+        sli = (slice(None),)*ne_re.ndim + (None,)*len(ddist['coords'])
+        ne_re[np.isnan(ne_re)] = 0.
         ne_re = ne_re[sli] * coef
 
     # --------------------------
@@ -267,13 +273,13 @@ def _scale(
         # ------------
         # sanity check
 
-        err_ne = np.max(np.abs(ne - 1.))
-        err_jp = np.max(np.abs(jp[sli]*ne_max/jp_max - 1.))
+        err_ne = np.nanmax(np.abs(ne - 1.))
+        err_jp = np.nanmax(np.abs(jp[sli]*ne_max/jp_max - 1.))
         if err_ne > 0.05 or err_jp > 0.05:
             msg = (
                 "Numerical error on integrated maxwellian:\n"
-                f"\t- ne: {err_ne*100} %\n"
-                f"\t- jp: {err_jp*100} %\n"
+                f"\t- ne: {err_ne*100:3.2f} %\n"
+                f"\t- jp: {err_jp*100:3.2f} %\n"
             )
             warnings.warn(msg)
 
