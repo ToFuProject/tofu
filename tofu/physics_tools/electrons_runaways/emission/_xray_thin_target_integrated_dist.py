@@ -311,7 +311,7 @@ def get_xray_thin_integ_dist(
     # ---------------------
 
     if dresponsivity is not None:
-        _responsivity(
+        dintegrand = _responsivity(
             E_ph_eV=E_ph_eV,
             demiss=demiss,
             dresponsivity=dresponsivity,
@@ -362,6 +362,7 @@ def get_xray_thin_integ_dist(
 
     if dresponsivity is not None:
         demiss['responsivity'] = dresponsivity
+        demiss['integrand'] = dintegrand
 
     return demiss, ddist, d2cross_phi
 
@@ -686,11 +687,10 @@ def _responsivity(
         units = (
             demiss[kdist]['emiss']['units']
             * asunits.Unit(dresponsivity['responsivity']['units'])
-            * asunits.Unit('eV')
         )
 
         # adjust
-        integrand = demiss[kdist]['emiss']['data']
+        integrand = demiss[kdist]['emiss']['data'] * resp_data[sli]
         if dresponsivity['ph_vs_E'] == 'E':
             integrand *= E_ph_eV[sli]
             units *= asunits.Unit('eV')
@@ -703,11 +703,11 @@ def _responsivity(
 
         # data
         data = scpinteg.trapezoid(
-            integrand
-            * resp_data[sli],
+            integrand,
             x=E_ph_eV,
             axis=-2,
         )
+        units = units * asunits.Unit('eV')
 
         # store
         demiss[kdist]['emiss_integ'] = {
@@ -737,7 +737,7 @@ def _responsivity(
             dplasma=dplasma,
         )
 
-    return
+    return dintegrand
 
 
 # #############################################
