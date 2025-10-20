@@ -23,12 +23,15 @@ _PATH_HERE = os.path.dirname(__file__)
 
 
 _THETA_PH_VSB = np.linspace(0, np.pi, 37)
-_THETA_E0_VSB_NPTS = 29
+_THETA_E0_VSB_NPTS = 31
 _E_PH_EV = np.r_[
-    np.linspace(0.5e3, 4.5e3, 5),
-    np.logspace(np.log10(5e3), np.log10(60e3), 27),
+    np.r_[3, 4, 5, 6]*1e3,
+    np.logspace(np.log10(6.5e3), np.log10(40e3), 21),
 ]
-_E_E0_EV_NPTS = 45
+_E_E0_EV = np.r_[
+    np.linspace(0.5e3, 4.5e3, 9),
+    np.logspace(np.log10(5e3), np.log10(10e6), 51)
+]
 
 
 # ###########################################
@@ -43,6 +46,7 @@ def get_d2cross_phi(
     # params
     Z=None,
     E_ph_eV=None,
+    E_e0_eV=None,
     E_e0_eV_npts=None,
     theta_ph_vsB=None,
     theta_e0_vsB_npts=None,
