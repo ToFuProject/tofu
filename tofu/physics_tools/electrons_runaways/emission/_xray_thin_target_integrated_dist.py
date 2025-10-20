@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 import scipy.integrate as scpinteg
 import astropy.units as asunits
+import matplotlib.pyplot as plt
 import datastock as ds
 
 
@@ -25,19 +26,19 @@ from ...electrons import get_distribution
 _DPLASMA = {
     'Te_eV': {
         'def': np.linspace(1, 10, 10)[:, None, None, None] * 1e3,
-        'units': 'eV',
+        'units': asunits.Unit('eV'),
     },
     'ne_m3': {
         'def': np.r_[1e19, 1e20][None, None, :, None],
-        'units': '1/m^3',
+        'units': asunits.Unit('1/m^3'),
     },
     'jp_Am2': {
         'def': np.r_[1e6, 10e6][None, None, None, :],
-        'units': 'A/m^2',
+        'units': asunits.Unit('A/m^2'),
     },
     'jp_fraction_re': {
         'def': np.linspace(0.01, 0.99, 11)[None, :, None, None],
-        'units': None,
+        'units': asunits.Unit(''),
     },
 }
 
@@ -87,7 +88,9 @@ def get_xray_thin_integ_dist(
     # optional responsivity
     dresponsivity=None,
     plot_responsivity_integration=None,
+    # -----------
     # verb
+    debug=None,
     verb=None,
 ):
     """ Integrate bremsstrahlung cross-section over electron distribution
@@ -122,6 +125,7 @@ def get_xray_thin_integ_dist(
 
     (
         dplasma,
+        debug,
         verb,
     ) = _check(**locals())
 
@@ -205,15 +209,15 @@ def get_xray_thin_integ_dist(
         kdist: {
             'emiss': {
                 'data': np.zeros(shape_emiss, dtype=float),
-                'units': None,
+                'units': asunits.Unit(''),
             },
             'anis': {
                 'data': np.zeros(shape_emiss[:-1], dtype=float),
-                'units': None,
+                'units': asunits.Unit(''),
             },
             'theta_peak': {
                 'data': np.zeros(shape_emiss[:-1], dtype=float),
-                'units': 'rad',
+                'units': asunits.Unit('rad'),
             },
         }
         for kdist in ddist['dist'].keys()
@@ -265,6 +269,10 @@ def get_xray_thin_integ_dist(
                 x=E_e0_eV,
                 axis=-1,
             )
+
+            # debug
+            if debug is not False and debug(ind) is True:
+                _plot_debug(**locals())
 
     # ----------------
     # prepare output
@@ -336,13 +344,13 @@ def get_xray_thin_integ_dist(
         'E_ph_eV': {
             'key': None,
             'data': E_ph_eV,
-            'units': 'eV',
+            'units': asunits.Unit('eV'),
             'ref': None,
         },
         'theta_ph_vsB': {
             'key': None,
             'data': theta_ph_vsB,
-            'units': 'rad',
+            'units': asunits.Unit('rad'),
             'ref': None,
         },
         'emiss': demiss,
@@ -361,6 +369,7 @@ def get_xray_thin_integ_dist(
 
 
 def _check(
+    debug=None,
     verb=None,
     # unused
     **kwdargs,
@@ -376,6 +385,23 @@ def _check(
     )
 
     # --------------------
+    # debug
+    # --------------------
+
+    if isinstance(debug, bool):
+        if debug is True:
+            def debug(ind):
+                return True
+
+    if debug is not False:
+        if not callable(debug):
+            msg = (
+                "Arg debug must be a callable debug(ind)\n"
+                f"\nProvided: {debug}\n"
+            )
+            raise Exception(msg)
+
+    # --------------------
     # verb
     # --------------------
 
@@ -389,6 +415,7 @@ def _check(
 
     return (
         dplasma,
+        debug,
         verb,
     )
 
@@ -443,6 +470,123 @@ def _add_nZ(
         'data': nZ_m3,
         'units': asunits.Unit(ddist['plasma']['ne_m3']['units']),
     }
+
+    return
+
+
+# ###########################################
+# ###########################################
+#       plot debug
+# ###########################################
+
+
+def _plot_debug(
+    E_ph_eV=None,
+    E_e0_eV=None,
+    integ_phi_theta=None,
+    demiss=None,
+    kdist=None,
+    sli0=None,
+    theta_ph_vsB=None,
+    # unused
+    **kwdargs,
+):
+    """
+    integ_phi_theta in (E_ph_eV, theta_ph_vsB, E_e0_eV)
+
+    """
+
+    indtheta = 0
+    theta_deg = theta_ph_vsB[indtheta]*180/np.pi
+
+    Eph = 10e3
+    indEph = np.argmin(np.abs(E_ph_eV - Eph))
+
+    # -----------------
+    # prepare figure
+    # -----------------
+
+    fig = plt.figure()
+    fig.suptitle(kdist, fontsize=14, fontweight='bold')
+
+    units = demiss[kdist]['emiss']['units']
+    ax0 = fig.add_subplot(311)
+    ax0.set_ylabel(
+        units,
+        fontsize=12,
+        fontweight='bold',
+    )
+    ax0.set_title(
+        f'integ_phi_theta at theta = {theta_deg:3.1f} deg',
+        fontsize=14,
+        fontweight='bold',
+    )
+    ax0.set_xlabel('E_e0 (keV)', fontweight='bold')
+
+    ax1 = fig.add_subplot(312, sharey=ax0)
+    ax1.set_ylabel(
+        units,
+        fontsize=12,
+        fontweight='bold',
+    )
+    ax1.set_xlabel('E_ph (keV)', fontweight='bold')
+
+    ax2 = fig.add_subplot(313, sharey=ax0)
+    ax2.set_ylabel(
+        units,
+        fontsize=12,
+        fontweight='bold',
+    )
+    ax2.set_title(
+        f'integ_phi_theta at E_ph = {Eph*1e-3:3.1f} keV',
+        fontsize=14,
+        fontweight='bold',
+    )
+    ax2.set_xlabel('theta (deg)', fontweight='bold')
+
+    # -----------------
+    # plot at theta = 0 vs E_e0_eV
+    # -----------------
+
+    ax = ax0
+    for ie, eph in enumerate(E_ph_eV):
+        ax.plot(
+            E_e0_eV*1e-3,
+            integ_phi_theta[ie, indtheta, :],
+            '.-',
+            label=f'{eph*1e-3} keV',
+        )
+    ax.legend()
+
+    # -----------------
+    # plot at theta = 0 vs E_ph_eV
+    # -----------------
+
+    ax = ax1
+    for ie, ee in enumerate(E_e0_eV):
+        ax.plot(
+            E_ph_eV*1e-3,
+            integ_phi_theta[:, indtheta, ie],
+            '.-',
+            label=f'{ee*1e-3} keV',
+        )
+    ax.legend()
+
+    # -----------------
+    # plot at Eph vs theta
+    # -----------------
+
+    ax = ax2
+    for ie, ee in enumerate(E_e0_eV):
+        ax.plot(
+            theta_ph_vsB * 180/np.pi,
+            integ_phi_theta[indEph, :, ie],
+            '.-',
+            label=f'{ee*1e-3} keV',
+        )
+    ax.legend()
+
+    print(integ_phi_theta[indEph, indtheta, :])
 
     return
 
@@ -537,7 +681,7 @@ def _responsivity(
         # units
         units = (
             demiss[kdist]['emiss']['units']
-            * dresponsivity['responsivity']['units']
+            * asunits.Unit(dresponsivity['responsivity']['units'])
             * asunits.Unit('eV')
         )
 
@@ -638,7 +782,7 @@ def _plot_responsivity_integration(
     lstr = []
     for kp, vp in dp.items():
         val = vp * dc.get(kp, (1.,))[0]
-        units = dc.get(kp, (1, dplasma[kp]['units']))[1]
+        units = asunits.Unit(dc.get(kp, (1, dplasma[kp]['units']))[1])
         lstr.append(f"{kp}: {val:1.3f} {'' if units is None else units}")
 
     tit = "Integration of emissivity\n" + "\n".join(lstr)
@@ -647,7 +791,6 @@ def _plot_responsivity_integration(
     # prepare figure
     # -----------------
 
-    import matplotlib.pyplot as plt
     fig = plt.figure()
 
     ax0 = fig.add_subplot(211)
