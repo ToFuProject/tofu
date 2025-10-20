@@ -212,7 +212,7 @@ def get_xray_thin_integ_dist(
                 'units': asunits.Unit(''),
             },
             'anis': {
-                'data': np.zeros(shape_emiss[:-1], dtype=float),
+                'data': np.full(shape_emiss[:-1], np.nan, dtype=float),
                 'units': asunits.Unit(''),
             },
             'theta_peak': {
@@ -328,7 +328,11 @@ def get_xray_thin_integ_dist(
     for kdist in ddist['dist'].keys():
         vmax = np.max(demiss[kdist]['emiss']['data'], axis=axis)
         vmin = np.min(demiss[kdist]['emiss']['data'], axis=axis)
-        demiss[kdist]['anis']['data'][...] = (vmax - vmin) / vmax
+        iok = np.isfinite(vmax)
+        iok[iok] = vmax[iok] > 0.
+        demiss[kdist]['anis']['data'][iok] = (
+            (vmax[iok] - vmin[iok]) / vmax[iok]
+        )
         imax = np.argmax(demiss[kdist]['emiss']['data'], axis=axis)
         demiss[kdist]['theta_peak']['data'][...] = theta_ph_vsB[imax]
         if ref is None:
@@ -782,7 +786,10 @@ def _plot_responsivity_integration(
     lstr = []
     for kp, vp in dp.items():
         val = vp * dc.get(kp, (1.,))[0]
-        units = asunits.Unit(dc.get(kp, (1, dplasma[kp]['units']))[1])
+        units = dc.get(kp, (1, dplasma[kp]['units']))[1]
+        if units is None:
+            units = ''
+        units = asunits.Unit(units)
         lstr.append(f"{kp}: {val:1.3f} {'' if units is None else units}")
 
     tit = "Integration of emissivity\n" + "\n".join(lstr)
