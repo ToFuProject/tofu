@@ -42,7 +42,7 @@ _DPLASMA = {
         'units': 'eV',
     },
     'Efield_par_Vm': {
-        'def': 1.,
+        'def': 0.1,
         'units': 'V/m',
     },
     'lnG': {

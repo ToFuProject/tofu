@@ -429,6 +429,8 @@ def _integrate(
     # units
     # ---------
 
+    if ddist['dist'][kdist]['dist']['units'] is None:
+        ddist['dist'][kdist]['dist']['units'] = ''
     units_ne = asunits.Unit(ddist['dist'][kdist]['dist']['units'])
     for k0, v0 in dcoords.items():
         if v0['units'] not in ['', None]:

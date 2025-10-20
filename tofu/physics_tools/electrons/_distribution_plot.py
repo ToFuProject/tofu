@@ -450,6 +450,11 @@ def _plot(
         # legend & lims
         ax.legend(handles=lh, loc='upper right', fontsize=12)
         ax.set_xlim(left=0.)
+        ax.set_ylim(
+            f"integral ({ddist_E_num['maxwell']['units']})",
+            fontisize=fontsize,
+            fontweight='bold',
+        )
 
     # ----------------
     # plot vs velocities - 2D
@@ -558,6 +563,11 @@ def _plot(
         # legend & lims
         ax.legend(handles=lh, loc='upper right', fontsize=12)
         ax.set_xlim(left=0.)
+        ax.set_ylim(
+            f"integral ({ddist_pnorm_num['maxwell']['units']})",
+            fontisize=fontsize,
+            fontweight='bold',
+        )
 
     return dax
 
