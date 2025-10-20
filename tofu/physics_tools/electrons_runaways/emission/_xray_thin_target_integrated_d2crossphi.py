@@ -26,8 +26,9 @@ _THETA_PH_VSB = np.linspace(0, np.pi, 37)
 _THETA_E0_VSB_NPTS = 31
 _E_PH_EV = np.r_[
     np.r_[3, 4, 5, 6]*1e3,
-    np.logspace(np.log10(6.5e3), np.log10(40e3), 21),
+    np.logspace(np.log10(6.5e3), np.log10(40e3), 23),
 ]
+_E_E0_EV_NPTS = 51
 _E_E0_EV = np.r_[
     np.linspace(0.5e3, 4.5e3, 9),
     np.logspace(np.log10(5e3), np.log10(10e6), 51)
