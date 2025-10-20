@@ -129,15 +129,16 @@ def main(
         ioki = (2 < Cs[iok]) & (Cs[iok] < 1 + Etild[iok])
         units1 = None
         if np.any(ioki):
-            sli = (ioki,) + (None,)*len(dcoords)
-            kwdargsi = {k0: v0[sli] for k0, v0 in kwdargs.items()}
-            kwdargsi.update(**dcoords)
-            iok0 = np.copy(iok)
-            iok0[iok0] = ioki
-            sli = (iok0[sli0],) + sli_coords
-            re_dist[sli], units1 = getattr(_dreicer, version)(**kwdargsi)
+            pass
+            # sli = (ioki,) + (None,)*len(dcoords)
+            # kwdargsi = {k0: v0[sli] for k0, v0 in kwdargs.items()}
+            # kwdargsi.update(**dcoords)
+            # iok0 = np.copy(iok)
+            # iok0[iok0] = ioki
+            # sli = (iok0[sli0],) + sli_coords
+            # re_dist[sli], units1 = getattr(_dreicer, version)(**kwdargsi)
 
-            dominant[sli] = 1.
+            # dominant[sli] = 1.
 
         # sanity check
         if units0 is not None and units1 is not None:
