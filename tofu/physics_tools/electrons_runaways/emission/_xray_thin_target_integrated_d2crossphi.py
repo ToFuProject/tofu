@@ -22,10 +22,13 @@ from . import _xray_thin_target_integrated as _mod
 _PATH_HERE = os.path.dirname(__file__)
 
 
-_THETA_PH_VSB = np.linspace(0, np.pi, 29)
-_THETA_E0_VSB_NPTS = 31
-_E_PH_EV = np.logspace(np.log10(5e3), np.log10(60e3), 25)
-_E_E0_EV_NPTS = 51
+_THETA_PH_VSB = np.linspace(0, np.pi, 37)
+_THETA_E0_VSB_NPTS = 29
+_E_PH_EV = np.r_[
+    np.linspace(0.5e3, 4.5e3, 5),
+    np.logspace(np.log10(5e3), np.log10(60e3), 27),
+]
+_E_E0_EV_NPTS = 45
 
 
 # ###########################################
