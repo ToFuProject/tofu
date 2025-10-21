@@ -393,6 +393,9 @@ def _check(
     # debug
     # --------------------
 
+    if debug is None:
+        debug = False
+
     if isinstance(debug, bool):
         if debug is True:
             def debug(ind):
