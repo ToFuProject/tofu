@@ -6,7 +6,7 @@ import scipy.special as scpsp
 import astropy.units as asunits
 
 
-from . import _convert
+from .. import _convert
 
 
 # #####################################################

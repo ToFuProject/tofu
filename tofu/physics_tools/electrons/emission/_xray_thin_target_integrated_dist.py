@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 import datastock as ds
 
 
-from .. import _utils
+from .. import _convert
 from . import _xray_thin_target_integrated_d2crossphi
-from ...electrons import _distribution_check
-from ...electrons import get_distribution
+from ..distribution import _distribution_check
+from ..distribution import get_distribution
 
 
 # ############################################
@@ -189,7 +189,7 @@ def get_xray_thin_integ_dist(
     # get velocity
     # --------------------
 
-    v_e = _utils.convert_momentum_velocity_energy(
+    v_e = _convert.convert_momentum_velocity_energy(
         energy_kinetic_eV=E_e0_eV,
         velocity_ms=None,
         momentum_normalized=None,

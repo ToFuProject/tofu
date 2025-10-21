@@ -3,7 +3,7 @@
 import numpy as np
 
 
-from . import _convert
+from .. import _convert
 from . import _runaway_growth
 from . import _distribution_dreicer as _dreicer
 from . import _distribution_avalanche as _avalanche

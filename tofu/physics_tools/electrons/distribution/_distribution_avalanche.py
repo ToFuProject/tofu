@@ -5,7 +5,7 @@ import scipy.constants as scpct
 import astropy.units as asunits
 
 
-from . import _convert
+from .. import _convert
 
 
 # #####################################################

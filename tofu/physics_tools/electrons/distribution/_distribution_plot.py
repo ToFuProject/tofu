@@ -11,7 +11,7 @@ import astropy.units as asunits
 import datastock as ds
 
 
-from . import _convert
+from .. import _convert
 from . import _distribution_check
 from . import _distribution
 
