@@ -28,11 +28,14 @@ def main(
     jp_Am2=None,
     jp_fraction_re=None,
     # RE-specific
+    Te_eV_re=None,
+    ne_m3_re=None,
     Zeff=None,
     Ekin_max_eV=None,
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
+    dominant=None,
     # ------------
     # coordinates
     # velocity
@@ -151,6 +154,7 @@ def main(
             # coords
             dcoords=dc,
             version=version,
+            dominant=dominant,
         )
 
         # nan => 0

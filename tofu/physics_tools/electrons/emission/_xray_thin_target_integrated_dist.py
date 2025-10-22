@@ -63,6 +63,9 @@ def get_xray_thin_integ_dist(
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
+    Te_eV_re=None,
+    ne_m3_re=None,
+    dominant=None,
     # ----------------
     # cross-section
     E_ph_eV=None,
@@ -171,6 +174,7 @@ def get_xray_thin_integ_dist(
         version='f3d_E_theta',
         returnas=dict,
         # plasma parameters
+        dominant=dominant,
         **{kk: vv['data'] for kk, vv in dplasma.items()}
     )
 

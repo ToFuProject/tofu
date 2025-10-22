@@ -29,9 +29,18 @@ _DPLASMA = {
         'def': 1e6,
         'units': 'A/m2',
     },
+    # RE
     'jp_fraction_re': {
         'def': 0.,
         'units': 'A/m2',
+    },
+    'Te_eV_re': {
+        'def': 0.,
+        'units': 'eV',
+    },
+    'ne_m3_re': {
+        'def': 0.,
+        'units': '1/m3',
     },
     'Zeff': {
         'def': 1.,

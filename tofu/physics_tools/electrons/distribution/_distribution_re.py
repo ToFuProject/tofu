@@ -5,6 +5,7 @@ import numpy as np
 
 from .. import _convert
 from . import _runaway_growth
+from . import _distribution_maxwell as _maxwell
 from . import _distribution_dreicer as _dreicer
 from . import _distribution_avalanche as _avalanche
 
@@ -16,6 +17,7 @@ from . import _distribution_avalanche as _avalanche
 
 
 _DMOD = {
+    'maxwell': _maxwell,
     'dreicer': _dreicer,
     'avalanche': _avalanche,
 }
@@ -47,10 +49,6 @@ def main(
 ):
 
     # -----------
-    # check
-    # -----------
-
-    # -----------
     # initialize
     # -----------
 
@@ -61,8 +59,9 @@ def main(
     shape = shape_plasma + shape_coords
     re_dist = np.zeros(shape, dtype=float)
 
+    # slices
     sli_coords = (slice(None),)*len(dcoords)
-    sli0 = (slice(None),)*len(shape_plasma) + (0,)*len(dcoords)
+    sliok = (slice(None),)*len(shape_plasma) + (0,)*len(dcoords)
 
     # -------------
     # prepare
@@ -87,10 +86,11 @@ def main(
     # normalized electric field, adim
     Etild = dplasma['Efield_par_Vm']['data'] / Ec_Vm
 
-    p_crit = np.full(Etild.shape, np.nan)
-    E_hat = np.full(Etild.shape, np.nan)
-    Cz = np.full(Etild.shape, np.nan)
-    Cs = np.full(Etild.shape, np.nan)
+    shapeE = Etild.shape
+    p_crit = np.full(shapeE, np.nan)
+    E_hat = np.full(shapeE, np.nan)
+    Cz = np.full(shapeE, np.nan)
+    Cs = np.full(shapeE, np.nan)
 
     # ---------------------------
     # get dominant distribution
@@ -107,146 +107,87 @@ def main(
         dominant=dominant,
     )
 
+    # --------------------
+    # loop on dominant
+    # --------------------
+
+    dunits = {}
+    ncoords = len(dcoords)
     for vv, ind in dind.items():
 
         iok = dind[vv]['ind']
-        sli0 = (iok,) + (None,)*len(dcoords)
-        sli1 = (iok,) + (slice(None),)*len(dcoords)
+        sli0 = (iok[sliok],) + sli_coords
+        sli1 = sli0
 
         # -------------------
         # kwdargs to func
 
-        kwdargs = {
-            'sigmap': dplasma['sigmap']['data'][sli0],
-            'p_max_norm': pmax[sli0],
-            'Etild': Etild[sli0],
-            'Zeff': dplasma['Zeff']['data'][sli0],
-            'E_hat': E_hat[sli0],
-            'Cz': Cz[sli0],
-            'Cs': Cs[sli0],
-            'lnG': dplasma['lnG']['data'][sli0],
-            'p_crit': p_crit[sli0],
-        }
+        if dominant['meaning'][vv] == 'maxwell':
 
-        # -------------------
-        # kwdargs to func
+            kwdargsi = {
+                'Te_eV': {'data': dplasma['Te_eV_re']['data'][sli0]},
+                'ne_m3': {'data': dplasma['ne_m3_re']['data'][sli0]},
+                'jp_Am2': {'data': dplasma['jp_Am2']['data'][sli0]},
+            }
 
-        kwdargsi.update(**dcoords)
-        iok0 = np.copy(iok)
-        iok0[iok0] = ioki
-        sli = (iok0[sli0],) + sli_coords
-
-        # -------------------
-        # kwdargs to func
-
-        dom = [k0 for k0, v0 in _DOMINANT.items() if v0 == vv][0]
-        re_dist[sli1], units0 = getattr(_DMOD[dom], version)(**kwdargsi)
-
-
-    # ---------------------------
-    # intermediate check on Etild
-    # ---------------------------
-
-    iok = Etild > 1.
-    if np.any(iok):
-
-        E_hat[iok] = (Etild[iok] - 1) / (1 + dplasma['Zeff']['data'][iok])
-
-        # adim
-        Cz[iok] = np.sqrt(3 * (dplasma['Zeff']['data'][iok] + 5) / np.pi)
-
-        # critical momentum, adim
-        p_crit[iok] = 1. / np.sqrt(Etild[iok] - 1.)
-
-        # Cs
-        Cs[iok] = (
-            Etild[iok]
-            - (
-                ((1 + dplasma['Zeff']['data'][iok])/4)
-                * (Etild[iok] - 2)
-                * np.sqrt(Etild[iok] / (Etild[iok] - 1))
+            dout = _maxwell.main(
+                dcoords=dcoords,
+                dplasma=kwdargsi,
+                version=version,
             )
-        )
 
-        # -------------------
-        # kwdargs to func
+            # store
+            re_dist[sli1] = dout['dist']['data']
+            dunits[dominant['meaning'][vv]] = dout['dist']['units']
 
-        kwdargs = {
-            'sigmap': dplasma['sigmap']['data'][iok],
-            'p_max_norm': pmax[iok],
-            'Etild': Etild[iok],
-            'Zeff': dplasma['Zeff']['data'][iok],
-            'E_hat': E_hat[iok],
-            'Cz': Cz[iok],
-            'Cs': Cs[iok],
-            'lnG': dplasma['lnG']['data'][iok],
-            'p_crit': p_crit[iok],
-        }
+        else:
 
-        # ------------------
-        # Compute
+            # kwdargs to func
+            kwdargsi = {
+                'sigmap': dplasma['sigmap']['data'][sli0],
+                'p_max_norm': pmax[sli0],
+                'Etild': Etild[sli0],
+                'Zeff': dplasma['Zeff']['data'][sli0],
+                'E_hat': E_hat[sli0],
+                'Cz': Cz[sli0],
+                'Cs': Cs[sli0],
+                'lnG': dplasma['lnG']['data'][sli0],
+                'p_crit': p_crit[sli0],
+            }
 
-        # avalanche-dominated
-        ioki = Etild[iok] > 5.
-        units0 = None
-        if np.any(ioki):
-            sli = (ioki,) + (None,)*len(dcoords)
-            kwdargsi = {k0: v0[sli] for k0, v0 in kwdargs.items()}
+            # update with coords
             kwdargsi.update(**dcoords)
-            iok0 = np.copy(iok)
-            iok0[iok0] = ioki
-            sli = (iok0[sli0],) + sli_coords
-            re_dist[sli], units0 = getattr(_avalanche, version)(**kwdargsi)
-            dominant[sli] = 0.
 
-        # Dreicer-dominated
-        ioki = (2 < Cs[iok]) & (Cs[iok] < 1 + Etild[iok])
-        units1 = None
-        if np.any(ioki):
-            sli = (ioki,) + (None,)*len(dcoords)
-            kwdargsi = {k0: v0[sli] for k0, v0 in kwdargs.items()}
-            kwdargsi.update(**dcoords)
-            iok0 = np.copy(iok)
-            iok0[iok0] = ioki
-            sli = (iok0[sli0],) + sli_coords
-            re_dist[sli], units1 = getattr(_dreicer, version)(**kwdargsi)
-
-            dominant[sli] = 1.
-
-        # sanity check
-        if units0 is not None and units1 is not None:
-            if units0 != units1:
-                msg = (
-                    "Different units for avalanche vs Dreicer!\n"
-                    f"\t- avalanche: {units0}\n"
-                    f"\t- dreicer:   {units0}\n"
-                )
-                raise Exception(msg)
-
-        units = units0 if units1 is None else units1
+            # compute
+            re_dist[sli1], dunits[dominant['meaning'][vv]] = getattr(
+                _DMOD[dominant['meaning'][vv]],
+                version,
+            )(**kwdargsi)
 
         # -------------------
         # threshold on p_crit
 
-        pnorm = np.broadcast_to(_get_pnorm(dcoords), re_dist.shape)
-        iok = np.copy(np.broadcast_to(iok, re_dist.shape))
-        iok[iok] = pnorm[iok] < np.broadcast_to(p_crit, re_dist.shape)[iok]
-        re_dist[iok] = 0.
+        if dominant['meaning'][vv] != 'maxwell':
+            pnorm = np.broadcast_to(_get_pnorm(dcoords), shape)
+            iokp = np.copy(np.broadcast_to(iok, shape))
+            iokp[iokp] = pnorm[iokp] < np.broadcast_to(p_crit, shape)[iokp]
+            re_dist[iokp] = 0.
 
-    else:
-        kwdargsi = {
-            'sigmap': np.r_[1.],
-            'p_max_norm': np.r_[10],
-            'Etild': np.r_[1.5],
-            'Zeff': np.r_[1],
-            'E_hat': np.r_[2.],
-            'Cz': np.r_[2.5],
-            'Cs': np.r_[2.],
-            'lnG': np.r_[20.],
-            'p_crit': np.r_[0.1],
-        }
-        kwdargsi.update(**dcoords)
-        units = getattr(_avalanche, version)(**kwdargsi)[1]
+    # ----------------------
+    # sanity check on units
+    # ----------------------
+
+    lunits = list(set([uu for uu in dunits.values()]))
+    if len(lunits) != 1:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dunits.items()]
+        msg = (
+            "Different units:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # units
+    units = lunits[0]
 
     # --------------
     # format output
@@ -402,10 +343,10 @@ def _get_dominant(
     ]
 
     if lc[0]:
-        dominant = np.full(shape, _DOMINANT[dominant])
+        dominant = np.full(shape, _DOMINANT[dominant], dtype=float)
 
     elif lc[1]:
-        dominant = np.full(shape, dominant)
+        dominant = np.full(shape, dominant, dtype=float)
 
     elif lc[2]:
         pass
@@ -444,16 +385,22 @@ def _get_dominant(
     )
     dominant[iout] = np.nan
 
+    dominant = {
+        'ind': dominant,
+        'meaning': {vv: kk for kk, vv in _DOMINANT.items()}
+    }
+
     # -----------------
     # dind
     # -----------------
 
-    ipos = dominant >= 0
-    lv = sorted(np.unique(dominant[ipos]))
+    iok = np.isfinite(dominant['ind'])
+    iok[iok] = dominant['ind'][iok] >= 0.
+    lv = sorted(np.unique(dominant['ind'][iok]))
 
     dind = {
         vv: {
-            'ind': dominant == vv,
+            'ind': dominant['ind'] == vv,
         }
         for vv in lv
     }
