@@ -25,14 +25,9 @@ _PATH_HERE = os.path.dirname(__file__)
 _THETA_PH_VSB = np.linspace(0, np.pi, 37)
 _THETA_E0_VSB_NPTS = 31
 _E_PH_EV = np.r_[
-    np.r_[3, 4, 5, 6]*1e3,
-    np.logspace(np.log10(6.5e3), np.log10(40e3), 23),
+    np.logspace(np.log10(20), np.log10(10e3), 27),
 ]
 _E_E0_EV_NPTS = 51
-_E_E0_EV = np.r_[
-    np.linspace(0.5e3, 4.5e3, 9),
-    np.logspace(np.log10(5e3), np.log10(10e6), 51)
-]
 
 
 # ###########################################
@@ -95,6 +90,7 @@ def get_d2cross_phi(
             theta_e0_vsB, theta_ph_vsB,
             phi_e0_vsB,
             version_cross,
+            pfe_save,
         ) = _check_compute(**locals())
 
         # compute
@@ -102,7 +98,7 @@ def get_d2cross_phi(
 
         # optional save
         if save is True:
-            _save(d2cross_phi)
+            _save(d2cross_phi, pfe_save)
 
     # ----------------
     # load
@@ -188,6 +184,8 @@ def _check_compute(
     theta_ph_vsB=None,
     # version
     version_cross=None,
+    # saving
+    pfe_save=None,
     # unused
     **kwdargs,
 ):
@@ -309,11 +307,37 @@ def _check_compute(
         default='BHE',
     )
 
+    # ----------
+    # pfe
+    # ----------
+
+    if pfe_save is None:
+        nE = E_ph_eV.size
+        ntheta = theta_ph_vsB.size
+        fn = f"d2cross_phi_nEph{nE}_ntheta{ntheta}"
+        pfe_save = os.path.join(_PATH_HERE, f'{fn}.npz')
+    else:
+
+        c0 = (
+            isinstance(pfe_save, str)
+            and os.path.isdir(os.path.split(pfe_save)[0])
+        )
+        if not c0:
+            msg = (
+                "Arg pfe_save should be a path/file.ext with a valid path!\n"
+                f"Provided: {pfe_save}\n"
+            )
+            raise Exception(msg)
+
+        if not pfe_save.endswith('.npz'):
+            pfe_save = f"{pfe_save}.npz"
+
     return (
         E_ph_eV, E_e0_eV, iok,
         theta_e0_vsB, theta_ph_vsB,
         phi_e0_vsB,
         version_cross,
+        pfe_save,
     )
 
 
@@ -525,23 +549,15 @@ def _load(
 
 def _save(
     d2cross_phi=None,
+    pfe_save=None,
 ):
-
-    # ----------
-    # pfe
-    # ----------
-
-    nE = d2cross_phi['E_ph_eV'].size
-    ntheta = d2cross_phi['theta_ph_vsB'].size
-    fn = f"d2cross_phi_nEph{nE}_ntheta{ntheta}"
-    pfe = os.path.join(_PATH_HERE, f'{fn}.npz')
 
     # ----------
     # save
     # ----------
 
-    np.savez(pfe, **d2cross_phi)
-    msg = f"Saved in\n\t{pfe}"
+    np.savez(pfe_save, **d2cross_phi)
+    msg = f"Saved in\n\t{pfe_save}"
     print(msg)
 
     return
