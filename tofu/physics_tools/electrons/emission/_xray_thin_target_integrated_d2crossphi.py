@@ -62,6 +62,7 @@ def get_d2cross_phi(
     # load / save
     d2cross_phi=None,
     save=None,
+    pfe_save=None,
     # unused
     **kwdargs,
 ):
@@ -75,6 +76,7 @@ def get_d2cross_phi(
     ) = _check(
         pfe=pfe,
         save=save,
+        pfe_save=pfe_save,
         verb=verb,
     )
 
@@ -119,6 +121,7 @@ def get_d2cross_phi(
 def _check(
     pfe=None,
     save=None,
+    pfe_save=None,
     verb=None,
 ):
 
@@ -130,7 +133,7 @@ def _check(
     save = ds._generic_check._check_var(
         save, 'save',
         types=bool,
-        default=False,
+        default=pfe_save is not None,
     )
 
     # -------------
