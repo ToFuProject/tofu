@@ -53,10 +53,20 @@ def plot_xray_thin_integ_dist(
     ne_m3=None,
     jp_Am2=None,
     jp_fraction_re=None,
+    # RE-specific
+    Zeff=None,
+    Ekin_max_eV=None,
+    Efield_par_Vm=None,
+    lnG=None,
+    sigmap=None,
+    Te_eV_re=None,
+    ne_m3_re=None,
+    dominant=None,
     # ----------------
     # cross-section
     E_ph_eV=None,
     E_e0_eV=None,
+    E_e0_eV_npts=None,
     theta_e0_vsB_npts=None,
     phi_e0_vsB_npts=None,
     theta_ph_vsB=None,
@@ -69,6 +79,7 @@ def plot_xray_thin_integ_dist(
     nthetae=None,
     ndphi=None,
     version_cross=None,
+    # save / load
     pfe_d2cross_phi=None,
     # -----------------
     # optional responsivity
@@ -77,6 +88,7 @@ def plot_xray_thin_integ_dist(
     # plots
     plot_angular_spectra=None,
     plot_anisotropy_map=None,
+    plot_E_ph=None,
     # verb
     verb=None,
 ):
@@ -904,6 +916,7 @@ def _plot_anisotropy_map(
     theta_ph_vsB=None,
     ddist=None,
     demiss=None,
+    plot_E_ph=None,
     # plotting
     dax=None,
     dparam=None,
@@ -938,6 +951,14 @@ def _plot_anisotropy_map(
 
     Te = np.unique(ddist['plasma']['Te_eV']['data'])
 
+    # E_ph_eV
+    if plot_E_ph is None:
+        plot_E_ph = E_ph_eV
+
+    # deco
+    lcolor = ['r', 'g', 'b', 'm', 'y', 'c']
+    lls = ['-', '--', ':', '-.']
+
     # ----------------
     # prepare dax
     # ----------------
@@ -954,15 +975,13 @@ def _plot_anisotropy_map(
     dax = ds._generic_check._check_dax(dax)
 
     # ----------------
-    # plot
+    # plot curves
     # ----------------
 
-    kax = 'map'
+    kax = 'curves'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        lcolor = ['r', 'g', 'b', 'm', 'y', 'c']
-        lls = ['-', '--', ':', '-.']
         for iE, ee in enumerate(E_ph_eV):
 
             color = lcolor[iE % len(lcolor)]
@@ -1033,7 +1052,21 @@ def _plot_anisotropy_map(
             loc=6,
         )
 
-    return
+    # ----------------
+    # plot anisotropy map
+    # ----------------
+
+    kax = 'map_anisotropy'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for iE, ee in enumerate(E_ph_eV):
+
+            color = lcolor[iE % len(lcolor)]
+
+
+
+    return dax
 
 
 # ############################################
@@ -1103,7 +1136,7 @@ def _get_dax_anisotropy_map(
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
     gs = gridspec.GridSpec(
-        ncols=1,
+        ncols=3,
         nrows=1,
         **dmargin,
     )
@@ -1130,6 +1163,48 @@ def _get_dax_anisotropy_map(
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
 
     # store
-    dax["map"] = {'handle': ax}
+    dax["curves"] = {'handle': ax}
+
+    # ---------------
+    # create - map - anisotropy
+
+    ax = fig.add_subplot(gs[0, 1])
+    ax.set_xlabel(
+        xlab,
+        fontweight='bold',
+        size=fontsize,
+    )
+    ax.set_ylabel(
+        "Te (keV)",
+        fontweight='bold',
+        size=fontsize,
+    )
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+
+    # store
+    dax["map_anisotropy"] = {'handle': ax}
+
+    # ---------------
+    # create - map - amplitude
+
+    ax = fig.add_subplot(
+        gs[0, 1],
+        sharex=dax["map_anisotropy"]['handle'],
+        sharey=dax["map_anisotropy"]['handle'],
+    )
+    ax.set_xlabel(
+        xlab,
+        fontweight='bold',
+        size=fontsize,
+    )
+    ax.set_ylabel(
+        'Te (keV)',
+        fontweight='bold',
+        size=fontsize,
+    )
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+
+    # store
+    dax["map_amplitude"] = {'handle': ax}
 
     return dax
