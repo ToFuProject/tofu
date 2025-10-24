@@ -321,6 +321,10 @@ def _get_dominant(
         iok_avalanche[iok] = (~iok_dreicer[iok]) & (Etild[iok] > 5.)
         dominant_exp[iok_avalanche] = 1
 
+    else:
+        iok_dreicer = iok
+        iok_avalanche = iok
+
     # maxwell-dominated
     iok_maxwell = iok & (~iok_dreicer) & (~iok_avalanche)
     dominant_exp[iok_maxwell] = 2
@@ -403,5 +407,4 @@ def _get_dominant(
         }
         for vv in lv
     }
-
     return dominant, dind
