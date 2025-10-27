@@ -58,36 +58,41 @@ def main(
     # compute
     # ----------
 
-    doptics = {kcam: [] for kcam in key_cam}
+    doptics = {}
     for kcam in key_cam:
-
-        # ------------
-        # optics
-
-        for kop in doptics0[kcam]['optics']:
-
-            # translate
-            key = _translate_optics(
-                coll=coll,
-                kop=kop,
-                length=length[kcam],
-                vect_xyz=vect_xyz[kcam],
-            )
-
-            # doptics
-            doptics[kcam].append(key)
 
         # ------------
         # camera
 
         # translate
-        key = _translate_camera(
+        kcam_new = _translate_camera(
             coll=coll,
             kcam=kcam,
             length=length[kcam],
             vect_xyz=vect_xyz[kcam],
             key_new=key_new,
         )
+
+        # ------------
+        # optics
+
+        lop_new = []
+        doptics[kcam_new] = {}
+        for kop in doptics0[kcam]['optics']:
+
+            # translate
+            kop_new = _translate_optics(
+                coll=coll,
+                kop=kop,
+                length=length[kcam],
+                vect_xyz=vect_xyz[kcam],
+                key_new=key_new,
+            )
+            lop_new.append(kop_new)
+
+        # doptics
+        doptics[kcam_new]['optics'] = lop_new
+        doptics[kcam_new]['paths'] = doptics0[kcam]['paths']
 
     # ------------------
     # add diagnostic
@@ -366,7 +371,6 @@ def _translate_camera(
     dgeom = {}
     if dgeom0.get('cent') is not None:
         dgeom['cent'] = dgeom0['cent'] + length * vect_xyz
-
         lk_asis += ['cents_x0', 'cents_x1']
 
     if dgeom0.get('cents') is not None:
