@@ -59,7 +59,7 @@ def main(
     # ----------
 
     doptics = {kcam: [] for kcam in key_cam}
-    for kcam, voptics in key_cam:
+    for kcam in key_cam:
 
         # ------------
         # optics
@@ -81,10 +81,13 @@ def main(
         # camera
 
         # translate
-        key, dgeom = _translate_camera()
-
-        # add to coll
-        coll.add_camera_1d()
+        key = _translate_camera(
+            coll=coll,
+            kcam=kcam,
+            length=length[kcam],
+            vect_xyz=vect_xyz[kcam],
+            key_new=key_new,
+        )
 
     # ------------------
     # add diagnostic
@@ -219,7 +222,7 @@ def _check_length_vect(
             and (
                 din[kk] is None
                 or (
-                    np.all(np.isifinite(din[kk]))
+                    np.all(np.isfinite(din[kk]))
                     and np.r_[din[kk]].size == size
                 )
             )
@@ -270,7 +273,8 @@ def _translate_optics(
     # extract
     # --------------
 
-    opcls = coll.get_optics_cls(kop)
+    kop, opcls = coll.get_optics_cls(kop)
+    kop, opcls = kop[0], opcls[0]
     dgeom0 = coll.dobj[opcls][kop]['dgeom']
 
     # asis
@@ -343,11 +347,12 @@ def _translate_camera(
     # extract
     # --------------
 
-    wcam = coll._whcih_cam
+    wcam = coll._which_cam
     dgeom0 = coll.dobj[wcam][kcam]['dgeom']
 
     # asis
     lk_asis = [
+        'nin', 'e0', 'e1',
         'nin_x', 'nin_y', 'nin_z',
         'e0_x', 'e0_y', 'e0_z',
         'e1_x', 'e1_y', 'e1_z',
@@ -364,9 +369,12 @@ def _translate_camera(
 
         lk_asis += ['cents_x0', 'cents_x1']
 
-    elif dgeom0.get('cents_x') is not None:
-        for kk in ['cents_x', 'cents_y', 'cents_z']:
-            dgeom[kk] = dgeom0[kk] + length * vect_xyz
+    if dgeom0.get('cents') is not None:
+        for ik, kk in enumerate(['cents_x', 'cents_y', 'cents_z']):
+            dgeom[kk] = (
+                coll.ddata[dgeom0['cents'][ik]]['data']
+                + length * vect_xyz[ik]
+            )
 
     # ----------------
     # add as-is
@@ -410,19 +418,20 @@ def _add_asis(
     lk_asis=None,
 ):
 
-    for kk in enumerate(lk_asis):
+    for kk in lk_asis:
         if isinstance(kk, tuple):
             for ii, ki in enumerate(kk):
                 k0 = ki.split('_')[0]
                 if dgeom0.get(k0) is not None:
                     dgeom[ki] = coll.ddata[dgeom0[k0][ii]]['data']
 
-        elif isinstance(ki, str):
-            if dgeom0.get(ki) is not None:
-                dgeom[ki] = coll.ddata[ki]['data']
+        elif dgeom0.get(kk) is not None:
 
-        else:
-            if dgeom0.get(ki) is not None:
-                dgeom[ki] = ki
+            if isinstance(dgeom0[kk], str):
+                dgeom[kk] = coll.ddata[kk]['data']
+
+            else:
+                if dgeom0.get(kk) is not None:
+                    dgeom[kk] = dgeom0[kk]
 
     return
