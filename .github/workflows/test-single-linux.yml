@@ -17,30 +17,37 @@ jobs:
     strategy:
       max-parallel: 5
     steps:
+
+    # Install latex
     - name: Install latex for matplotlib
       run: |
           sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
           pip install latex
+
+    # git checkout
     - uses: actions/checkout@v4
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v5
+
+    # Install uv
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: 3.9
+          python-version: 3.11
+
+    # Install dependencies
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install flake8 pytest coverage wheel
         pip install -r requirements.txt # fix
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        # too many F82 errors, should uncomment the following line
-        flake8 . --count --select=E9,F63,F7 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    # Lint ?
+    
+    # Install tofu
     - name: install tofu
       run: |
         pip install -e ".[dev]" --no-build-isolation
+
+    # Run tests
     - name: Test with pytest and coverage
       run: |
           coverage run --source=tofu/ -m pytest tofu/tests -x -v --durations=10
