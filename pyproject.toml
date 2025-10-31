@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm", "cython"]
+build-backend = "setuptools.build_meta"
+
+
+#[tool.setuptools.packages.find]
+#where = ["datastock"]
+#include = ["datastock*"]
+#namespaces = false
+
+[tool.setuptools]
+packages = ["tofu", "tofu.tests"]
+ext-modules = [
+  {name = "example", sources = ["example.pyx"]}
+]
+
+
+[tool.setuptools_scm]
+version_file = "tofu/_version.py"
+
+
+[tool.setuptools.dynamic]
+classifiers = {file = ["CLASSIFIERS.txt"]}
+
+
+[project]
+name = "tofu"
+readme = "README.md"
+license = {text = "MIT"}
+dynamic = ["version", "classifiers"]
+description = "TOmography for FUsion toolkit"
+authors = [
+    {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
+]
+maintainers = [
+    {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
+]
+keywords = [
+    "tomography", "fusion", "synthetic diagnostic", "diagnostic design", 
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy<1.25",  # for astropy compatibility vs deprecated np.product
+    "scipy",
+    "matplotlib",
+    # "PySide2 ; platform_system != 'Windows'",
+    "spectrally",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/ToFuProject/tofu"
+Issues = "https://github.com/ToFuProject/tofu/issues"
+
+
+[project.entry-points."tofu"]
+tofu = "scripts.main:main"
+
+
+[dependency-groups]
+dev = [
+	"pytest",
+]
+
+
+[project.optional-dependencies]
+linting = [
+  'ruff'
+]
+formatting = [
+  'ruff'
+]
