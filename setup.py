@@ -313,7 +313,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         # ">=40.8.0, <64",
-        "setuptools",
+        "setuptools>=64, <65",
         "numpy",
         "scipy",
         # "scikit-sparse",
