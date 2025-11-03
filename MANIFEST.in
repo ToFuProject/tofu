@@ -11,7 +11,7 @@ recursive-include tofu/geom/inputs *.txt
 recursive-include tofu/spectro *.txt
 
 # physics
-recursive-include tofu/physics_tools/runaways/emission *.csv
+recursive-include tofu/physics_tools/electrons_runaways/emission/ *.csv
 recursive-include tofu/physics_tools/transmission/inputs_filter *.txt
 recursive-include tofu/physics_tools/transmission/inputs_filter *.csv
 
@@ -20,7 +20,5 @@ recursive-include tofu/tests/tests01_geom/test_data *.txt
 recursive-include tofu/tests/tests01_geom/test_data *.npz
 recursive-include tofu/tests/tests01_geom/test_data *.svg
 recursive-include tofu/tests/tests04_spectro/test_data *.npz
-recursive-include tofu/tests/tests06_mesh/test_data *.txt
-recursive-include tofu/tests/tests06_mesh/test_data *.npz
 recursive-include tofu/mag/mag_ripple *.sh
 recursive-include tofu/mag/mag_ripple *.f
