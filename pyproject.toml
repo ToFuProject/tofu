@@ -11,7 +11,12 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["tofu", "tofu.tests"]
 ext-modules = [
-  {name = "example", sources = ["example.pyx"]}
+  {
+    name = "tofu.geom._GG",
+    sources = ["tofu/geom/_GG.pyx"],
+    language_level="3",
+    extra_compile_args = ["-O3", "-Wall", "-fno-wrapv"] + openmp_flag,
+  },
 ]
 
 
