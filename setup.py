@@ -24,8 +24,6 @@ from Cython.Distutils import Extension
 from Cython.Distutils import build_ext
 
 
-# ... local script
-import _updateversion as up
 # ... openmp utilities
 from tofu_helpers.openmp_helpers import is_openmp_installed
 

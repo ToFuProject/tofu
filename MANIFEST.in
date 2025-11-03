@@ -3,7 +3,9 @@
 include MANIFEST.in
 include LICENSE.txt
 include pyproject.toml
-include _updateversion.py
+include CLASSIFIERS.txt
+
+# recursive
 recursive-include tofu/geom *.pxd
 recursive-include tofu/geom/inputs *.txt
 recursive-include tofu/spectro *.txt
