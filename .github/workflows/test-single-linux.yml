@@ -33,21 +33,11 @@ jobs:
       with:
           python-version: 3.11
 
-    # Install dependencies
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install flake8 pytest coverage wheel
-        pip install -r requirements.txt # fix
-
-    # Lint ?
+    # Install library
+    - name: Install the project
+      run: uv sync --all-extras --dev
     
-    # Install tofu
-    - name: install tofu
-      run: |
-        pip install -e ".[dev]" --no-build-isolation
-
     # Run tests
     - name: Test with pytest and coverage
       run: |
-          coverage run --source=tofu/ -m pytest tofu/tests -x -v --durations=10
+          uv run pytest tofu/tests -xv --durations=10
