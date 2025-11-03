@@ -26,7 +26,7 @@ classifiers = {file = ["CLASSIFIERS.txt"]}
 [project]
 name = "tofu"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 dynamic = ["version", "classifiers"]
 description = "TOmography for FUsion toolkit"
 authors = [
