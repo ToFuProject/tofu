@@ -5,12 +5,19 @@ See:
 """
 
 
+import os
+import sys
+
+
 from setuptools import Extension
 from setuptools.command.build_py import build_py as _build_py
 
 
 # local
-from tofu_helpers.openmp_helpers import is_openmp_installed
+_PATH_HERE = os.path.dirname(__file__)
+sys.path.insert(0, _PATH_HERE)
+import tofu_helpers as tfh
+sys.path.pop(0)
 
 
 # #################################################
@@ -20,7 +27,7 @@ from tofu_helpers.openmp_helpers import is_openmp_installed
 
 
 #  Compiling files
-openmp_installed, openmp_flag = is_openmp_installed()
+openmp_installed, openmp_flag = tfh.openmp_helpers.is_openmp_installed()
 extra_compile_args = ["-O3", "-Wall", "-fno-wrapv"] + openmp_flag
 extra_link_args = [] + openmp_flag
 
