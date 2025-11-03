@@ -254,7 +254,7 @@ def _check_length_vect(
             din[kcam] = dval
 
         # scalar
-        if size == 1:
+        if size == 1 and not np.isscalar(din[kcam]):
             din[kcam] = din[kcam][0]
 
     return din
