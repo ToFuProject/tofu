@@ -1,6 +1,8 @@
 """
 See:
     https://stackoverflow.com/questions/73800736/pyproject-toml-and-cython-extension-module
+    https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#Cython.Build.cythonize
+    https://setuptools.pypa.io/en/latest/userguide/extension.html
 
 """
 
@@ -11,6 +13,7 @@ import sys
 
 from setuptools import Extension
 from setuptools.command.build_py import build_py as _build_py
+import numpy
 
 
 # local
@@ -28,8 +31,12 @@ sys.path.pop(0)
 
 #  Compiling files
 openmp_installed, openmp_flag = tfh.openmp_helpers.is_openmp_installed()
-extra_compile_args = ["-O3", "-Wall", "-fno-wrapv"] + openmp_flag
-extra_link_args = [] + openmp_flag
+
+_OPTIONS = {
+    'extra_compile_args': ["-O3", "-Wall", "-fno-wrapv"] + openmp_flag,
+    'extra_link_args': [] + openmp_flag,
+    'include_dirs': [numpy.get_include()],
+}
 
 
 # #################################################
@@ -42,58 +49,48 @@ _LEXT = [
     Extension(
         name="tofu.geom._GG",
         sources=["tofu/geom/_GG.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
-        language_level="3",
+        **_OPTIONS,
     ),
     Extension(
         name="tofu.geom._basic_geom_tools",
         sources=["tofu/geom/_basic_geom_tools.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
+        **_OPTIONS,
     ),
     Extension(
         name="tofu.geom._distance_tools",
         sources=["tofu/geom/_distance_tools.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
+        **_OPTIONS,
     ),
     Extension(
         name="tofu.geom._sampling_tools",
         sources=["tofu/geom/_sampling_tools.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
+        **_OPTIONS,
     ),
     Extension(
         name="tofu.geom._raytracing_tools",
         sources=["tofu/geom/_raytracing_tools.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
+        **_OPTIONS,
     ),
     Extension(
         name="tofu.geom._vignetting_tools",
         sources=["tofu/geom/_vignetting_tools.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
+        **_OPTIONS,
     ),
     Extension(
         name="tofu.geom._chained_list",
         sources=["tofu/geom/_chained_list.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
+        **_OPTIONS,
     ),
     Extension(
         name="tofu.geom._sorted_set",
         sources=["tofu/geom/_sorted_set.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
+        **_OPTIONS,
     ),
     Extension(
         name="tofu.geom._openmp_tools",
         sources=["tofu/geom/_openmp_tools.pyx"],
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
-        cython_compile_time_env=dict(TOFU_OPENMP_ENABLED=openmp_installed),
+        # cython_compile_time_env=dict(TOFU_OPENMP_ENABLED=openmp_installed),
+        **_OPTIONS,
     ),
 ]
 
@@ -105,9 +102,10 @@ _LEXT = [
 
 
 class build_py(_build_py):
-    def run(self):
-        self.run_command("build_ext")
-        return super().run()
+
+    # def run(self):
+        # self.run_command("build_ext")
+        # return super().run()
 
     def initialize_options(self):
         super().initialize_options()

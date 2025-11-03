@@ -2,12 +2,17 @@
 requires = ["setuptools", "setuptools_scm", "cython", "numpy"]
 build-backend = "setuptools.build_meta"
 
+
 [tool.setuptools.cmdclass]
 build_py = "_custom_build.build_py"
 
 
 [tool.setuptools]
 packages = ["tofu", "tofu.tests"]
+
+
+[tool.cython]
+cythonize = "_custom_cythonize.cythonize"
 
 
 [tool.setuptools_scm]
