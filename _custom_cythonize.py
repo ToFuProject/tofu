@@ -2,6 +2,7 @@ import os
 import sys
 
 
+# https://groups.google.com/g/cython-users
 from Cython.Build import cythonize as _cythonize
 
 

@@ -7,12 +7,13 @@ build-backend = "setuptools.build_meta"
 build_py = "_custom_build.build_py"
 
 
+[tool.cython]
+# https://groups.google.com/g/cython-users
+cythonize = "_custom_cythonize.cythonize"
+
+
 [tool.setuptools]
 packages = ["tofu", "tofu.tests"]
-
-
-[tool.cython]
-cythonize = "_custom_cythonize.cythonize"
 
 
 [tool.setuptools_scm]
