@@ -24,6 +24,13 @@ jobs:
           sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
           pip install latex
 
+    # NOT NEEDED: can be installed with pip
+    # install Meson for packaging
+    #- name: Install Meson for packaging
+      #run: |
+        #sudo apt install build-essential
+        #sudo apt install meson ninja-build
+
     # git checkout
     - uses: actions/checkout@v4
 

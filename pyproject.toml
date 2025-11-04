@@ -1,6 +1,24 @@
+# inspired from:
+# https://github.com/silx-kit/silx/blob/main/pyproject.toml
+# https://github.com/ToFuProject/datastock/blob/devel/pyproject.toml
+
+
 [build-system]
-requires = ["setuptools", "setuptools_scm", "cython", "numpy"]
-build-backend = "setuptools.build_meta"
+build-backend = 'mesonpy'
+requires = [
+    'meson-python',
+    'cython',
+    'numpy',
+]
+
+
+[tool.meson-python.args]
+setup = ['--vsenv', '-Doptimization=3']
+
+
+# [tool.cibuildwheel]
+# Skip 32-bit builds and PyPy
+# skip = ["*-win32", "*-manylinux_i686", "pp*", "*musllinux*"]
 
 
 [tool.setuptools.cmdclass]
@@ -50,8 +68,9 @@ dependencies = [
 
 
 [project.urls]
-Homepage = "https://github.com/ToFuProject/tofu"
+source = "https://github.com/ToFuProject/tofu"
 Issues = "https://github.com/ToFuProject/tofu/issues"
+download = "https://pypi.org/project/tofu/"
 
 
 [project.entry-points."tofu"]
@@ -70,4 +89,51 @@ linting = [
 ]
 formatting = [
   'ruff'
+]
+
+[project.optional-dependencies]
+openmp = [
+    '',
+],
+full = [
+    'silx[opencl]',
+    'qtconsole',             # For silx.gui.console
+    'matplotlib',            # For silx.gui.plot
+    'PyOpenGL',              # For silx.gui.plot3d
+    'python-dateutil',       # For silx.gui.plot
+    'scipy',                 # For silx.math.fit demo, silx.image.sift demo, silx.image.sift.test
+    'pooch',                 # For scipy.datasets.ascent
+    'Pillow',                # For silx.opencl.image.test
+    'pint',                  # For silx.io.dictdump
+    'PySide6 >= 6.4',        # PyQt6, PyQt5  # For silx.gui
+    'hdf5plugin',            # For HDF5 compression filters handling
+]
+doc =[
+    'silx[full]',
+    'Sphinx',                    # To build the documentation in doc/
+    'sphinx-autodoc-typehints',  # For leveraging Python type hints from Sphinx
+    'sphinx-copybutton',         # Add copy to clipboard button to code blocks
+    'sphinx-design',             # For tabs and grid in documentation
+    'pydata_sphinx_theme',       # Sphinx theme
+    'nbsphinx',                  # For converting ipynb in documentation
+    'pandoc',                    # For documentation Qt snapshot updates
+]
+test = [
+    'tofu[full]',
+    'pytest',                    # For testing
+    'pytest-xvfb',               # For GUI testing
+    'pytest-cov',                # For coverage
+    'pytest-mock',
+]
+dev = [
+    'silx[full,doc,test]',
+    'build',                                  # To build the project
+    'wheel',                                  # To build wheels
+    'meson-python',
+    'ninja',
+    'cython',
+    "tomli>=1.0.0; python_version < '3.11'",  # For bootstrap.py and build_man_page.py
+    'black[jupyter]',                         # Formatting
+    'flake8',                                 # Linting
+    'pyinstaller>=6.0.0; sys_platform == "win32"',
 ]
