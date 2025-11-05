@@ -68,7 +68,8 @@ endif
 # Openmp
 # ----------------
 
-omp = dependency('openmp', required: get_option('use_openmp'))
+# omp = dependency('openmp', required: get_option('use_openmp'))
+omp = dependency('openmp', required: false)
 
 # ----------------
 # Compiler
@@ -126,3 +127,19 @@ tofu_dir = py.get_install_dir() / 'tofu'
 
 subdir('src/tofu')
 install_subdir('examples', install_dir: tofu_dir)
+
+
+# ----------------
+# Extensions
+# ----------------
+
+py.extension_module(
+  'interpolate',
+  'interpolate.pyx',
+  subdir: 'silx/math',
+  dependencies : [py_dep, omp],
+  install: true,
+) 
+
+
+
