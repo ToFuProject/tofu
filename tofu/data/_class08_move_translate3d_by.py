@@ -1,16 +1,12 @@
 
 
-import numpy as np
-import datastock as ds
+from . import _class08_move3d_check as _check
 
 
-from . import _class8_check
-
-
-# ##############################################################
-# ##############################################################
-#                 Main
-# ##############################################################
+# ###########################################
+# ###########################################
+#            Main
+# ###########################################
 
 
 def main(
@@ -24,6 +20,7 @@ def main(
     length=None,
     # computing
     compute=None,
+    strict=None,
     # los
     config=None,
     key_nseg=None,
@@ -45,7 +42,7 @@ def main(
     (
         key, key_cam, key_new,
         length, vect_xyz,
-    ) = _check(**locals())
+    ) = _check.main(move='translate', **locals())
 
     # ----------
     # prepare
@@ -102,6 +99,7 @@ def main(
         key=key_new,
         doptics=doptics,
         compute=compute,
+        strict=strict,
         config=config,
         key_nseg=key_nseg,
         # equivalent aperture
@@ -116,154 +114,10 @@ def main(
     return
 
 
-# ##############################################################
-# ##############################################################
-#                 Check
-# ##############################################################
-
-
-def _check(
-    coll=None,
-    key=None,
-    key_cam=None,
-    # new diag
-    key_new=None,
-    # move params
-    vect_xyz=None,
-    length=None,
-    # unused
-    **kwdargs,
-):
-
-    # --------------
-    # key, key_cam
-    # --------------
-
-    key, key_cam = _class8_check._get_default_cam(
-        coll=coll,
-        key=key,
-        key_cam=key_cam,
-        default='all',
-    )
-
-    # --------------
-    # key_new
-    # --------------
-
-    wdiag = coll._which_diagnostic
-    lout = list(coll.dobj.get(wdiag, {}).keys())
-    key_new = ds._generic_check._check_var(
-        key_new, 'key_new',
-        types=str,
-        default=f"{key}_translate",
-        excluded=lout,
-    )
-
-    # --------------
-    # translation
-    # --------------
-
-    # length
-    length = _check_length_vect(
-        din=length,
-        key_cam=key_cam,
-        dval=np.r_[0.],
-        name='length',
-    )
-
-    # vect_xyz
-    vect_xyz = _check_length_vect(
-        din=vect_xyz,
-        key_cam=key_cam,
-        dval=np.r_[0., 0., 0.],
-        name='vect_xyz',
-    )
-
-    return (
-        key, key_cam, key_new,
-        length, vect_xyz,
-    )
-
-
-def _check_length_vect(
-    din=None,
-    key_cam=None,
-    dval=None,
-    name=None,
-):
-
-    # -----------
-    # scalar
-    # -----------
-
-    size = dval.size
-
-    if din is None:
-        din = dval
-
-    if np.isscalar(din):
-        if not np.isfinite(din):
-            msg = "Arg din must be a finite scalar!\nProvided: {din}\n"
-            raise Exception(msg)
-        din = {kcam: np.full((size,), din) for kcam in key_cam}
-
-    elif isinstance(din, (np.ndarray, list, tuple)):
-        if len(din) != size:
-            msg = (
-                f"Arg '{name}' must be of size = {size}\n"
-                f"Provided: {din}\n"
-            )
-            raise Exception(msg)
-        din = np.r_[din]
-
-    # -----------
-    # check dict
-    # -----------
-
-    c0 = (
-        isinstance(din, dict)
-        and all([
-            kk in key_cam
-            and (
-                din[kk] is None
-                or (
-                    np.all(np.isfinite(din[kk]))
-                    and np.r_[din[kk]].size == size
-                )
-            )
-            for kk in din.keys()
-        ])
-    )
-    if not c0:
-        msg = (
-            f"Arg '{name}' must be a dict with:\n"
-            f"\t - keys in {key_cam}\n"
-            f"\t- values ({size},) np.ndarray"
-        )
-        if size == 1:
-            msg += "(or scalar)"
-        msg += f"\nProvided: {din}\n"
-        raise Exception(msg)
-
-    # -----------
-    # fill dict
-    # -----------
-
-    for kcam in key_cam:
-        if din.get(kcam) is None:
-            din[kcam] = dval
-
-        # scalar
-        if size == 1 and not np.isscalar(din[kcam]):
-            din[kcam] = din[kcam][0]
-
-    return din
-
-
-# ##############################################################
-# ##############################################################
-#                 Translate optics
-# ##############################################################
+# ###########################################
+# ###########################################
+#          Translate optics
+# ###########################################
 
 
 def _translate_optics(
@@ -297,16 +151,16 @@ def _translate_optics(
         lk_asis.append(('outline_x0', 'outline_x1'))
 
     if dgeom0.get('poly_x') is not None:
-        for kk in ['poly_x', 'poly_y', 'poly_z']:
+        for ii, kk in enumerate(['poly_x', 'poly_y', 'poly_z']):
             dgeom[kk] = (
-                dgeom0[kk] + length * vect_xyz
+                dgeom0[kk] + length * vect_xyz[ii]
             )
 
     # ----------------
     # add as-is
     # ----------------
 
-    _add_asis(
+    _check._add_asis(
         coll=coll,
         dgeom0=dgeom0,
         dgeom=dgeom,
@@ -334,10 +188,10 @@ def _translate_optics(
     return key
 
 
-# ##############################################################
-# ##############################################################
-#                 Translate camera
-# ##############################################################
+# #############################################
+# #############################################
+#              Translate camera
+# #############################################
 
 
 def _translate_camera(
@@ -384,7 +238,7 @@ def _translate_camera(
     # add as-is
     # ----------------
 
-    _add_asis(
+    _check._add_asis(
         coll=coll,
         dgeom0=dgeom0,
         dgeom=dgeom,
@@ -413,29 +267,3 @@ def _translate_camera(
         )
 
     return key
-
-
-def _add_asis(
-    coll=None,
-    dgeom0=None,
-    dgeom=None,
-    lk_asis=None,
-):
-
-    for kk in lk_asis:
-        if isinstance(kk, tuple):
-            for ii, ki in enumerate(kk):
-                k0 = ki.split('_')[0]
-                if dgeom0.get(k0) is not None:
-                    dgeom[ki] = coll.ddata[dgeom0[k0][ii]]['data']
-
-        elif dgeom0.get(kk) is not None:
-
-            if isinstance(dgeom0[kk], str):
-                dgeom[kk] = coll.ddata[kk]['data']
-
-            else:
-                if dgeom0.get(kk) is not None:
-                    dgeom[kk] = dgeom0[kk]
-
-    return
