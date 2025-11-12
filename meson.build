@@ -133,13 +133,87 @@ install_subdir('examples', install_dir: tofu_dir)
 # Extensions
 # ----------------
 
+
+cython_args = [
+  '-Xboundscheck=True',
+  '"-O3"',
+  '"-Wall"',
+  '"-fno-wrapv"',
+  'language_level="3"',
+]
+
+
 py.extension_module(
-  'interpolate',
-  'interpolate.pyx',
-  subdir: 'silx/math',
+  'tofu.geom._GG',
+  'tofu/geom/_GG.pyx',
+  subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
-  install: true,
-) 
-
-
-
+  cython_args : cython_args,
+  install: false,  # true
+  # extra_compile_args=extra_compile_args,
+  # extra_link_args=extra_link_args,
+)
+py.extension_module(
+  'tofu.geom._basic_geom_tools',
+  'tofu/geom/_basic_geom_tools.pyx',
+  subdir: 'tofu/geom/',
+  dependencies : [py_dep, omp],
+  cython_args : cython_args,
+  install: false,  # true
+)
+py.extension_module(
+  'tofu.geom._distance_tools',
+  'tofu/geom/_distance_tools.pyx',
+  subdir: 'tofu/geom/',
+  dependencies : [py_dep, omp],
+  cython_args : cython_args,
+  install: false,  # true
+)
+py.extension_module(
+  'tofu.geom._sampling_tools',
+  'tofu/geom/_sampling_tools.pyx',
+  subdir: 'tofu/geom/',
+  dependencies : [py_dep, omp],
+  cython_args : cython_args,
+  install: false,  # true
+)
+py.extension_module(
+  'tofu.geom._raytracing_tools',
+  'tofu/geom/_raytracing_tools.pyx',
+  subdir: 'tofu/geom/',
+  dependencies : [py_dep, omp],
+  cython_args : cython_args,
+  install: false,  # true
+)
+py.extension_module(
+  'tofu.geom._vignetting_tools',
+  'tofu/geom/_vignetting_tools.pyx',
+  subdir: 'tofu/geom/',
+  dependencies : [py_dep, omp],
+  cython_args : cython_args,
+  install: false,  # true
+)
+py.extension_module(
+  'tofu.geom._chained_list',
+  'tofu/geom/_chained_list.pyx',
+  subdir: 'tofu/geom/',
+  dependencies : [py_dep, omp],
+  cython_args : cython_args,
+  install: false,  # true
+)
+py.extension_module(
+  'tofu.geom._sorted_set',
+  'tofu/geom/_sorted_set.pyx',
+  subdir: 'tofu/geom/',
+  dependencies : [py_dep, omp],
+  cython_args : cython_args,
+  install: false,  # true
+)
+py.extension_module(
+  'tofu.geom._openmp_tools',
+  'tofu/geom/_openmp_tools.pyx',
+  subdir: 'tofu/geom/',
+  dependencies : [py_dep, omp],
+  cython_args : cython_args,
+  install: false,  # true
+)
