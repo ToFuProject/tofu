@@ -137,9 +137,11 @@ tofu_dir = py.get_install_dir() / 'tofu'
 
 cython_args = [
   '-Xboundscheck=True',
-  '"-O3"',
-  '"-Wall"',
-  '"-fno-wrapv"',
+]
+compile_args = [
+  '-O3',
+  '-Wall',
+  '-fno-wrapv',
   'language_level="3"',
 ]
 
@@ -150,6 +152,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
+  # extra_args : compile_args,
   install: true,
   # extra_compile_args=extra_compile_args,
   # extra_link_args=extra_link_args,
@@ -215,6 +218,6 @@ py.extension_module(
   'tofu/geom/_openmp_tools.pyx',
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
-  cython_args : cython_args,
+  cython_args : cython_args + ['cython_compile_time_env':dict(TOFU_OPENMP_ENABLED=openmp_installed)],
   install: true,  # true
 )
