@@ -13,7 +13,8 @@ project(
   license: 'MIT',
   meson_version: '>=1.8.3',  # version in vendored-meson
   version: run_command(
-    ['src/tofu/_version.py', '--wheel'],
+    ['git', 'describe'],
+    # ['tofu/_version.py', '--wheel'],
     check:true,
   ).stdout().strip(),
   default_options: [
@@ -125,8 +126,8 @@ py_dep = py.dependency()
 
 tofu_dir = py.get_install_dir() / 'tofu'
 
-subdir('src/tofu')
-install_subdir('examples', install_dir: tofu_dir)
+# subdir('src/tofu')
+# install_subdir('examples', install_dir: tofu_dir)
 
 
 # ----------------
@@ -149,7 +150,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,
   # extra_compile_args=extra_compile_args,
   # extra_link_args=extra_link_args,
 )
@@ -159,7 +160,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,  # true
 )
 py.extension_module(
   'tofu.geom._distance_tools',
@@ -167,7 +168,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,  # true
 )
 py.extension_module(
   'tofu.geom._sampling_tools',
@@ -175,7 +176,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,  # true
 )
 py.extension_module(
   'tofu.geom._raytracing_tools',
@@ -183,7 +184,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,  # true
 )
 py.extension_module(
   'tofu.geom._vignetting_tools',
@@ -191,7 +192,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,  # true
 )
 py.extension_module(
   'tofu.geom._chained_list',
@@ -199,7 +200,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,  # true
 )
 py.extension_module(
   'tofu.geom._sorted_set',
@@ -207,7 +208,7 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,  # true
 )
 py.extension_module(
   'tofu.geom._openmp_tools',
@@ -215,5 +216,5 @@ py.extension_module(
   subdir: 'tofu/geom/',
   dependencies : [py_dep, omp],
   cython_args : cython_args,
-  install: false,  # true
+  install: true,  # true
 )
