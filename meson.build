@@ -125,9 +125,87 @@ py_dep = py.dependency()
 # ----------------
 
 tofu_dir = py.get_install_dir() / 'tofu'
-
 # subdir('src/tofu')
 # install_subdir('examples', install_dir: tofu_dir)
+
+
+# ----------------
+# numpy dependency
+# ----------------
+
+# From
+# https://groups.google.com/g/cython-users/c/-AbF6gslN1U
+# https://github.com/mesonbuild/meson/issues/9598#issuecomment-1662695303
+# https://github.com/scipy/scipy/blob/main/scipy/meson.build#L30-L73
+
+# Uses the `numpy-config` executable (or a user's numpy.pc pkg-config file).
+# Will work for numpy>=2.0, hence not required (it'll be a while until 2.0 is
+# our minimum supported version). Using this now to be able to detect the
+# version easily for >=2.0.
+_numpy_dep = dependency('numpy', required: false)
+f2py_freethreading_arg = []
+if _numpy_dep.found() and _numpy_dep.version().version_compare('>=2.1.0')
+  f2py_freethreading_arg = ['--free-threading']
+  message('f2py free-threading enabled')
+else
+  message('f2py free-threading disabled; need numpy >=2.1.0.')
+  message('See https://github.com/mesonbuild/meson/issues/14651')
+endif
+
+# NumPy include directory - needed in all submodules
+# The chdir is needed because within numpy there's an `import signal`
+# statement, and we don't want that to pick up scipy's signal module rather
+# than the stdlib module. The try-except is needed because when things are
+# split across drives on Windows, there is no relative path and an exception
+# gets raised. There may be other such cases, so add a catch-all and switch to
+# an absolute path. Relative paths are needed when for example a virtualenv is
+# placed inside the source tree; Meson rejects absolute paths to places inside
+# the source tree.
+# For cross-compilation it is often not possible to run the Python interpreter
+# in order to retrieve numpy's include directory. It can be specified in the
+# cross file instead:
+#   [properties]
+#   numpy-include-dir = /abspath/to/host-pythons/site-packages/numpy/core/include
+#
+# This uses the path as is, and avoids running the interpreter.
+incdir_numpy = meson.get_external_property('numpy-include-dir', 'not-given')
+if incdir_numpy == 'not-given'
+  incdir_numpy = run_command(py,
+    [
+      '-c',
+      '''import os
+import numpy as np
+try:
+  incdir = os.path.relpath(np.get_include())
+except Exception:
+  incdir = np.get_include()
+print(incdir)
+  '''
+    ],
+    check: true
+  ).stdout().strip()
+
+  # We do need an absolute path to feed to `cc.find_library` below
+  _incdir_numpy_abs = run_command(py,
+    ['-c', 'import os; os.chdir(".."); import numpy; print(numpy.get_include())'],
+    check: true
+  ).stdout().strip()
+else
+  _incdir_numpy_abs = incdir_numpy
+endif
+inc_np = include_directories(incdir_numpy)
+# Don't use the deprecated NumPy C API. Define this to a fixed version instead of
+# NPY_API_VERSION in order not to break compilation for released SciPy versions
+# when NumPy introduces a new deprecation.
+numpy_nodepr_api = ['-DNPY_NO_DEPRECATED_API=NPY_1_9_API_VERSION']
+np_dep = declare_dependency(include_directories: inc_np, compile_args: numpy_nodepr_api)
+
+incdir_f2py = incdir_numpy / '..' / '..' / 'f2py' / 'src'
+inc_f2py = include_directories(incdir_f2py)
+fortranobject_c = incdir_f2py / 'fortranobject.c'
+
+npymath_path = _incdir_numpy_abs / '..' / 'lib'
+npymath_lib = cc.find_library('npymath', dirs: npymath_path)
 
 
 # --------------------------
@@ -142,6 +220,9 @@ cython_args2 = cython_args
 if omp.found()
   cython_args2 += ['--compile-time-env', 'TOFU_OPENMP_ENABLED=True'] 
 endif
+
+
+include_dirs = [_incdir_numpy_abs]
 
 
 compile_args = [
@@ -161,6 +242,7 @@ py.extension_module(
   'tofu.geom._GG',
   'tofu/geom/_GG.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args,
   # extra_args : compile_args,
@@ -172,6 +254,7 @@ py.extension_module(
   'tofu.geom._basic_geom_tools',
   'tofu/geom/_basic_geom_tools.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args,
   install: true,  # true
@@ -180,6 +263,7 @@ py.extension_module(
   'tofu.geom._distance_tools',
   'tofu/geom/_distance_tools.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args,
   install: true,  # true
@@ -188,6 +272,7 @@ py.extension_module(
   'tofu.geom._sampling_tools',
   'tofu/geom/_sampling_tools.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args,
   install: true,  # true
@@ -196,6 +281,7 @@ py.extension_module(
   'tofu.geom._raytracing_tools',
   'tofu/geom/_raytracing_tools.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args,
   install: true,  # true
@@ -204,6 +290,7 @@ py.extension_module(
   'tofu.geom._vignetting_tools',
   'tofu/geom/_vignetting_tools.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args,
   install: true,  # true
@@ -212,6 +299,7 @@ py.extension_module(
   'tofu.geom._chained_list',
   'tofu/geom/_chained_list.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args,
   install: true,  # true
@@ -220,6 +308,7 @@ py.extension_module(
   'tofu.geom._sorted_set',
   'tofu/geom/_sorted_set.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args,
   install: true,  # true
@@ -228,6 +317,7 @@ py.extension_module(
   'tofu.geom._openmp_tools',
   'tofu/geom/_openmp_tools.pyx',
   subdir: 'tofu/geom/',
+  include_directories: include_dirs,
   dependencies : [py_dep, omp],
   cython_args : cython_args2,
   install: true,  # true
