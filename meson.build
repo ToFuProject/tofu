@@ -19,13 +19,13 @@ project(
     check:true,
   ).stdout().strip(),
   # https://mesonbuild.com/Builtin-options.html
-  default_options: [
+  #  default_options: [
     # 'buildtype=release',
     # 'b_ndebug=if-release',
     # 'c_std=c11',
-    'cpp_std=c++17',
+    # 'cpp_std=c++17',
     # 'pkgconfig.relocatable=true',
-  ],
+  # ],
 )
 
 py_mod = import('python')
