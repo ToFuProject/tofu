@@ -13,8 +13,8 @@ project(
   license: 'MIT',
   meson_version: '>=1.8.3',  # version in vendored-meson
   version: run_command(
-    # ['git', 'describe'],
-    ['ls', '-lah', '.git/refs/tags'],
+    ['git', 'describe'],
+    # ['ls', '-lah', '.git/refs/tags'],
     # ['tofu/_version.py', '--wheel'],
     check:true,
   ).stdout().strip(),
