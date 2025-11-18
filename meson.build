@@ -14,17 +14,17 @@ project(
   meson_version: '>=1.8.3',  # version in vendored-meson
   version: run_command(
     # ['git', 'describe'],
-    ['ls', '-lah', '.git/refs'],
+    ['ls', '-lah', '.git/refs/tags'],
     # ['tofu/_version.py', '--wheel'],
     check:true,
   ).stdout().strip(),
+  # https://mesonbuild.com/Builtin-options.html
   default_options: [
-    # 'buildtype=plain',
-    'buildtype=debugoptimized',
+    'buildtype=release',
     'b_ndebug=if-release',
     'c_std=c11',
     'cpp_std=c++17',
-    'pkgconfig.relocatable=true',
+    # 'pkgconfig.relocatable=true',
   ],
 )
 
