@@ -12,11 +12,12 @@ project(
   'c', 'cpp', 'cython',
   license: 'MIT',
   meson_version: '>=1.8.3',  # version in vendored-meson
-  version: run_command(
-    ['git', 'describe'],
-    capture:true,
-    check:false,
-  ).stdout().strip(),
+  version: '1.8.16-test',
+  # version: run_command(
+    #['git', 'describe'],
+    #capture:true,
+    #check:false,
+  #).stdout().strip(),
   # https://mesonbuild.com/Builtin-options.html
   #  default_options: [
     # 'buildtype=release',
