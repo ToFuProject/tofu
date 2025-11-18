@@ -14,10 +14,8 @@ project(
   meson_version: '>=1.8.3',  # version in vendored-meson
   version: run_command(
     ['git', 'describe'],
-    # ['ls', '-lah', '.git/refs/tags'],
-    # ['tofu/_version.py', '--wheel'],
     capture:true,
-    check:true,
+    check:false,
   ).stdout().strip(),
   # https://mesonbuild.com/Builtin-options.html
   #  default_options: [
