@@ -20,7 +20,7 @@ project(
   ).stdout().strip(),
   # https://mesonbuild.com/Builtin-options.html
   default_options: [
-    'buildtype=release',
+    # 'buildtype=release',
     # 'b_ndebug=if-release',
     'c_std=c11',
     'cpp_std=c++17',
