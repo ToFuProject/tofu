@@ -88,23 +88,17 @@ download = "https://pypi.org/project/tofu/"
 tofu = "scripts.main:main"
 
 
-[dependency-groups]
-dev = [
-	"pytest",
-]
-
-
-[project.optional-dependencies]
-linting = [
-  'ruff'
-]
-formatting = [
-  'ruff'
-]
-
 [project.optional-dependencies]
 full = [
     'spectrally>=0.0.9', 
+]
+linting = [
+  'tofu[full]',
+  'ruff',
+]
+formatting = [
+  'tofu[full]',
+  'ruff',
 ]
 doc =[
     'tofu[full]',
