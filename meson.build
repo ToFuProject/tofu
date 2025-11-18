@@ -1,3 +1,11 @@
+project(
+  'tofu',
+  'c', 'cpp', 'cython',
+  license: 'MIT',
+  meson_version: '>=1.8.3',
+  version: '1.8.17',
+)
+
 # ------------------
 # project
 # ------------------
@@ -6,14 +14,6 @@
 # https://github.com/scipy/scipy/blob/main/meson.build
 # https://github.com/numpy/numpy/blob/main/meson.build
 # https://github.com/silx-kit/silx/blob/main/meson.build
-
-project(
-  'tofu',
-  'c', 'cpp', 'cython',
-  license: 'MIT',
-  meson_version: '>=1.8.3',
-  version: '1.8.17',
-)
 
 # version: run_command(
   #['git', 'describe'],
