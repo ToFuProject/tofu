@@ -16,6 +16,7 @@ project(
     ['git', 'describe'],
     # ['ls', '-lah', '.git/refs/tags'],
     # ['tofu/_version.py', '--wheel'],
+    capture:true,
     check:true,
   ).stdout().strip(),
   # https://mesonbuild.com/Builtin-options.html
