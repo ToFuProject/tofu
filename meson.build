@@ -22,7 +22,7 @@ project(
   default_options: [
     # 'buildtype=release',
     # 'b_ndebug=if-release',
-    'c_std=c11',
+    # 'c_std=c11',
     'cpp_std=c++17',
     # 'pkgconfig.relocatable=true',
   ],

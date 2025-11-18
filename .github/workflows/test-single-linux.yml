@@ -34,8 +34,9 @@ jobs:
     # git checkout
     - uses: actions/checkout@v5
       with:
-        fetch-depth: 0
+        # fetch-depth: 0
         fetch-tags: true
+      run: git fetch origin --tags
 
     # Install uv
     - name: Install uv
