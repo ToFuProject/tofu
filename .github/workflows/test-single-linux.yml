@@ -35,11 +35,8 @@ jobs:
     - uses: actions/checkout@v5
       with:
         # https://github.com/marketplace/actions/checkout#usage
-        # fetch-depth: 0   # to fetch all history from all branches
+        fetch-depth: 0   # to fetch all history from all branches
         fetch-tags: true
-
-    - name: Fetch tags
-      run: git fetch origin --tags
 
     # Install uv
     - name: Install uv
