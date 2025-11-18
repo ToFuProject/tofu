@@ -12,7 +12,7 @@ project(
   'c', 'cpp', 'cython',
   license: 'MIT',
   meson_version: '>=1.8.3',
-  version: '1.8.16-test',
+  version: '1.8.17',
 )
 
 # version: run_command(
