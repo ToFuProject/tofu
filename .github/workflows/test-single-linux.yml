@@ -33,6 +33,7 @@ jobs:
 
     # git checkout
     - uses: actions/checkout@v5
+      fetch-tags: true
 
     # Install uv
     - name: Install uv
