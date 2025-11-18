@@ -14,7 +14,7 @@ project(
   meson_version: '>=1.8.3',  # version in vendored-meson
   version: run_command(
     # ['git', 'describe'],
-    ['ls', '-lah'],
+    # ['ls', '-lah', '.git/refs'],
     # ['tofu/_version.py', '--wheel'],
     check:true,
   ).stdout().strip(),
