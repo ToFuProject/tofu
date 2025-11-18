@@ -36,6 +36,8 @@ jobs:
       with:
         # fetch-depth: 0
         fetch-tags: true
+
+    - name: Fetch tags
       run: git fetch origin --tags
 
     # Install uv
