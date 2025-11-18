@@ -103,24 +103,11 @@ formatting = [
 ]
 
 [project.optional-dependencies]
-openmp = [
-    '',
-],
 full = [
-    'silx[opencl]',
-    'qtconsole',             # For silx.gui.console
-    'matplotlib',            # For silx.gui.plot
-    'PyOpenGL',              # For silx.gui.plot3d
-    'python-dateutil',       # For silx.gui.plot
-    'scipy',                 # For silx.math.fit demo, silx.image.sift demo, silx.image.sift.test
-    'pooch',                 # For scipy.datasets.ascent
-    'Pillow',                # For silx.opencl.image.test
-    'pint',                  # For silx.io.dictdump
-    'PySide6 >= 6.4',        # PyQt6, PyQt5  # For silx.gui
-    'hdf5plugin',            # For HDF5 compression filters handling
+    'spectrally>=0.0.9', 
 ]
 doc =[
-    'silx[full]',
+    'tofu[full]',
     'Sphinx',                    # To build the documentation in doc/
     'sphinx-autodoc-typehints',  # For leveraging Python type hints from Sphinx
     'sphinx-copybutton',         # Add copy to clipboard button to code blocks
@@ -135,16 +122,4 @@ test = [
     'pytest-xvfb',               # For GUI testing
     'pytest-cov',                # For coverage
     'pytest-mock',
-]
-dev = [
-    'silx[full,doc,test]',
-    'build',                                  # To build the project
-    'wheel',                                  # To build wheels
-    'meson-python',
-    'ninja',
-    'cython',
-    "tomli>=1.0.0; python_version < '3.11'",  # For bootstrap.py and build_man_page.py
-    'black[jupyter]',                         # Formatting
-    'flake8',                                 # Linting
-    'pyinstaller>=6.0.0; sys_platform == "win32"',
 ]
