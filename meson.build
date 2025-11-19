@@ -3,11 +3,7 @@ project(
   'c', 'cpp', 'cython',
   license: 'MIT',
   meson_version: '>=1.8.3',
-  version: run_command(
-    ['git', 'describe'],
-    capture:true,
-    check:false,
-  ).stdout().strip(),
+  version: run_command(['git', 'describe'], capture:true, check:false).stdout().strip().split('-')[0],
   # https://mesonbuild.com/Builtin-options.html
   default_options: [
     'buildtype=release',
