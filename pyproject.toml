@@ -36,18 +36,15 @@ packages = ["tofu", "tofu.tests"]
 
 
 #[tool.setuptools_scm]
+# https://discuss.python.org/t/mesonpy-how-to-set-package-version/26610
 #version_file = "tofu/_version.py"
-
-
-[tool.meson.dynamic]
-classifiers = {file = ["CLASSIFIERS.txt"]}
 
 
 [project]
 name = "tofu"
 readme = "README.md"
 license = "MIT"
-dynamic = ["version", "classifiers"]
+dynamic = ["version"]
 description = "TOmography for FUsion toolkit"
 authors = [
     {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
@@ -58,13 +55,25 @@ maintainers = [
 keywords = [
     "tomography", "fusion", "synthetic diagnostic", "diagnostic design", 
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "numpy<1.25",  # for astropy compatibility vs deprecated np.product
     "scipy",
     "matplotlib",
     # "PySide2 ; platform_system != 'Windows'",
     "spectrally",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Natural Language :: English",
 ]
 
 
