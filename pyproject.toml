@@ -26,30 +26,20 @@ install = ['--tags=bindings']
 dist = ['--include-subprojects']
 
 
-
-# [tool.cibuildwheel]
-# Skip 32-bit builds and PyPy
-# skip = ["*-win32", "*-manylinux_i686", "pp*", "*musllinux*"]
-
-
-[tool.setuptools.cmdclass]
-build_py = "_custom_build.build_py"
-
-
 [tool.cython]
 # https://groups.google.com/g/cython-users
 cythonize = "_custom_cythonize.cythonize"
 
 
-[tool.setuptools]
+[tool.meson]
 packages = ["tofu", "tofu.tests"]
 
 
-[tool.setuptools_scm]
-version_file = "tofu/_version.py"
+#[tool.setuptools_scm]
+#version_file = "tofu/_version.py"
 
 
-[tool.setuptools.dynamic]
+[tool.meson.dynamic]
 classifiers = {file = ["CLASSIFIERS.txt"]}
 
 
