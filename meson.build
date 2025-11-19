@@ -3,7 +3,19 @@ project(
   'c', 'cpp', 'cython',
   license: 'MIT',
   meson_version: '>=1.8.3',
-  version: '1.8.17',
+  version: run_command(
+    ['git', 'describe'],
+    capture:true,
+    check:false,
+  ).stdout().strip(),
+  # https://mesonbuild.com/Builtin-options.html
+  default_options: [
+    'buildtype=release',
+    'b_ndebug=if-release',
+    'c_std=c11',
+    'cpp_std=c++17',
+    'pkgconfig.relocatable=true',
+  ],
 )
 
 # ------------------
@@ -15,19 +27,6 @@ project(
 # https://github.com/numpy/numpy/blob/main/meson.build
 # https://github.com/silx-kit/silx/blob/main/meson.build
 
-# version: run_command(
-  #['git', 'describe'],
-  #capture:true,
-  #check:false,
-#).stdout().strip(),
-# https://mesonbuild.com/Builtin-options.html
-#  default_options: [
-  # 'buildtype=release',
-  # 'b_ndebug=if-release',
-  # 'c_std=c11',
-  # 'cpp_std=c++17',
-  # 'pkgconfig.relocatable=true',
-# ],
 #
 py_mod = import('python')
 py = py_mod.find_installation(pure: false)

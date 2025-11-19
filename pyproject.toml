@@ -14,15 +14,9 @@ requires = [
 
 # https://mesonbuild.com/meson-python/how-to-guides/meson-args.html#how-to-guides-meson-args
 [tool.meson-python.args]
-# setup = [
-    # '--vsenv',		# force Visual Studio env
-    #'-Doption=false',
-    #'-Doptimization=3', 	# Compiler optimization O3
-    #'-Dfeature=enabled',
-    #'-Dvalue=42',
-# ]
-compile = ['-j4']
-install = ['--tags=bindings']
+setup = [
+    '-Doptimization=3', 	# Compiler optimization O3
+]
 dist = ['--include-subprojects']
 
 
