@@ -11,7 +11,7 @@ from . import _class3_check as _check
 from . import _class03_save2stp as _save2stp
 
 
-__all__ = ['Aperture']
+__all__ = ["Aperture"]
 
 
 # #########################################################################
@@ -21,7 +21,6 @@ __all__ = ['Aperture']
 
 
 class Aperture(Previous):
-
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
     #       'bsplines': (str, ''),
@@ -30,20 +29,22 @@ class Aperture(Previous):
     # _ddef['params']['dref'] = None
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
-    _show_in_summary = 'all'
+    _show_in_summary = "all"
 
     _dshow = dict(Previous._dshow)
-    _dshow.update({
-        'aperture': [
-            'dgeom.type',
-            'dgeom.curve_r',
-            'dgeom.area',
-            'dgeom.outline',
-            'dgeom.poly',
-            'dgeom.cent',
-            # 'dmisc.color',
-        ],
-    })
+    _dshow.update(
+        {
+            "aperture": [
+                "dgeom.type",
+                "dgeom.curve_r",
+                "dgeom.area",
+                "dgeom.outline",
+                "dgeom.poly",
+                "dgeom.cent",
+                # 'dmisc.color',
+            ],
+        }
+    )
 
     def add_aperture(
         self,
@@ -67,15 +68,30 @@ class Aperture(Previous):
         # dmisc
         color=None,
     ):
-        """ Add an aperture
+        """Add an aperture. Apertures can be planar or non-planar.
 
-        Can be defined from:
-            - 2d outline + 3d center + unit vectors (nin, e0, e1)
-            - 3d polygon + nin
+        Planar apertures require the following parameters:
+            - 'cent': (x, y, z) coords
+            - 'nin': (x, y, z) coords, normalized and towards the plasma
+            - 'e0': (x, y, z) coords
+            - 'e1': (x, y, z) coords
+            - 'outline_x0': (npts,) np.ndarray, coords in (cent, e0, e1)
+            - 'outline_x1': (npts,) np.ndarray, coords in (cent, e0, e1)
 
-        Unit vectors will be checked and normalized
-        If planar, area will be computed
-        Outline will be made counter-clockwise
+        Non-planar apertures require the following parameters:
+            - 'poly_x': (npts,) ndarray
+            - 'poly_y': (npts,) ndarray
+            - 'poly_z': (npts,) ndarray
+            - 'nin': (x, y, z) coords, normalized and towards the plasma
+                Indicative, since the aperture is not planar, 'nin' here is
+                imperfect, will improve on that in the future
+
+        For planar apertures, ('nin', 'e0', 'e1') always for a set of 3 unit
+        vectors arranged as an direct orthonormal basis (e2 = cross(nin, e0)).
+
+        Unit vectors will be checked and normalized.
+        If planar, area will be computed.
+        Outline will be made counter-clockwise.
 
         """
 
@@ -83,8 +99,8 @@ class Aperture(Previous):
         dref, ddata, dobj = _check._add_surface3d(
             coll=self,
             key=key,
-            which='aperture',
-            which_short='ap',
+            which="aperture",
+            which_short="ap",
             # 2d outline
             outline_x0=outline_x0,
             outline_x1=outline_x1,
@@ -104,8 +120,8 @@ class Aperture(Previous):
         )
 
         # dmisc
-        key = list(dobj['aperture'].keys())[0]
-        dobj['aperture'][key]['dmisc'] = _check._dmisc(
+        key = list(dobj["aperture"].keys())[0]
+        dobj["aperture"][key]["dmisc"] = _check._dmisc(
             key=key,
             color=color,
         )
@@ -118,7 +134,7 @@ class Aperture(Previous):
     # ---------------
 
     def get_as_dict(self, which=None, key=None):
-        """ Return the desired object as a dict (input to some routines) """
+        """Return the desired object as a dict (input to some routines)"""
 
         return _check._return_as_dict(
             coll=self,
@@ -142,7 +158,7 @@ class Aperture(Previous):
         overwrite=None,
         verb=None,
     ):
-        """ Save the selected optics 3d outlines to a stp file
+        """Save the selected optics 3d outlines to a stp file
 
         Optionally chain them to be a single POLYLINE
 

@@ -7,7 +7,7 @@ from . import _class10_compute as _compute
 from . import _class10_plot as _plot
 
 
-__all__ = ['Inversion']
+__all__ = ["Inversion"]
 
 
 # #############################################################################
@@ -17,14 +17,36 @@ __all__ = ['Inversion']
 
 
 class Inversion(Previous):
+    """
+    The ``Inversion`` class is commonly imported and aliased as the
+    ``tf.data.Collection`` class. The class constructor takes no arguments;
+    instead, objects, stored in ``coll.dobj``, are added using the following methods:
 
-    _show_in_summary = 'all'
+        - ``coll.add_aperture('key', **geom)``
+        - ``coll.add_camera_1d('key', dgeom=dgeom)``
+        - ``coll.add_camera_2d('key', dgeom=dgeom)``
+
+    In addition to ``dobj`, The ``Collection`` stores 2 other main attributes:
+
+        coll.dref -> dict     (TODO)
+        coll.ddata -> dict    (TODO)
+
+    Once all the apertures and all the cameras have been added to the Collection
+    instance, one then adds a new object called a diagnostic:
+
+    ``coll.add_diagnostic('key', doptics=doptics, config=config, compute=True)``
+
+    The diagnostic should automatically compute LOS and etendue.
+    """
+
+    _show_in_summary = "all"
 
     _dshow = dict(Previous._dshow)
-    _dshow.update({
-        'inversion': [
-        ],
-    })
+    _dshow.update(
+        {
+            "inversion": [],
+        }
+    )
 
     # -----------------
     # inversions
@@ -64,9 +86,7 @@ class Inversion(Previous):
         # debug
         debug=None,
     ):
-        """ Compute tomographic inversion
-
-        """
+        """Compute tomographic inversion"""
 
         return _compute.compute_inversions(
             # ressources
@@ -122,7 +142,7 @@ class Inversion(Previous):
         ref_vector_strategy=None,
         store=None,
     ):
-        """ Compute synthetic data using matching geometry matrix and profile2d
+        """Compute synthetic data using matching geometry matrix and profile2d
 
         Requires that a geometry matrix as been pre-computed
         Only profile2d with the same bsplines as the geometry matrix can be
@@ -167,7 +187,6 @@ class Inversion(Previous):
         dcolorbar=None,
         dleg=None,
     ):
-
         return _plot.plot_inversion(
             coll=self,
             key=key,
