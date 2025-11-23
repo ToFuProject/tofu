@@ -79,7 +79,13 @@ class Diagnostic(Previous):
     ):
         """Add a diagnostic.
 
-        A diagnostic in this context is simply a dictionary which tells tofu:
+        A diagnostic in this context is one or more similar instruments within the
+        tokamak. Diagnostics are made up of cameras (sensors, pixels) and apertures.
+        To add a diagnostic, the ``Collection`` must already have cameras
+        and apertures added. See the ``add_aperture``, ``add_camera_1d`` and
+        ``add_camera_2d`` functions.
+
+        simply a dictionary which tells tofu:
 
         - Which cameras it should encompass
         - Which apertures correspond to each camera and to each pixel
@@ -91,21 +97,28 @@ class Diagnostic(Previous):
         key
             The name of the diagnostic
         doptics
-            Nested dictionary of the optical paths through the diagnostic. Example:
+            Nested dictionary of the optical paths through the diagnostic. The keys for
+            this dictionary should be the names of the cameras in this diagnostic. Each
+            camera should have a nested dictionary as follows:
 
-            - "key_cam0': {
-                'optics': [list of the nap0 keys of apertures associated to this cam]
-                'paths': (npix0, nap0) bool array, where npix0 is the number of pixels
-            }
-            - "key_cam1': {
-                'optics': [list of the nap1 keys of apertures associated to this cam]
-                'paths': (npix1, nap1) bool array, where npix0 is the number of pixels
-            }
-            - ...
-            - "key_camN': {
-                'optics': [list of the napN keys of apertures associated to this cam]
-                'paths': (npixN, napN) bool array, where npix0 is the number of pixels
-            }
+            ```
+            "key_cam0': { # Name of the camera
+                'optics': [
+                    # list of the nap0 keys of apertures associated to this cam
+                ]
+                'paths': [
+                    #  bool array indicating which pixel corresponds to each aperture.
+                ]
+            },
+            ...
+            ```
+            The "paths" key is an NxM boolean array, where N is the number of pixels
+            in the camera, and M is the number of apertures. For a simple pinhole camera
+            (`num_apertures=1`) with four sensors (`num_pixels=4`), the paths might be defined
+            as ``'paths': np.ones((4,1), dtype=bool)``.
+
+            For a collimator camera with four apertures and four pixels, the paths key could be
+            defined as ``'paths': np.identity(dtype=bool)``.
         config
             a ``tofu.geom.Configuration()`` instance, containing the 2d poloidal
             cross-section of a tokamak. Used for ray-tracing.
