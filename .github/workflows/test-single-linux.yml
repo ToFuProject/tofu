@@ -48,7 +48,8 @@ jobs:
     - name: Install the project
       run: |
         uv sync --all-extras
-        uv pip install .
+        uv build
+        uv pip install ./dist
     
     # Run tests
     - name: Test with pytest and coverage
