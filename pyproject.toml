@@ -84,6 +84,10 @@ tofu = "scripts.main:main"
 [project.optional-dependencies]
 full = [
     'spectrally>=0.0.9', 
+    'pytest',                    # For testing
+    'pytest-xvfb',               # For GUI testing
+    'pytest-cov',                # For coverage
+    'pytest-mock',
 ]
 linting = [
   'tofu[full]',
@@ -102,11 +106,4 @@ doc =[
     'pydata_sphinx_theme',       # Sphinx theme
     'nbsphinx',                  # For converting ipynb in documentation
     'pandoc',                    # For documentation Qt snapshot updates
-]
-test = [
-    'tofu[full]',
-    'pytest',                    # For testing
-    'pytest-xvfb',               # For GUI testing
-    'pytest-cov',                # For coverage
-    'pytest-mock',
 ]
