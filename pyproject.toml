@@ -52,10 +52,9 @@ keywords = [
 requires-python = ">=3.9"
 dependencies = [
     "numpy<1.25",  # for astropy compatibility vs deprecated np.product
-    "scipy",
-    "matplotlib",
     # "PySide2 ; platform_system != 'Windows'",
     "spectrally",
+    "pytest",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

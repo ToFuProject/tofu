@@ -57,4 +57,4 @@ jobs:
     # Run tests
     - name: Test with pytest and coverage
       run: |
-          uv run pytest tofu/tests -xv --durations=10
+          uv run pytest --pyargs tofu -xv --durations=10
