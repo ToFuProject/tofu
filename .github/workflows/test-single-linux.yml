@@ -60,10 +60,11 @@ jobs:
     - name: Install the project
       run: |
         uv pip install ./dist/*.whl
+        which pytest
     
     # Run tests
     - name: Test with pytest and coverage
       run: |
-          which pytest
-          which tofu
-          pytest --pyargs tofu.tests -xv --durations=10
+        which pytest
+        which tofu
+        pytest --pyargs tofu.tests -xv --durations=10
