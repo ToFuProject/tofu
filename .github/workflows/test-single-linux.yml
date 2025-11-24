@@ -69,5 +69,5 @@ jobs:
         which python
         uv pip list | grep tofu
         cd ./dist/
-        uv python -c "import tofu as tf; print(tf.__file__)"
+        python -c "import tofu as tf; print(tf.__file__)"
         pytest --pyargs tofu.tests -xv --durations=10
