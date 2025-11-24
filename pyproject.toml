@@ -26,7 +26,7 @@ cythonize = "_custom_cythonize.cythonize"
 
 
 [tool.meson]
-packages = ["tofu", "tofu.tests"]
+packages = ["tofu", "tofu.tests", "tofu.geom", "tofu.data", "tofu.physics_tools", "tofu.omas2tofu", "tofu.imas2tofu"]
 
 
 #[tool.setuptools_scm]
