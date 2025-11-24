@@ -25,10 +25,6 @@ dist = ['--include-subprojects']
 cythonize = "_custom_cythonize.cythonize"
 
 
-[tool.meson]
-packages = ["tofu", "tofu.tests", "tofu.geom", "tofu.data", "tofu.physics_tools", "tofu.omas2tofu", "tofu.imas2tofu"]
-
-
 #[tool.setuptools_scm]
 # https://discuss.python.org/t/mesonpy-how-to-set-package-version/26610
 #version_file = "tofu/_version.py"
