@@ -68,6 +68,5 @@ jobs:
         which pytest
         which python
         uv pip list | grep tofu
-        pip list | grep tofu
         python -c "import tofu as tf; print(tf.__version__, tf.__file__)"
         pytest --pyargs tofu.tests -xv --durations=10
