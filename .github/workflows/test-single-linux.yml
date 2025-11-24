@@ -44,6 +44,13 @@ jobs:
       with:
           python-version: 3.11
 
+    # Create and activate env
+    - name: Create and activate env
+      run: |
+        uv venv venv --python 3.11
+        source .venv/bin/activate
+        which python
+    
     # Build dist
     - name: Build the project
       run: |
@@ -57,4 +64,6 @@ jobs:
     # Run tests
     - name: Test with pytest and coverage
       run: |
+          which pytest
+          which tofu
           pytest --pyargs tofu.tests -xv --durations=10
