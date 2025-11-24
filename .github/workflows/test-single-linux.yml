@@ -44,12 +44,15 @@ jobs:
       with:
           python-version: 3.11
 
+    # Build dist
+    - name: Build the project
+      run: |
+        uv build
+    
     # Install library
     - name: Install the project
       run: |
-        uv sync --all-extras
-        uv build
-        uv pip install ./dist
+        uv pip install ./dist/*.whl
     
     # Run tests
     - name: Test with pytest and coverage
