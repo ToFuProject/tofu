@@ -20,9 +20,9 @@ setup = [
 dist = ['--include-subprojects']
 
 
-[tool.cython]
+# [tool.cython]
 # https://groups.google.com/g/cython-users
-cythonize = "_custom_cythonize.cythonize"
+# cythonize = "_custom_cythonize.cythonize"
 
 
 #[tool.setuptools_scm]
@@ -50,6 +50,7 @@ dependencies = [
     "numpy<1.25",  # for astropy compatibility vs deprecated np.product
     # "PySide2 ; platform_system != 'Windows'",
     "spectrally",
+    "Polygon3",
     "pytest",
 ]
 classifiers = [
@@ -78,6 +79,7 @@ tofu = "scripts.main:main"
 
 [project.optional-dependencies]
 full = [
+    "Polygon3",
     'spectrally>=0.0.9', 
     'pytest',                    # For testing
     'pytest-xvfb',               # For GUI testing
