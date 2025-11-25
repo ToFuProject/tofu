@@ -44,17 +44,17 @@ jobs:
       with:
           python-version: 3.11
 
+    # Build dist
+    - name: Build the project
+      run: |
+        uv build
+    
     # Create and activate env
     - name: Create and activate env
       run: |
         uv venv venv --python 3.11
         source .venv/bin/activate
         which python
-    
-    # Build dist
-    - name: Build the project
-      run: |
-        uv build
     
     # Install library
     - name: Install the project
@@ -65,9 +65,9 @@ jobs:
     # Run tests
     - name: Test with pytest and coverage
       run: |
+        cd ./dist/
         which pytest
         which python
         uv pip list | grep tofu
-        cd ./dist/
         python -c "import tofu as tf; print(tf.__file__)"
         pytest --pyargs tofu.tests -xv --durations=10

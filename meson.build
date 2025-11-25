@@ -7,7 +7,6 @@ project(
   # https://mesonbuild.com/Builtin-options.html
   default_options: [
     'buildtype=release',
-    'b_ndebug=if-release',
     'c_std=c11',
     'cpp_std=c++17',
     'pkgconfig.relocatable=true',
@@ -121,7 +120,7 @@ py_dep = py.dependency()
 # Directories
 # ----------------
 
-tofu_dir = py.get_install_dir() / 'tofu'
+# tofu_dir = py.get_install_dir() / 'tofu'
 # subdir('src/tofu')
 # install_subdir('examples', install_dir: tofu_dir)
 
