@@ -120,8 +120,15 @@ py_dep = py.dependency()
 # Directories
 # ----------------
 
+# installation dir of tofu, from the py install
 tofu_dir = py.get_install_dir() / 'tofu'
+
+# => will look into tofu for another meson.build
+# local variables are accessible
+# # then resume execution after this line
 subdir('tofu')
+
+
 # install_subdir('examples', install_dir: tofu_dir)
 
 

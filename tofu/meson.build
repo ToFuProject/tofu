@@ -19,25 +19,25 @@ subdir: 'tofu',  # Folder relative to site-packages to install to
 # No extension modules => pure dirs
 # ################################
 
-pure_subdirs = [
-  'geom',
-  'data',
-  'spectro',
-  'tests',
-  'benchmarks',
-  'physics_tools',
-  'omas2tofu',
-  'omas2tofu',
-  'imas2tofu',
-  'nist2tofu',
-  'openadas2tofu',
-  'tomotok2tofu',
-  'mag',
-]
+#pure_subdirs = [
+  #'geom',
+  #'data',
+  #'spectro',
+  #'tests',
+  #'benchmarks',
+  #'physics_tools',
+  #'omas2tofu',
+  #'omas2tofu',
+  #'imas2tofu',
+  #'nist2tofu',
+  #'openadas2tofu',
+  #'tomotok2tofu',
+  #'mag',
+#]
 
-foreach subdir: pure_subdirs
-  install_subdir(subdir, install_dir: tofu_dir)
-endforeach
+#foreach subdir: pure_subdirs
+  #install_subdir(subdir, install_dir: tofu_dir)
+#endforeach
 
 # ################################
 # extension modules => subdir with meson.build
