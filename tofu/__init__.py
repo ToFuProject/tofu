@@ -88,7 +88,7 @@ import tofu._plot as _plot
 # import tofu.spectro as spectro
 # import tofu.tests as tests
 # import tofu.benchmarks as benchmarks
-# from . import physics_tools
+from . import physics_tools
 # from . import omas2tofu
 
 
