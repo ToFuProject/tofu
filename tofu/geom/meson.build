@@ -6,7 +6,7 @@
 py.install_sources([
     '__init__.py',
 ],
-subdir: 'tofu/geom',
+subdir: 'tofu' / 'geom',
 )
 
 
@@ -18,8 +18,9 @@ pure_subdirs = [
   'inputs',
 ]
 
+tofu_geom_dir = tofu_dir / 'geom'
 foreach subdir: pure_subdirs
-  install_subdir(subdir, install_dir: 'tofu/geom')
+  install_subdir(subdir, install_dir: tofu_geom_dir)
 endforeach
 
 
