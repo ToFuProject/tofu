@@ -2,12 +2,11 @@
 #     Direct py modules
 # ################################
 
-tofu_geom_dir = tofu_dir / 'geom'
 
 py.install_sources([
     '__init__.py',
 ],
-subdir: tofu_geom_dir,
+subdir: 'tofu/geom',
 )
 
 
@@ -20,7 +19,7 @@ pure_subdirs = [
 ]
 
 foreach subdir: pure_subdirs
-  install_subdir(subdir, install_dir: tofu_geom_dir)
+  install_subdir(subdir, install_dir: 'tofu/geom')
 endforeach
 
 
