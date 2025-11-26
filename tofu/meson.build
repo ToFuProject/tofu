@@ -24,7 +24,7 @@ pure_subdirs = [
   #'data',
   'spectro',
   #'tests',
-  'benchmarks',
+  # 'benchmarks',
   'physics_tools',
   'omas2tofu',
   'omas2tofu',
