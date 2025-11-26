@@ -120,8 +120,8 @@ py_dep = py.dependency()
 # Directories
 # ----------------
 
-# tofu_dir = py.get_install_dir() / 'tofu'
-# subdir('src/tofu')
+tofu_dir = py.get_install_dir() / 'tofu'
+subdir('tofu')
 # install_subdir('examples', install_dir: tofu_dir)
 
 
