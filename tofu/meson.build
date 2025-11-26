@@ -35,9 +35,9 @@ pure_subdirs = [
   #'mag',
 ]
 
-#foreach subdir: pure_subdirs
-  #install_subdir(subdir, install_dir: tofu_dir)
-#endforeach
+foreach subdir: pure_subdirs
+  install_subdir(subdir, install_dir: tofu_dir)
+endforeach
 
 # ################################
 # extension modules => subdir with meson.build
