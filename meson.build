@@ -71,7 +71,6 @@ endif
 # Openmp
 # ----------------
 
-# omp = dependency('openmp', required: get_option('use_openmp'))
 omp = dependency('openmp', required: false)
 
 # ----------------
@@ -107,36 +106,6 @@ endif
 if not cy.version().version_compare('>=3.0.8')
   error('tofu requires Cython >= 3.0.8')
 endif
-
-# ------------------------
-# -lm for C code
-# ------------------------
-
-# We need -lm for all C code (assuming it uses math functions, which is safe).
-# For C++ it isn't needed, because libstdc++/libc++ is guaranteed to depend on it.
-m_dep = cc.find_library('m', required : false)
-if m_dep.found()
-  add_project_link_arguments('-lm', language : 'c')
-endif
-
-# https://mesonbuild.com/Python-module.html
-py_dep = py.dependency()
-
-# ----------------
-# Directories
-# ----------------
-
-# installation dir of tofu, from the py install
-tofu_dir = py.get_install_dir() / 'tofu'
-
-# => will look into tofu for another meson.build
-# local variables are accessible
-# # then resume execution after this line
-subdir('tofu')
-
-
-# install_subdir('examples', install_dir: tofu_dir)
-
 
 # ----------------
 # numpy dependency
@@ -217,117 +186,34 @@ npymath_path = _incdir_numpy_abs / '..' / 'lib'
 npymath_lib = cc.find_library('npymath', dirs: npymath_path)
 
 
-# --------------------------
-# Cython args for extensions
-# --------------------------
+# ------------------------
+# -lm for C code
+# ------------------------
 
-
-cython_args = [
-  '-Xboundscheck=True',
-]
-cython_args2 = cython_args
-if omp.found()
-  cython_args2 += ['--compile-time-env', 'TOFU_OPENMP_ENABLED=True'] 
+# We need -lm for all C code (assuming it uses math functions, which is safe).
+# For C++ it isn't needed, because libstdc++/libc++ is guaranteed to depend on it.
+m_dep = cc.find_library('m', required : false)
+if m_dep.found()
+  add_project_link_arguments('-lm', language : 'c')
 endif
 
-
-include_dirs = [_incdir_numpy_abs]
-
-
-compile_args = [
-  '-O3',
-  '-Wall',
-  '-fno-wrapv',
-  'language_level="3"',
-]
+# https://mesonbuild.com/Python-module.html
+py_dep = py.dependency()
 
 
 # ----------------
-# Extensions
+# Directories
 # ----------------
 
+# installation dir of tofu, from the py install
+tofu_dir = py.get_install_dir() / 'tofu'
 
-#py.extension_module(
-  #'tofu.geom._GG',
-  #'tofu/geom/_GG.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args,
-  ## extra_args : compile_args,
-  #install: true,
-  ## extra_compile_args=extra_compile_args,
-  ## extra_link_args=extra_link_args,
-#)
-#py.extension_module(
-  #'tofu.geom._basic_geom_tools',
-  #'tofu/geom/_basic_geom_tools.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args,
-  #install: true,  # true
-#)
-#py.extension_module(
-  #'tofu.geom._distance_tools',
-  #'tofu/geom/_distance_tools.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args,
-  #install: true,  # true
-#)
-#py.extension_module(
-  #'tofu.geom._sampling_tools',
-  #'tofu/geom/_sampling_tools.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args,
-  #install: true,  # true
-#)
-#py.extension_module(
-  #'tofu.geom._raytracing_tools',
-  #'tofu/geom/_raytracing_tools.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args,
-  #install: true,  # true
-#)
-#py.extension_module(
-  #'tofu.geom._vignetting_tools',
-  #'tofu/geom/_vignetting_tools.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args,
-  #install: true,  # true
-#)
-#py.extension_module(
-  #'tofu.geom._chained_list',
-  #'tofu/geom/_chained_list.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args,
-  #install: true,  # true
-#)
-#py.extension_module(
-  #'tofu.geom._sorted_set',
-  #'tofu/geom/_sorted_set.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args,
-  #install: true,  # true
-#)
-#py.extension_module(
-  #'tofu.geom._openmp_tools',
-  #'tofu/geom/_openmp_tools.pyx',
-  #subdir: 'tofu/geom/',
-  #include_directories: include_dirs,
-  #dependencies : [py_dep, omp],
-  #cython_args : cython_args2,
-  #install: true,  # true
-#)
+# => will look into tofu for another meson.build
+# local variables are accessible
+# # then resume execution after this line
+subdir('tofu')
+
+
+# install_subdir('examples', install_dir: tofu_dir)
+
+

@@ -20,7 +20,6 @@ subdir: 'tofu',  # Folder relative to site-packages to install to
 # ################################
 
 pure_subdirs = [
-  #'geom',
   #'data',
   'spectro',
   #'tests',
@@ -43,4 +42,4 @@ endforeach
 # extension modules => subdir with meson.build
 # ################################
 
-# subdir('geom')
+subdir('geom')
