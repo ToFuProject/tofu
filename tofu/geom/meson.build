@@ -5,6 +5,17 @@
 
 py.install_sources([
     '__init__.py',
+    '_def.py',
+    '_def_config.py',
+    '_core.py',
+    '_core_optics.py',
+    '_comp.py',
+    '_comp_optics.py',
+    '_comp_solidangles.py',
+    '_etendue.py',
+    '_plot.py',
+    '_plot_optics.py',
+    'utils.py',
 ],
 subdir: 'tofu' / 'geom',
 )
