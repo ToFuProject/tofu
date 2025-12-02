@@ -15,6 +15,7 @@ py.install_sources([
     '_etendue.py',
     '_plot.py',
     '_plot_optics.py',
+    'openmp_enabled.py',
     'utils.py',
 ],
 subdir: 'tofu' / 'geom',
