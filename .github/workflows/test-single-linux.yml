@@ -21,9 +21,10 @@ jobs:
     # Install latex
     - name: Install latex for matplotlib
       run: |
-          sudo apt update
-          sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
-          pip install latex
+          which sudo
+          # sudo apt update
+          # sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
+          # pip install latex
 
     # NOT NEEDED: can be installed with pip
     # install Meson for packaging
