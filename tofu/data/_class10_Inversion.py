@@ -3,6 +3,7 @@
 
 # tofu
 from ._class09_GeometryMatrix import GeometryMatrix as Previous
+from . import _class10_show as _show
 from . import _class10_compute as _compute
 from . import _class10_plot as _plot
 
@@ -18,13 +19,7 @@ __all__ = ['Inversion']
 
 class Inversion(Previous):
 
-    _show_in_summary = 'all'
-
-    _dshow = dict(Previous._dshow)
-    _dshow.update({
-        'inversion': [
-        ],
-    })
+    _which_inversion = 'inversion'
 
     # -----------------
     # inversions
@@ -105,6 +100,22 @@ class Inversion(Previous):
             # debug
             debug=debug,
         )
+
+    # -------------------
+    # show
+    # -------------------
+
+    def _get_show_obj(self, which=None):
+        if which == self._which_inversion:
+            return _show._show
+        else:
+            return super()._get_show_obj(which)
+
+    def _get_show_details(self, which=None):
+        if which == self._which_inversion:
+            return _show._show_details
+        else:
+            return super()._get_show_details(which)
 
     # -----------------
     # synthetic data
