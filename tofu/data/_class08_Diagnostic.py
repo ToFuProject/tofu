@@ -17,6 +17,8 @@ from . import _class8_compute as _compute
 from . import _class08_get_data as _get_data
 from . import _class08_concatenate_data as _concatenate
 from . import _class8_move as _move
+from . import _class08_move_translate3d_by as _translate3d_by
+from . import _class08_move_rotate3d_by as _rotate3d_by
 from . import _class8_los_data as _los_data
 from . import _class08_interpolate_along_los as _interpolate_along_los
 from . import _class8_equivalent_apertures as _equivalent_apertures
@@ -1061,6 +1063,87 @@ class Diagnostic(Previous):
                 plot=False,
                 store='analytical',
             )
+
+    def move_diagnostic_translate3d_by(
+        self,
+        key=None,
+        key_cam=None,
+        # new diag
+        key_new=None,
+        # move params
+        vect_xyz=None,
+        length=None,
+        # computing
+        compute=None,
+        strict=None,
+        # los
+        config=None,
+        key_nseg=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # etendue
+        margin_par=None,
+        margin_perp=None,
+        verb=None,
+    ):
+        """ Translates the desired cameras of diag 'key'
+
+        Movement happens
+            - along the desired 3d unit vector 'vect_xyz'
+            - by desired 'length'
+
+        optionally, vect_xyz and length can be dict (by camera)
+
+        New diagnostic is created with name `key_new`
+
+        """
+
+        return _translate3d_by.main(
+            coll=self,
+            **locals(),
+        )
+
+    def move_diagnostic_rotate3d_by(
+        self,
+        key=None,
+        key_cam=None,
+        # new diag
+        key_new=None,
+        # move params
+        axis_pt=None,
+        axis_vect=None,
+        angle=None,
+        # computing
+        compute=None,
+        strict=None,
+        # los
+        config=None,
+        key_nseg=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # etendue
+        margin_par=None,
+        margin_perp=None,
+        verb=None,
+    ):
+        """ Rotate the desired cameras of diag 'key'
+
+        Movement happens
+            - around the 3d axis defined by (axis_pt, axis_vect)
+            - by desired 'angle'
+
+        optionally, axis_pt, axis_vect and angle can be dict (by camera)
+
+        New diagnostic is created with name `key_new`
+
+        """
+
+        return _rotate3d_by.main(
+            coll=self,
+            **locals(),
+        )
 
     # -----------------
     # computing
