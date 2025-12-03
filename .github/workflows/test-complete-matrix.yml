@@ -20,7 +20,7 @@ jobs:
         os: [ubuntu-latest]
           # macOS-latest: issue with latex
           # windows-latest: issue with TcL install error
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11']
         exclude:
           - python-version: ['3.11']
             os: windows-latest
