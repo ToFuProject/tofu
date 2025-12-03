@@ -33,7 +33,8 @@ jobs:
         fi
 
     # git checkout
-    - uses: actions/checkout@v5
+    - name: git checkout
+      uses: actions/checkout@v5
         # https://github.com/marketplace/actions/checkout#usage
         fetch-depth: 0   # to fetch all history from all branches
         fetch-tags: true
