@@ -20,18 +20,19 @@ jobs:
     steps:
 
     # Install latex
-    - name: Install latex for matplotlib
-      run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          sudo apt install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
-        elif [ "$RUNNER_OS" == "macOS" ]; then
-          # not enough to fix latex issue  
-          brew install --cask mactex
-        else
-          echo "$RUNNER_OS not supported"
-          exit 1
-        fi
+    #- name: Install latex for matplotlib
+      #run: |
+        #if [ "$RUNNER_OS" == "Linux" ]; then
+          #sudo apt install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
+        #elif [ "$RUNNER_OS" == "macOS" ]; then
+          ## not enough to fix latex issue  
+          #brew install --cask mactex
+        #else
+          #echo "$RUNNER_OS not supported"
+          #exit 1
+        #fi
 
+    # git checkout
     - name: git checkout
       uses: actions/checkout@v5
         # https://github.com/marketplace/actions/checkout#usage
