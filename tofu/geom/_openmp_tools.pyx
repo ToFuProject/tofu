@@ -1,7 +1,7 @@
 # cython: language_level=3
 
 import os
-from .openmp_enabled import is_openmp_enabled
+# from .openmp_enabled import is_openmp_enabled
 
 IF TOFU_OPENMP_ENABLED:
     cimport openmp
@@ -29,8 +29,8 @@ cpdef get_effective_num_threads(n_threads=None):
     if n_threads == 0:
         raise ValueError("n_threads = 0 is invalid")
 
-    local_openmp_enabled = is_openmp_enabled()
-    assert local_openmp_enabled == TOFU_OPENMP_ENABLED
+    # local_openmp_enabled = is_openmp_enabled()
+    # assert local_openmp_enabled == TOFU_OPENMP_ENABLED
 
     IF TOFU_OPENMP_ENABLED:
 

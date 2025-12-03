@@ -1,0 +1,107 @@
+# inspired from:
+# https://github.com/silx-kit/silx/blob/main/pyproject.toml
+# https://github.com/ToFuProject/datastock/blob/devel/pyproject.toml
+
+
+[build-system]
+build-backend = 'mesonpy'
+requires = [
+    'meson-python',
+    'cython',
+    'numpy',
+]
+
+
+# https://mesonbuild.com/meson-python/how-to-guides/meson-args.html#how-to-guides-meson-args
+[tool.meson-python.args]
+setup = [
+    '-Doptimization=3', 	# Compiler optimization O3
+]
+dist = ['--include-subprojects']
+
+
+# [tool.cython]
+# https://groups.google.com/g/cython-users
+# cythonize = "_custom_cythonize.cythonize"
+
+
+#[tool.setuptools_scm]
+# https://discuss.python.org/t/mesonpy-how-to-set-package-version/26610
+#version_file = "tofu/_version.py"
+
+
+[project]
+name = "tofu"
+readme = "README.md"
+license = "MIT"
+version = "1.8.17"
+description = "TOmography for FUsion toolkit"
+authors = [
+    {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
+]
+maintainers = [
+    {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
+]
+keywords = [
+    "tomography", "fusion", "synthetic diagnostic", "diagnostic design", 
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy<1.25",  # for astropy compatibility vs deprecated np.product
+    # "PySide2 ; platform_system != 'Windows'",
+    "spectrally",
+    "Polygon3",
+    "svg-path",
+    "pytest",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Natural Language :: English",
+]
+
+
+[project.urls]
+source = "https://github.com/ToFuProject/tofu"
+Issues = "https://github.com/ToFuProject/tofu/issues"
+download = "https://pypi.org/project/tofu/"
+
+
+[project.entry-points."tofu"]
+tofu = "scripts.main:main"
+
+
+[project.optional-dependencies]
+full = [
+    "Polygon3",
+    'spectrally>=0.0.9', 
+    'pytest',                    # For testing
+    'pytest-xvfb',               # For GUI testing
+    'pytest-cov',                # For coverage
+    'pytest-mock',
+]
+linting = [
+  'tofu[full]',
+  'ruff',
+]
+formatting = [
+  'tofu[full]',
+  'ruff',
+]
+doc =[
+    'tofu[full]',
+    'Sphinx',                    # To build the documentation in doc/
+    'sphinx-autodoc-typehints',  # For leveraging Python type hints from Sphinx
+    'sphinx-copybutton',         # Add copy to clipboard button to code blocks
+    'sphinx-design',             # For tabs and grid in documentation
+    'pydata_sphinx_theme',       # Sphinx theme
+    'nbsphinx',                  # For converting ipynb in documentation
+    'pandoc',                    # For documentation Qt snapshot updates
+]

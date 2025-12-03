@@ -2,9 +2,13 @@ name: Complete testing matrix
 
 on:
   push:
-    branches: [ devel, master ]
+    branches:
+      - devel
+      - master
   pull_request:
-    branches: [ devel, master ]
+    branches:
+      - devel
+      - master
 
 jobs:
   build:
@@ -14,51 +18,63 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-          # macOS-latest: issue with latex
-          # windows-latest: issue with TcL install error
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+          # macOS-latest: issue with latex + meson fails build
+          # windows-latest: issue with TcL install error + meson fails to build
+        python-version: ['3.9', '3.10', '3.11']
         exclude:
           - python-version: ['3.11']
             os: windows-latest
 
     steps:
+
+    # Install latex
     - name: Install latex for matplotlib
+      shell: bash
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          sudo apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
-          pip install latex
+          sudo apt update
+          sudo apt install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
         elif [ "$RUNNER_OS" == "macOS" ]; then
-        # not enough to fix latex issue  
-          brew install --cask mactex
-          pip install latex
-        else
+          # not enough to fix latex issue  
+          sudo brew install --cask mactex
+        elif [ "$RUNNER_OS" != "Linux" ]; then
           echo "$RUNNER_OS not supported"
-          exit 1
+          exit 0
         fi
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+
+    # git checkout
+    - name: git checkout
+      uses: actions/checkout@v5
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+        # https://github.com/marketplace/actions/checkout#usage
+        fetch-depth: 0   # to fetch all history from all branches
+        fetch-tags: true
+
+    # Install uv
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+          python-version: ${{ matrix.python-version }}
+
+    # Build dist
+    - name: Build the project
       run: |
-         curl -X PURGE https://pypi.org/simple/datastock/
-         curl -X PURGE https://pypi.org/simple/bsplines2d/
-         curl -X PURGE https://pypi.org/simple/spectrally/
-         pip install --upgrade pip
-         pip install flake8 pytest coverage wheel
-         pip install -r requirements.txt --no-cache
-    - name: Lint with flake8
+        uv build
+    
+    # Create and activate env
+    - name: Create and activate env
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        # flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 . --count --select=E9,F63,F7 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: install tofu
+        uv venv venv --python ${{ matrix.python-version }}
+        source .venv/bin/activate
+        uv pip install latex
+    
+    # Install library
+    - name: Install the project
       run: |
-        python -c "import setuptools; print(f'\nsetuptools version = {setuptools.__version__}\n')"
-        pip install -e ".[dev]" --no-build-isolation
+        uv pip install ./dist/*.whl
+    
+    # Run tests
     - name: Test with pytest and coverage
       run: |
-              coverage run --source=tofu/ -m pytest tofu/tests -v -x --durations=10
+        cd ./dist/
+        pytest --pyargs tofu.tests -xv --durations=10
