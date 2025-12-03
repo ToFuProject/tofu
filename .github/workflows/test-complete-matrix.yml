@@ -69,27 +69,3 @@ jobs:
       run: |
         cd ./dist/
         pytest --pyargs tofu.tests -xv --durations=10
-    
-     #OLD
-    #- name: Install dependencies
-      #run: |
-         #curl -X PURGE https://pypi.org/simple/datastock/
-         #curl -X PURGE https://pypi.org/simple/bsplines2d/
-         #curl -X PURGE https://pypi.org/simple/spectrally/
-         #pip install --upgrade pip
-         #pip install flake8 pytest coverage wheel
-         #pip install -r requirements.txt --no-cache
-    #- name: Lint with flake8
-      #run: |
-         #stop the build if there are Python syntax errors or undefined names
-         #flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        #flake8 . --count --select=E9,F63,F7 --show-source --statistics
-         #exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    #- name: install tofu
-      #run: |
-        #python -c "import setuptools; print(f'\nsetuptools version = {setuptools.__version__}\n')"
-        #pip install -e ".[dev]" --no-build-isolation
-    #- name: Test with pytest and coverage
-      #run: |
-              #coverage run --source=tofu/ -m pytest tofu/tests -v -x --durations=10
