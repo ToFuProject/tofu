@@ -22,10 +22,10 @@ subdir: 'tofu',  # Folder relative to site-packages to install to
 pure_subdirs = [
   #'data',
   'spectro',
-  #'tests',
-  # 'benchmarks',    # needs geom
+  'tests',
+  'benchmarks',    # needs geom
   'physics_tools',
-  # 'omas2tofu',     # needs data
+  'omas2tofu',     # needs data
   'omas2tofu',
   'imas2tofu',
   'nist2tofu',
