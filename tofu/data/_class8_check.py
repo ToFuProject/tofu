@@ -368,7 +368,7 @@ def _check_doptics_basics(
                 coll.dobj[ocls][kop]['dgeom']['type'] == '3d'
                 for ocls, kop in zip(lcls, doptics[k0]['optics'])
             ]
-            if is3d[-1] is True and is3d[0] is False:
+            if len(is3d) > 0 and is3d[-1] is True and is3d[0] is False:
                 doptics[k0]['optics'] = (
                     [doptics[k0]['optics'][-1]]
                     + doptics[k0]['optics'][1:-1]
