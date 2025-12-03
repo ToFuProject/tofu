@@ -51,7 +51,7 @@ dependencies = [
     # "PySide2 ; platform_system != 'Windows'",
     "spectrally",
     "Polygon3",
-    "svg",
+    "svg-path",
     "pytest",
 ]
 classifiers = [
