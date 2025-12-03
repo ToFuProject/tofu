@@ -424,7 +424,7 @@ def _dfunc(
             "Please provide 1 or 2 coordinates max!\n"
             "Possible pairs and matching func:\n"
             + "\n".join(lstr0)
-            + "Provided:\n"
+            + "\nProvided:\n"
             + "\n".join(lstr1)
         )
         raise Exception(msg)

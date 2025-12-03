@@ -53,23 +53,18 @@ class Test01_Distributions():
         kTe = np.r_[0.1, 1, 10, 100] * 1e3
 
         # single
-        dout = tfpt.get_maxwellian(
-            kTe_eV=kTe[0],
-            energy_eV=E,
+        dout = tfpt.electrons.distribution.get_distribution(
+            Te_eV=kTe[0],
+            E_eV=E,
+            dist='maxwell',
         )
         assert isinstance(dout, dict)
 
         # arrays
-        dout = tfpt.get_maxwellian(
-            kTe_eV=kTe[None, :],
-            energy_eV=E[:, None],
-        )
-        assert isinstance(dout, dict)
-
-        # wavelength
-        dout = tfpt.get_maxwellian(
-            kTe_eV=kTe[None, :],
-            velocity_ms=np.linspace(1, 5, 10)[:, None]*1e6,
+        dout = tfpt.electrons.distribution.get_distribution(
+            Te_eV=kTe[None, :],
+            E_eV=E,
+            dist='maxwell',
         )
         assert isinstance(dout, dict)
 
@@ -153,7 +148,8 @@ class Test02_Runaways():
 
         # compute
         dout = tfpt.electrons.distribution.get_distribution(
-            p_par_norm=pp[:, None],
+            p_par_norm=pp,
+            p_perp_norm=pp,
             ne_m3=ne_m3[None, :],
             Zeff=2.,
             Efield_par_Vm=Epar,

@@ -153,7 +153,7 @@ def main(
             dplasma=din,
             # coords
             dcoords=dc,
-            version=version,
+            version=dfunc[kdist]['version'],
             dominant=dominant,
         )
 
@@ -320,6 +320,8 @@ def _get_velocity_par(ddist, kdist):
         # get cos
         sli = (None,)*(len(shape)-2) + (None, slice(None))
         cos = np.cos(ddist['coords']['x1']['data'][sli])
+        v_par_ms = velocity['data'] * cos
+        units = velocity['units']
 
     elif kcoords == ('p_par_norm', 'p_perp_norm'):
 
@@ -343,6 +345,17 @@ def _get_velocity_par(ddist, kdist):
             np.broadcast_to(ddist['coords']['x0']['data'][sli], shape)[iok]
             / pnorm[iok]
         )
+        v_par_ms = velocity['data'] * cos
+        units = velocity['units']
+
+    elif kcoords == ('E_eV',):
+
+        # abs(velocity)
+        v_par_ms = _convert.convert_momentum_velocity_energy(
+            energy_kinetic_eV=ddist['coords']['x0']['data'],
+        )['velocity_ms']
+        units = v_par_ms['units']
+        v_par_ms = v_par_ms['data']
 
     else:
         raise NotImplementedError(kcoords)
@@ -352,8 +365,8 @@ def _get_velocity_par(ddist, kdist):
     # ---------------
 
     velocity_par = {
-        'data': velocity['data'] * cos,
-        'units': asunits.Unit(velocity['units']),
+        'data': v_par_ms,
+        'units': asunits.Unit(units),
     }
 
     return velocity_par
