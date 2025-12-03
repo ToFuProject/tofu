@@ -11,6 +11,7 @@ on:
       - master
       - devel
       - deploy-test
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -21,16 +22,8 @@ jobs:
     # Install latex
     - name: Install latex for matplotlib
       run: |
-          which sudo
           sudo apt update
           sudo apt install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
-
-    # NOT NEEDED: can be installed with pip
-    # install Meson for packaging
-    #- name: Install Meson for packaging
-      #run: |
-        #sudo apt install build-essential
-        #sudo apt install meson ninja-build
 
     # git checkout
     - uses: actions/checkout@v5
@@ -56,20 +49,14 @@ jobs:
         uv venv venv --python 3.11
         source .venv/bin/activate
         uv pip install latex
-        which python
     
     # Install library
     - name: Install the project
       run: |
         uv pip install ./dist/*.whl
-        which pytest
     
     # Run tests
     - name: Test with pytest and coverage
       run: |
         cd ./dist/
-        which pytest
-        which python
-        uv pip list | grep tofu
-        python -c "import tofu as tf; print(tf.__file__)"
         pytest --pyargs tofu.tests -xv --durations=10
