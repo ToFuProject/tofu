@@ -604,7 +604,10 @@ def _add_rhopn_from_psi(
     # ---------
     # compute
 
-    rhopn = np.sqrt((psi - psi0) / (psi1 - psi0))
+    rhopn = np.full(psi.shape, np.nan)
+    rhopn2 = (psi - psi0) / (psi1 - psi0)
+    iok = rhopn2 >= 0.
+    rhopn[iok] = np.sqrt(rhopn2[iok])
 
     # ---------
     # add data
@@ -923,7 +926,6 @@ def _get_subkey(
 
     k1d = l1d[0]
     key_1d = ddata[k1d]['key']
-    q1d = ddata[k1d]['data'][sli].ravel()
 
     # ------------------
     # Identify 2d subkey
@@ -963,10 +965,11 @@ def _get_subkey(
             lk2d=lk2d,
             k1d=k1d,
             key_1d=key_1d,
-            q1d=q1d,
+            q1d=None,
         )
 
     else:
         raise NotImplementedError(ids)
 
+    q1d = ddata[k1d]['data'][sli].ravel()
     return k1d, q1d, k2dn

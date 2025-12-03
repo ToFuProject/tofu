@@ -121,12 +121,17 @@ def _show_details(coll=None, key=None, lcol=None, lar=None, show=None):
     wdiag = coll._which_diagnostic
     lcam = coll.dobj[wdiag][key][wcam]
     doptics = coll.dobj[wdiag][key]['doptics']
+    dproj = coll.check_diagnostic_vos_proj()
+    lproj = ['cross', 'hor', '3d']
 
     # ---------------------------
     # column names
     # ---------------------------
 
-    lcol.append([wcam, '2d', 'pinhole', 'optics', 'los', 'vos'])
+    lcol.append([
+        wcam, '2d', 'pinhole', 'optics',
+        'los', 'vos_proj', 'vos_resRZPhi',
+    ])
 
     # ---------------------------
     # data
@@ -164,8 +169,19 @@ def _show_details(coll=None, key=None, lcol=None, lar=None, show=None):
             nn = din['los']
         arr.append(nn)
 
-        # vos
-        nn = ''
+        # vos_proj
+        nn = ', '.join([pp for pp in lproj if kcam in dproj[pp]])
+        arr.append(nn)
+
+        # vos_res
+        if doptics[kcam].get('dvos', {}).get('keym') is None:
+            nn = ''
+        else:
+            nn = (
+                doptics[kcam]['dvos']['res_RZ']
+                + [doptics[kcam]['dvos']['res_phi']]
+            )
+            nn = str(tuple(nn))
         arr.append(nn)
 
         # aggregate
