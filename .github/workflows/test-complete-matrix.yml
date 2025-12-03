@@ -1,14 +1,14 @@
 name: Complete testing matrix
 
-on:
-  push:
-    branches:
-      - devel
-      - master
-  pull_request:
-    branches:
-      - devel
-      - master
+on: push
+  #push:
+    #branches:
+      #- devel
+      #- master
+  #pull_request:
+    #branches:
+      #- devel
+      #- master
 
 jobs:
   build:
