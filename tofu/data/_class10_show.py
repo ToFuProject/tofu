@@ -13,10 +13,12 @@ Created on Wed Jul 24 09:36:24 2024
 
 
 _LORDER = [
-    'is2d', 'spectro', 'PHA',
-    'camera', 'signal',
-    'los', 'vos',
-    'nb geom_matrix',
+    'algo', 'chain', 'conv_crit',
+    'data_in',
+    'geometry',
+    'isotropic', ' matrix',
+    'operator',  'positive',
+    'retrofit', 'sigma_in', 'sol', 'solver',
 ]
 
 
@@ -32,7 +34,6 @@ def _show(coll=None, which=None, lcol=None, lar=None, show=None):
     # column names
     # ---------------------------
 
-    wcam = coll._which_cam
     lcol.append([which] + _LORDER)
 
     # ---------------------------
@@ -51,50 +52,23 @@ def _show(coll=None, which=None, lcol=None, lar=None, show=None):
         arr = [k0]
 
         # add nb of func of each type
-        ddiag = coll.dobj[which][k0]
-        lcam = ddiag[wcam]
+        dinv = coll.dobj[which][k0]
 
         # loop
         for k1 in _LORDER:
 
-            # parameters
-            if k1 in ['is2d', 'spectro', 'PHA', 'nb geom_matrix']:
-                nn = str(ddiag.get(k1))
-
-            # cameras, signal
-            elif k1 in ['camera', 'signal']:
-                if ddiag.get(k1) is None:
+            # data_in
+            if k1 in ['data_in']:
+                if dinv.get(k1) is None:
                     nn = ''
-                elif len(ddiag[k1]) <= 3:
-                    nn = str(ddiag[k1])
+                elif len(dinv[k1]) <= 3:
+                    nn = str(dinv[k1])
                 else:
-                    nn = f'[{ddiag[k1][0]}, ..., {ddiag[k1][-1]}]'
+                    nn = f'[{dinv[k1][0]}, ..., {dinv[k1][-1]}]'
 
             # los
-            elif k1 == 'los':
-                nlos = len([
-                    kcam for kcam in lcam
-                    if ddiag['doptics'][kcam].get('los') is not None
-                ])
-                nn = f"{nlos} / {len(lcam)}"
-
-            # vos
-            elif k1 == 'vos':
-                dproj = coll.check_diagnostic_vos_proj(k0)
-                lproj = []
-                partial = 0
-                for kproj in ['3d', 'cross', 'hor']:
-                    if all([kcam in dproj[kproj] for kcam in lcam]):
-                        lproj.append(kproj)
-                    elif any([kcam in dproj[kproj] for kcam in lcam]):
-                        partial = True
-
-                if len(lproj) > 0:
-                    nn = ', '.join(lproj)
-                elif partial is True:
-                    nn = 'partial'
-                else:
-                    nn = 'False'
+            else:
+                nn = str(dinv.get(k1))
 
             arr.append(nn)
 
