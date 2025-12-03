@@ -3523,67 +3523,68 @@ cdef LOS_sino_Tor(double D0, double D1, double D2, double u0, double u1,
     return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p, ImpTheta, phi
 
 
+## NOT USED ???
+# cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
+                                  # double dirv0, double dirv1, double dirv2,
+                                  # double circ_radius, double circ_normz,
+                                  # double[9] results,
+                                  # bint is_LOS_Mode=False,
+                                  # double kOut=C_INF) nogil:
+    # cdef double[3] dirv, orig
+    # cdef double[2] res
+    # cdef double normu, normu_sqr
+    # cdef double kPMin
 
-cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
-                                  double dirv0, double dirv1, double dirv2,
-                                  double circ_radius, double circ_normz,
-                                  double[9] results,
-                                  bint is_LOS_Mode=False,
-                                  double kOut=C_INF) nogil:
-    cdef double[3] dirv, orig
-    cdef double[2] res
-    cdef double normu, normu_sqr
-    cdef double kPMin
+    # normu_sqr = dirv0 * dirv0 + dirv1 * dirv1 + dirv2 * dirv2
+    # normu = c_sqrt(normu_sqr)
+    # dirv[0] = dirv0
+    # dirv[2] = dirv2
+    # dirv[1] = dirv1
+    # orig[0] = orig0
+    # orig[1] = orig1
+    # orig[2] = orig2
 
-    normu_sqr = dirv0 * dirv0 + dirv1 * dirv1 + dirv2 * dirv2
-    normu = c_sqrt(normu_sqr)
-    dirv[0] = dirv0
-    dirv[2] = dirv2
-    dirv[1] = dirv1
-    orig[0] = orig0
-    orig[1] = orig1
-    orig[2] = orig2
+    # if dirv0 == 0. and dirv1 == 0.:
+        # kPMin = (circ_normz-orig2)/dirv2
+    # else:
+        # _dt.dist_los_circle_core(dirv, orig,
+                                # circ_radius, circ_normz,
+                                # normu_sqr, res)
+        # kPMin = res[0]
+        # if is_LOS_Mode and kPMin > kOut:
+            # kPMin = kOut
 
-    if dirv0 == 0. and dirv1 == 0.:
-        kPMin = (circ_normz-orig2)/dirv2
-    else:
-        _dt.dist_los_circle_core(dirv, orig,
-                                circ_radius, circ_normz,
-                                normu_sqr, res)
-        kPMin = res[0]
-        if is_LOS_Mode and kPMin > kOut:
-            kPMin = kOut
+    # # Computing the point's coordinates.........................................
+    # cdef double PMin0 = orig0 + kPMin * dirv0
+    # cdef double PMin1 = orig1 + kPMin * dirv1
+    # cdef double PMin2 = orig2 + kPMin * dirv2
+    # cdef double PMin2norm = c_sqrt(PMin0**2+PMin1**2)
+    # cdef double RMin = c_sqrt((PMin2norm - circ_radius)**2
+                             # + (PMin2   - circ_normz)**2)
+    # cdef double vP0 = PMin2norm - circ_radius
+    # cdef double vP1 = PMin2     - circ_normz
+    # cdef double Theta = c_atan2(vP1, vP0)
+    # cdef double ImpTheta = Theta if Theta>=0 else Theta + c_pi
+    # cdef double er2D0 = c_cos(ImpTheta)
+    # cdef double er2D1 = c_sin(ImpTheta)
+    # cdef double p0 = vP0*er2D0 + vP1*er2D1
+    # cdef double eTheta0 = -PMin1 / PMin2norm
+    # cdef double eTheta1 =  PMin0 / PMin2norm
+    # cdef double normu0 = dirv0/normu
+    # cdef double normu1 = dirv1/normu
+    # cdef double phi = c_asin(-normu0 * eTheta0 - normu1 * eTheta1)
+    # # Filling the results ......................................................
+    # results[0] = PMin0
+    # results[1] = PMin1
+    # results[2] = PMin2
+    # results[3] = kPMin
+    # results[4] = RMin
+    # results[5] = Theta
+    # results[6] = p0
+    # results[7] = ImpTheta
+    # results[8] = phi
+    # return
 
-    # Computing the point's coordinates.........................................
-    cdef double PMin0 = orig0 + kPMin * dirv0
-    cdef double PMin1 = orig1 + kPMin * dirv1
-    cdef double PMin2 = orig2 + kPMin * dirv2
-    cdef double PMin2norm = c_sqrt(PMin0**2+PMin1**2)
-    cdef double RMin = c_sqrt((PMin2norm - circ_radius)**2
-                             + (PMin2   - circ_normz)**2)
-    cdef double vP0 = PMin2norm - circ_radius
-    cdef double vP1 = PMin2     - circ_normz
-    cdef double Theta = c_atan2(vP1, vP0)
-    cdef double ImpTheta = Theta if Theta>=0 else Theta + c_pi
-    cdef double er2D0 = c_cos(ImpTheta)
-    cdef double er2D1 = c_sin(ImpTheta)
-    cdef double p0 = vP0*er2D0 + vP1*er2D1
-    cdef double eTheta0 = -PMin1 / PMin2norm
-    cdef double eTheta1 =  PMin0 / PMin2norm
-    cdef double normu0 = dirv0/normu
-    cdef double normu1 = dirv1/normu
-    cdef double phi = c_asin(-normu0 * eTheta0 - normu1 * eTheta1)
-    # Filling the results ......................................................
-    results[0] = PMin0
-    results[1] = PMin1
-    results[2] = PMin2
-    results[3] = kPMin
-    results[4] = RMin
-    results[5] = Theta
-    results[6] = p0
-    results[7] = ImpTheta
-    results[8] = phi
-    return
 
 cdef inline void NEW_los_sino_tor_vec(int nlos,
                                       double[:,::1] origins,
