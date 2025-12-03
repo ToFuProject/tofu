@@ -10,6 +10,7 @@ py.install_sources([
     'utils.py',
     'defaults.py',
     '_plot.py',
+    '_physics.py',
     'utils.py',
 ],
 subdir: 'tofu',  # Folder relative to site-packages to install to
