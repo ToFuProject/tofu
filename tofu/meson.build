@@ -20,7 +20,7 @@ subdir: 'tofu',  # Folder relative to site-packages to install to
 # ################################
 
 pure_subdirs = [
-  #'data',
+  # 'data',
   'spectro',
   'tests',
   'benchmarks',    # needs geom
