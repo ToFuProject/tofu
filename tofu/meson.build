@@ -8,6 +8,7 @@ py.install_sources([
     'py.typed',
     'pathfile.py',
     'utils.py',
+    'defaults.py',
     '_plot.py',
     'utils.py',
 ],
