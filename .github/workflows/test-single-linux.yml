@@ -26,7 +26,8 @@ jobs:
           sudo apt install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
 
     # git checkout
-    - uses: actions/checkout@v5
+    - name: git checkout
+      uses: actions/checkout@v5
       with:
         # https://github.com/marketplace/actions/checkout#usage
         fetch-depth: 0   # to fetch all history from all branches
