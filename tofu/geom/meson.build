@@ -7,6 +7,7 @@ py.install_sources([
     '__init__.py',
     '_def.py',
     '_def_config.py',
+    '_check_optics.py',
     '_core.py',
     '_core_optics.py',
     '_comp.py',
