@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
-          # macOS-latest: issue with latex
+          # macOS-latest: issue with latex + meson fails build
           # windows-latest: issue with TcL install error
         python-version: ['3.9', '3.10', '3.11']
         exclude:
@@ -36,7 +36,7 @@ jobs:
         elif [ "$RUNNER_OS" == "macOS" ]; then
           # not enough to fix latex issue  
           sudo brew install --cask mactex
-        else
+        elif [ "$RUNNER_OS" != "Linux" ]; then
           echo "$RUNNER_OS not supported"
           exit 0
         fi
