@@ -84,7 +84,7 @@ from tofu.utils import save, load, load_from_imas, calc_from_imas
 import tofu._plot as _plot
 import tofu.geom as geom
 from tofu.geom.utils import create_config as load_config
-# import tofu.data as data
+import tofu.data as data
 import tofu.spectro as spectro
 import tofu.tests as tests
 import tofu.benchmarks as benchmarks
