@@ -29,6 +29,7 @@ jobs:
 
     # Install latex
     - name: Install latex for matplotlib
+      shell: bash
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt update
