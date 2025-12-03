@@ -31,6 +31,7 @@ jobs:
     - name: Install latex for matplotlib
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt update
           sudo apt install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
         elif [ "$RUNNER_OS" == "macOS" ]; then
           # not enough to fix latex issue  
