@@ -32,7 +32,6 @@ jobs:
           exit 1
         fi
 
-    # git checkout
     - name: git checkout
       uses: actions/checkout@v5
         # https://github.com/marketplace/actions/checkout#usage
