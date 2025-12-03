@@ -150,7 +150,7 @@ class Diagnostic(Previous):
         if which == self._which_diagnostic:
             return _show._show_details
         else:
-            super()._get_show_details(which)
+            return super()._get_show_details(which)
 
     # -----------------
     # utilities

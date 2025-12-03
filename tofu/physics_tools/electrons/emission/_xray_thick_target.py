@@ -10,7 +10,7 @@ import matplotlib.gridspec as gridspec
 import datastock as ds
 
 
-from .. import _utils
+from .. import _convert
 
 
 # ##############################################################
@@ -57,7 +57,7 @@ def anisotropy(
     # -----------
 
     # gamma => beta
-    beta = _utils.convert_momentum_velocity_energy(
+    beta = _convert.convert_momentum_velocity_energy(
         gamma=gamma,
     )['beta']['data']
 
@@ -210,7 +210,7 @@ def dcross_ei(
     )
 
     # useful for q0 = minimum momentum transfer (eV.s/m)
-    gamma = _utils.convert_momentum_velocity_energy(
+    gamma = _convert.convert_momentum_velocity_energy(
         energy_kinetic_eV=E_re_eV,
     )['gamma']['data']
 
@@ -615,7 +615,7 @@ def plot_dcross_vs_Salvat(
     )['dcross_ei_Ere']['data']
 
     # beta
-    beta = _utils.convert_momentum_velocity_energy(
+    beta = _convert.convert_momentum_velocity_energy(
         energy_kinetic_eV=E_re,
     )['beta']['data']
 

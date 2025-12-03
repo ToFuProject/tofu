@@ -1320,11 +1320,12 @@ def _plot_diag_geom(
             if is2d and k0 in key_cam and dax.get(kax) is not None:
                 ax = dax[kax]['handle']
                 if k1 == 'o':
-                    ax.plot(
-                        v1['x0'],
-                        v1['x1'],
-                        **v1.get('props', {}),
-                    )
+                    if v1.get('x0') is not None:
+                        ax.plot(
+                            v1['x0'],
+                            v1['x1'],
+                            **v1.get('props', {}),
+                        )
 
 
 # ################################################################

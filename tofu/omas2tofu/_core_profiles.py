@@ -79,8 +79,23 @@ def _get_subkey(
         # interpolate
 
         elif len(d1d_all) > 1:
-            msg = "Multiple matching 1d (core_profiles) <=> 2d (equilibrium)"
-            raise NotImplementedError(msg)
+
+            keep, ii = True, 0
+            lprio = ['rhopn', 'rhotn', 'psi', 'phi']
+            while keep is True and ii < len(lprio):
+                lk1 = [
+                    kk for kk, vv in d1d_all.items()
+                    if lprio[ii] in kk and lprio[ii] in vv
+                ]
+                if len(lk1) == 1:
+                    k1d = lk1[0]
+                    k2dn = d1d_all[k1d]
+                    keep = False
+                else:
+                    ii += 1
+            if keep is True:
+                msg = "Multiple matching 1d (cprof) <=> 2d (eq)"
+                raise NotImplementedError(msg)
 
         else:
             msg = "Time-varying radial interpolation"

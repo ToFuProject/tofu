@@ -115,21 +115,25 @@ def main(
         angle1f = angle1f * np.pi/180.
 
     # unit vectors
-    vx = (
-        np.cos(angle1f)
-        * (np.cos(angle0f) * (nin[0]) + np.sin(angle0f) * e0[0])
-        + np.sin(angle1f) * e1[0]
-    )
-    vy = (
-        np.cos(angle1f)
-        * (np.cos(angle0f) * (nin[1]) + np.sin(angle0f) * e0[1])
-        + np.sin(angle1f) * e1[1]
-    )
-    vz = (
-        np.cos(angle1f)
-        * (np.cos(angle0f) * (nin[2]) + np.sin(angle0f) * e0[2])
-        + np.sin(angle1f) * e1[2]
-    )
+    cos0 = np.cos(angle0f)
+    sin0 = np.sin(angle0f)
+    cos1 = np.cos(angle1f)
+    sin1 = np.sin(angle1f)
+
+    # unit vectors
+    vx = cos1 * (cos0 * nin[0] + sin0 * e0[0]) + sin1 * e1[0]
+    vy = cos1 * (cos0 * nin[1] + sin0 * e0[1]) + sin1 * e1[1]
+    vz = cos1 * (cos0 * nin[2] + sin0 * e0[2]) + sin1 * e1[2]
+
+    # -------------
+    # solid angles
+    # -------------
+
+    dang0 = np.diff(angle0f[:, 0])
+    dang1 = np.diff(angle1f[0, :])
+    dang0 = np.r_[dang0, dang0[-1]]
+    dang1 = np.r_[dang1, dang1[-1]]
+    solid_angles = cos1 * dang0[:, None] * dang1[None, :]
 
     # -------------
     # compute
@@ -156,7 +160,7 @@ def main(
         strict=strict,
     )
 
-    return
+    return solid_angles
 
 
 # ########################################################

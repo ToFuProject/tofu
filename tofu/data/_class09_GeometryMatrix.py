@@ -83,7 +83,7 @@ class GeometryMatrix(Previous):
         if which in [self._which_gmat, self._which_gmat.replace('_', ' ')]:
             return _show._show_details
         else:
-            super()._get_show_details(which)
+            return super()._get_show_details(which)
 
     # -----------------
     # get concatenated geometry matrix
