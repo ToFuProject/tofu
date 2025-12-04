@@ -613,6 +613,13 @@ def _store(
             'reg': regularity,
             'niter': niter,
         })
+    else:
+        dobj[winv][keyinv].update({
+            'chi2n': f"{keyinv}_chi2n",
+            'mu': f"{keyinv}_mu",
+            'reg': f"{keyinv}_regularity",
+            'niter': f"{keyinv}_niter",
+        })
 
     # update instance
     coll.update(dobj=dobj, dref=dref, ddata=ddata)
