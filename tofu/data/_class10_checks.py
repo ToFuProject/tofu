@@ -120,8 +120,9 @@ def _compute_check(
     )
 
     # key_inv
+    winv = coll._which_inversion
     key = ds._generic_check._obj_key(
-        d0=coll.dobj.get('inversions', {}),
+        d0=coll.dobj.get(winv, {}),
         short='inv',
         key=key,
     )

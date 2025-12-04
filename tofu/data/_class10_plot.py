@@ -44,11 +44,8 @@ def _plot_inversion_check(
 ):
 
     # key
-    if 'inversions' not in coll.dobj.keys():
-        msg = 'No inversions available!'
-        raise Exception(msg)
-
-    lk = list(coll.dobj['inversions'].keys())
+    winv = coll._which_inversion
+    lk = list(coll.dobj[winv].keys())
     keyinv = ds._generic_check._check_var(
         key, 'key',
         default=None,
@@ -59,9 +56,9 @@ def _plot_inversion_check(
     wm = coll._which_mesh
     wbs = coll._which_bsplines
     wgmat = coll._which_gmat
-    keymat = coll.dobj['inversions'][keyinv]['matrix']
-    key_data = coll.dobj['inversions'][keyinv]['data_in']
-    key_retro = coll.dobj['inversions'][keyinv]['retrofit']
+    keymat = coll.dobj[winv][keyinv]['matrix']
+    key_data = coll.dobj[winv][keyinv]['data_in']
+    key_retro = coll.dobj[winv][keyinv]['retrofit']
     keybs = coll.dobj[wgmat][keymat]['bsplines']
     key_diag = coll.dobj[wgmat][keymat]['diagnostic']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
@@ -346,10 +343,10 @@ def _plot_inversion_prepare(
         reg = coll.ddata[f'{keyinv}_reg']['data']
         niter = coll.ddata[f'{keyinv}_niter']['data']
     else:
-        chi2n = None    # coll.dobj['inversions'][keyinv]['chi2n']
-        mu = None       # coll.dobj['inversions'][keyinv]['mu']
-        reg = None      # coll.dobj['inversions'][keyinv]['reg']
-        niter = None    # coll.dobj['inversions'][keyinv]['niter']
+        chi2n = None    # coll.dobj[winv][keyinv]['chi2n']
+        mu = None       # coll.dobj[winv][keyinv]['mu']
+        reg = None      # coll.dobj[winv][keyinv]['reg']
+        niter = None    # coll.dobj[winv][keyinv]['niter']
 
     return (
         dlos_n, dref_los,

@@ -584,8 +584,9 @@ def _store(
     kretro = f'{keyinv}_retro'
 
     # add inversion
+    winv = coll._which_inversion
     dobj = {
-        'inversions': {
+        winv: {
             keyinv: {
                 'retrofit': kretro,
                 'data_in': key_data,
@@ -606,11 +607,18 @@ def _store(
 
     # adjust for time
     if notime is True:
-        dobj['inversions'][keyinv].update({
+        dobj[winv][keyinv].update({
             'chi2n': chi2n,
             'mu': mu,
             'reg': regularity,
             'niter': niter,
+        })
+    else:
+        dobj[winv][keyinv].update({
+            'chi2n': f"{keyinv}_chi2n",
+            'mu': f"{keyinv}_mu",
+            'reg': f"{keyinv}_regularity",
+            'niter': f"{keyinv}_niter",
         })
 
     # update instance

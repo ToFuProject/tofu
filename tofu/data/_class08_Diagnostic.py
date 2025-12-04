@@ -13,6 +13,7 @@ import numpy as np
 from ._class07_Camera import Camera as Previous
 from . import _class8_check as _check
 from . import _class08_show as _show
+from . import _class08_show_synth_sig as _show_synth_sig
 from . import _class8_compute as _compute
 from . import _class08_get_data as _get_data
 from . import _class08_concatenate_data as _concatenate
@@ -52,7 +53,9 @@ __all__ = ["Diagnostic"]
 
 
 class Diagnostic(Previous):
-    _which_diagnostic = "diagnostic"
+
+    _which_diagnostic = 'diagnostic'
+    _which_synth_sig = 'synth sig'
 
     def add_diagnostic(
         self,
@@ -191,12 +194,16 @@ class Diagnostic(Previous):
     def _get_show_obj(self, which=None):
         if which == self._which_diagnostic:
             return _show._show
+        elif which == self._which_synth_sig:
+            return _show_synth_sig._show
         else:
             return super()._get_show_obj(which)
 
     def _get_show_details(self, which=None):
         if which == self._which_diagnostic:
             return _show._show_details
+        elif which == self._which_synth_sig:
+            return _show_synth_sig._show_details
         else:
             return super()._get_show_details(which)
 
