@@ -6,6 +6,9 @@ Created on Wed Jul 24 09:36:24 2024
 """
 
 
+import numpy as np
+
+
 #############################################
 #############################################
 #       DEFAULTS
@@ -91,20 +94,31 @@ def _show_details(coll=None, key=None, lcol=None, lar=None, show=None):
     # get basics
     # ---------------------------
 
+    winv = coll._which_inversion
+    ldata_in = coll.dobj[winv][key]['data_in']
+
+    wgmat = coll._which_gmat
+    key_matrix = coll.dobj[winv][key]['matrix']
+    key_cam = coll.dobj[wgmat][key_matrix]['camera']
     wcam = coll._which_cam
-    wdiag = coll._which_diagnostic
-    lcam = coll.dobj[wdiag][key][wcam]
-    doptics = coll.dobj[wdiag][key]['doptics']
-    dproj = coll.check_diagnostic_vos_proj()
-    lproj = ['cross', 'hor', '3d']
+
+    sigma = coll.dobj[winv][key]['sigma_in']
+
+    # cam-specific fit chi2n
+    # TODO: revize inv storing to store normalized err per channel
 
     # ---------------------------
     # column names
     # ---------------------------
 
     lcol.append([
-        wcam, '2d', 'pinhole', 'optics',
-        'los', 'vos_proj', 'vos_resRZPhi',
+        'camera',
+        'shape',
+        'data_in',
+        'shape',
+        'sol',
+        'retrofit',
+        '< delta / sigma >',
     ])
 
     # ---------------------------
@@ -112,50 +126,33 @@ def _show_details(coll=None, key=None, lcol=None, lar=None, show=None):
     # ---------------------------
 
     lar0 = []
-    for kcam in lcam:
+    for ii, kdata in enumerate(ldata_in):
 
-        din = doptics[kcam]
+        # camera
+        kcam = key_cam[ii]
+        arr = [kcam, str(coll.dobj[wcam][kcam]['dgeom']['shape'])]
 
-        # initialize with key, type
-        arr = [kcam]
+        # data_in
+        arr += [kdata, str(coll.ddata[kdata]['data'].shape)]
 
-        # is2d
-        arr.append(str(coll.dobj[wcam][kcam]['dgeom']['nd'] == '2d'))
+        # sol
+        arr.append(coll.dobj[winv][key]['sol'])
 
-        # pinhole
-        arr.append(str(din['pinhole']))
+        # retrofit
+        kretro = f"{coll.dobj[winv][key]['retrofit']}_{key_cam[ii]}"
+        arr.append(kretro)
 
-        # optics
-        if len(din['optics']) > 5:
-            nn = (
-                f"[{din['optics'][0]}, {din['optics'][1]}, "
-                "..., "
-                f"{din['optics'][-2]}, {din['optics'][-1]}]"
-            )
-        else:
-            nn = str(din['optics'])
-        arr.append(nn)
-
-        # los
-        if din.get('los') is None:
-            nn = 'False'
-        else:
-            nn = din['los']
-        arr.append(nn)
-
-        # vos_proj
-        nn = ', '.join([pp for pp in lproj if kcam in dproj[pp]])
-        arr.append(nn)
-
-        # vos_res
-        if doptics[kcam].get('dvos', {}).get('keym') is None:
-            nn = ''
-        else:
-            nn = (
-                doptics[kcam]['dvos']['res_RZ']
-                + [doptics[kcam]['dvos']['res_phi']]
-            )
-            nn = str(tuple(nn))
+        # delta / sigma
+        data = coll.ddata[kdata]['data']
+        sig = coll.ddata[kretro]['data']
+        delta = sig - data
+        if sigma is None:
+            sigma = 1.
+        elif isinstance(sigma, str):
+            sigma = coll.ddata[sigma]['data']
+        elif np.isscalar(sigma):
+            pass
+        nn = f"{np.nanmean(delta / sigma): 1.3e}"
         arr.append(nn)
 
         # aggregate

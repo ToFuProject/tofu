@@ -111,11 +111,11 @@ class Inversion(Previous):
         else:
             return super()._get_show_obj(which)
 
-    # def _get_show_details(self, which=None):
-        # if which == self._which_inversion:
-            # return _show._show_details
-        # else:
-            # return super()._get_show_details(which)
+    def _get_show_details(self, which=None):
+        if which == self._which_inversion:
+            return _show._show_details
+        else:
+            return super()._get_show_details(which)
 
     # -----------------
     # synthetic data
