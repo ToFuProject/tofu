@@ -59,7 +59,7 @@ try:
     import imas
     from imas import imasdef
 except Exception as err:
-    raise Exception('imas not available')
+    raise Exception(f'imas not available: {str(err)}')
 
 
 __all__ = [
@@ -2012,14 +2012,14 @@ class MultiIDSLoader(object):
         # ----------------------
         # lids determines order in which ids are read
         # may be important in case 2d mesh only exists in one ids!
-        
+
         lids = sorted(dsig.keys())
         if 'equilibrium' in lids:
             lids = ['equilibrium'] + [ids for ids in lids if ids != 'equilibrium']
 
         # -------------------------
         # data source consistency
-        
+
         _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
             lids, upper=True, errshot=False, errExp=False,
             dids=self._dids, didd=self._didd,

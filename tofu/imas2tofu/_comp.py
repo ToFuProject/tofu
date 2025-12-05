@@ -44,7 +44,10 @@ _BOOL = (bool, np.bool_)
 
 _DSHORT = _defimas2tofu._dshort
 _DCOMP = _defimas2tofu._dcomp
-_DDUNITS = imas.dd_units.DataDictionaryUnits()
+try:
+    _DDUNITS = imas.dd_units.DataDictionaryUnits()
+except Exception:
+    _DDUNITS = None
 
 _ISCLOSE = True
 _POS = False
