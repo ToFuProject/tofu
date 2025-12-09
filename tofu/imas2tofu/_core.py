@@ -57,7 +57,10 @@ except Exception as err:
 # imas
 try:
     import imas
-    from imas import imasdef
+    try:
+        from imas import imasdef
+    except Exception:
+        imasdef = None
 except Exception as err:
     raise Exception(f'imas not available: {str(err)}')
 
