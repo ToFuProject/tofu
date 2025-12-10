@@ -1189,13 +1189,13 @@ class MultiIDSLoader(object):
                 ids = [ids]
 
             # check ids is allowed
-            for ids_ in ids:
-                if not ids_ in self._lidsnames:
-                    msg = (
-                        "ids {ids_} matched no known imas ids !"
-                        f"  => Available ids are:\n{repr(self._lidsnames)}"
-                    )
-                    raise Exception(msg)
+            # for ids_ in ids:
+            #     if not ids_ in self._lidsnames:
+            #         msg = (
+            #             "ids {ids_} matched no known imas ids !"
+            #             f"  => Available ids are:\n{repr(self._lidsnames)}"
+            #         )
+            #         raise Exception(msg)
 
             # initialise dict
             for k in ids:
