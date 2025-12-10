@@ -57,6 +57,7 @@ except Exception as err:
 # imas
 try:
     import imas
+    from imas.ids_defs import HDF5_BACKEND
     try:
         from imas import imasdef
     except Exception:
@@ -964,11 +965,7 @@ class MultiIDSLoader(object):
                 if params[kk] is None:
                     params[kk] = vv
 
-            # convert backend str => pointer
-            params['backend'] = getattr(
-                imasdef,
-                f"{params['backend']}_BACKEND".upper(),
-            )
+            params['backend'] = HDF5_BACKEND
 
             # create entry
             idd = imas.DBEntry(
