@@ -299,9 +299,9 @@ def get_fsig(sig):
 
         # convert from IMAS classes to numpy / float etc
         for ii in range(len(sig)):
-            if isinstance(imas.ids_primitive.IDSNumericArray):
+            if isinstance(sig[ii], imas.ids_primitive.IDSNumericArray):
                 sig[ii] = np.array(sig[ii])
-            elif isinstance(imas.ids_primitive.IDSNumeric0D):
+            elif isinstance(sig[ii], imas.ids_primitive.IDSNumeric0D):
                 pass
             elif isinstance(sig[ii], imas.ids_primitive.IDSFloat0D):
                 sig[ii] = float(sig[ii])
