@@ -301,8 +301,6 @@ def get_fsig(sig):
         for ii in range(len(sig)):
             if isinstance(sig[ii], imas.ids_primitive.IDSNumericArray):
                 sig[ii] = np.array(sig[ii])
-            elif isinstance(sig[ii], imas.ids_primitive.IDSNumeric0D):
-                pass
             elif isinstance(sig[ii], imas.ids_primitive.IDSFloat0D):
                 sig[ii] = float(sig[ii])
             elif isinstance(sig[ii], imas.ids_primitive.IDSInt0D):
