@@ -297,6 +297,19 @@ def get_fsig(sig):
                         raise Exception(msg)
                     sig[jj] = sig[jj][ind[0]]
 
+        # convert from IMAS classes to numpy / float etc
+        for ii in range(len(sig)):
+            if isinstance(imas.ids_primitive.IDSNumericalArray):
+                sig[ii] = np.array(sig[ii])
+            elif isinstance(sig[ii], imas.ids_primitive.IDSFloat0D):
+                sig[ii] = float(sig[ii])
+            elif isinstance(sig[ii], imas.ids_primitive.IDSInt0D):
+                sig[ii] = int(sig[ii])
+            elif isinstance(sig[ii], imas.ids_primitive.IDSString0D):
+                sig[ii] = str(sig[ii])
+            elif isinstance(sig[ii], imas.ids_primitive.IDSString1D):
+                sig[ii] = str(sig[ii])
+
         # Conditions for stacking / sqeezing sig
         lc = [
             (
