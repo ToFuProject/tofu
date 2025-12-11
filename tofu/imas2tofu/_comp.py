@@ -631,6 +631,17 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     for ii in range(0, len(data)):
         if isinstance(data[ii], imas.ids_primitive.IDSNumericArray):
             data[ii] = data[ii].value
+        if hasattr(data[ii], '__iter__'):
+            for jj in range(len(data[ii])):
+                if isinstance(data[ii][jj], imas.ids_primitive.IDSNumericArray):
+                    data[ii][jj] = data[ii][jj].value
+
+        c0 = (
+            all([isinstance(vv, np.ndarray) for vv in data[ii]])
+            and all([vv.shape == data[ii][0].shape for vv in data[ii]])
+        )
+        if c0:
+            data[ii] = np.array(data[ii])
 
     # If isclose, check data contains a replicated vector (keep vector only)
     if isclose is True:
