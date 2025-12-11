@@ -663,12 +663,16 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     isempty = [None for ii in range(len(data))]
     if empty is True:
         for ii in range(len(data)):
-            isempty[ii] = (len(data[ii]) == 0
-                           or (isinstance(data[ii], np.ndarray)
-                               and (data[ii].size == 0
-                                    or 0 in data[ii].shape)))
+            isempty[ii] = (
+                len(data[ii]) == 0
+                or (
+                    isinstance(data[ii], np.ndarray)
+                    and (data[ii].size == 0 or 0 in data[ii].shape)
+                )
+            )
             if isinstance(data[ii], np.ndarray) and data[ii].dtype.kind != 'U':
                 isempty[ii] &= bool(np.all(np.isnan(data[ii])))
+
     return data, isempty
 
 
@@ -770,17 +774,22 @@ def _get_data_units(ids=None, sig=None, occ=None,
     # Check data
     isempty = None
     if errdata is None and data is True:
-        out, isempty = _check_data(out,
-                                   pos=pos, nan=nan,
-                                   isclose=isclose, empty=empty)
+        out, isempty = _check_data(
+            out,
+            pos=pos, nan=nan,
+            isclose=isclose, empty=empty,
+        )
         if np.all(isempty):
             msg = ("empty data in {}.{}".format(ids, sig))
             errdata = Exception(msg)
         elif nocc == 1 and flatocc is True:
             out = out[0]
             isempty = isempty[0]
-    return {'data': out, 'units': unit,
-            'isempty': isempty, 'errdata': errdata, 'errunits': errunits}
+
+    return {
+        'data': out, 'units': unit,
+        'isempty': isempty, 'errdata': errdata, 'errunits': errunits,
+    }
 
 
 def get_data_units(dsig=None, occ=None,
