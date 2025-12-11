@@ -627,7 +627,6 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     # ------------
     # Run checks on data
 
-    import pdb; pdb.set_trace()  #space db
     # if imas.ids_primitive.IDSNumericArray
     for ii in range(0, len(data)):
         if isinstance(data[ii], imas.ids_primitive.IDSNumericArray):
@@ -643,7 +642,7 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
         )
         if c0:
             data[ii] = np.array(data[ii])
-
+            
     # If isclose, check data contains a replicated vector (keep vector only)
     if isclose is True:
         for ii in range(0, len(data)):
