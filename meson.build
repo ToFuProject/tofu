@@ -11,7 +11,7 @@ project(
   'c', 'cpp', 'cython',
   license: 'MIT',
   meson_version: '>=1.8.3',
-  version: run_command(['python', 'tofu/_version.py'], check:true).stdout().strip(),
+  version: run_command(['python', 'tofu/version.py'], check:true).stdout().strip(),
   default_options: [
     'buildtype=release',
     'c_std=c11',
