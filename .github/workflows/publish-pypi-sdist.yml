@@ -1,4 +1,4 @@
-name: Publish pip sdist to PyPI
+name: uv publish sdist to PyPI
 
 on:
   release:
@@ -15,28 +15,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    
+      # git checkout
+    - name: git checkout
+      uses: actions/checkout@v5
       with:
-        python-version: '3.9'
-    - name: Display python version
+        # https://github.com/marketplace/actions/checkout#usage
+        fetch-depth: 0   # to fetch all history from all branches
+        fetch-tags: true
+
+    # Install uv
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+          python-version: 3.11
+
+    # Build dist
+    - name: Build the project
       run: |
-        python -c "import sys; print(sys.version)"
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install setuptools wheel twine
-        pip install -r requirements.txt
-    - name: check ref and event
-      run: |
-        echo ${{github.ref}}
-    - name: Build sdist
-      run: |
-        python setup.py sdist
-    - name: Publish source to PyPI
+        uv build
+        rm dist/*whl
+
+    - name: Publish sdist to PyPI
       env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
       run: |
-        twine upload dist/*.tar.gz
+        uv publish

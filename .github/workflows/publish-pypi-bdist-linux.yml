@@ -1,4 +1,4 @@
-name: Publish pip bdist to PyPI - linux
+name: uv publish bdist to PyPI
 
 on:
   release:
@@ -11,24 +11,44 @@ on:
 
 jobs:
   pypi:
-    name: Publish sdist to Pypi
-    runs-on: ubuntu-latest
+    name: Publish bdist to Pypi
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest] 
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-        exclude:
-          - python-version: ['3.11']
-            os: windows-latest
+        os: [ubuntu-latest]   # windows-latest, macOS-latest] 
+        python-version: ['3.9', '3.10', '3.11']
+        #exclude:
+          #- python-version: ['3.11']
+            #os: windows-latest
 
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v5
+      
+      # git checkout
+    - name: git checkout
+      uses: actions/checkout@v5
       with:
-        python-version: ${{ matrix.python-version }}
-    - run: uv build
-    - run: uv publish -t ${{ secrets.PYPI_API_TOKEN }}
+        # https://github.com/marketplace/actions/checkout#usage
+        fetch-depth: 0   # to fetch all history from all branches
+        fetch-tags: true
+
+    # Install uv
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+          python-version: ${{ matrix.python-version }}
+
+    # Build dist
+    - name: Build the project
+      run: |
+        rm dist/*
+        uv build
+        rm dist/*.tar.gz
+
+    - name: Publish bdist to PyPI
+      env:
+        UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        uv publish
