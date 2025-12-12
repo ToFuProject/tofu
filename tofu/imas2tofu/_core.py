@@ -57,9 +57,13 @@ except Exception as err:
 # imas
 try:
     import imas
-    from imas import imasdef
+    from imas.ids_defs import HDF5_BACKEND
+    try:
+        from imas import imasdef
+    except Exception:
+        imasdef = None
 except Exception as err:
-    raise Exception('imas not available')
+    raise Exception(f'imas not available: {str(err)}')
 
 
 __all__ = [
@@ -957,15 +961,11 @@ class MultiIDSLoader(object):
                 user=user, database=database, version=version,
                 backend=backend,
             )
-            for kk,vv in defidd.items():
+            for kk, vv in defidd.items():
                 if params[kk] is None:
                     params[kk] = vv
 
-            # convert backend str => pointer
-            params['backend'] = getattr(
-                imasdef,
-                f"{params['backend']}_BACKEND".upper(),
-            )
+            params['backend'] = HDF5_BACKEND
 
             # create entry
             idd = imas.DBEntry(
@@ -1189,13 +1189,13 @@ class MultiIDSLoader(object):
                 ids = [ids]
 
             # check ids is allowed
-            for ids_ in ids:
-                if not ids_ in self._lidsnames:
-                    msg = (
-                        "ids {ids_} matched no known imas ids !"
-                        f"  => Available ids are:\n{repr(self._lidsnames)}"
-                    )
-                    raise Exception(msg)
+            # for ids_ in ids:
+            #     if not ids_ in self._lidsnames:
+            #         msg = (
+            #             "ids {ids_} matched no known imas ids !"
+            #             f"  => Available ids are:\n{repr(self._lidsnames)}"
+            #         )
+            #         raise Exception(msg)
 
             # initialise dict
             for k in ids:
@@ -2012,14 +2012,14 @@ class MultiIDSLoader(object):
         # ----------------------
         # lids determines order in which ids are read
         # may be important in case 2d mesh only exists in one ids!
-        
+
         lids = sorted(dsig.keys())
         if 'equilibrium' in lids:
             lids = ['equilibrium'] + [ids for ids in lids if ids != 'equilibrium']
 
         # -------------------------
         # data source consistency
-        
+
         _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
             lids, upper=True, errshot=False, errExp=False,
             dids=self._dids, didd=self._didd,
