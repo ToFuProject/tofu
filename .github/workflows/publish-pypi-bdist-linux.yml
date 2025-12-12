@@ -43,9 +43,7 @@ jobs:
     # Build dist
     - name: Build the project
       run: |
-        rm dist/*
-        uv build
-        rm dist/*.tar.gz
+        uv build --wheel
 
     - name: Publish bdist to PyPI
       env:
