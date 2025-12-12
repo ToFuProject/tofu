@@ -34,7 +34,7 @@ dist = ['--include-subprojects']
 name = "tofu"
 readme = "README.md"
 license = "MIT"
-version = "1.8.17"
+dynamic = ["version"]
 description = "TOmography for FUsion toolkit"
 authors = [
     {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
