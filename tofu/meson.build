@@ -4,7 +4,7 @@
 
 py.install_sources([
     '__init__.py',
-    'version.py',
+    '_version.py',
     'py.typed',
     'pathfile.py',
     'utils.py',

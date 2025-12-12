@@ -4,14 +4,14 @@
 # ###################################
 
 
+# version: run_command(['git', 'describe'], capture:true, check:false).stdout().strip().split('-')[0],
+# https://mesonbuild.com/Builtin-options.html
 project(
   'tofu',
   'c', 'cpp', 'cython',
   license: 'MIT',
   meson_version: '>=1.8.3',
-  version: run_command(['tofu/_version.py', '--wheel'], check:true).stdout().strip()
-  # version: run_command(['git', 'describe'], capture:true, check:false).stdout().strip().split('-')[0],
-  # https://mesonbuild.com/Builtin-options.html
+  version: run_command(['python', 'tofu/_version.py'], check:true).stdout().strip(),
   default_options: [
     'buildtype=release',
     'c_std=c11',
