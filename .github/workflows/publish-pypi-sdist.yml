@@ -33,8 +33,7 @@ jobs:
     # Build dist
     - name: Build the project
       run: |
-        uv build
-        rm dist/*whl
+        uv build --sdist
 
     - name: Publish sdist to PyPI
       env:
