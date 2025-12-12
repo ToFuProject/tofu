@@ -44,7 +44,10 @@ _BOOL = (bool, np.bool_)
 
 _DSHORT = _defimas2tofu._dshort
 _DCOMP = _defimas2tofu._dcomp
-_DDUNITS = imas.dd_units.DataDictionaryUnits()
+try:
+    _DDUNITS = imas.dd_units.DataDictionaryUnits()
+except Exception:
+    _DDUNITS = None
 
 _ISCLOSE = True
 _POS = False
@@ -73,22 +76,50 @@ def _prepare_sig_units(sig, units=False):
 
 def get_units(ids, sig, dshort=None, dcomp=None, force=None):
     """ Get units from imas.dd_units.DataDictionaryUnits() """
+
+    # -------------------
+    # check inputs
+    # -------------------
+
     if dshort is None:
         dshort = _DSHORT
     if dcomp is None:
         dcomp = _DCOMP
     if force is None:
         force = True
+
+    # ---------------
+    # get signal name
+    # ---------------
+
     if sig in dshort[ids].keys():
         sig = _prepare_sig_units(dshort[ids][sig]['str'])
     else:
         sig = _prepare_sig_units(sig)
-    units = _DDUNITS.get_units(ids, sig.replace('.', '/'))
 
+    # ---------------
+    # get IMAS units
+    # ---------------
+
+    # AL < 5
+    try:
+        units = _DDUNITS.get_units(ids, sig.replace('.', '/'))
+
+    # AL >= 5 => use tofu units instead (changes would required debugging)
+    except Exception:
+        units = None
+        force = True
+
+    # ----------------------------------------------------------
     # Condition in which to use tofu units instead of imas units
-    c0 = (units is None
-          and force is True
-          and (sig in dshort[ids].keys() or sig in dcomp[ids].keys()))
+    # ----------------------------------------------------------
+
+    c0 = (
+        units is None
+        and force is True
+        and (sig in dshort[ids].keys() or sig in dcomp[ids].keys())
+    )
+
     if c0 is True:
         if sig in dshort[ids].keys():
             tofuunits = dshort[ids][sig].get('units')
@@ -96,6 +127,7 @@ def get_units(ids, sig, dshort=None, dcomp=None, force=None):
             tofuunits = dcomp[ids][sig].get('units')
         if tofuunits != units:
             units = tofuunits
+
     return units
 
 
@@ -264,6 +296,19 @@ def get_fsig(sig):
                                + "\t- nb.of matches: {}".format(len(ind)))
                         raise Exception(msg)
                     sig[jj] = sig[jj][ind[0]]
+
+        # convert from IMAS classes to numpy / float etc
+        for ii in range(len(sig)):
+            if isinstance(sig[ii], imas.ids_primitive.IDSNumericArray):
+                sig[ii] = np.array(sig[ii])
+            elif isinstance(sig[ii], imas.ids_primitive.IDSFloat0D):
+                sig[ii] = float(sig[ii])
+            elif isinstance(sig[ii], imas.ids_primitive.IDSInt0D):
+                sig[ii] = int(sig[ii])
+            elif isinstance(sig[ii], imas.ids_primitive.IDSString0D):
+                sig[ii] = str(sig[ii])
+            elif isinstance(sig[ii], imas.ids_primitive.IDSString1D):
+                sig[ii] = str(sig[ii])
 
         # Conditions for stacking / sqeezing sig
         lc = [
@@ -631,12 +676,16 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     isempty = [None for ii in range(len(data))]
     if empty is True:
         for ii in range(len(data)):
-            isempty[ii] = (len(data[ii]) == 0
-                           or (isinstance(data[ii], np.ndarray)
-                               and (data[ii].size == 0
-                                    or 0 in data[ii].shape)))
+            isempty[ii] = (
+                len(data[ii]) == 0
+                or (
+                    isinstance(data[ii], np.ndarray)
+                    and (data[ii].size == 0 or 0 in data[ii].shape)
+                )
+            )
             if isinstance(data[ii], np.ndarray) and data[ii].dtype.kind != 'U':
                 isempty[ii] &= bool(np.all(np.isnan(data[ii])))
+
     return data, isempty
 
 
@@ -738,17 +787,22 @@ def _get_data_units(ids=None, sig=None, occ=None,
     # Check data
     isempty = None
     if errdata is None and data is True:
-        out, isempty = _check_data(out,
-                                   pos=pos, nan=nan,
-                                   isclose=isclose, empty=empty)
+        out, isempty = _check_data(
+            out,
+            pos=pos, nan=nan,
+            isclose=isclose, empty=empty,
+        )
         if np.all(isempty):
             msg = ("empty data in {}.{}".format(ids, sig))
             errdata = Exception(msg)
         elif nocc == 1 and flatocc is True:
             out = out[0]
             isempty = isempty[0]
-    return {'data': out, 'units': unit,
-            'isempty': isempty, 'errdata': errdata, 'errunits': errunits}
+
+    return {
+        'data': out, 'units': unit,
+        'isempty': isempty, 'errdata': errdata, 'errunits': errunits,
+    }
 
 
 def get_data_units(dsig=None, occ=None,

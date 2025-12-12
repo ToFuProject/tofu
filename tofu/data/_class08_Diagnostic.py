@@ -13,10 +13,13 @@ import numpy as np
 from ._class07_Camera import Camera as Previous
 from . import _class8_check as _check
 from . import _class08_show as _show
+from . import _class08_show_synth_sig as _show_synth_sig
 from . import _class8_compute as _compute
 from . import _class08_get_data as _get_data
 from . import _class08_concatenate_data as _concatenate
 from . import _class8_move as _move
+from . import _class08_move_translate3d_by as _translate3d_by
+from . import _class08_move_rotate3d_by as _rotate3d_by
 from . import _class8_los_data as _los_data
 from . import _class08_interpolate_along_los as _interpolate_along_los
 from . import _class8_equivalent_apertures as _equivalent_apertures
@@ -35,11 +38,12 @@ from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
 from . import _class8_plot_coverage as _plot_coverage
+
 # from . import _class08_save2stp as _save2stp
 from . import _class08_saveload_from_file as _saveload_from_file
 
 
-__all__ = ['Diagnostic']
+__all__ = ["Diagnostic"]
 
 
 # ###############################################################
@@ -51,6 +55,7 @@ __all__ = ['Diagnostic']
 class Diagnostic(Previous):
 
     _which_diagnostic = 'diagnostic'
+    _which_synth_sig = 'synth sig'
 
     def add_diagnostic(
         self,
@@ -67,7 +72,7 @@ class Diagnostic(Previous):
         reflections_type=None,
         key_nseg=None,
         # compute
-        compute=True,
+        compute: bool = True,
         add_points=None,
         convex=None,
         # spectro-only
@@ -77,6 +82,54 @@ class Diagnostic(Previous):
         verb=None,
         **kwdargs,
     ):
+        """Add a diagnostic.
+
+        A diagnostic in this context is one or more similar instruments within the
+        tokamak. Diagnostics are made up of cameras (sensors, pixels) and apertures.
+        To add a diagnostic, the ``Collection`` must already have cameras
+        and apertures added. See the ``add_aperture``, ``add_camera_1d`` and
+        ``add_camera_2d`` functions.
+
+        simply a dictionary which tells tofu:
+
+        - Which cameras it should encompass
+        - Which apertures correspond to each camera and to each pixel
+
+        This in turn allows tofu to compute the optical path for each pixel.
+
+        Parameters
+        ----------
+        key
+            The name of the diagnostic
+        doptics
+            Nested dictionary of the optical paths through the diagnostic. The keys for
+            this dictionary should be the names of the cameras in this diagnostic. Each
+            camera should have a nested dictionary as follows:
+
+            ```
+            "key_cam0': { # Name of the camera
+                'optics': [
+                    # list of the nap0 keys of apertures associated to this cam
+                ]
+                'paths': [
+                    #  bool array indicating which pixel corresponds to each aperture.
+                ]
+            },
+            ...
+            ```
+            The "paths" key is an NxM boolean array, where N is the number of pixels
+            in the camera, and M is the number of apertures. For a simple pinhole camera
+            (`num_apertures=1`) with four sensors (`num_pixels=4`), the paths might be defined
+            as ``'paths': np.ones((4,1), dtype=bool)``.
+
+            For a collimator camera with four apertures and four pixels, the paths key could be
+            defined as ``'paths': np.identity(dtype=bool)``.
+        config
+            a ``tofu.geom.Configuration()`` instance, containing the 2d poloidal
+            cross-section of a tokamak. Used for ray-tracing.
+        compute
+            Compute the etendue and LOS after adding the diagnostic.
+        """
 
         # -----------
         # adding diag
@@ -94,9 +147,9 @@ class Diagnostic(Previous):
         # ---------------------
         # adding etendue / los
 
-        key = list(dobj['diagnostic'].keys())[0]
-        dopt = dobj['diagnostic'][key]['doptics']
-        computable = any([len(v0['optics']) > 0 for v0 in dopt.values()])
+        key = list(dobj["diagnostic"].keys())[0]
+        dopt = dobj["diagnostic"][key]["doptics"]
+        computable = any([len(v0["optics"]) > 0 for v0 in dopt.values()])
         if compute is True and computable:
             self.compute_diagnostic_etendue_los(
                 key=key,
@@ -120,7 +173,7 @@ class Diagnostic(Previous):
                 compute_vos_from_los=compute_vos_from_los,
                 verb=verb,
                 plot=False,
-                store='analytical',
+                store="analytical",
             )
 
     # -----------------
@@ -141,14 +194,18 @@ class Diagnostic(Previous):
     def _get_show_obj(self, which=None):
         if which == self._which_diagnostic:
             return _show._show
+        elif which == self._which_synth_sig:
+            return _show_synth_sig._show
         else:
             return super()._get_show_obj(which)
 
     def _get_show_details(self, which=None):
         if which == self._which_diagnostic:
             return _show._show_details
+        elif which == self._which_synth_sig:
+            return _show_synth_sig._show_details
         else:
-            super()._get_show_details(which)
+            return super()._get_show_details(which)
 
     # -----------------
     # utilities
@@ -179,7 +236,7 @@ class Diagnostic(Previous):
         print_full_doc=None,
         **kwdargs,
     ):
-        """ Return dict of built-in data for chosen cameras
+        """Return dict of built-in data for chosen cameras
 
         data can be:
             'etendue'
@@ -217,10 +274,7 @@ class Diagnostic(Previous):
         key_cam=None,
         flat=None,
     ):
-        """ Return concatenated data for chosen cameras
-
-
-        """
+        """Return concatenated data for chosen cameras"""
         return _concatenate.main(
             coll=self,
             key=key,
@@ -264,9 +318,11 @@ class Diagnostic(Previous):
         plot=None,
         store=None,
         overwrite=None,
+        # debug
         debug=None,
+        debug_vos_from_los=None,
     ):
-        """ Compute the etendue of the diagnostic (per pixel)
+        """Compute the etendue of the diagnostic (per pixel)
 
         Etendue (m2.sr) can be computed analytically or numerically
         If plot, plot the comparison between all computations
@@ -302,7 +358,7 @@ class Diagnostic(Previous):
 
         # compute los angles
         c0 = (
-            any([np.any(np.isfinite(v0['los_x'])) for v0 in dcompute.values()])
+            any([np.any(np.isfinite(v0["los_x"])) for v0 in dcompute.values()])
             and store
         )
         if c0:
@@ -319,6 +375,8 @@ class Diagnostic(Previous):
                 dcompute=dcompute,
                 compute_vos_from_los=compute_vos_from_los,
                 overwrite=overwrite,
+                # debug
+                debug_vos_from_los=debug_vos_from_los,
             )
 
         if return_dcompute is True:
@@ -342,9 +400,7 @@ class Diagnostic(Previous):
         config=None,
         return_vect=None,
     ):
-        """ Return as dict of sang, vect, dV for any set of pts (full 3d)
-
-        """
+        """Return as dict of sang, vect, dV for any set of pts (full 3d)"""
         return _sang_vect.main(
             coll=self,
             # resources
@@ -376,6 +432,9 @@ class Diagnostic(Previous):
         margin_perp=None,
         vect=None,
         segment=None,
+        # e0, e1
+        transpose=None,
+        e0e1=None,
         # mesh slice
         key_mesh=None,
         phi=None,
@@ -404,7 +463,7 @@ class Diagnostic(Previous):
         dvminmax=None,
         markersize=None,
     ):
-        """ Creates a plane perpendicular to los
+        """Creates a plane perpendicular to los
         compute contribution of each point to the signal
 
         return dout
@@ -422,6 +481,9 @@ class Diagnostic(Previous):
             margin_perp=margin_perp,
             vect=vect,
             segment=segment,
+            # e0, e1
+            transpose=transpose,
+            e0e1=e0e1,
             # mesh slice
             key_mesh=key_mesh,
             phi=phi,
@@ -486,13 +548,10 @@ class Diagnostic(Previous):
         dvminmax=None,
         markersize=None,
     ):
-        """ Quantify the resolution of a slice or a full VOS
-
-        """
+        """Quantify the resolution of a slice or a full VOS"""
 
         return _resolution.main(
-            coll=self,
-            **{k0: v0 for k0, v0 in locals().items() if k0 != 'self'}
+            coll=self, **{k0: v0 for k0, v0 in locals().items() if k0 != "self"}
         )
 
     # -----------------
@@ -577,7 +636,7 @@ class Diagnostic(Previous):
         replace_poly=None,
         timing=None,
     ):
-        """ Compute the vos of the diagnostic (per pixel)
+        """Compute the vos of the diagnostic (per pixel)
 
         - poly_margin (0.3) fraction by which the los-estimated vos is widened
         -store:
@@ -636,7 +695,7 @@ class Diagnostic(Previous):
         logic=None,
         reduced=None,
     ):
-        """ Return a dict {proj: [kcam0, kcam1, ...]}
+        """Return a dict {proj: [kcam0, kcam1, ...]}
 
         Where proj is in ['cross', 'hor', '3d']
 
@@ -662,7 +721,7 @@ class Diagnostic(Previous):
         key_cam=None,
         dvos=None,
     ):
-        """ Check dvos and return it if stored """
+        """Check dvos and return it if stored"""
         return _vos._check_get_dvos(
             coll=self,
             key=key,
@@ -676,7 +735,7 @@ class Diagnostic(Previous):
         key_cam=None,
         dvos=None,
     ):
-        """ Return ptsx, ptsy, ptsz from 3d vos """
+        """Return ptsx, ptsy, ptsz from 3d vos"""
         return _vos.get_dvos_xyz(
             coll=self,
             key_diag=key,
@@ -693,7 +752,7 @@ class Diagnostic(Previous):
         overwrite=None,
         replace_poly=None,
     ):
-        """ Store a pre-computed dvos """
+        """Store a pre-computed dvos"""
         _vos._store(
             coll=self,
             key_diag=key_diag,
@@ -714,9 +773,7 @@ class Diagnostic(Previous):
         vos_proj=None,
         return_vect=None,
     ):
-        """ Return a dict of vos, optionally aggregated
-
-        """
+        """Return a dict of vos, optionally aggregated"""
         return _vos_concatenate.main(
             coll=self,
             key_diag=key_diag,
@@ -762,7 +819,7 @@ class Diagnostic(Previous):
         pix1=None,
         tit=None,
     ):
-        """ Compute the image of a mono-wavelength plasma volume
+        """Compute the image of a mono-wavelength plasma volume
 
         Does ray-tracing from the whole plasma volume
         For a set of discrete user-defined wavelengths
@@ -848,8 +905,7 @@ class Diagnostic(Previous):
         store=None,
         debug=None,
     ):
-        """ Get the equivalent projected aperture for each pixel
-        """
+        """Get the equivalent projected aperture for each pixel"""
 
         return _equivalent_apertures.equivalent_apertures(
             coll=self,
@@ -883,7 +939,7 @@ class Diagnostic(Previous):
         rocking_curve=None,
         units=None,
     ):
-        """ Return the wavelength associated to
+        """Return the wavelength associated to
         - 'lamb'
         - 'lambmin'
         - 'lambmax'
@@ -904,9 +960,7 @@ class Diagnostic(Previous):
     # ---------------
 
     def get_optics_cls(self, optics=None):
-        """ Return list of optics and list of their classes
-
-        """
+        """Return list of optics and list of their classes"""
         return _check._get_optics_cls(coll=self, optics=optics)
 
     # def get_diagnostic_doptics(self, key=None):
@@ -926,7 +980,7 @@ class Diagnostic(Previous):
         ravel=None,
         total=None,
     ):
-        """ Return the optics outline """
+        """Return the optics outline"""
         return _compute.get_optics_outline(
             coll=self,
             key=key,
@@ -949,7 +1003,7 @@ class Diagnostic(Previous):
         total=None,
         return_outline=None,
     ):
-        """ Return the optics outline """
+        """Return the optics outline"""
         return _compute.get_optics_poly(
             coll=self,
             key=key,
@@ -966,7 +1020,7 @@ class Diagnostic(Previous):
         self,
         keys=None,
     ):
-        """ Return the optics outline """
+        """Return the optics outline"""
         return _compute.get_optics_as_input_solid_angle(
             coll=self,
             keys=keys,
@@ -1010,7 +1064,6 @@ class Diagnostic(Previous):
         margin_perp=None,
         verb=None,
     ):
-
         if compute is None:
             compute = True
 
@@ -1049,8 +1102,89 @@ class Diagnostic(Previous):
                 # bool
                 verb=verb,
                 plot=False,
-                store='analytical',
+                store="analytical",
             )
+
+    def move_diagnostic_translate3d_by(
+        self,
+        key=None,
+        key_cam=None,
+        # new diag
+        key_new=None,
+        # move params
+        vect_xyz=None,
+        length=None,
+        # computing
+        compute=None,
+        strict=None,
+        # los
+        config=None,
+        key_nseg=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # etendue
+        margin_par=None,
+        margin_perp=None,
+        verb=None,
+    ):
+        """ Translates the desired cameras of diag 'key'
+
+        Movement happens
+            - along the desired 3d unit vector 'vect_xyz'
+            - by desired 'length'
+
+        optionally, vect_xyz and length can be dict (by camera)
+
+        New diagnostic is created with name `key_new`
+
+        """
+
+        return _translate3d_by.main(
+            coll=self,
+            **locals(),
+        )
+
+    def move_diagnostic_rotate3d_by(
+        self,
+        key=None,
+        key_cam=None,
+        # new diag
+        key_new=None,
+        # move params
+        axis_pt=None,
+        axis_vect=None,
+        angle=None,
+        # computing
+        compute=None,
+        strict=None,
+        # los
+        config=None,
+        key_nseg=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # etendue
+        margin_par=None,
+        margin_perp=None,
+        verb=None,
+    ):
+        """ Rotate the desired cameras of diag 'key'
+
+        Movement happens
+            - around the 3d axis defined by (axis_pt, axis_vect)
+            - by desired 'angle'
+
+        optionally, axis_pt, axis_vect and angle can be dict (by camera)
+
+        New diagnostic is created with name `key_new`
+
+        """
+
+        return _rotate3d_by.main(
+            coll=self,
+            **locals(),
+        )
 
     # -----------------
     # computing
@@ -1117,9 +1251,7 @@ class Diagnostic(Previous):
         # return
         returnas=None,
     ):
-        """ Compute synthetic signal for a diagnostic and an emissivity field
-
-        """
+        """Compute synthetic signal for a diagnostic and an emissivity field"""
 
         return _compute_signal.compute_signal(
             coll=self,
@@ -1188,7 +1320,7 @@ class Diagnostic(Previous):
         elements=None,
         colorbar=None,
     ):
-        """ Get rays from plasma points to camera for a spectrometer diag """
+        """Get rays from plasma points to camera for a spectrometer diag"""
 
         return _reverse_rt._from_pts(
             coll=self,
@@ -1249,9 +1381,7 @@ class Diagnostic(Previous):
         dcolor=None,
         dax=None,
     ):
-        """ Compute and plot interpolated data along the los of the diagnostic
-
-        """
+        """Compute and plot interpolated data along the los of the diagnostic"""
         return _interpolate_along_los.main(
             coll=self,
             key_diag=key_diag,
@@ -1295,7 +1425,6 @@ class Diagnostic(Previous):
         # plotting
         plot=None,
     ):
-
         return _signal_moments.binned(
             coll=self,
             key_diag=key_diag,
@@ -1328,7 +1457,7 @@ class Diagnostic(Previous):
         dx1=None,
         default=None,
     ):
-        """ Return a dict with all that's necessary for plotting
+        """Return a dict with all that's necessary for plotting
 
         If no optics is provided, all are returned
 
@@ -1411,7 +1540,6 @@ class Diagnostic(Previous):
         dinc=None,
         connect=None,
     ):
-
         return _plot._plot_diagnostic(
             coll=self,
             # keys
@@ -1486,7 +1614,6 @@ class Diagnostic(Previous):
         # interactivity
         color_dict=None,
     ):
-
         return _plot_vos._plot_diagnostic_vos(
             coll=self,
             key=key,
@@ -1552,7 +1679,7 @@ class Diagnostic(Previous):
         cmap=None,
         dvminmax=None,
     ):
-        """ Plot the geometrical coverage of a diagnostic, in a cross-section
+        """Plot the geometrical coverage of a diagnostic, in a cross-section
 
 
         Parameters
@@ -1622,7 +1749,7 @@ class Diagnostic(Previous):
         pfe_save=None,
         overwrite=None,
     ):
-        """ Save desired diagnostic to a json or stp file
+        """Save desired diagnostic to a json or stp file
 
         Parameters
         ----------
@@ -1659,7 +1786,7 @@ class Diagnostic(Previous):
         pfe=None,
         returnas=False,
     ):
-        """ Adds a diagnostic instance (and necessary optics) from json file
+        """Adds a diagnostic instance (and necessary optics) from json file
 
         Parameters
         ----------

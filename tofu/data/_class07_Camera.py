@@ -3,6 +3,7 @@
 
 # Built-in
 import copy
+from typing import Any, Dict, Optional
 
 
 # tofu
@@ -13,7 +14,7 @@ from . import _class7_compute as _compute
 from . import _class07_legacy as _legacy
 
 
-__all__ = ['Camera']
+__all__ = ["Camera"]
 
 
 # ################################################################
@@ -23,30 +24,33 @@ __all__ = ['Camera']
 
 
 class Camera(Previous):
-
-    _which_cam = 'camera'
+    _which_cam = "camera"
     _ddef = copy.deepcopy(Previous._ddef)
-    _ddef['params']['ddata'].update({
-          'camera': {'cls': str, 'def': ''},
-    })
+    _ddef["params"]["ddata"].update(
+        {
+            "camera": {"cls": str, "def": ""},
+        }
+    )
 
     _dshow = dict(Previous._dshow)
-    _dshow.update({
-        'camera': [
-            'dgeom.type',
-            'dgeom.nd',
-            'dmat.mode',
-            'dgeom.parallel',
-            'dgeom.shape',
-            'dgeom.ref',
-            'dgeom.pix_area',
-            'dgeom.pix_nb',
-            'dgeom.outline',
-            'dgeom.cent',
-            # 'dgeom.cents',
-            # 'dmisc.color',
-        ],
-    })
+    _dshow.update(
+        {
+            "camera": [
+                "dgeom.type",
+                "dgeom.nd",
+                "dmat.mode",
+                "dgeom.parallel",
+                "dgeom.shape",
+                "dgeom.ref",
+                "dgeom.pix_area",
+                "dgeom.pix_nb",
+                "dgeom.outline",
+                "dgeom.cent",
+                # 'dgeom.cents',
+                # 'dmisc.color',
+            ],
+        }
+    )
 
     def _add_camera(
         self,
@@ -56,7 +60,7 @@ class Camera(Previous):
         dmat=None,
         color=None,
     ):
-        key = list(dobj['camera'].keys())[0]
+        key = list(dobj["camera"].keys())[0]
 
         # material
         dref2, ddata2, dmat = _check._dmat(
@@ -69,10 +73,10 @@ class Camera(Previous):
             if dref2 is not None:
                 dref.update(dref2)
                 ddata.update(ddata2)
-            dobj['camera'][key]['dmat'] = dmat
+            dobj["camera"][key]["dmat"] = dmat
 
         # dmisc
-        dobj['camera'][key]['dmisc'] = _class3_check._dmisc(
+        dobj["camera"][key]["dmisc"] = _class3_check._dmisc(
             key=key,
             color=color,
         )
@@ -82,26 +86,27 @@ class Camera(Previous):
 
     def add_camera_1d(
         self,
-        key=None,
-        # geometry
-        dgeom=None,
-        # quantum efficiency
-        dmat=None,
-        # dmisc
+        key: Optional[str] = None,
+        dgeom: Optional[dict[str, Any]] = None,
+        dmat: Optional[dict[str, Any]] = None,
         color=None,
     ):
-        """ add a 1d camera
+        """Add a 1D camera.
 
-        A 1d camera is an unordered set of pixels of indentical outline
-        Its geometry os defined by dgeom
-        Its material properties (i.e: quantum efficiency) in dmat
+        A 1D camera is an unordered set of pixels of indentical outline.
 
-        The geometry in dgeom must contain:
+        Parameters
+        ----------
+        key:
+            The name of the camera
+        dgeom:
+            The geometry of the camera. The geometry must contain the
+            following key-value pairs:
             - 'outline_x0': 1st coordinate of planar outline of a single pixel
             - 'outline_x1': 1st coordinate of planar outline of a single pixel
-            - 'cents_x': x coordinate of the centers of ll pixels
-            - 'cents_y': y coordinate of the centers of ll pixels
-            - 'cents_z': z coordinate of the centers of ll pixels
+            - 'cents_x': x coordinate of the centers of all pixels
+            - 'cents_y': y coordinate of the centers of all pixels
+            - 'cents_z': z coordinate of the centers of all pixels
             - 'nin_x': x coordinate of inward normal unit vector of all pixels
             - 'nin_y': y coordinate of inward normal unit vector of all pixels
             - 'nin_z': z coordinate of inward normal unit vector of all pixels
@@ -111,11 +116,13 @@ class Camera(Previous):
             - 'e1_x': x coordinate of e1 unit vector of all pixels
             - 'e1_y': y coordinate of e1 unit vector of all pixels
             - 'e1_z': z coordinate of e1 unit vector of all pixels
-
-        The material dict, dmat can contain:
+        dmat:
+            The material properties, i.e. quantum efficiency. This dictionary
+            can contain:
             - 'energy': a 1d energy vector , in eV
             - 'qeff': a 1d vector, same size as energy, with values in [0; 1]
-
+        color:
+            TODO
         """
         # check / format input
         dref, ddata, dobj = _check._camera_1d(
@@ -135,21 +142,22 @@ class Camera(Previous):
 
     def add_camera_2d(
         self,
-        key=None,
-        # geometry
-        dgeom=None,
-        # material
-        dmat=None,
-        # dmisc
+        key: Optional[str] = None,
+        dgeom: Optional[dict[str, Any]] = None,
+        dmat: Optional[dict[str, Any]] = None,
         color=None,
     ):
-        """ add a 2d camera
+        """Add a 2D camera.
 
-        A 2d camera is an ordered 2d grid of pixels of indentical outline
-        Its geometry os defined by dgeom
-        Its material properties (i.e: quantum efficiency) in dmat
+        A 2D camera is an ordered 2d grid of pixels of indentical outline.
 
-        The geometry in dgeom must contain:
+        Parameters
+        ----------
+        key:
+            The name of the camera
+        dgeom:
+            The geometry of the camera. The geometry must contain the
+            following key-value pairs:
             - 'outline_x0': 1st coordinate of planar outline of a single pixel
             - 'outline_x1': 1st coordinate of planar outline of a single pixel
             - 'cent': (x, y, z) coordinate of the center of the camera
@@ -158,11 +166,13 @@ class Camera(Previous):
             - 'nin': x coordinate of inward normal unit vector of all pixels
             - 'e0': x coordinate of e0 unit vector of all pixels
             - 'e1': x coordinate of e1 unit vector of all pixels
-
-        The material dict, dmat can contain:
+        dmat:
+            The material properties, i.e. quantum efficiency. This dictionary
+            can contain:
             - 'energy': a 1d energy vector , in eV
             - 'qeff': a 1d vector, same size as energy, with values in [0; 1]
-
+        color:
+            TODO
         """
         # check / format input
         dref, ddata, dobj = _check._camera_2d(
@@ -218,7 +228,6 @@ class Camera(Previous):
         # dmat
         dmat=None,
     ):
-
         return _compute.add_camera_pinhole(
             coll=self,
             key=key,
@@ -265,7 +274,7 @@ class Camera(Previous):
         dref=None,
         harmonize=None,
     ):
-        """ Overload datastock update() method """
+        """Overload datastock update() method"""
 
         # update
         super().update(
@@ -276,20 +285,19 @@ class Camera(Previous):
         )
 
         # assign diagnostic
-        if self._dobj.get('camera') is not None:
+        if self._dobj.get("camera") is not None:
             for k0, v0 in self._ddata.items():
                 lcam = [
-                    k1 for k1, v1 in self._dobj['camera'].items()
-                    if v1['dgeom']['ref'] == tuple([
-                        rr for rr in v0['ref']
-                        if rr in v1['dgeom']['ref']
-                    ])
+                    k1
+                    for k1, v1 in self._dobj["camera"].items()
+                    if v1["dgeom"]["ref"]
+                    == tuple([rr for rr in v0["ref"] if rr in v1["dgeom"]["ref"]])
                 ]
 
                 if len(lcam) == 0:
                     pass
                 elif len(lcam) == 1:
-                    self._ddata[k0]['camera'] = lcam[0]
+                    self._ddata[k0]["camera"] = lcam[0]
                 else:
                     msg = f"Multiple cameras:\n{lcam}"
                     raise Exception(msg)
@@ -303,7 +311,7 @@ class Camera(Previous):
         cam=None,
         key=None,
     ):
-        """ Add a camera from a dict (or pfe) """
+        """Add a camera from a dict (or pfe)"""
         return _legacy.add_camera(
             self,
             cam=cam,
@@ -319,7 +327,7 @@ class Camera(Previous):
         key=None,
         broadcast=None,
     ):
-        """ Return a dict of unit vectors components
+        """Return a dict of unit vectors components
 
         If broadcast=True, forces to match the shape of camera
         """
@@ -335,7 +343,7 @@ class Camera(Previous):
         kout=None,
         include_center=None,
     ):
-        """ Return dx, dy, dz to get the outline from any pixel center
+        """Return dx, dy, dz to get the outline from any pixel center
         Only works on 2d or parallel cameras
 
         """
@@ -347,21 +355,21 @@ class Camera(Previous):
         )
 
     def get_camera_cents_xyz(self, key=None):
-        """ Return cents_x, cents_y, cents_z """
+        """Return cents_x, cents_y, cents_z"""
         return _check.get_camera_cents_xyz(
             coll=self,
             key=key,
         )
 
     def get_camera_extent(self, key=None):
-        """ Return the extent of a 2d camera """
+        """Return the extent of a 2d camera"""
         return _check._get_extent(
             coll=self,
             key=key,
         )
 
     def get_as_dict(self, key=None):
-        """ Return the desired object as a dict (input to some routines) """
+        """Return the desired object as a dict (input to some routines)"""
 
         return _class3_check._return_as_dict(
             coll=self,

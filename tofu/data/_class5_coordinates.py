@@ -58,6 +58,28 @@ def _get_x01toxyz(
                 cent[2] + x0*e0[2] + x1*e1[2],
             )
 
+    # -------------------
+    #     3D
+    # -------------------
+
+    elif dgeom['type'] == '3d':
+
+        def x01toxyz(
+            x0=None,
+            x1=None,
+            # surface
+            cent=dgeom['cent'],
+            e0=dgeom['e0'],
+            e1=dgeom['e1'],
+        ):
+            """ Coordinate transform """
+
+            return (
+                cent[0] + x0*e0[0] + x1*e1[0],
+                cent[1] + x0*e0[1] + x1*e1[1],
+                cent[2] + x0*e0[2] + x1*e1[2],
+            )
+
     # ----------------
     #   Cylindrical
     # ----------------
@@ -148,5 +170,9 @@ def _get_x01toxyz(
     elif dgeom['type'] == 'toroidal':
 
         raise NotImplementedError()
+
+    else:
+
+        raise NotImplementedError(dgeom['type'])
 
     return x01toxyz

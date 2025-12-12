@@ -179,8 +179,14 @@ def equivalent_apertures(
     # add pts to initial polygon only if curved
 
     if spectro:
-        assert pinhole is True, "How to handle spectr with pinhole = False here ?"
-        rcurv = np.r_[coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['curve_r']]
+
+        if pinhole is not True:
+            msg = "How to handle spectro with pinhole = False here ?"
+            raise Exception(msg)
+
+        rcurv = np.r_[
+            coll.dobj[optics_cls[iref]][optics[iref]]['dgeom']['curve_r']
+        ]
         ind = ~np.isinf(rcurv)
         if np.any(rcurv[ind] > 0):
             addp0 = add_points
@@ -266,6 +272,8 @@ def equivalent_apertures(
             ii=ii,
             ij=ij,
             debug=debug,
+            key=key,
+            key_cam=key_cam,
             # timing
             # dt=dt,
         )
@@ -573,7 +581,7 @@ def _get_centroid(p0, p1, cent, debug=None):
     # --------------
     # debug
 
-    if debug:
+    if debug is True:
 
         indclose = np.r_[np.arange(p0.size), 0]
         plt.figure()
@@ -856,11 +864,12 @@ def _check(
     # -----------
     # debug
 
-    debug = ds._generic_check._check_var(
-        debug, 'debug',
-        default=False,
-        allowed=['intersect', False, True]
-    )
+    if not callable(debug):
+        debug = ds._generic_check._check_var(
+            debug, 'debug',
+            default=False,
+            allowed=['intersect', False, True]
+        )
 
     return (
         key,
@@ -907,8 +916,15 @@ def _get_equivalent_aperture(
     # debug
     ii=None,
     debug=None,
+    key=None,
+    key_cam=None,
     **kwdargs,
 ):
+
+    if callable(debug):
+        debugi = debug((ii,))
+    else:
+        debugi = debug
 
     # --------------
     # loop on optics
@@ -935,8 +951,17 @@ def _get_equivalent_aperture(
             return None, None
 
         # --- DEBUG ---------
-        if debug is True:
-            _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        if debugi is True:
+            _debug_plot(
+                p_a=p_a,
+                pa0=p0,
+                pa1=p1,
+                tit=(
+                    "local coords\n"
+                    f"key_diag {key} - key_cam {key_cam}\n"
+                    f"ind = {ii}"
+                ),
+            )
         # --------------------
 
         # -------
@@ -980,6 +1005,8 @@ def _get_equivalent_aperture_spectro(
     ii=None,
     ij=None,
     debug=None,
+    # unused
+    **kwdargs,
 ):
 
     # -----------------------------
@@ -1229,7 +1256,7 @@ def _debug_intersect(
     axs[1, 1].set_title("det_up")
     axs[1, 2].set_title("det_lo")
 
-    print('kA\n',kA)
+    print('kA\n', kA)
     print('det_up\n', det_up)
     print('det_lo\n', det_lo)
 
@@ -1312,7 +1339,6 @@ def _debug_plot(
     pb1=None,
     pc0=None,
     pc1=None,
-    ii=None,
     tit=None,
 ):
 
@@ -1381,14 +1407,8 @@ def _debug_plot(
         )
 
     plt.legend()
-
-    if ii is not None:
-        tit0 = f'ii = {ii}'
-        if tit is None:
-            tit = tit0
-        else:
-            tit = tit0 + ', ' + tit
-        plt.gca().set_title(tit, size=12)
+    plt.gca().set_title(tit, size=12)
+    return
 
 
 def _debug_plot2(

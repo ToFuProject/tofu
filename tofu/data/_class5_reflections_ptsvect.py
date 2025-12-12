@@ -79,6 +79,33 @@ def _get_ptsvect(
                 isnorm=isnorm,
             )
 
+    # -------------------
+    #     3D - project 3d polygon on 2d plane (seen from point)
+    # -------------------
+
+    elif dgeom['type'] == '3d':
+
+        if fast is True:
+            ptsvect = _get_ptsvect_plane_x01_fast(
+                plane_cent=dgeom['cent'],
+                plane_nin=dgeom['nin'],
+                plane_e0=dgeom['e0'],
+                plane_e1=dgeom['e1'],
+            )
+
+        else:
+            ptsvect = _get_ptsvect_plane(
+                plane_cent=dgeom['cent'],
+                plane_nin=dgeom['nin'],
+                plane_e0=dgeom['e0'],
+                plane_e1=dgeom['e1'],
+                # limits
+                x0max=None,
+                x1max=None,
+                # isnorm
+                isnorm=isnorm,
+            )
+
     # ----------------
     #   Cylindrical
     # ----------------
@@ -191,7 +218,6 @@ def _get_ptsvect(
                 noy = rcs * noy / nn
                 noz = rcs * noz / nn
 
-
                 # ODzx = (Dy[iok] - O[1])*eax[2] - (Dz[iok] - O[2])*eax[1]
                 # ODzy = (Dz[iok] - O[2])*eax[0] - (Dx[iok] - O[0])*eax[2]
                 # ODzz = (Dx[iok] - O[0])*eax[1] - (Dy[iok] - O[1])*eax[0]
@@ -224,7 +250,7 @@ def _get_ptsvect(
                 # x0, x1
                 if strict is True or return_x01 is True:
 
-                    theta[iok] =  rcs * np.arctan2(
+                    theta[iok] = rcs * np.arctan2(
                         nox*erot[0] + noy*erot[1] + noz*erot[2],
                         -nox*nin[0] - noy*nin[1] - noz*nin[2],
                     )
@@ -414,6 +440,10 @@ def _get_ptsvect(
 
         raise NotImplementedError()
 
+    else:
+
+        raise NotImplementedError(dgeom['type'])
+
     return ptsvect
 
 
@@ -451,7 +481,7 @@ def _get_ptsvect_plane(
         # limits
         x0max=x0max,
         x1max=x1max,
-        #isnorm
+        # isnorm
         isnorm=isnorm,
         # return
         strict=None,

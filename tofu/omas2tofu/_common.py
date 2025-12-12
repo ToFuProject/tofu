@@ -604,7 +604,10 @@ def _add_rhopn_from_psi(
     # ---------
     # compute
 
-    rhopn = np.sqrt((psi - psi0) / (psi1 - psi0))
+    rhopn = np.full(psi.shape, np.nan)
+    rhopn2 = (psi - psi0) / (psi1 - psi0)
+    iok = rhopn2 >= 0.
+    rhopn[iok] = np.sqrt(rhopn2[iok])
 
     # ---------
     # add data
@@ -811,8 +814,12 @@ def _add_mesh_data_1d(
             ldata=ldata,
             lk2d=lk2d,
         )
-    except Exception:
-        dfail['subkey'] = 'could not identify'
+    except Exception as err:
+        dfail['subkey'] = (
+            'could not identify\n'
+            + str(err)
+            + f"\n=> Impacts {ldata}"
+        )
         k1d, q1d, k2d = None, None, None
 
     # --------------------
@@ -878,10 +885,10 @@ def _add_mesh_data_1d(
     return dfail
 
 
-# ################################################################
-# ################################################################
+# ################################################
+# ################################################
 #        Identify subkey
-# ################################################################
+# ################################################
 
 
 def _get_subkey(
@@ -908,6 +915,7 @@ def _get_subkey(
         k0 for k0, v0 in ddata.items()
         if np.allclose(v0['data'], v0['data'][sli])
     ]
+
     if len(l1d) != 1:
         msg = (
             "No / multiple constant 1d mesh data identified:\n"
@@ -918,7 +926,6 @@ def _get_subkey(
 
     k1d = l1d[0]
     key_1d = ddata[k1d]['key']
-    q1d = ddata[k1d]['data'][sli].ravel()
 
     # ------------------
     # Identify 2d subkey
@@ -935,7 +942,7 @@ def _get_subkey(
             "Several 2d data identified to match 1d mesh:\n"
             "\t- ids = {ids}\n"
             "\t- k1d = {k1d}\n"
-            "\t- k2d = {k2d}\n"
+            "\t- lk2d_name = {lk2d_name}\n"
         )
         raise Exception(msg)
 
@@ -958,10 +965,11 @@ def _get_subkey(
             lk2d=lk2d,
             k1d=k1d,
             key_1d=key_1d,
-            q1d=q1d,
+            q1d=None,
         )
 
     else:
         raise NotImplementedError(ids)
 
+    q1d = ddata[k1d]['data'][sli].ravel()
     return k1d, q1d, k2dn

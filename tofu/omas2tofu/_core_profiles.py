@@ -1,9 +1,9 @@
 
 
-# ###########################################################
-# ###########################################################
+# ################################################
+# ################################################
 #              1d-2d mesh
-# ###########################################################
+# ################################################
 
 
 def _get_subkey(
@@ -60,20 +60,45 @@ def _get_subkey(
     else:
         d1d_all = {}
         for k0, v0 in ddata.items():
-            l2d = [k1 for k1 in lk2d if coll.ddata[k1]['name'] == v0['name']]
+            l2d = [
+                k1 for k1 in lk2d
+                if coll.ddata[k1]['name'] == v0['name']
+            ]
             if len(l2d) == 1:
                 d1d_all[k0] = l2d[0]
 
         if len(d1d_all) == 0:
             msg = (
-                "Could not identify a single matching quantity between "
-                "equilibrium (2d) and core_profiles (1d)"
+                "Could not identify a matching quantity between:\n"
+                "\t- equilibrium (2d)"
+                "\t- core_profiles (1d)"
             )
             raise Exception(msg)
 
         # ------------
         # interpolate
 
-        raise NotImplementedError()
+        elif len(d1d_all) > 1:
+
+            keep, ii = True, 0
+            lprio = ['rhopn', 'rhotn', 'psi', 'phi']
+            while keep is True and ii < len(lprio):
+                lk1 = [
+                    kk for kk, vv in d1d_all.items()
+                    if lprio[ii] in kk and lprio[ii] in vv
+                ]
+                if len(lk1) == 1:
+                    k1d = lk1[0]
+                    k2dn = d1d_all[k1d]
+                    keep = False
+                else:
+                    ii += 1
+            if keep is True:
+                msg = "Multiple matching 1d (cprof) <=> 2d (eq)"
+                raise NotImplementedError(msg)
+
+        else:
+            msg = "Time-varying radial interpolation"
+            raise NotImplementedError(msg)
 
     return k1d, q1d, k2dn

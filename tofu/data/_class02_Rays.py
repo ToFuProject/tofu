@@ -12,6 +12,7 @@ from . import _class02_touch as _touch
 from . import _class02_sample as _sample
 from . import _class02_tangency_radius as _tangency_radius
 from . import _class02_single_point_camera as _single_point_cam
+from . import _class02_angle_vs_vect as _angle_vs_vect
 from . import _class2_plot as _plot
 from . import _class2_sinogram as _sinogram
 from . import _class02_save2stp as _save2stp
@@ -392,6 +393,50 @@ class Rays(Previous):
             return_pts=return_pts,
             return_itot=return_itot,
             )
+
+    def get_rays_angle_vs_vect(
+        self,
+        # rays
+        key_rays=None,
+        res=None,
+        segment=None,
+        # vector components
+        key_XR=None,
+        key_YZ=None,
+        key_Zphi=None,
+        geometry=None,
+        # optional separatrix
+        key_sepR=None,
+        key_sepZ=None,
+        # verb
+        verb=None,
+    ):
+        """ Return the angle between rays and a 3d vector field
+
+        Rays are sampled at res and the angle is calculated all along
+
+        The vector field is defined by 3 components (R, Z, phi) that must
+        refer to 3 keys defined on a same 2d splines base
+
+        """
+
+        return _angle_vs_vect.main(
+            coll=self,
+            # rays
+            key_rays=key_rays,
+            res=res,
+            segment=segment,
+            # vector components
+            key_XR=key_XR,
+            key_YZ=key_YZ,
+            key_Zphi=key_Zphi,
+            geometry=geometry,
+            # optional separatrix
+            key_sepR=key_sepR,
+            key_sepZ=key_sepZ,
+            # verb
+            verb=verb,
+        )
 
     # --------------
     # Single point camera

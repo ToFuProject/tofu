@@ -338,7 +338,7 @@ def _plot_cross(
     # prepare figure
     # ----------------
 
-    if dax.get('ndet_cross') is None:
+    if dax is None or len(dax) == 0:
 
         if fs is None:
             fs = (16, 7)
@@ -430,7 +430,7 @@ def _plot_cross(
     # check / format dax
 
     dax = ds._generic_check._check_dax(dax)
-    fig = dax['ndet_cross']['handle'].figure
+    fig = dax[list(dax.keys())[0]]['handle'].figure
 
     # ---------------
     # plot spans

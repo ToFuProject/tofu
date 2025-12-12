@@ -33,6 +33,9 @@ def main(
     margin_perp=None,
     vect=None,
     segment=None,
+    # e0, e1
+    transpose=None,
+    e0e1=None,
     # mesh slice
     key_mesh=None,
     phi=None,
@@ -129,6 +132,9 @@ def main(
             lop_post=lop_post,
             vect=vect,
             segment=segment,
+            # e0, e1
+            transpose=transpose,
+            e0e1=e0e1,
             # plane params
             res=res,
             margin_par=margin_par,
@@ -662,6 +668,9 @@ def _plane_from_LOS(
     lop_post=None,
     segment=None,
     vect=None,
+    # e0, e1
+    transpose=None,
+    e0e1=None,
     # plane params
     res=None,
     margin_par=None,
@@ -669,6 +678,26 @@ def _plane_from_LOS(
     # options
     indch=None,
 ):
+
+    # ----------
+    # inputs
+    # ----------
+
+    # transpose
+    transpose = ds._generic_check._check_var(
+        transpose, 'transpose',
+        types=bool,
+        default=False,
+    )
+
+    # e0e1
+    lok = [(1, 1), (-1, 1), (1, -1), (-1, -1)]
+    e0e1 = ds._generic_check._check_var(
+        e0e1, 'e0e1',
+        types=tuple,
+        default=(1, 1),
+        allowed=lok,
+    )
 
     # ----------
     # los_ref
@@ -745,6 +774,12 @@ def _plane_from_LOS(
 
     e1 = np.cross(los_ref, e0)
     e1 = e1 / np.linalg.norm(e1)
+
+    if transpose is True:
+        e0, e1 = e1, e0
+
+    e0 = e0 * e0e1[0]
+    e1 = e1 * e0e1[1]
 
     # -------------------------------------
     # create plane perpendicular to los_ref

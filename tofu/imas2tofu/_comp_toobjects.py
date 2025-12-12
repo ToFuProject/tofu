@@ -633,7 +633,7 @@ def get_plasma(
                 R = out_['2dmeshR']['data']
                 Z = out_['2dmeshZ']['data']
                 if R.ndim == 2:
-                    if np.allclose(R[0, :], R[0,0]):
+                    if np.allclose(R[0, :], R[0, 0]):
                         R = R[:, 0]
                         Z = Z[0, :]
                     else:
@@ -658,13 +658,32 @@ def get_plasma(
             # profiles2d on mesh
 
             lprof2d = set(out_.keys()).difference(lsigmesh)
+
+            # Check for non-arrays
+            derr = {
+                ss: type(out_[ss]['data']) for ss in lprof2d
+                if not isinstance(out_[ss]['data'], np.ndarray)
+            }
+
+            if len(derr) > 0:
+                lstr = [f"\t- {kk}: {vv}" for kk, vv in derr.items()]
+                msg = (
+                    "The following keys in profiles2d are not np.ndarrays:\n"
+                    + "\n".join(lstr)
+                )
+                raise Exception(msg)
+
+            # loop
             for ss in lprof2d:
 
                 # identify proper 2d mesh
                 lm = [
                     km for km, vm in dmesh.items()
                     if (
-                        (km == 'tri' and vm['n1'] in out_[ss]['data'].shape)
+                        (
+                            km == 'tri'
+                            and vm['n1'] in out_[ss]['data'].shape
+                        )
                         or (
                             km == 'rect'
                             and vm['n1'] in out_[ss]['data'].shape
