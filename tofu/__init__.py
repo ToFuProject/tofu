@@ -54,7 +54,7 @@ __version__
 import os
 import sys
 import warnings
-from .version import __version__
+from ._version import __version__
 
 
 # -------------------------------------
