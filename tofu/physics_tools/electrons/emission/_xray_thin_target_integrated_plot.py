@@ -1,6 +1,7 @@
 
 
 import copy
+from typing import Optional   # Any, Dict
 
 
 import numpy as np
@@ -15,10 +16,20 @@ import datastock as ds
 from . import _xray_thin_target_integrated
 
 
+TupleDict = tuple[dict]
+
+
 # ####################################################
 # ####################################################
 #           DEFAULT
 # ####################################################
+
+
+# Energy vectors
+_E_E0_EV = np.logspace(3, 6, 51)
+_E_PH_EV = np.linspace(1, 100, 25) * 1e3
+_THETA_PH = np.linspace(0, np.pi, 41)
+_VERSION = 'BHE'
 
 
 # ANISOTROPY CASES
@@ -66,6 +77,8 @@ _DCASES = {
         'ms': 14,
     },
 }
+
+
 # ####################################################
 # ####################################################
 #        plot anisotropy
@@ -73,26 +86,43 @@ _DCASES = {
 
 
 def plot_xray_thin_d2cross_ei_anisotropy(
-    # compute
-    Z=None,
+    # target ion charge
+    Z: Optional[int] = None,
+    # Energy
     E_e0_eV=None,
     E_ph_eV=None,
     theta_ph=None,
-    per_energy_units=None,
-    version=None,
-    # hypergeometrc
-    ninf=None,
-    source=None,
+    # hypergeometric parameter
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
+    # output customization
+    per_energy_unit: Optional[str] = None,
+    # version
+    version: Optional[str] = None,
     # selected cases
-    dcases=None,
+    dcases: Optional[dict[int, dict]] = None,
     # plot
-    dax=None,
-    fontsize=None,
+    dax: Optional[dict] = None,
+    fontsize: Optional[int] = None,
     dplot_forbidden=None,
     dplot_peaking=None,
     dplot_thetamax=None,
     dplot_integ=None,
-):
+) -> TupleDict:
+    """ Compute and plot a (E_e0, E_ph) countour map of the d2cross section
+
+    Where d2cross is the fully differentiated cross-section (d3cross),
+    integrated over one of the two the emission angle (dphi)
+
+    Actually 3 overlayed contour plots with:
+        - integral of of the cross-section (over photon emission angle)
+        - angle of max cross-section
+        - peaking of the cross-section (std vs angle)
+
+    Can overlay a few selected cases and plot them vs angle of emission
+    In normalized-linear and log scales
+
+    """
 
     # ---------------
     # check inputs
@@ -100,6 +130,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
 
     (
         E_e0_eV, E_ph_eV, theta_ph,
+        version,
         dcases,
         fontsize,
         dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_integ,
@@ -130,7 +161,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         E_ph_eV=E_ph_eV[None, None, :],
         theta_ph=theta_ph[:, None, None],
         # output customization
-        per_energy_unit=per_energy_units,
+        per_energy_unit=per_energy_unit,
         # version
         version=version,
         # hypergeometric
@@ -359,31 +390,33 @@ def _check_anisotropy(
 
     # E_e0_eV
     if E_e0_eV is None:
-        E_e0_eV = np.logspace(3, 6, 51)
+        E_e0_eV = _E_E0_EV
 
     E_e0_eV = ds._generic_check._check_flat1darray(
         E_e0_eV, 'E_e0_eV',
         dtype=float,
         sign='>0',
+        unique=True,
     )
 
     # E_ph_eV
     if E_ph_eV is None:
-        E_ph_eV = np.linspace(1, 100, 25) * 1e3
+        E_ph_eV = _E_PH_EV
 
     E_ph_eV = ds._generic_check._check_flat1darray(
         E_ph_eV, 'E_ph_eV',
         dtype=float,
         sign='>0',
+        unique=True,
     )
 
     # theta_ph
     if theta_ph is None:
-        theta_ph = np.linspace(0, np.pi, 41)
+        theta_ph = _THETA_PH
 
     # version
     if version is None:
-        version = 'BHE'
+        version = _VERSION
 
     # ------------
     # dcases
@@ -462,6 +495,7 @@ def _check_anisotropy(
 
     return (
         E_e0_eV, E_ph_eV, theta_ph,
+        version,
         dcases,
         fontsize,
         dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_integ,

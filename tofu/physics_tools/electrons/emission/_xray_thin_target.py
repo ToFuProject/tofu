@@ -2,6 +2,7 @@
 
 import os
 import warnings
+from typing import Any, Optional   # Dict
 
 
 import numpy as np
@@ -10,6 +11,9 @@ import scipy.special as scpsp
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import datastock as ds
+
+
+TupleDict = tuple[dict]
 
 
 # ####################################################
@@ -28,8 +32,9 @@ _PATH_HERE = os.path.dirname(__file__)
 
 
 def get_xray_thin_d3cross_ei(
-    # inputs
-    Z=None,
+    # target ion charge
+    Z: Optional[int] = None,
+    # Energy
     E_e0_eV=None,
     E_e1_eV=None,
     # directions
@@ -37,19 +42,19 @@ def get_xray_thin_d3cross_ei(
     theta_e=None,
     dphi=None,
     # hypergeometric parameter
-    ninf=None,
-    source=None,
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
     # output customization
-    per_energy_unit=None,
+    per_energy_unit: Optional[str] = None,
     # version
-    version=None,
+    version: Optional[str] = None,
     # debug
-    debug=None,
-):
+    debug: Optional[bool] = None,
+) -> dict:
     """ Return a differential cross-section for thin-target bremsstrahlung
 
-    Allowws several formulas (version):
-        - 'BE': Elwert-Haug [1]
+    Allows several formulas (version):
+        - 'EH': Elwert-Haug [1]   (default)
             . most general and accurate
             . Uses Sommerfield-Maue eigenfunctions
             . eq. (30) in [1]
@@ -74,14 +79,15 @@ def get_xray_thin_d3cross_ei(
             Physics Reports, vol. 243, p. 317—353, 1994.
 
 
-    Inputs:
+    Inputs: (all angles in rad)
         E_e0_eV = kinetic energy of incident electron in eV
         E_e1_eV = kinetic energy of scattered electron in eV
         theta_e = (spherical) theta angle of scattered e vs incident e
         theta_ph = (spherical) theta angle of photon vs incident e
         phi_e = (spherical) phi angle of scattered e vs incident e
         phi_ph = (spherical) theta angle of photon vs incident e
-        (all angles in rad)
+        version = 'EH', 'BH' or 'BHE'
+
 
     Limitations:
         - 'EH' implementation currently stalled because:
@@ -1326,8 +1332,8 @@ def _hyp2F1(
     bb=None,
     cc=None,
     zz=None,
-    ninf=None,
-    source=None,
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
 ):
     """ Hypergeometric function 2F1 with complex arguments
 
@@ -1389,8 +1395,12 @@ def _hyp2F1(
     # Number of terms
     # ----------
 
-    if ninf is None:
-        ninf = 50
+    ninf = ds._generic_check._check_var(
+        ninf, 'ninf',
+        types=int,
+        default=50,
+        sign='>0',
+    )
 
     nn = np.arange(0, ninf)[None, :]
 
@@ -1495,11 +1505,11 @@ def _hyp2F1(
 
 
 def plot_xray_thin_d3cross_ei_vs_Literature(
-    version=None,
-    ninf=None,
-    source=None,
-    dax=None,
-):
+    version: Optional[str] = None,
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
+    dax: Optional[dict[str, Any]] = None,
+) -> TupleDict:
     """ Compare computed cross-sections vs literature values from Elwert-Haug
 
     Triply differential cross-section
@@ -1508,6 +1518,19 @@ def plot_xray_thin_d3cross_ei_vs_Literature(
     [1] G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969
     [2] W. Nakel, Physics Reports, 243, p. 317—353, 1994
 
+
+    Return:
+    -------
+    dax:        dict
+        Dict of axes
+    ddata_iso:  dict
+        Dict of
+    ddata_ph_dist:  dict
+        Dict of
+    ddata_ph_dist_nakel:    dict
+        Dict of
+    ddata_ph_spect_nakel:   dict
+        Dict of
 
     """
 

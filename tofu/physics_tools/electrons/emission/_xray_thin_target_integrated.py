@@ -1,6 +1,7 @@
 
 
 import os
+from typing import Any, Optional   # Dict
 
 
 import numpy as np
@@ -12,6 +13,9 @@ import datastock as ds
 
 
 from . import _xray_thin_target
+
+
+TupleDict = tuple[dict]
 
 
 # ####################################################
@@ -40,25 +44,28 @@ _NDPHI = 51
 
 
 def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
-    # inputs
-    Z=None,
+    # target ion charge
+    Z: Optional[int] = None,
+    # energies
     E_e0_eV=None,
     E_ph_eV=None,
     theta_ph=None,
     # hypergeometric parameter
-    ninf=None,
-    source=None,
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
     # integration parameters
     nthetae=None,
     ndphi=None,
     # output customization
-    per_energy_unit=None,
+    per_energy_unit: Optional[str] = None,
     # version
-    version=None,
+    version: Optional[str] = None,
     # verb
-    verb=None,
-    verb_tab=None,
-):
+    verb: Optional[bool] = None,
+    verb_tab: Optional[str] = None,
+) -> dict:
+    """ Compute d2cross, which is d3cross integrated over dphi
+    """
 
     # ------------
     # inputs
@@ -306,7 +313,7 @@ def _check(
 # ####################################################
 
 
-def plot_xray_thin_d2cross_ei_vs_literature():
+def plot_xray_thin_d2cross_ei_vs_literature() -> TupleDict:
     """ Plot electron-angle-integrated cross section vs
 
     [1] G. Elwert and E. Haug, Phys. Rev., 183, pp. 90–105, 1969
