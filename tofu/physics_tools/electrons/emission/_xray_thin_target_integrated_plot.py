@@ -107,7 +107,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
     dplot_forbidden=None,
     dplot_peaking=None,
     dplot_thetamax=None,
-    dplot_integ=None,
+    dplot_mean=None,
 ) -> TupleDict:
     """ Compute and plot a (E_e0, E_ph) countour map of the d2cross section
 
@@ -133,7 +133,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         version,
         dcases,
         fontsize,
-        dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_integ,
+        dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_mean,
     ) = _check_anisotropy(
         E_e0_eV=E_e0_eV,
         E_ph_eV=E_ph_eV,
@@ -146,7 +146,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         dplot_forbidden=dplot_forbidden,
         dplot_peaking=dplot_peaking,
         dplot_thetamax=dplot_thetamax,
-        dplot_integ=dplot_integ,
+        dplot_mean=dplot_mean,
     )
 
     # ---------------
@@ -193,20 +193,21 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         for iv, (kk, vv) in enumerate(d2cross['cross'].items()):
 
             # compute integral and peaking
-            integ, peaking = _get_peaking(
+            mean, peaking = _get_peaking(
                 vv['data'],
                 theta_ph*180/np.pi,
                 axis=0,
             )
+            mean_units = vv['units']
 
             # integral
-            if dplot_integ is not False:
+            if dplot_mean is not False:
                 im0 = ax.contour(
                     E_e0_eV * 1e-3,
                     E_ph_eV * 1e-3,
-                    np.log10(integ).T,
-                    levels=dplot_integ['levels'],
-                    colors=dplot_integ['colors'],
+                    np.log10(mean).T,
+                    levels=dplot_mean['levels'],
+                    colors=dplot_mean['colors'],
                 )
 
                 # clabels
@@ -271,24 +272,27 @@ def plot_xray_thin_d2cross_ei_anisotropy(
             ax.add_patch(patch)
 
         # legend
-        lh = [
-            mlines.Line2D(
+        lh = []
+        if dplot_mean is not False:
+            lh.append(mlines.Line2D(
                 [], [],
-                c=dplot_integ['colors'],
-                label='log10(integral)',
-            ),
-            mlines.Line2D(
+                c=dplot_mean['colors'],
+                label=f'log10(<mean>) (log10({mean_units}))',
+            ))
+        if dplot_peaking is not False:
+            lh.append(mlines.Line2D(
                 [], [],
                 c=dplot_peaking['colors'],
                 label='peaking (1/std)',
-            ),
-            mlines.Line2D(
+            ))
+        if dplot_thetamax is not False:
+            lh.append(mlines.Line2D(
                 [], [],
                 c=dplot_thetamax['colors'],
                 label='theta_max (deg)',
-            ),
-        ]
-        ax.legend(handles=lh, loc='upper left')
+            ))
+        if len(lh) > 0:
+            ax.legend(handles=lh, loc='upper left')
 
         # add cases
         for ic, (kcase, vcase) in enumerate(dcases.items()):
@@ -351,7 +355,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         ax.set_xlim(0, 180)
 
     # normalized
-    kax = 'abs'
+    kax = 'log'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
         ax.legend(prop={'size': 12})
@@ -385,7 +389,7 @@ def _check_anisotropy(
     dplot_forbidden=None,
     dplot_peaking=None,
     dplot_thetamax=None,
-    dplot_integ=None,
+    dplot_mean=None,
 ):
 
     # E_e0_eV
@@ -485,11 +489,11 @@ def _check_anisotropy(
         ddef,
     )
 
-    # dplot_integ
+    # dplot_mean
     ddef = {'colors': 'g', 'levels': 20}
-    dplot_integ = _check_anisotropy_dplot(
-        dplot_integ,
-        'dplot_integ',
+    dplot_mean = _check_anisotropy_dplot(
+        dplot_mean,
+        'dplot_mean',
         ddef,
     )
 
@@ -498,7 +502,7 @@ def _check_anisotropy(
         version,
         dcases,
         fontsize,
-        dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_integ,
+        dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_mean,
     )
 
 
@@ -568,7 +572,7 @@ def _get_peaking(data, x, axis=None):
     x_avf = scpinteg.simpson(data_n * xf, x=x, axis=axis).reshape(shape_integ)
     std = np.sqrt(scpinteg.simpson(data_n * (xf - x_avf)**2, x=x, axis=axis))
 
-    return integ, 1/std
+    return integ/180, 1/std
 
 
 # #############################################
@@ -584,13 +588,13 @@ def _get_axes_anisotropy(
 ):
 
     tit = (
-        "Anisotropy"
+        "Thin-target Bremsstrahlung cross-section anisotropy"
     )
 
     dmargin = {
-        'left': 0.08, 'right': 0.95,
-        'bottom': 0.06, 'top': 0.85,
-        'wspace': 0.2, 'hspace': 0.40,
+        'left': 0.06, 'right': 0.95,
+        'bottom': 0.06, 'top': 0.90,
+        'wspace': 0.20, 'hspace': 0.20,
     }
 
     fig = plt.figure(figsize=(15, 12))
@@ -656,11 +660,6 @@ def _get_axes_anisotropy(
     ax = fig.add_subplot(gs[1, 1], sharex=dax['norm']['handle'])
     ax.set_xlabel(
         r"$\theta_{ph}$ (deg)",
-        size=fontsize,
-        fontweight='bold',
-    )
-    ax.set_ylabel(
-        r"$\frac{d^2\sigma_{ei}}{dkd\Omega_{ph}}$  ()",
         size=fontsize,
         fontweight='bold',
     )
