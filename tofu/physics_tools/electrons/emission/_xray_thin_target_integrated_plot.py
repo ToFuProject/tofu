@@ -13,7 +13,7 @@ import matplotlib.gridspec as gridspec
 import datastock as ds
 
 
-from . import _xray_thin_target_integrated
+from . import _xray_thin_target_integrated as _mod
 
 
 TupleDict = tuple[dict]
@@ -86,6 +86,8 @@ _DCASES = {
 
 
 def plot_xray_thin_d2cross_ei_anisotropy(
+    # optional input d2cross file
+    d2cross: Optional[str | dict] = None,
     # target ion charge
     Z: Optional[int] = None,
     # Energy
@@ -153,8 +155,8 @@ def plot_xray_thin_d2cross_ei_anisotropy(
     # prepare data
     # ---------------
 
-    mod = _xray_thin_target_integrated
-    d2cross = mod.get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+    d2cross = _mod.get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+        d2cross=d2cross,
         # inputs
         Z=Z,
         E_e0_eV=E_e0_eV[None, :, None],
@@ -181,6 +183,8 @@ def plot_xray_thin_d2cross_ei_anisotropy(
             version=version,
             fontsize=fontsize,
         )
+
+    dax = ds._generic_check._check_dax(dax)
 
     # ---------------
     # plot - map

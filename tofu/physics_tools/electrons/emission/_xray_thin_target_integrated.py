@@ -1,7 +1,9 @@
 
 
 import os
-from typing import Any, Optional   # Dict
+import copy
+import warnings
+from typing import Optional   # Dict, Any
 
 
 import numpy as np
@@ -37,6 +39,45 @@ _NTHETAE = 31
 _NDPHI = 51
 
 
+# Default naming
+_DSCALE = {
+    12: 'T',
+    9: 'G',
+    6: 'M',
+    3: 'k',
+    0: '',
+    -3: 'm',
+    -6: 'u',
+    -9: 'n',
+}
+
+
+_DFORMAT = {
+    # energies
+    'E_e0': {
+        'data': None,
+        'units': 'eV',
+    },
+    'E_ph': {
+        'data': None,
+        'units': 'eV',
+    },
+    # angles
+    'theta_ph': {
+        'data': None,
+        'units': 'rad',
+    },
+    'theta_e': {
+        'data': None,
+        'units': 'rad',
+    },
+    'dphi': {
+        'data': None,
+        'units': 'rad',
+    },
+}
+
+
 # ####################################################
 # ####################################################
 #        main
@@ -44,6 +85,8 @@ _NDPHI = 51
 
 
 def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+    # optional input d2cross file
+    d2cross: Optional[str | dict] = None,
     # target ion charge
     Z: Optional[int] = None,
     # energies
@@ -63,8 +106,17 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
     # verb
     verb: Optional[bool] = None,
     verb_tab: Optional[str] = None,
+    # saving
+    save: Optional[bool] = None,
+    pfe_save: Optional[str] = None,
+    overwrite: Optional[bool] = None,
 ) -> dict:
     """ Compute d2cross, which is d3cross integrated over dphi
+
+    Optionally loads / checks formatting of a pre-existing d2cross
+        - d2cross = str, should be a pfe to a local .npz
+        - d2cross = dict, will use as-is
+
     """
 
     # ------------
@@ -76,6 +128,7 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
         nthetae, ndphi,
         shape, shape_theta_e, shape_dphi,
         verb, verb_tab,
+        save, pfe_save, overwrite,
     ) = _check(
         # inputs
         E_e0_eV=E_e0_eV,
@@ -87,107 +140,36 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
         # verb
         verb=verb,
         verb_tab=verb_tab,
+        # save
+        save=save,
+        pfe_save=pfe_save,
+        overwrite=overwrite,
     )
 
     # ------------------
-    # Derive angles
+    # compute
     # ------------------
 
-    # E_e1_eV
-    E_e1_eV = E_e0_eV - E_ph_eV
+    if d2cross is None:
 
-    # angles
-    theta_e = np.pi * np.linspace(0, 1, nthetae)
-    dphi = np.pi * np.linspace(-1, 1, ndphi)
-    theta_ef = theta_e.reshape(shape_theta_e)
-    dphif = dphi.reshape(shape_dphi)
+        d2cross = _compute(**locals())
 
-    # derived
-    sinte = np.sin(theta_ef)
-
-    # ------------------
-    # get d3cross
-    # ------------------
-
-    if verb >= 1:
-        msg = f"{verb_tab}Computing d3cross for shape {shape}... "
-        print(msg)
-
-    d3cross = _xray_thin_target.get_xray_thin_d3cross_ei(
-        # inputs
-        Z=Z,
-        E_e0_eV=E_e0_eV[..., None, None],
-        E_e1_eV=E_e1_eV[..., None, None],
-        # directions
-        theta_ph=theta_ph[..., None, None],
-        theta_e=theta_ef,
-        dphi=dphif,
-        # hypergeometric parameter
-        ninf=ninf,
-        source=source,
-        # output customization
-        per_energy_unit=per_energy_unit,
-        # version
-        version=version,
-        # debug
-        debug=False,
-    )
+        # optional save
+        if save is True:
+            _save(
+                d2cross,
+                pfe_save=pfe_save,
+                overwrite=overwrite,
+                verb=verb,
+            )
 
     # ------------------
-    # prepare output
+    # load
     # ------------------
 
-    d2cross = {
-        # energies
-        'E_e0': {
-            'data': E_e0_eV,
-            'units': 'eV',
-        },
-        'E_ph': {
-            'data': E_ph_eV,
-            'units': 'eV',
-        },
-        # angles
-        'theta_ph': {
-            'data': theta_ph,
-            'units': 'rad',
-        },
-        'theta_e': {
-            'data': theta_e,
-            'units': 'rad',
-        },
-        'dphi': {
-            'data': dphi,
-            'units': 'rad',
-        },
-        # cross-section
-        'cross': {
-            vv: {
-                'data': np.full(shape, 0.),
-                'units': asunits.Unit(vcross['units']) * asunits.Unit('sr'),
-            }
-            for vv, vcross in d3cross['cross'].items()
-        },
-    }
+    else:
 
-    # ------------------
-    # integrate
-    # ------------------
-
-    if verb >= 1:
-        msg = f"{verb_tab}Integrating..."
-        print(msg)
-
-    for vv, vcross in d3cross['cross'].items():
-        d2cross['cross'][vv]['data'][...] = scpinteg.simpson(
-            scpinteg.simpson(
-                vcross['data'] * sinte,
-                x=theta_e,
-                axis=-1,
-            ),
-            x=dphi,
-            axis=-1,
-        )
+        d2cross = _load(d2cross)
 
     return d2cross
 
@@ -209,6 +191,10 @@ def _check(
     # verb
     verb=None,
     verb_tab=None,
+    # saving
+    save=None,
+    pfe_save=None,
+    overwrite=None,
 ):
 
     # -----------
@@ -299,12 +285,383 @@ def _check(
     )
     verb_tab = '\t'*verb_tab
 
+    # -----------
+    # save
+    # -----------
+
+    savedef = pfe_save not in [None, False]
+    save = ds._generic_check._check_var(
+        save, 'save',
+        types=bool,
+        default=savedef,
+    )
+
+    # -----------
+    # pfe_save
+    # -----------
+
+    if save is True:
+        if pfe_save is not None:
+            pfe_save = int(ds._generic_check._check_var(
+                pfe_save, 'pfe_save',
+                types=str,
+            ))
+
+            try:
+                pfe_save = os.path.abspath(pfe_save)
+            except Exception as err:
+                msg = (
+                    "Arg 'pfe_save' must point to an valid path/file.ext\n"
+                    f"Provided: {pfe_save}\n"
+                )
+                raise Exception(msg) from err
+
+            if not pfe_save.endswith('.npz'):
+                msg = (
+                    "Arg 'pfe_save' must point to an valid path/file.npz\n"
+                    f"Provided: {pfe_save}\n"
+                )
+                raise Exception(msg)
+
+    else:
+        pfe_save = None
+
+    # -----------
+    # overwrite
+    # -----------
+
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
+        default=False,
+    )
+
     return (
         E_e0_eV, E_ph_eV, theta_ph,
         nthetae, ndphi,
         shape, shape_theta_e, shape_dphi,
         verb, verb_tab,
+        save, pfe_save, overwrite,
     )
+
+
+# ####################################################
+# ####################################################
+#        compute
+# ####################################################
+
+
+def _compute(
+    Z=None,
+    E_e0_eV=None,
+    E_e1_eV=None,
+    E_ph_eV=None,
+    theta_ph=None,
+    # shapes
+    nthetae=None,
+    shape_theta_e=None,
+    theta_ef=None,
+    ndphi=None,
+    shape_dphi=None,
+    # parameters
+    ninf=None,
+    source=None,
+    version=None,
+    per_energy_unit=None,
+    # misc
+    shape=None,
+    verb=None,
+    verb_tab=None,
+    # unused
+    **kwdargs,
+):
+
+    # ------------------
+    # get angles and shape
+    # ------------------
+
+    # E_e1_eV
+    E_e1_eV = E_e0_eV - E_ph_eV
+
+    # angles
+    theta_e = np.pi * np.linspace(0, 1, nthetae)
+    dphi = np.pi * np.linspace(-1, 1, ndphi)
+    theta_ef = theta_e.reshape(shape_theta_e)
+    dphif = dphi.reshape(shape_dphi)
+
+    # derived
+    sinte = np.sin(theta_ef)
+
+    # ------------------
+    # get d3cross
+    # ------------------
+
+    if verb >= 1:
+        msg = f"{verb_tab}Computing d3cross for shape {shape}... "
+        print(msg)
+
+    d3cross = _xray_thin_target.get_xray_thin_d3cross_ei(
+        # inputs
+        Z=Z,
+        E_e0_eV=E_e0_eV[..., None, None],
+        E_e1_eV=E_e1_eV[..., None, None],
+        # directions
+        theta_ph=theta_ph[..., None, None],
+        theta_e=theta_ef,
+        dphi=dphif,
+        # hypergeometric parameter
+        ninf=ninf,
+        source=source,
+        # output customization
+        per_energy_unit=per_energy_unit,
+        # version
+        version=version,
+        # debug
+        debug=False,
+    )
+
+    # ------------------
+    # prepare output
+    # ------------------
+
+    d2cross = copy.deepcopy(_DFORMAT)
+    for kk, vv in _DFORMAT.items():
+        kv = f"{kk}_{vv['units']}" if vv['units'] == 'eV' else kk
+        d2cross[kk]['data'] = eval(kv)
+
+    # cross-sections
+    d2cross['cross'] = {
+        vv: {
+            'data': np.full(shape, 0.),
+            'units': asunits.Unit(vcross['units']) * asunits.Unit('sr'),
+        }
+        for vv, vcross in d3cross['cross'].items()
+    }
+
+    # ------------------
+    # integrate
+    # ------------------
+
+    if verb >= 1:
+        msg = f"{verb_tab}Integrating..."
+        print(msg)
+
+    for vv, vcross in d3cross['cross'].items():
+        d2cross['cross'][vv]['data'][...] = scpinteg.trapezoid(
+            scpinteg.trapezoid(
+                vcross['data'] * sinte,
+                x=theta_e,
+                axis=-1,
+            ),
+            x=dphi,
+            axis=-1,
+        )
+
+    return d2cross
+
+
+# ####################################################
+# ####################################################
+#        save
+# ####################################################
+
+
+def _save(
+    d2cross=None,
+    pfe_save=None,
+    overwrite=None,
+    verb=None,
+):
+
+    # ----------
+    # pfe_save
+    # ----------
+
+    if pfe_save is None:
+
+        # extract sizes
+        ntheta = d2cross['theta_ph']['data'].size
+        Eph = _format_vect2str(
+            d2cross['E_ph']['data'],
+            base=d2cross['E_ph']['units'],
+        )
+        Ee0 = _format_vect2str(
+            d2cross['E_e0']['data'],
+            base=d2cross['E_e0']['units'],
+        )
+
+        # extract boundaries
+        path = os.path.abspath(_PATH_HERE)
+        fname = f"d2cross_Ee0{Ee0}_Eph{Eph}_ntheta{ntheta}.npz"
+        pfe_save = os.path.join(path, f"{fname}.npz")
+
+    # ----------
+    # overwrite
+    # ----------
+
+    if os.path.isfile(pfe_save):
+        if overwrite is True:
+            if verb is True:
+                msg = f"Overwritting file {pfe_save}\n"
+                warnings.warn(msg)
+        else:
+            msg = (
+                "File {pfe_save} already exists!\n"
+                "\t=> use overwrite=True to overwrite\n"
+            )
+            raise Exception(msg)
+
+    # ----------
+    # save
+    # ----------
+
+    np.savez(pfe_save, **d2cross)
+
+    # ----------
+    # verb
+    # ----------
+
+    if verb is True:
+        msg = "Saved d2cross in:\n\t{pfe_save}\n"
+        print(msg)
+
+    return
+
+
+# ####################################################
+# ####################################################
+#        Built str vector
+# ####################################################
+
+
+def _format_vect2str(vect, base='eV'):
+
+    # -------------
+    # extract
+    # -------------
+
+    v0 = vect.min()
+    v1 = vect.max()
+    nv = vect.size
+
+    # -------------
+    # test scale
+    # -------------
+
+    dlog = np.diff(np.log(vect))
+    dlin = np.diff(vect)
+    islog = np.allclose(dlog, dlog[0])
+    islin = np.allclose(dlin, dlin[0])
+
+    if islog is True:
+        scale = 'log'
+    elif islin is True:
+        scale = 'lin'
+    else:
+        scale = ''
+
+    # -------------
+    # format
+    # -------------
+
+    v0 = _format(v0, base=base)
+    v1 = _format(v1, base=base)
+
+    return f"{v0}-{v1}-{nv}{scale}"
+
+
+def _format(vv, base='eV'):
+
+    ls = sorted(_DSCALE.keys())
+    ind = np.searchsorted(ls, np.log10(vv), side='right') - 1
+    key = ls[ind]
+    factor = 10**(-key)
+
+    return f"{vv*factor:3.0f}{_DSCALE[key]}{base}".strip()
+
+
+# ####################################################
+# ####################################################
+#           load
+# ####################################################
+
+
+def _load(
+    d2cross=None,
+):
+
+    # ---------
+    # str
+    # ---------
+
+    if isinstance(d2cross, str):
+
+        if not (os.path.isfile(d2cross) and d2cross.endswith('.npz')):
+            msg = (
+                "Arg 'd2cross', if a str, should be valid path/file.npz\n"
+                f"Provided: {d2cross}\n"
+            )
+            raise Exception(msg)
+
+        d2cross = dict(np.load(d2cross, allow_pickle=True))
+
+    # ---------
+    # dict
+    # ---------
+
+    if not isinstance(d2cross, dict):
+        msg = "Arg 'd2cross' must be a dict!\nProvided: {type(d2cross)}\n"
+        raise Exception(msg)
+
+    # ----------------
+    # inner formatting
+    # ----------------
+
+    dfail = {}
+    for kk in _DFORMAT.keys():
+        if not isinstance(d2cross.get(kk), dict):
+            dfail[kk] = 'not a key or value not a dict ()'
+        elif str(d2cross[kk].get('units')) != _DFORMAT[kk]['units']:
+            dfail[kk] = 'no or wrong units ()'
+        elif not isinstance(d2cross[kk]['data'], np.ndarray):
+            dfail[kk] = "data is not a np.ndarray (type(d2cross[kk]['data']))"
+        else:
+            dfail[kk] = 'ok'
+
+    if any([vv != 'ok' for vv in dfail.values()]) > 0:
+        lstr = [f"\t- {kk}: {vv}" for kk, vv in dfail.items()]
+        msg = (
+            "Arg 'd2cross' must be a dict of subdicts "
+            "{'data': np.ndarray, 'units': str}, with keys:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # ----------------
+    # cross formatting
+    # ----------------
+
+    lok = ['BHE', 'BH', 'EH']
+    c0 = (
+        isinstance(d2cross.get('cross'), dict)
+        and all([
+            kk in lok
+            and isinstance(vv, dict)
+            and isinstance(vv.get('data'), np.ndarray)
+            and isinstance(vv.get('data'), str)
+            for kk, vv in d2cross['cross'].items()
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg d2cross['cross'] must be a dict "
+            "with {'version': dict} subdict with:\n"
+            f"\t- 'version' in {lok}\n"
+            f"Provided:\n{d2cross.get('cross')}\n"
+        )
+        raise Exception(msg)
+
+    return d2cross
 
 
 # ####################################################
