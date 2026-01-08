@@ -455,6 +455,8 @@ def _check_anisotropy(
                 + f"{ee0*1e-3:3.0f} / {eph*1e-3:3.0f} keV = "
                 + f"{round(ee0 / eph, ndigits=1)}"
             )
+    else:
+        dcases = {}
 
     # ------------
     # plotting
