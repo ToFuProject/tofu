@@ -25,6 +25,10 @@ TupleDict = tuple[dict]
 _PATH_HERE = os.path.dirname(__file__)
 
 
+# version
+_VERSION = 'EH'  # most accurate, but slow
+
+
 # ####################################################
 # ####################################################
 #        Differential cross-section
@@ -360,7 +364,7 @@ def _check_cross(
     # ------------
 
     if version is None:
-        version = 'EH'
+        version = _VERSION
     if isinstance(version, str):
         version = [version]
 
