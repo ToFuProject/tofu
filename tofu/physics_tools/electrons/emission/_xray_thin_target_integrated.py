@@ -126,7 +126,7 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
     (
         E_e0_eV, E_ph_eV, theta_ph,
         nthetae, ndphi,
-        shape, shape_theta_e, shape_dphi,
+        shape,
         verb, verb_tab,
         save, pfe_save, overwrite,
     ) = _check(
@@ -233,13 +233,9 @@ def _check(
         theta_ph=theta_ph,
     )
 
-    # -----------
-    # shapes
-    # -----------
-
-    shape = np.broadcast_shapes(E_e0_eV.shape, E_ph_eV.shape, theta_ph.shape)
-    shape_theta_e = (1,) * (len(shape)+1) + (-1,)
-    shape_dphi = (1,) * len(shape) + (-1, 1)
+    E_e0_eV, E_ph_eV, theta_ph = np.broadcast_arrays(
+        E_e0_eV, E_ph_eV, theta_ph,
+    )
 
     # -----------
     # integers
@@ -339,7 +335,7 @@ def _check(
     return (
         E_e0_eV, E_ph_eV, theta_ph,
         nthetae, ndphi,
-        shape, shape_theta_e, shape_dphi,
+        shape,
         verb, verb_tab,
         save, pfe_save, overwrite,
     )
@@ -359,10 +355,7 @@ def _compute(
     theta_ph=None,
     # shapes
     nthetae=None,
-    shape_theta_e=None,
-    theta_ef=None,
     ndphi=None,
-    shape_dphi=None,
     # parameters
     ninf=None,
     source=None,
@@ -386,39 +379,11 @@ def _compute(
     # angles
     theta_e = np.pi * np.linspace(0, 1, nthetae)
     dphi = np.pi * np.linspace(-1, 1, ndphi)
-    theta_ef = theta_e.reshape(shape_theta_e)
-    dphif = dphi.reshape(shape_dphi)
+    theta_ef = np.broadcast_to(theta_e[None, :], (ndphi, nthetae))
+    dphif = np.broadcast_to(dphi[:, None], (ndphi, nthetae))
 
     # derived
     sinte = np.sin(theta_ef)
-
-    # ------------------
-    # get d3cross
-    # ------------------
-
-    if verb >= 1:
-        msg = f"{verb_tab}Computing d3cross for shape {shape}... "
-        print(msg)
-
-    d3cross = _xray_thin_target.get_xray_thin_d3cross_ei(
-        # inputs
-        Z=Z,
-        E_e0_eV=E_e0_eV[..., None, None],
-        E_e1_eV=E_e1_eV[..., None, None],
-        # directions
-        theta_ph=theta_ph[..., None, None],
-        theta_e=theta_ef,
-        dphi=dphif,
-        # hypergeometric parameter
-        ninf=ninf,
-        source=source,
-        # output customization
-        per_energy_unit=per_energy_unit,
-        # version
-        version=version,
-        # debug
-        debug=False,
-    )
 
     # ------------------
     # prepare output
@@ -429,33 +394,72 @@ def _compute(
         kv = f"{kk}_{vv['units']}" if vv['units'] == 'eV' else kk
         d2cross[kk]['data'] = eval(kv)
 
-    # cross-sections
-    d2cross['cross'] = {
-        vv: {
-            'data': np.full(shape, 0.),
-            'units': asunits.Unit(vcross['units']) * asunits.Unit('sr'),
-        }
-        for vv, vcross in d3cross['cross'].items()
-    }
-
     # ------------------
-    # integrate
+    # get d3cross
     # ------------------
 
     if verb >= 1:
-        msg = f"{verb_tab}Integrating..."
+        msg = f"{verb_tab}Computing d3cross for shape {shape}... "
         print(msg)
 
-    for vv, vcross in d3cross['cross'].items():
-        d2cross['cross'][vv]['data'][...] = scpinteg.trapezoid(
-            scpinteg.trapezoid(
-                vcross['data'] * sinte,
-                x=theta_e,
-                axis=-1,
-            ),
-            x=dphi,
-            axis=-1,
+    # -------------------------------
+    # loop on all but phi and theta_e
+
+    size = np.prod(shape)
+    for ii, ind in enumerate(np.ndindex(shape)):
+
+        # verb
+        if verb >= 2:
+            end = '\n' if ii == size - 1 else '\r'
+            msg = f"\t{ii+1} / {size}, index {ind} / {shape}"
+            print(msg, end=end)
+
+        # sli
+        sli = ind + (None, None)
+
+        # d3cross
+        d3cross = _xray_thin_target.get_xray_thin_d3cross_ei(
+            # inputs
+            Z=Z,
+            E_e0_eV=E_e0_eV[sli],
+            E_e1_eV=E_e1_eV[sli],
+            # directions
+            theta_ph=theta_ph[sli],
+            theta_e=theta_ef,
+            dphi=dphif,
+            # hypergeometric parameter
+            ninf=ninf,
+            source=source,
+            # output customization
+            per_energy_unit=per_energy_unit,
+            # version
+            version=version,
+            # debug
+            debug=False,
         )
+
+        if ii == 0:
+            srunits = asunits.Unit('sr')
+            # cross-sections
+            d2cross['cross'] = {
+                vv: {
+                    'data': np.full(shape, 0.),
+                    'units': asunits.Unit(vcross['units']) * srunits,
+                }
+                for vv, vcross in d3cross['cross'].items()
+            }
+
+        # integrate of theta_e
+        for vv, vcross in d3cross['cross'].items():
+            d2cross['cross'][vv]['data'][ind] = scpinteg.trapezoid(
+                scpinteg.trapezoid(
+                    vcross['data'] * sinte,
+                    x=theta_e,
+                    axis=-1,
+                ),
+                x=dphi,
+                axis=-1,
+            )
 
     return d2cross
 
