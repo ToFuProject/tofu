@@ -441,8 +441,10 @@ def _compute(
         # verb
         if verb >= 2:
             slistr[iloop] = str(ii)
+            str0 = ', '.join(slistr)
+            str1 = str(shape + (None, None))
             end = '\n' if ii == size - 1 else '\r'
-            msg = f"\t{ii+1} / {size}, index ({', '.join(slistr)}) / {shape}"
+            msg = f"\t{ii+1} / {size}, index ({str0}) / {str1}"
             print(msg, end=end)
 
         # d3cross
@@ -630,7 +632,10 @@ def _load(
             )
             raise Exception(msg)
 
-        d2cross = dict(np.load(d2cross, allow_pickle=True))
+        d2cross = {
+            kk: vv.tolist()
+            for kk, vv in np.load(d2cross, allow_pickle=True).items()
+        }
 
     # ---------
     # dict
@@ -669,13 +674,14 @@ def _load(
     # ----------------
 
     lok = ['BHE', 'BH', 'EH']
+    typunits = (str, asunits.Unit, asunits.CompositeUnit)
     c0 = (
         isinstance(d2cross.get('cross'), dict)
         and all([
             kk in lok
             and isinstance(vv, dict)
             and isinstance(vv.get('data'), np.ndarray)
-            and isinstance(vv.get('data'), str)
+            and isinstance(vv.get('units'), typunits)
             for kk, vv in d2cross['cross'].items()
         ])
     )
