@@ -171,7 +171,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
             )
             dcases[kk]['color'] = l0.get_color()
 
-        ax.set_ylabel(
+        ax.set_xlabel(
             vv['responsivity']['units'],
             fontsize=fontsize,
             fontweight='bold',
