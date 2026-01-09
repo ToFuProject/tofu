@@ -32,6 +32,14 @@ _THETA_PH = np.linspace(0, np.pi, 41)
 _VERSION = 'BHE'
 
 
+# DSCALES
+_DSCALES = {
+    'E_ph': 'linear',
+    'E_e0': 'log',
+    'theta': 'linear',
+}
+
+
 # ANISOTROPY CASES
 _DCASES = {
     0: {
@@ -103,9 +111,14 @@ def plot_xray_thin_d2cross_ei_anisotropy(
     version: Optional[str] = None,
     # selected cases
     dcases: Optional[dict[int, dict]] = None,
+    # verb
+    verb: Optional[bool] = None,
     # plot
     dax: Optional[dict] = None,
     fontsize: Optional[int] = None,
+    E_e0_scale: Optional[str] = None,
+    E_ph_scale: Optional[str] = None,
+    theta_scale: Optional[str] = None,
     dplot_forbidden=None,
     dplot_peaking=None,
     dplot_thetamax=None,
@@ -134,22 +147,11 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         E_e0_eV, E_ph_eV, theta_ph,
         version,
         dcases,
+        dscales,
+        verb,
         fontsize,
         dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_mean,
-    ) = _check_anisotropy(
-        E_e0_eV=E_e0_eV,
-        E_ph_eV=E_ph_eV,
-        theta_ph=theta_ph,
-        version=version,
-        # selected cases
-        dcases=dcases,
-        # plotting
-        fontsize=fontsize,
-        dplot_forbidden=dplot_forbidden,
-        dplot_peaking=dplot_peaking,
-        dplot_thetamax=dplot_thetamax,
-        dplot_mean=dplot_mean,
-    )
+    ) = _check_anisotropy(**locals())
 
     # ---------------
     # prepare data
@@ -170,7 +172,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         ninf=ninf,
         source=source,
         # verb
-        verb=False,
+        verb=verb,
     )
 
     # --------------
@@ -178,10 +180,11 @@ def plot_xray_thin_d2cross_ei_anisotropy(
     # --------------
 
     if dax is None:
-        dax = _get_axes_anisotropy(
+        dax = _dax(
             Z=Z,
             version=version,
             fontsize=fontsize,
+            dscales=dscales,
         )
 
     dax = ds._generic_check._check_dax(dax)
@@ -388,12 +391,20 @@ def _check_anisotropy(
     version=None,
     # selected cases
     dcases=None,
+    # verb
+    verb=None,
+    # scales
+    E_e0_scale=None,
+    E_ph_scale=None,
+    theta_scale=None,
     # plotting
     fontsize=None,
     dplot_forbidden=None,
     dplot_peaking=None,
     dplot_thetamax=None,
     dplot_mean=None,
+    # unused
+    **kwdargs,
 ):
 
     # E_e0_eV
@@ -458,6 +469,16 @@ def _check_anisotropy(
     else:
         dcases = {}
 
+    # -----------
+    # verb
+    # -----------
+
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=(bool, int),
+        default=False,
+    )
+
     # ------------
     # plotting
     # ------------
@@ -503,10 +524,30 @@ def _check_anisotropy(
         ddef,
     )
 
+    # ------------
+    # scales
+    # ------------
+
+    dscales = {
+        'E_ph': E_ph_scale,
+        'E_e0': E_e0_scale,
+        'theta': theta_scale,
+    }
+
+    for kk, vv in dscales.items():
+        dscales[kk] = ds._generic_check._check_var(
+            vv, f'{kk}_scale',
+            types=str,
+            allowed=['log', 'linear'],
+            default=_DSCALES[kk],
+        )
+
     return (
         E_e0_eV, E_ph_eV, theta_ph,
         version,
         dcases,
+        dscales,
+        verb,
         fontsize,
         dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_mean,
     )
@@ -587,10 +628,12 @@ def _get_peaking(data, x, axis=None):
 # #############################################
 
 
-def _get_axes_anisotropy(
+def _dax(
     Z=None,
     version=None,
     fontsize=None,
+    dax=None,
+    dscales=None,
 ):
 
     tit = (
@@ -616,7 +659,11 @@ def _get_axes_anisotropy(
     # --------------
     # ax - isolines
 
-    ax = fig.add_subplot(gs[:, 0], xscale='log')
+    ax = fig.add_subplot(
+        gs[:, 0],
+        xscale=dscales['E_e0'],
+        yscale=dscales['E_ph'],
+    )
     ax.set_xlabel(
         r"$E_{e,0}$ (keV)",
         size=fontsize,
@@ -640,7 +687,10 @@ def _get_axes_anisotropy(
     # --------------
     # ax - norm
 
-    ax = fig.add_subplot(gs[0, 1])
+    ax = fig.add_subplot(
+        gs[0, 1],
+        xscale=dscales['theta'],
+    )
     ax.set_xlabel(
         r"$\theta_{ph}$ (deg)",
         size=fontsize,
@@ -663,7 +713,10 @@ def _get_axes_anisotropy(
     # --------------
     # ax - log
 
-    ax = fig.add_subplot(gs[1, 1], sharex=dax['norm']['handle'])
+    ax = fig.add_subplot(
+        gs[1, 1],
+        sharex=dax['norm']['handle'],
+    )
     ax.set_xlabel(
         r"$\theta_{ph}$ (deg)",
         size=fontsize,
