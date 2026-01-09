@@ -379,8 +379,19 @@ def _compute(
     # angles
     theta_e = np.pi * np.linspace(0, 1, nthetae)
     dphi = np.pi * np.linspace(-1, 1, ndphi)
-    theta_ef = np.broadcast_to(theta_e[None, :], (ndphi, nthetae))
-    dphif = np.broadcast_to(dphi[:, None], (ndphi, nthetae))
+
+    # ---------------------
+    # determine how to loop
+    # ---------------------
+
+    # loop on largest dimension
+    iloop = np.argmax(shape)
+    sli = np.array([slice(None)]*len(shape) + [None, None])
+    slistr = [':'] * (len(shape) + 2)
+
+    sli_ang = (None,) * (len(shape) - 1) + (slice(None),)*2
+    theta_ef = theta_e[None, :][sli_ang]
+    dphif = dphi[:, None][sli_ang]
 
     # derived
     sinte = np.sin(theta_ef)
@@ -405,26 +416,28 @@ def _compute(
     # -------------------------------
     # loop on all but phi and theta_e
 
-    size = np.prod(shape)
-    for ii, ind in enumerate(np.ndindex(shape)):
+    size = shape[iloop]
+    for ii in range(size):
+
+        # sli
+        sli[iloop] = ii
+        slit = tuple(sli)
 
         # verb
         if verb >= 2:
+            slistr[iloop] = str(ii)
             end = '\n' if ii == size - 1 else '\r'
-            msg = f"\t{ii+1} / {size}, index {ind} / {shape}"
+            msg = f"\t{ii+1} / {size}, index ({', '.join(slistr)}) / {shape}"
             print(msg, end=end)
-
-        # sli
-        sli = ind + (None, None)
 
         # d3cross
         d3cross = _xray_thin_target.get_xray_thin_d3cross_ei(
             # inputs
             Z=Z,
-            E_e0_eV=E_e0_eV[sli],
-            E_e1_eV=E_e1_eV[sli],
+            E_e0_eV=E_e0_eV[slit],
+            E_e1_eV=E_e1_eV[slit],
             # directions
-            theta_ph=theta_ph[sli],
+            theta_ph=theta_ph[slit],
             theta_e=theta_ef,
             dphi=dphif,
             # hypergeometric parameter
@@ -451,7 +464,7 @@ def _compute(
 
         # integrate of theta_e
         for vv, vcross in d3cross['cross'].items():
-            d2cross['cross'][vv]['data'][ind] = scpinteg.trapezoid(
+            d2cross['cross'][vv]['data'][slit[:-2]] = scpinteg.trapezoid(
                 scpinteg.trapezoid(
                     vcross['data'] * sinte,
                     x=theta_e,
