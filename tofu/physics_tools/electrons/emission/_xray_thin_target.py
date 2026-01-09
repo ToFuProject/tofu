@@ -897,7 +897,13 @@ def _angle_dependent_internediates(
     sintp = np.sin(theta_ph)
     cosdphi = np.cos(dphi)
 
-    cossindphi = costp*coste + sintp*sinte*cosdphi
+    costpcoste = costp * coste
+    sintpsintecosdphi = sintp * sinte * cosdphi
+
+    cossindphi = costpcoste + sintpsintecosdphi
+
+    sintecostp = sinte * costp
+    costesintp = coste * sintp
 
     # -------------
     # Vectors / scalar product
@@ -905,15 +911,15 @@ def _angle_dependent_internediates(
 
     # scalar
     sca_kp0 = kk * p0 * costp
-    sca_p01 = p1 * p0 * coste
+    sca_p01 = p0 * p1 * coste
     sca_kp1 = kk * p1 * cossindphi
 
     # vect{q} = vect{p0 - p1 - k}
     q2 = (
         p0**2 + p1**2 + k2
-        - 2.*p0*p1*coste
-        - 2.*p0*kk*costp
-        + 2.*p1*kk*cossindphi
+        - 2. * sca_p01
+        - 2. * sca_kp0
+        + 2. * sca_kp1
     )
 
     # -------------
@@ -951,9 +957,9 @@ def _angle_dependent_internediates(
     #     + (sinte*sintp)**2 * sin(phi_p - phi_e)**2
     # )
     eta12 = p12 * (
-        (sinte*costp)**2
-        + (coste*sintp)**2
-        - 2*(coste*costp)*(sinte*sintp*cosdphi)
+        sintecostp**2
+        + costesintp**2
+        - 2 * costpcoste * sintpsintecosdphi
         + (sinte*sintp)**2 * (1 - cosdphi**2)
     )
 
@@ -972,7 +978,7 @@ def _angle_dependent_internediates(
     #     coste*sintp*(sinpp**2 + cospp**2)
     #     - sinte*costp*(sinpe*sinpp + cospe*cospp)
     # )
-    sca_eta01 = p0 * p1 * sintp * (coste*sintp - sinte*costp*cosdphi)
+    sca_eta01 = p0 * p1 * sintp * (costesintp - sintecostp * cosdphi)
 
     # ---------------
     # Intermediates 1
