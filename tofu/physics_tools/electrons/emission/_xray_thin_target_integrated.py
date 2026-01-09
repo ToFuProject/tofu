@@ -38,6 +38,9 @@ _THETA_PH = np.linspace(0, np.pi, 31)
 _NTHETAE = 31
 _NDPHI = 51
 
+# VERSION
+_VERSION = 'BHE'   # good compromise
+
 
 # Default naming
 _DSCALE = {
@@ -126,25 +129,11 @@ def get_xray_thin_d2cross_ei_integrated_thetae_dphi(
     (
         E_e0_eV, E_ph_eV, theta_ph,
         nthetae, ndphi,
+        version,
         shape,
         verb, verb_tab,
         save, pfe_save, overwrite,
-    ) = _check(
-        # inputs
-        E_e0_eV=E_e0_eV,
-        E_ph_eV=E_ph_eV,
-        theta_ph=theta_ph,
-        # integration parameters
-        nthetae=nthetae,
-        ndphi=ndphi,
-        # verb
-        verb=verb,
-        verb_tab=verb_tab,
-        # save
-        save=save,
-        pfe_save=pfe_save,
-        overwrite=overwrite,
-    )
+    ) = _check(**locals())
 
     # ------------------
     # compute
@@ -188,6 +177,7 @@ def _check(
     # integration parameters
     nthetae=None,
     ndphi=None,
+    version=None,
     # verb
     verb=None,
     verb_tab=None,
@@ -195,6 +185,8 @@ def _check(
     save=None,
     pfe_save=None,
     overwrite=None,
+    # unused
+    **kwdargs,
 ):
 
     # -----------
@@ -233,10 +225,6 @@ def _check(
         theta_ph=theta_ph,
     )
 
-    E_e0_eV, E_ph_eV, theta_ph = np.broadcast_arrays(
-        E_e0_eV, E_ph_eV, theta_ph,
-    )
-
     # -----------
     # integers
     # -----------
@@ -255,6 +243,22 @@ def _check(
         types=int,
         sign='>0',
         default=_NDPHI,
+    )
+
+    # ------------
+    # version
+    # ------------
+
+    if version is None:
+        version = _VERSION
+    if isinstance(version, str):
+        version = [version]
+
+    version = ds._generic_check._check_var_iter(
+        version, 'version',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=['EH', 'BH', 'BHE'],
     )
 
     # -----------
@@ -335,6 +339,7 @@ def _check(
     return (
         E_e0_eV, E_ph_eV, theta_ph,
         nthetae, ndphi,
+        version,
         shape,
         verb, verb_tab,
         save, pfe_save, overwrite,
@@ -363,6 +368,7 @@ def _compute(
     per_energy_unit=None,
     # misc
     shape=None,
+    daxis=None,
     verb=None,
     verb_tab=None,
     # unused
@@ -387,6 +393,9 @@ def _compute(
     # loop on largest dimension
     iloop = np.argmax(shape)
     sli = np.array([slice(None)]*len(shape) + [None, None])
+    sli_Ee0 = np.copy(sli)
+    sli_Ee1 = np.copy(sli)
+    sli_theta = np.copy(sli)
     slistr = [':'] * (len(shape) + 2)
 
     sli_ang = (None,) * (len(shape) - 1) + (slice(None),)*2
@@ -405,6 +414,10 @@ def _compute(
         kv = f"{kk}_{vv['units']}" if vv['units'] == 'eV' else kk
         d2cross[kk]['data'] = eval(kv)
 
+    # cross-sections
+    d2cross['cross'] = {vv: {'data': np.full(shape, 0.)} for vv in version}
+    srunits = asunits.Unit('sr')
+
     # ------------------
     # get d3cross
     # ------------------
@@ -421,7 +434,9 @@ def _compute(
 
         # sli
         sli[iloop] = ii
-        slit = tuple(sli)
+        sli_Ee0[iloop] = min(ii, E_e0_eV.shape[iloop]-1)
+        sli_Ee1[iloop] = min(ii, E_e1_eV.shape[iloop]-1)
+        sli_theta[iloop] = min(ii, theta_ph.shape[iloop]-1)
 
         # verb
         if verb >= 2:
@@ -434,10 +449,10 @@ def _compute(
         d3cross = _xray_thin_target.get_xray_thin_d3cross_ei(
             # inputs
             Z=Z,
-            E_e0_eV=E_e0_eV[slit],
-            E_e1_eV=E_e1_eV[slit],
+            E_e0_eV=E_e0_eV[tuple(sli_Ee0)],
+            E_e1_eV=E_e1_eV[tuple(sli_Ee1)],
             # directions
-            theta_ph=theta_ph[slit],
+            theta_ph=theta_ph[tuple(sli_theta)],
             theta_e=theta_ef,
             dphi=dphif,
             # hypergeometric parameter
@@ -451,20 +466,9 @@ def _compute(
             debug=False,
         )
 
-        if ii == 0:
-            srunits = asunits.Unit('sr')
-            # cross-sections
-            d2cross['cross'] = {
-                vv: {
-                    'data': np.full(shape, 0.),
-                    'units': asunits.Unit(vcross['units']) * srunits,
-                }
-                for vv, vcross in d3cross['cross'].items()
-            }
-
         # integrate of theta_e
         for vv, vcross in d3cross['cross'].items():
-            d2cross['cross'][vv]['data'][slit[:-2]] = scpinteg.trapezoid(
+            d2cross['cross'][vv]['data'][tuple(sli[:-2])] = scpinteg.trapezoid(
                 scpinteg.trapezoid(
                     vcross['data'] * sinte,
                     x=theta_e,
@@ -472,6 +476,9 @@ def _compute(
                 ),
                 x=dphi,
                 axis=-1,
+            )
+            d2cross['cross'][vv]['units'] = (
+                srunits * asunits.Unit(vcross['units'])
             )
 
     return d2cross
@@ -509,7 +516,7 @@ def _save(
 
         # extract boundaries
         path = os.path.abspath(_PATH_HERE)
-        fname = f"d2cross_Ee0{Ee0}_Eph{Eph}_ntheta{ntheta}.npz"
+        fname = f"d2cross_Ee0{Ee0}_Eph{Eph}_ntheta{ntheta}"
         pfe_save = os.path.join(path, f"{fname}.npz")
 
     # ----------
@@ -538,8 +545,8 @@ def _save(
     # verb
     # ----------
 
-    if verb is True:
-        msg = "Saved d2cross in:\n\t{pfe_save}\n"
+    if verb >= 1:
+        msg = f"Saved d2cross in:\n\t{pfe_save}\n"
         print(msg)
 
     return
@@ -565,17 +572,20 @@ def _format_vect2str(vect, base='eV'):
     # test scale
     # -------------
 
-    dlog = np.diff(np.log(vect))
-    dlin = np.diff(vect)
-    islog = np.allclose(dlog, dlog[0])
-    islin = np.allclose(dlin, dlin[0])
+    if np.max(vect.shape) == vect.size:
+        dlog = np.diff(np.log(vect))
+        dlin = np.diff(vect)
+        islog = np.allclose(dlog, dlog[0])
+        islin = np.allclose(dlin, dlin[0])
 
-    if islog is True:
-        scale = 'log'
-    elif islin is True:
-        scale = 'lin'
+        if islog is True:
+            scale = 'log'
+        elif islin is True:
+            scale = 'lin'
+        else:
+            scale = 'pts'
     else:
-        scale = ''
+        scale = 'pts'
 
     # -------------
     # format
