@@ -14,6 +14,7 @@ import datastock as ds
 
 
 from . import _xray_thin_target_integrated as _mod
+from ._xray_thin_target_integrated_cases import _DCASES_PRE
 
 
 TupleDict = tuple[dict]
@@ -34,57 +35,24 @@ _VERSION = 'BHE'
 
 # DSCALES
 _DSCALES = {
-    'E_ph': 'linear',
+    'E_ph': 'log',
     'E_e0': 'log',
     'theta': 'linear',
 }
 
 
-# ANISOTROPY CASES
-_DCASES = {
-    0: {
-        'E_e0_eV': 20e3,
-        'E_ph_eV': 10e3,
-        'color': 'r',
-        'marker': '*',
-        'ms': 14,
-    },
-    1: {
-        'E_e0_eV': 100e3,
-        'E_ph_eV': 50e3,
-        'color': 'c',
-        'marker': '*',
-        'ms': 14,
-    },
-    2: {
-        'E_e0_eV': 100e3,
-        'E_ph_eV': 10e3,
-        'color': 'm',
-        'marker': '*',
-        'ms': 14,
-    },
-    3: {
-        'E_e0_eV': 1000e3,
-        'E_ph_eV': 10e3,
-        'color': (0.8, 0.8, 0),
-        'marker': '*',
-        'ms': 14,
-    },
-    4: {
-        'E_e0_eV': 10000e3,
-        'E_ph_eV': 10e3,
-        'color': (0., 0.8, 0.8),
-        'marker': '*',
-        'ms': 14,
-    },
-    5: {
-        'E_e0_eV': 1000e3,
-        'E_ph_eV': 50e3,
-        'color': (0.8, 0., 0.8),
-        'marker': '*',
-        'ms': 14,
-    },
+# ANISOTROPY CASES FORMATTING
+_DCASES_FORMAT = {
+    'E_e0_eV': (int, float),
+    'E_ph_eV': (int, float),
+    'color': (str, tuple),
+    'marker': str,
+    'ms': (int, float),
 }
+
+
+# ANISOTROPY CASES DEFAULT
+_DCASES_CASE = 'standard'
 
 
 # ####################################################
@@ -146,7 +114,6 @@ def plot_xray_thin_d2cross_ei_anisotropy(
     (
         E_e0_eV, E_ph_eV, theta_ph,
         version,
-        dcases,
         dscales,
         verb,
         fontsize,
@@ -173,6 +140,22 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         source=source,
         # verb
         verb=verb,
+    )
+
+    # -------------------
+    # update from d2cross
+    # -------------------
+
+    # if d2cross was provided
+    theta_ph = d2cross['theta_ph']['data'].ravel()
+    E_ph_eV = d2cross['E_ph']['data'].ravel()
+    E_e0_eV = d2cross['E_e0']['data'].ravel()
+
+    # dcases
+    dcases = _check_dcases(
+        dcases=dcases,
+        E_e0_eV=E_e0_eV,
+        E_ph_eV=E_ph_eV,
     )
 
     # --------------
@@ -205,6 +188,10 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                 theta_ph*180/np.pi,
                 axis=0,
             )
+            mean_log10 = np.full(mean.shape, np.nan)
+            iok = np.isfinite(mean)
+            iok[iok] = mean[iok] > 0.
+            mean_log10[iok] = np.log10(mean[iok])
             mean_units = vv['units']
 
             # integral
@@ -212,7 +199,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                 im0 = ax.contour(
                     E_e0_eV * 1e-3,
                     E_ph_eV * 1e-3,
-                    np.log10(mean).T,
+                    mean_log10.T,
                     levels=dplot_mean['levels'],
                     colors=dplot_mean['colors'],
                 )
@@ -315,7 +302,8 @@ def plot_xray_thin_d2cross_ei_anisotropy(
             )
 
         # limits
-        ax.set_ylim(0, ymax*1e-3)
+        if dscales['E_ph'] == 'linear':
+            ax.set_ylim(0, ymax*1e-3)
 
     # ---------------
     # plot - cases
@@ -389,8 +377,6 @@ def _check_anisotropy(
     E_ph_eV=None,
     theta_ph=None,
     version=None,
-    # selected cases
-    dcases=None,
     # verb
     verb=None,
     # scales
@@ -436,38 +422,6 @@ def _check_anisotropy(
     # version
     if version is None:
         version = _VERSION
-
-    # ------------
-    # dcases
-    # ------------
-
-    ddef = copy.deepcopy(_DCASES)
-    if dcases in [None, True]:
-        dcases = ddef
-
-    if dcases is not False:
-        for k0, v0 in dcases.items():
-            dcases[k0] = _check_anisotropy_dplot(
-                v0,
-                f'dcases[{k0}]',
-                ddef[0],
-            )
-
-            # update with indices
-            ie = np.argmin(np.abs(E_e0_eV - dcases[k0]['E_e0_eV']))
-            iph = np.argmin(np.abs(E_ph_eV - dcases[k0]['E_ph_eV']))
-            dcases[k0].update({'ie': ie, 'iph': iph})
-
-            # update with label
-            ee0 = E_e0_eV[ie]
-            eph = E_ph_eV[iph]
-            dcases[k0]['lab'] = (
-                r"$E_{e0} / E_{ph}$ = "
-                + f"{ee0*1e-3:3.0f} / {eph*1e-3:3.0f} keV = "
-                + f"{round(ee0 / eph, ndigits=1)}"
-            )
-    else:
-        dcases = {}
 
     # -----------
     # verb
@@ -545,12 +499,74 @@ def _check_anisotropy(
     return (
         E_e0_eV, E_ph_eV, theta_ph,
         version,
-        dcases,
         dscales,
         verb,
         fontsize,
         dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_mean,
     )
+
+
+def _check_dcases(
+    dcases=None,
+    E_e0_eV=None,
+    E_ph_eV=None,
+):
+
+    # --------------
+    # dcases default
+    # --------------
+
+    ddef = copy.deepcopy(_DCASES_FORMAT)
+    if dcases in [None, True]:
+        dcases = _DCASES_CASE
+
+    # --------------
+    # dcases from predefined
+    # --------------
+
+    if isinstance(dcases, str):
+        lok = sorted(_DCASES_PRE.keys())
+        if dcases not in lok:
+            lstr = [f"\t- {kk}" for kk in lok]
+            msg = (
+                "Arg 'dcases' must be either:\n"
+                "\t- dict of cases\n"
+                "\t- a key to a predefined dict of cases\n"
+                "Available predefined dcases:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+        dcases = copy.deepcopy(_DCASES_PRE[dcases])
+
+    # --------------
+    # generic check
+    # --------------
+
+    if dcases is not False:
+        for k0, v0 in dcases.items():
+            dcases[k0] = _check_anisotropy_dplot(
+                v0,
+                f'dcases[{k0}]',
+                ddef,
+            )
+
+            # update with indices
+            ie = np.argmin(np.abs(E_e0_eV - dcases[k0]['E_e0_eV']))
+            iph = np.argmin(np.abs(E_ph_eV - dcases[k0]['E_ph_eV']))
+            dcases[k0].update({'ie': ie, 'iph': iph})
+
+            # update with label
+            ee0 = E_e0_eV[ie]
+            eph = E_ph_eV[iph]
+            dcases[k0]['lab'] = (
+                r"$E_{e0} / E_{ph}$ = "
+                + f"{ee0*1e-3:3.0f} / {eph*1e-3:3.0f} keV = "
+                + f"{round(ee0 / eph, ndigits=1)}"
+            )
+    else:
+        dcases = {}
+
+    return dcases
 
 
 def _check_anisotropy_dplot(din, dname, ddef):
@@ -569,7 +585,11 @@ def _check_anisotropy_dplot(din, dname, ddef):
     if din is not False:
         c0 = (
             isinstance(din, dict)
-            and all([kk in ddef.keys() for kk in din.keys()])
+            and all([
+                kk in ddef.keys()
+                and isinstance(din[kk], ddef[kk])
+                for kk in din.keys()
+            ])
         )
         if not c0:
             lstr = [f"\t- ''{k0}': {v0}" for k0, v0 in ddef.items()]
@@ -604,11 +624,18 @@ def _get_peaking(data, x, axis=None):
     # ----------
 
     integ = scpinteg.trapezoid(data, x=x, axis=axis)
-    shape_integ = tuple([
-        1 if ii == axis else ss
-        for ii, ss in enumerate(data.shape)
-    ])
-    data_n = data / integ.reshape(shape_integ)
+    shape_integ = list(data.shape)
+    shape_integ[axis] = 1
+
+    data_n = np.full(data.shape, np.nan)
+    iok = np.isfinite(integ)
+    iok[iok] = integ[iok] > 0
+    iokn = iok.nonzero()
+    sli0 = list(iokn)
+    sli1 = list(iokn)
+    sli0.insert(axis, None)
+    sli1.insert(axis, slice(None))
+    data_n[tuple(sli1)] = data[tuple(sli1)] / integ[tuple(sli0)]
 
     # ----------
     # get average
@@ -616,7 +643,11 @@ def _get_peaking(data, x, axis=None):
 
     shape_x = tuple([-1 if ii == axis else 1 for ii in range(data.ndim)])
     xf = x.reshape(shape_x)
-    x_avf = scpinteg.simpson(data_n * xf, x=x, axis=axis).reshape(shape_integ)
+    x_avf = scpinteg.trapezoid(
+        data_n * xf,
+        x=x,
+        axis=axis,
+    ).reshape(shape_integ)
     std = np.sqrt(scpinteg.simpson(data_n * (xf - x_avf)**2, x=x, axis=axis))
 
     return integ/180, 1/std
