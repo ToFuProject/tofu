@@ -43,11 +43,12 @@ _DSCALES = {
 
 # ANISOTROPY CASES FORMATTING
 _DCASES_FORMAT = {
-    'E_e0_eV': (int, float),
-    'E_ph_eV': (int, float),
-    'color': (str, tuple),
-    'marker': str,
-    'ms': (int, float),
+    'E_e0_eV': {'type': (int, float), 'val': 1e3},
+    'E_ph_eV': {'type': (int, float), 'val': 10e3},
+    'color': {'type': (str, tuple), 'val': 'k'},
+    'marker': {'type': str, 'val': '*'},
+    'ms': {'type': (int, float), 'val': 18},
+    'ls': {'type': str, 'val': '-'},
 }
 
 
@@ -326,6 +327,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                         theta_ph * 180/np.pi,
                         yy / np.max(yy),
                         c=vcase['color'],
+                        ls=vcase['ls'],
                         label=labi,
                     )
 
@@ -338,6 +340,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                         theta_ph * 180/np.pi,
                         yy*1e28,
                         c=vcase['color'],
+                        ls=vcase['ls'],
                         label=labi,
                     )
 
@@ -587,12 +590,16 @@ def _check_anisotropy_dplot(din, dname, ddef):
             isinstance(din, dict)
             and all([
                 kk in ddef.keys()
-                and isinstance(din[kk], ddef[kk])
+                and (
+                    isinstance(ddef[kk], dict)
+                    and ddef[kk].get('type') is not None
+                    and isinstance(din[kk], ddef[kk]['type'])
+                )
                 for kk in din.keys()
             ])
         )
         if not c0:
-            lstr = [f"\t- ''{k0}': {v0}" for k0, v0 in ddef.items()]
+            lstr = [f"\t- '{k0}': {v0['type']}" for k0, v0 in ddef.items()]
             msg = (
                 f"Arg '{dname}' must be either False or a dict with:\n"
                 + "\n".join(lstr)
@@ -606,7 +613,11 @@ def _check_anisotropy_dplot(din, dname, ddef):
 
     if din is not False:
         for k0, v0 in ddef.items():
-            din[k0] = din.get(k0, v0)
+            if isinstance(v0, dict):
+                vv = v0['val']
+            else:
+                vv = v0
+            din[k0] = din.get(k0, vv)
 
     return din
 
