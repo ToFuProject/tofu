@@ -168,6 +168,15 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     )
 
     # -------------------
+    # Compute integrand
+    # -------------------
+
+    dinteg = _integrand(
+        d2cross=d2cross,
+        dcases=dcases,
+    )
+
+    # -------------------
     # plot responsivity
     # -------------------
 
@@ -222,6 +231,28 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         )
 
     return dax
+
+
+# #############################################
+# #############################################
+#        Integrand
+# #############################################
+
+
+def _integrand(
+    d2cross=None,
+    dcases=None,
+):
+
+    # --------------
+    # loop on cases
+    # --------------
+
+    for kcase, vcase in dcases.items():
+
+        pass
+
+    return
 
 
 # #############################################
@@ -384,9 +415,9 @@ def _dax(
     )
 
     dmargin = {
-        'left': 0.06, 'right': 0.95,
-        'bottom': 0.06, 'top': 0.90,
-        'wspace': 0.20, 'hspace': 0.20,
+        'left': 0.05, 'right': 0.98,
+        'bottom': 0.05, 'top': 0.92,
+        'wspace': 0.30, 'hspace': 0.20,
     }
 
     fig = plt.figure(figsize=(15, 12))
