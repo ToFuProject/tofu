@@ -77,7 +77,8 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     # version
     version: Optional[str] = None,
     # selected cases
-    dcases: Optional[dict[int, dict]] = None,
+    dcases_cross: Optional[dict[int, dict]] = None,
+    dcases_dist_resp: Optional[dict[int, dict]] = None,
     # verb
     verb: Optional[bool] = None,
     # plot
@@ -113,7 +114,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     # check inputs
     # ---------------
 
-    dcases, dscales, fs, fontsize = _check(**locals())
+    dcases_dist_resp, dscales, fs, fontsize = _check(**locals())
 
     # ---------------
     # prepare data
@@ -155,7 +156,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         # version
         version=version,
         # selected cases
-        dcases=False,
+        dcases=dcases_cross,
         # verb
         verb=verb,
         # plot
@@ -174,7 +175,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        for kk, vv in dcases.items():
+        for kk, vv in dcases_dist_resp.items():
 
             l0, = ax.plot(
                 vv['responsivity']['data'],
@@ -185,13 +186,14 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
                 lw=vv.get('lw', 1.),
                 label=kk,
             )
-            dcases[kk]['color'] = l0.get_color()
+            dcases_dist_resp[kk]['color'] = l0.get_color()
 
         ax.set_xlabel(
             vv['responsivity']['units'],
             fontsize=fontsize,
             fontweight='bold',
         )
+        ax.invert_xaxis()
 
     # -------------------
     # plot distribution
@@ -201,7 +203,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        for kk, vv in dcases.items():
+        for kk, vv in dcases_dist_resp.items():
 
             ax.semilogy(
                 vv['E_e0']['data']*1e-3,
@@ -229,7 +231,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
 
 
 def _check(
-    dcases=None,
+    dcases_dist_resp=None,
     fs=None,
     fontsize=None,
     E_e0_scale=None,
@@ -246,11 +248,11 @@ def _check(
     # ------------
 
     ddef = copy.deepcopy(_DCASES)
-    if dcases in [None, False]:
-        dcases = {}
+    if dcases_dist_resp in [None, False]:
+        dcases_dist_resp = {}
     else:
-        for k0, v0 in dcases.items():
-            dcases[k0] = _check_case(
+        for k0, v0 in dcases_dist_resp.items():
+            dcases_dist_resp[k0] = _check_case(
                 v0,
                 f"dcases['{k0}']",
                 ddef[list(ddef.keys())[0]],
@@ -294,9 +296,7 @@ def _check(
             default=_DSCALES[kk],
         )
 
-    return (
-        dcases, dscales, fs, fontsize,
-    )
+    return dcases_dist_resp, dscales, fs, fontsize
 
 
 def _check_case(
@@ -392,10 +392,10 @@ def _dax(
     fig = plt.figure(figsize=(15, 12))
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
-    nh0, nh1, nh2 = 2, 5, 4
+    nh0, nh1, nh2 = 2, 6, 4
     nv0, nv1, nv2 = 3, 1, 2
     gs = gridspec.GridSpec(
-        ncols=nh0+nh1+nh2 + 1,
+        ncols=nh0+nh1+2*(nh2 + 1),
         nrows=nv0 + nv1,
         **dmargin,
     )
@@ -465,10 +465,49 @@ def _dax(
     dax['dist'] = {'handle': ax, 'type': 'isolines'}
 
     # --------------
-    # ax - theta - norm
+    # ax - theta_cross - norm
 
     ax = fig.add_subplot(
-        gs[:nv2, nh0 + nh1 + 1:],
+        gs[:nv2, nh0 + nh1 + 1:nh0 + nh1 + 1 + nh2],
+        xscale=dscales['theta'],
+        yscale='linear',
+    )
+    ax.set_xlabel(
+        r"$\theta_{ph}^{e0}$ (deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(
+        "cross-section norm.",
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['theta_norm'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # ax - theta_cross - abs
+
+    ax = fig.add_subplot(
+        gs[nv2:, nh0 + nh1 + 1:nh0 + nh1 + 1 + nh2],
+        sharex=dax['theta_norm']['handle'],
+        yscale='log',
+    )
+    ax.set_xlabel(
+        r"$\theta_{ph}^{e0}$ (deg)",
+        size=fontsize,
+        fontweight='bold',
+    )
+
+    # store
+    dax['theta_abs'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # ax - theta_emiss - norm
+
+    ax = fig.add_subplot(
+        gs[:nv2, nh0 + nh1 + 2 + nh2:],
         xscale=dscales['theta'],
         yscale='linear',
     )
@@ -478,19 +517,19 @@ def _dax(
         fontweight='bold',
     )
     ax.set_ylabel(
-        "emiss (ph/sr/s/m3)",
+        "emiss norm.",
         size=fontsize,
         fontweight='bold',
     )
 
     # store
-    dax['theta_norm'] = {'handle': ax, 'type': 'isolines'}
+    dax['theta_emiss_norm'] = {'handle': ax, 'type': 'isolines'}
 
     # --------------
-    # ax - theta - abs
+    # ax - theta_emiss - abs
 
     ax = fig.add_subplot(
-        gs[nv2:, nh0 + nh1 + 1:],
+        gs[nv2:, nh0 + nh1 + 2 + nh2:],
         sharex=dax['theta_norm']['handle'],
         yscale='log',
     )
@@ -506,6 +545,6 @@ def _dax(
     )
 
     # store
-    dax['theta_abs'] = {'handle': ax, 'type': 'isolines'}
+    dax['theta_emiss_abs'] = {'handle': ax, 'type': 'isolines'}
 
     return dax

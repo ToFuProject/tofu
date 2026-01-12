@@ -318,8 +318,8 @@ def plot_xray_thin_d2cross_ei_anisotropy(
             yy = vv['data'][:, vcase['ie'], vcase['iph']]
             if np.any(yy > 0):
 
-                # normalized
-                kax = 'norm'
+                # theta_norm
+                kax = 'theta_norm'
                 if dax.get(kax) is not None:
                     ax = dax[kax]['handle']
 
@@ -331,8 +331,8 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                         label=labi,
                     )
 
-                # abs
-                kax = 'log'
+                # theta_abs
+                kax = 'theta_abs'
                 if dax.get(kax) is not None:
                     ax = dax[kax]['handle']
 
@@ -345,7 +345,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                     )
 
     # normalized
-    kax = 'norm'
+    kax = 'theta_norm'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
         ax.legend(prop={'size': 12})
@@ -353,7 +353,7 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         ax.set_xlim(0, 180)
 
     # normalized
-    kax = 'log'
+    kax = 'theta_abs'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
         ax.legend(prop={'size': 12})
@@ -727,7 +727,7 @@ def _dax(
     dax['map'] = {'handle': ax, 'type': 'isolines'}
 
     # --------------
-    # ax - norm
+    # ax - theta_norm
 
     ax = fig.add_subplot(
         gs[0, 1],
@@ -750,14 +750,14 @@ def _dax(
     )
 
     # store
-    dax['norm'] = {'handle': ax, 'type': 'isolines'}
+    dax['theta_norm'] = {'handle': ax, 'type': 'isolines'}
 
     # --------------
-    # ax - log
+    # ax - theta_abs
 
     ax = fig.add_subplot(
         gs[1, 1],
-        sharex=dax['norm']['handle'],
+        sharex=dax['theta_norm']['handle'],
     )
     ax.set_xlabel(
         r"$\theta_{ph}$ (deg)",
@@ -771,6 +771,6 @@ def _dax(
     )
 
     # store
-    dax['log'] = {'handle': ax, 'type': 'isolines'}
+    dax['theta_abs'] = {'handle': ax, 'type': 'isolines'}
 
     return dax
