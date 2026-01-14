@@ -6,6 +6,7 @@ from typing import Optional   # Any, Dict
 
 import numpy as np
 import astropy.units as asunits
+import scipy.constants as scpct
 import matplotlib.pyplot as plt
 # import matplotlib.lines as mlines
 import matplotlib.gridspec as gridspec
@@ -14,6 +15,7 @@ import datastock as ds
 
 # from . import _xray_thin_target_integrated as _mod
 from . import _xray_thin_target_integrated_plot as _mod_plot
+from ... import transmission
 # from ..distribution import get_distribution
 
 
@@ -53,6 +55,48 @@ _DCASES = {
     },
 }
 
+# -----------
+# DTRANS
+
+_DTRANS = {
+    'Al\n10 um': {
+        'mat': 'Al',
+        'thick': 10e-6,
+    },
+    'Steel\n1 cm': {
+        'mat': 'StainlessSteel',
+        'thick': 0.01,
+    },
+}
+
+_DTRANS_DEF = {
+    'fontsize': 12,
+    'fontweight': 'bold',
+    'ls': '--',
+    'lw': 1,
+    'color': 'k',
+}
+
+# -----------
+# DRANGES
+
+_DRANGES = {
+    'visible': {
+        'E': np.sort(scpct.h * scpct.c / (np.r_[380, 750]*1e-9) / scpct.e),
+    },
+    'UV': {
+        'E': np.sort(np.r_[scpct.h * scpct.c / (350*1e-9) / scpct.e, 1e3]),
+    },
+}
+
+_DRANGES_DEF = {
+    'fontsize': 12,
+    'fontweight': 'bold',
+    'color': 'k',
+    'facecolor': (0.8, 0.8, 0.8),
+    'alpha': 0.5,
+}
+
 
 # ####################################################
 # ####################################################
@@ -79,6 +123,9 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     # selected cases
     dcases_cross: Optional[dict[int, dict]] = None,
     dcases_dist_resp: Optional[dict[int, dict]] = None,
+    # decorative
+    dtrans: Optional[dict] = None,
+    dranges: Optional[dict] = None,
     # verb
     verb: Optional[bool] = None,
     # plot
@@ -172,8 +219,24 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     # -------------------
 
     dinteg = _integrand(
-        d2cross=d2cross,
-        dcases=dcases,
+        d2cross=d2cross_cross,
+        dcases_dist_resp=dcases_dist_resp,
+    )
+
+    # -----------
+    # decorative
+    # -----------
+
+    # transmissions
+    dtrans = _dtrans(
+        d2cross=d2cross_cross,
+        dtrans=dtrans,
+    )
+
+    # dranges
+    dranges = _dranges(
+        d2cross=d2cross_cross,
+        dranges=dranges,
     )
 
     # -------------------
@@ -205,6 +268,60 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         ax.invert_xaxis()
 
     # -------------------
+    # plot comments
+    # -------------------
+
+    kax = 'comments'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # ------------
+        # transmission
+
+        for ktrans, vtrans in dtrans.items():
+
+            ax.axhline(
+                vtrans['E']*1e-3,
+                color=vtrans['color'],
+                ls=vtrans['ls'],
+                lw=vtrans['lw'],
+            )
+
+            ax.text(
+                0.5,
+                vtrans['E']*1e-3,
+                ktrans,
+                fontweight=vtrans['fontweight'],
+                fontsize=vtrans['fontsize'],
+                verticalalignment='center',
+                horizontalalignment='center',
+                color=vtrans['color'],
+            )
+
+        # ------------
+        # ranges
+
+        for krang, vrang in dranges.items():
+
+            ax.axhspan(
+                vrang['E'][0]*1e-3,
+                vrang['E'][1]*1e-3,
+                facecolor=vrang['facecolor'],
+                alpha=vrang['alpha']
+            )
+
+            ax.text(
+                0.5,
+                np.sqrt(vrang['E'][0] * vrang['E'][1])*1e-3,
+                krang,
+                fontweight=vtrans['fontweight'],
+                fontsize=vtrans['fontsize'],
+                verticalalignment='center',
+                horizontalalignment='center',
+                color=vtrans['color'],
+            )
+
+    # -------------------
     # plot distribution
     # -------------------
 
@@ -231,28 +348,6 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         )
 
     return dax
-
-
-# #############################################
-# #############################################
-#        Integrand
-# #############################################
-
-
-def _integrand(
-    d2cross=None,
-    dcases=None,
-):
-
-    # --------------
-    # loop on cases
-    # --------------
-
-    for kcase, vcase in dcases.items():
-
-        pass
-
-    return
 
 
 # #############################################
@@ -394,6 +489,116 @@ def _check_case(
 
 # #############################################
 # #############################################
+#        Integrand
+# #############################################
+
+
+def _integrand(
+    d2cross=None,
+    dcases_dist_resp=None,
+):
+
+    # --------------
+    # loop on cases
+    # --------------
+
+    for kcase, vcase in dcases_dist_resp.items():
+
+        pass
+
+    return
+
+
+# #############################################
+# #############################################
+#           Decorative
+# #############################################
+
+
+def _dtrans(
+    dtrans=None,
+    d2cross=None,
+):
+
+    # ----------------
+    # default
+    # ----------------
+
+    # default
+    if dtrans is None:
+        dtrans = copy.deepcopy(_DTRANS)
+
+    # ----------------
+    # get transmission
+    # ----------------
+
+    # False
+    if dtrans is False:
+        dtrans = {}
+
+    else:
+        dout = transmission.get_xray_transmission(
+            dthick=dtrans,
+            E=d2cross['E_ph']['data'],
+            plot=False,
+        )
+
+        # extract info
+        E_inv = d2cross['E_ph']['data'].ravel()[::-1]
+        for kk, vv in dtrans.items():
+
+            # get last time > 0.5
+            trans = dout['keys'][kk]['trans'].ravel()[::-1]
+            ii = np.nonzero(trans < 0.5)[0][0]
+            dtrans[kk]['E'] = E_inv[ii]
+
+    # ----------------
+    # check format
+    # ----------------
+
+    for ktrans, vtrans in dtrans.items():
+
+        for kk, vv in _DTRANS_DEF.items():
+            dtrans[ktrans][kk] = vtrans.get(kk, vv)
+
+    return dtrans
+
+
+def _dranges(
+    dranges=None,
+    d2cross=None,
+):
+
+    # ----------------
+    # default
+    # ----------------
+
+    # default
+    if dranges is None:
+        dranges = copy.deepcopy(_DRANGES)
+
+    # ----------------
+    # get transmission
+    # ----------------
+
+    # False
+    if dranges is False:
+        dranges = {}
+
+    # ----------------
+    # check format
+    # ----------------
+
+    for krang, vrang in dranges.items():
+
+        for kk, vv in _DRANGES_DEF.items():
+            dranges[krang][kk] = vrang.get(kk, vv)
+
+    return dranges
+
+
+# #############################################
+# #############################################
 #        Axes for anisotropy
 # #############################################
 
@@ -417,16 +622,20 @@ def _dax(
     dmargin = {
         'left': 0.05, 'right': 0.98,
         'bottom': 0.05, 'top': 0.92,
-        'wspace': 0.30, 'hspace': 0.20,
+        'wspace': 0.70, 'hspace': 0.20,
     }
 
     fig = plt.figure(figsize=(15, 12))
     fig.suptitle(tit, size=fontsize+2, fontweight='bold')
 
-    nh0, nh1, nh2 = 2, 6, 4
+    nhvert = 3
+    nhcom = 1
+    nhlarge = 8
+    nhint = 1
+    nhtheta = 5
     nv0, nv1, nv2 = 3, 1, 2
     gs = gridspec.GridSpec(
-        ncols=nh0+nh1+2*(nh2 + 1),
+        ncols=nhvert + nhcom + nhlarge + nhint + nhtheta + nhtheta,
         nrows=nv0 + nv1,
         **dmargin,
     )
@@ -439,8 +648,9 @@ def _dax(
     # --------------
     # ax - isolines
 
+    nh = nhvert + nhcom
     ax = fig.add_subplot(
-        gs[:nv0, nh0:nh0+nh1],
+        gs[:nv0, nh:nh + nhlarge],
         xscale=dscales['E_e0'],
         yscale=dscales['E_ph'],
     )
@@ -458,7 +668,7 @@ def _dax(
     # ax - responsivity
 
     ax = fig.add_subplot(
-        gs[:nv0, :nh0],
+        gs[:nv0, :nhvert],
         sharey=dax['map']['handle'],
         xscale=dscales['resp'],
     )
@@ -478,10 +688,25 @@ def _dax(
     dax['responsivity'] = {'handle': ax, 'type': 'isolines'}
 
     # --------------
-    # ax - dist
+    # ax - comments
 
     ax = fig.add_subplot(
-        gs[nv0:, nh0:nh0 + nh1],
+        gs[:nv0, nhvert:nhvert+nhcom],
+        sharey=dax['map']['handle'],
+        yscale=dscales['resp'],
+        frameon=False,
+    )
+    ax.axis('off')
+
+    # store
+    dax['comments'] = {'handle': ax, 'type': 'isolines'}
+
+    # --------------
+    # ax - dist
+
+    nh = nhvert + nhcom
+    ax = fig.add_subplot(
+        gs[nv0:, nh:nh + nhlarge],
         sharex=dax['map']['handle'],
         yscale=dscales['dist'],
     )
@@ -498,8 +723,9 @@ def _dax(
     # --------------
     # ax - theta_cross - norm
 
+    nh = nhvert + nhcom + nhlarge + nhint
     ax = fig.add_subplot(
-        gs[:nv2, nh0 + nh1 + 1:nh0 + nh1 + 1 + nh2],
+        gs[:nv2, nh:nh + nhtheta],
         xscale=dscales['theta'],
         yscale='linear',
     )
@@ -520,8 +746,9 @@ def _dax(
     # --------------
     # ax - theta_cross - abs
 
+    nh = nhvert + nhcom + nhlarge + nhint
     ax = fig.add_subplot(
-        gs[nv2:, nh0 + nh1 + 1:nh0 + nh1 + 1 + nh2],
+        gs[nv2:, nh:nh + nhtheta],
         sharex=dax['theta_norm']['handle'],
         yscale='log',
     )
@@ -537,8 +764,9 @@ def _dax(
     # --------------
     # ax - theta_emiss - norm
 
+    nh = nhvert + nhcom + nhlarge + nhint + nhtheta
     ax = fig.add_subplot(
-        gs[:nv2, nh0 + nh1 + 2 + nh2:],
+        gs[:nv2, nh:],
         xscale=dscales['theta'],
         yscale='linear',
     )
@@ -559,8 +787,9 @@ def _dax(
     # --------------
     # ax - theta_emiss - abs
 
+    nh = nhvert + nhcom + nhlarge + nhint + nhtheta
     ax = fig.add_subplot(
-        gs[nv2:, nh0 + nh1 + 2 + nh2:],
+        gs[nv2:, nh:],
         sharex=dax['theta_norm']['handle'],
         yscale='log',
     )

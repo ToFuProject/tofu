@@ -466,7 +466,7 @@ def _check_anisotropy(
     )
 
     # dplot_thetamax
-    ddef = {'colors': 'b', 'levels': np.r_[0.1, 30, 50, 90]}
+    ddef = {'colors': 'b', 'levels': np.r_[0.01, 2, 30, 50, 90]}
     dplot_thetamax = _check_anisotropy_dplot(
         dplot_thetamax,
         'dplot_thetamax',
