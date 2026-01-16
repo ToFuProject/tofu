@@ -45,15 +45,38 @@ _DSCALES = {
 }
 
 
-# DCASES
-_DCASES = {
-    'cvd no filter maxwell': {
-        'E_ph': {},
-        'responsivity': {},
-        'dist': {},
-        'E_e0': {},
-    },
+# DDIST
+_UNITS = (str, asunits.Unit, asunits.CompositeUnit)
+_DDIST = {}
+_DDIST_FORMAT = {
+    'E_e0': {'data': np.ndarray, 'units': _UNITS},
+    'dist': {'data': np.ndarray, 'units': _UNITS},
+    'marker': 'None',
+    'lw': 1,
+    'color': 'k',
+    'ls': None,     # cycle
 }
+
+
+# DRESP
+_DRESP = {}
+_DRESP_FORMAT = {
+    'E_ph': {'data': np.ndarray, 'units': _UNITS},
+    'responsivity': {'data': np.ndarray, 'units': _UNITS},
+    'marker': 'None',
+    'lw': 1,
+    'ls': '-',
+    'color': None,    # cycle
+}
+
+
+# DCASES
+_DCASES = {}
+_DCASE_FORMAT = {
+    'dist': str,
+    'resp': str,
+}
+
 
 # -----------
 # DTRANS
@@ -122,6 +145,9 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     version: Optional[str] = None,
     # selected cases
     dcases_cross: Optional[dict[int, dict]] = None,
+    # distributions, responsivities and cases
+    ddist: Optional[dict] = None,
+    dresp: Optional[dict] = None,
     dcases_dist_resp: Optional[dict[int, dict]] = None,
     # decorative
     dtrans: Optional[dict] = None,
@@ -161,7 +187,12 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     # check inputs
     # ---------------
 
-    dcases_dist_resp, dscales, fs, fontsize = _check(**locals())
+    (
+        ddist, dresp,
+        dcases_dist_resp,
+        dscales,
+        fs, fontsize,
+    ) = _check(**locals())
 
     # ---------------
     # prepare data
@@ -247,7 +278,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        for kk, vv in dcases_dist_resp.items():
+        for kk, vv in dresp.items():
 
             l0, = ax.plot(
                 vv['responsivity']['data'],
@@ -256,15 +287,10 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
                 ls=vv.get('ls', '-'),
                 marker=vv.get('marker'),
                 lw=vv.get('lw', 1.),
-                label=kk,
+                label=f"{kk}_{vv['responsivity']['units']}",
             )
-            dcases_dist_resp[kk]['color'] = l0.get_color()
+            dresp[kk]['color'] = l0.get_color()
 
-        ax.set_xlabel(
-            vv['responsivity']['units'],
-            fontsize=fontsize,
-            fontweight='bold',
-        )
         ax.invert_xaxis()
 
     # -------------------
@@ -329,9 +355,9 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        for kk, vv in dcases_dist_resp.items():
+        for kk, vv in ddist.items():
 
-            ax.semilogy(
+            l0, = ax.semilogy(
                 vv['E_e0']['data']*1e-3,
                 vv['dist']['data'],
                 c=vv['color'],
@@ -340,6 +366,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
                 lw=vv.get('lw', 1.),
                 label=kk,
             )
+            ddist[kk]['color'] = l0.get_color()
 
         ax.set_ylabel(
             vv['dist']['units'],
@@ -357,7 +384,11 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
 
 
 def _check(
+    # distributions, responsivity, cases
+    ddist=None,
+    dresp=None,
     dcases_dist_resp=None,
+    # plotting
     fs=None,
     fontsize=None,
     E_e0_scale=None,
@@ -370,19 +401,46 @@ def _check(
 ):
 
     # ------------
+    # dresp
+    # ------------
+
+    if dresp is None:
+        dresp = _DRESP
+
+    if dresp is False:
+        dresp = {}
+
+    dresp = _check_dict(
+        din=dresp,
+        din_name='dresp',
+        ddef=_DRESP_FORMAT,
+    )
+
+    # ------------
+    # ddist
+    # ------------
+
+    if ddist is None:
+        ddist = _DDIST
+
+    if ddist is False:
+        ddist = {}
+
+    ddist = _check_dict(
+        din=ddist,
+        din_name='ddist',
+        ddef=_DDIST_FORMAT,
+    )
+
+    # ------------
     # dcases
     # ------------
 
-    ddef = copy.deepcopy(_DCASES)
-    if dcases_dist_resp in [None, False]:
-        dcases_dist_resp = {}
-    else:
-        for k0, v0 in dcases_dist_resp.items():
-            dcases_dist_resp[k0] = _check_case(
-                v0,
-                f"dcases['{k0}']",
-                ddef[list(ddef.keys())[0]],
-            )
+    dcases_dist_resp = _check_dcases(
+        dresp=dresp,
+        ddist=ddist,
+        dcases=dcases_dist_resp,
+    )
 
     # ------------
     # fs
@@ -422,69 +480,186 @@ def _check(
             default=_DSCALES[kk],
         )
 
-    return dcases_dist_resp, dscales, fs, fontsize
+    return (
+        ddist, dresp,
+        dcases_dist_resp,
+        dscales,
+        fs, fontsize,
+    )
 
 
-def _check_case(
-    case=None,
-    key=None,
+def _check_dict(
+    din=None,
+    din_name=None,
     ddef=None,
 ):
+
+    # --------------
+    # overall structure
+    # --------------
+
+    c0 = (
+        isinstance(din, dict)
+        and all([
+            isinstance(kk, str)
+            and isinstance(vv, dict)
+            for kk, vv in din.items()
+        ])
+    )
+    if not c0:
+        msg = (
+            f"Arg '{din_name}' must be a dict of sub-dicts!\n"
+            f"Provided:\n{din}\n"
+        )
+        raise Exception(msg)
+
+    # --------------
+    # each key structure
+    # --------------
+
+    dfail = {}
+    lok = [kk for kk, vv in ddef.items() if isinstance(vv, dict)]
+    for k0, v0 in din.items():
+        for kk in lok:
+            if not isinstance(din[k0].get(kk), dict):
+                typ = type(din[k0].get(kk))
+                dfail[kk] = f'absent or not a dict ({typ})'
+            elif not isinstance(din[k0][kk].get('data'), ddef[kk]['data']):
+                typ = type(din[k0][kk].get('data'))
+                dfail[kk] = f'data not a np.ndarray ({typ})'
+            elif not isinstance(din[k0][kk].get('units'), ddef[kk]['units']):
+                typ = type(din[k0][kk].get('units'))
+                dfail[kk] = f"units not a str ({typ})"
+            else:
+                dfail[kk] = 'ok'
+
+        if any([vv != 'ok' for vv in dfail.values()]):
+            lstr = [f"\t- {kk}: {vv}" for kk, vv in dfail.items()]
+            msg = (
+                f"Arg {din_name}['{k0}'] must be a dict with keys {lok}, "
+                "where each is {'data': np.ndarray, 'units': str} subdict!\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+    # --------------
+    # shapes: all flat
+    # --------------
+
+    dfail = {}
+    for k0, v0 in din.items():
+
+        # squeeze
+        for kk in lok:
+
+            shape = v0[kk]['data'].shape
+            if np.prod(shape) != np.max(shape):
+                dfail[kk] = (
+                    'data must be squeeze-able to a flat 1d array!'
+                    f'  (shape = {shape})'
+                )
+                continue
+
+            din[k0][kk]['data'] = v0[kk]['data'].squeeze()
+
+        # consistency
+        lsize = list(set([din[k0][kk]['data'].size for kk in lok]))
+        if len(lsize) != 1:
+            msg = (
+                "All keys in {din_name}['{k0}'] must have the same data shape"
+            )
+            raise Exception(msg)
+
+    # ------------
+    # units
+    # ------------
+
+    dfail = {}
+    for k0, v0 in din.items():
+        for kk in lok:
+
+            if not kk.startswith('E_'):
+                continue
+
+            if str(v0[kk]['units']) != 'eV':
+                dfail[kk] = f"units should be eV ({v0[kk]['units']})"
+
+        if len(dfail) > 0:
+            lstr = [
+                f"\t- {din_name}['{k0}']['{kk}']: {vv}"
+                for kk, vv in dfail.items()
+            ]
+            msg = (
+                "Units of the following keys is incorrect:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+    # --------------
+    # plotting
+    # --------------
+
+    lok = [kk for kk, vv in ddef.items() if not isinstance(vv, dict)]
+    for k0, v0 in din.items():
+        for kk in lok:
+            din[k0][kk] = din[k0].get(kk, ddef[kk])
+
+    return din
+
+
+def _check_dcases(
+    dcases=None,
+    dresp=None,
+    ddist=None,
+):
+
+    # --------------
+    # defaults
+    # --------------
+
+    if dcases is False:
+        dcases = {}
+
+    if dcases is None:
+        dcases = {}
+        for kdist in ddist.keys():
+            for kresp in dresp.keys():
+                key = f"{kresp}_{kdist}"
+                dcases[key] = {
+                    'resp': kresp,
+                    'dist': kdist,
+                }
 
     # --------------
     # general structure
     # --------------
 
-    dfail = {}
-    lok = list(ddef.keys())
-    ltunits = (str, asunits.Unit, asunits.CompositeUnit)
-    for kk in lok:
-        if not isinstance(case.get(kk), dict):
-            typ = type(case.get(kk))
-            dfail[kk] = f'absent or not a dict ({typ})'
-        elif not isinstance(case[kk].get('data'), np.ndarray):
-            typ = type(case[kk].get('data'))
-            dfail[kk] = f'data key not a np.ndarray ({typ})'
-        elif not isinstance(case[kk].get('units'), ltunits):
-            typ = type(case[kk].get('units'))
-            dfail[kk] = f"units not a str ({typ})"
-        else:
-            dfail[kk] = 'ok'
-
-    if any([vv != 'ok' for vv in dfail.values()]):
-        lstr = [f"\t- {kk}: {vv}" for kk, vv in dfail.items()]
+    c0 = (
+        isinstance(dcases, dict)
+        and all([
+            isinstance(kcase, str)
+            and (
+                isinstance(vcase.get('resp'), str)
+                and vcase['resp'] in dresp.keys()
+            )
+            and (
+                isinstance(vcase.get('dist'), str)
+                and vcase['dist'] in ddist.keys()
+            )
+            for kcase, vcase in dcases.items()
+        ])
+    )
+    if not c0:
         msg = (
-            f"Arg {key} must be a dict with keys {lok}, "
-            "where each is a {'data': np.ndarray, 'units': str} subdict!\n"
-            + "\n".join(lstr)
+            "Arg dcase must be a dict of subdicts of the form "
+            "{'dist': key0, 'resp': key1}\n"
+            "Where key0 (resp. key1) refer to an existing key in "
+            "ddist (resp. dresp)\n"
+            f"Provided: {dcases}\n"
         )
         raise Exception(msg)
 
-    # --------------
-    # shape consistency
-    # --------------
-
-    shape_Eph = case['E_ph']['data'].shape
-    shape_resp = case['responsivity']['data'].shape
-    if shape_Eph != shape_resp:
-        msg = (
-            "The 2 fields below must have the same shape:\n"
-            f"{key}['E_ph']['data'].shape = {shape_Eph}\n"
-            f"{key}['responsivity']['data'].shape = {shape_resp}\n"
-        )
-        raise Exception(msg)
-
-    shape_Ee0 = case['E_e0']['data'].shape
-    shape_dist = case['dist']['data'].shape
-    if shape_Ee0 != shape_dist:
-        msg = (
-            "The 2 fields below must have the same shape:\n"
-            f"{key}['E_e0']['data'].shape = {shape_Ee0}\n"
-            f"{key}['dist']['data'].shape = {shape_dist}\n"
-        )
-        raise Exception(msg)
-
-    return case
+    return dcases
 
 
 # #############################################
@@ -675,6 +850,11 @@ def _dax(
     ax.set_title(
         "responsivity",
         size=fontsize,
+        fontweight='bold',
+    )
+    ax.set_xlabel(
+        'responsivity',
+        fontsize=fontsize,
         fontweight='bold',
     )
     ax.set_ylabel(
