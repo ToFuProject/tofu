@@ -108,7 +108,10 @@ _DRANGES = {
         'E': np.sort(scpct.h * scpct.c / (np.r_[380, 750]*1e-9) / scpct.e),
     },
     'UV': {
-        'E': np.sort(np.r_[scpct.h * scpct.c / (350*1e-9) / scpct.e, 1e3]),
+        'E': np.sort(np.r_[
+            scpct.h * scpct.c / (350*1e-9) / scpct.e,
+            30e15 * scpct.h / scpct.e,
+        ]),
     },
 }
 
@@ -292,6 +295,13 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
             dresp[kk]['color'] = l0.get_color()
 
         ax.invert_xaxis()
+
+        # legend
+        ax.legend(
+            bbox_to_anchor=(0, -0.1),
+            loc='upper left',
+            borderaxespad=0,
+        )
 
     # -------------------
     # plot comments

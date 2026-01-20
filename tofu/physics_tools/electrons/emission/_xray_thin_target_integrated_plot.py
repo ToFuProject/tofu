@@ -344,19 +344,21 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                         label=labi,
                     )
 
+    leg = False
+
     # normalized
     kax = 'theta_norm'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
-        ax.legend(prop={'size': 12})
         ax.set_ylim(0, 1)
         ax.set_xlim(0, 180)
+        ax.legend(prop={'size': 12})
+        leg = True
 
     # normalized
     kax = 'theta_abs'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
-        ax.legend(prop={'size': 12})
         units = str(vv['units'])
         units.replace('m2', 'barn')
         ax.set_ylabel(
@@ -365,6 +367,8 @@ def plot_xray_thin_d2cross_ei_anisotropy(
             fontweight='bold',
         )
         ax.grid(True)
+        if leg is False:
+            ax.legend(prop={'size': 12})
 
     return dax, d2cross
 
