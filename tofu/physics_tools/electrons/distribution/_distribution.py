@@ -161,13 +161,25 @@ def main(
         inan = np.isnan(ddist['dist'][kdist]['dist']['data'])
         ddist['dist'][kdist]['dist']['data'][inan] = 0.
 
+        # neg => error
+        ineg = ddist['dist'][kdist]['dist']['data'] < 0.
+        if np.any(ineg):
+            msg = (
+                "Electron dist has negative values!\n"
+                f"\t- dist = '{kdist}'\n"
+                f"\t- version = '{dfunc[kdist]['version']}'\n"
+                f"\t- module = {dfunc[kdist]['func'].__module__}\n"
+                f"\t- func = {dfunc[kdist]['func'].__name__}\n"
+            )
+            raise Exception(msg)
+
         # scale
         ne_re = _scale(
             din=din,
             ddist=ddist,
             kdist=kdist,
             dcoords=dcoords,
-            version=version,
+            version=dfunc[kdist]['version'],
         )
 
     # --------------
@@ -185,7 +197,7 @@ def main(
             ddist=ddist,
             kdist=kdist,
             dcoords=dcoords,
-            version=version,
+            version=dfunc[kdist]['version'],
         )
 
         # store
@@ -355,7 +367,10 @@ def _get_velocity_par(ddist, kdist):
             energy_kinetic_eV=ddist['coords']['x0']['data'],
         )['velocity_ms']
         units = v_par_ms['units']
-        v_par_ms = v_par_ms['data']
+        # v_par_ms = v_par_ms['data']
+
+        # assume 0 drift velocity => average v_par = 0
+        v_par_ms = np.zeros(v_par_ms['data'].shape)
 
     else:
         raise NotImplementedError(kcoords)
@@ -401,6 +416,7 @@ def _integrate(
         )
         ne = ddist['dist'][kdist]['dist']['data']
         x0 = dcoords['x0']['data']
+
     else:
         current = scpinteg.trapezoid(
             scpct.e

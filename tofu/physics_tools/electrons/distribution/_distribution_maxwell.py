@@ -209,6 +209,7 @@ def f3d_E_theta(
         v0_par_ms=v0_par_ms,
     )
 
+    # caution: sin(theta) => negative values !
     dist = np.sin(theta) * dist0 / (2.*np.pi)
     units = units0 * asunits.Unit('1/rad^2')
 

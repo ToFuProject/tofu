@@ -2,6 +2,7 @@
 
 import numpy as np
 import astropy.units as asunits
+import scipy.constants as scpct
 import datastock as ds
 import tofu as tf
 
@@ -396,6 +397,40 @@ def _coords(
             + "\n".join(lstr)
         )
         raise Exception(msg)
+
+    # --------------
+    # check values
+    # --------------
+
+    for k0, v0 in dcoords.items():
+
+        # check validity
+        if k0 == 'theta':
+            iout = (v0['data'] < 0.) | (v0['data'] > np.pi)
+            msg = "must be in [0; pi]"
+        elif k0 == 'pitch':
+            iout = (v0['data'] < -1) | (v0['data'] > 1)
+            msg = "must be in [-1; 1]"
+        elif k0.startswith('v_par'):
+            iout = (v0['data'] > scpct.c)
+            msg = "must be <= c"
+        elif k0.startswith('v_perp'):
+            iout = (v0['data'] > scpct.c) | (v0['data'] < 0.)
+            msg = "must be in [0; c]"
+        elif k0.startswith('p_perp') or k0 == 'E_eV':
+            iout = (v0['data'] < 0.)
+            msg = "must be >= 0"
+        else:
+            msg = ''
+            continue
+
+        # Exception
+        if np.any(iout):
+            msg = (
+                f"Some values in dcoords['{k0}'] are invalid:\n"
+                + msg + "\n"
+            )
+            raise Exception(msg)
 
     return dcoords
 
