@@ -171,18 +171,13 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     dplot_thetamax=None,
     dplot_mean=None,
 ) -> TupleDict:
-    """ Compute and plot a (E_e0, E_ph) countour map of the d2cross section
+    """ Plot a (E_e0, E_ph) countour map of the d2cross section and
+    interates it over an electron distribution and a responsivity
 
-    Where d2cross is the fully differentiated cross-section (d3cross),
-    integrated over one of the two the emission angle (dphi)
-
-    Actually 3 overlayed contour plots with:
-        - integral of of the cross-section (over photon emission angle)
-        - angle of max cross-section
-        - peaking of the cross-section (std vs angle)
-
-    Can overlay a few selected cases and plot them vs angle of emission
-    In normalized-linear and log scales
+    - with cases (E_e0, E_ph) vs theta_ph
+    - with electron distributions
+    - with sensor responsivities
+    - with distribution and responsivity-integrated emissivities vs theta_B
 
     """
 
