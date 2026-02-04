@@ -227,7 +227,7 @@ def _add_asis(
         if isinstance(kk, tuple):
             for ii, ki in enumerate(kk):
                 k0 = ki.split('_')[0]
-                if dgeom0.get(k0) is not None:
+                if isinstance(dgeom0.get(k0), tuple):
                     dgeom[ki] = coll.ddata[dgeom0[k0][ii]]['data']
 
         elif dgeom0.get(kk) is not None:
@@ -235,8 +235,7 @@ def _add_asis(
             if isinstance(dgeom0[kk], str):
                 dgeom[kk] = coll.ddata[kk]['data']
 
-            else:
-                if dgeom0.get(kk) is not None:
-                    dgeom[kk] = dgeom0[kk]
+            elif not isinstance(dgeom0[kk], tuple):
+                dgeom[kk] = dgeom0[kk]
 
     return

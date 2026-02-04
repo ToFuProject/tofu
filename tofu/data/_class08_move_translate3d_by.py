@@ -212,9 +212,9 @@ def _translate_camera(
     # asis
     lk_asis = [
         'nin', 'e0', 'e1',
-        'nin_x', 'nin_y', 'nin_z',
-        'e0_x', 'e0_y', 'e0_z',
-        'e1_x', 'e1_y', 'e1_z',
+        ('nin_x', 'nin_y', 'nin_z'),
+        ('e0_x', 'e0_y', 'e0_z'),
+        ('e1_x', 'e1_y', 'e1_z'),
         ('outline_x0', 'outline_x1'),
     ]
 
