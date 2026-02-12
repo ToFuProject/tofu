@@ -39,7 +39,7 @@ _E_E0_EV_NPTS = 61
 
 def get_d2cross_phi(
     # load from file
-    pfe=None,
+    d2cross_phi=None,
     # tabulated d2cross
     d2cross=None,
     # params
@@ -63,7 +63,6 @@ def get_d2cross_phi(
     # verb
     verb=None,
     # load / save
-    d2cross_phi=None,
     save=None,
     pfe_save=None,
     overwrite=None,
@@ -76,9 +75,9 @@ def get_d2cross_phi(
     # ----------------
 
     (
-        save, overwrite, pfe, verb,
+        save, overwrite, d2cross_phi, verb,
     ) = _check(
-        pfe=pfe,
+        d2cross_phi=d2cross_phi,
         save=save,
         overwrite=overwrite,
         pfe_save=pfe_save,
@@ -89,7 +88,7 @@ def get_d2cross_phi(
     # compute
     # ----------------
 
-    if pfe is None:
+    if d2cross_phi is None:
 
         # check compute
         (
@@ -116,8 +115,8 @@ def get_d2cross_phi(
     # load
     # ----------------
 
-    else:
-        d2cross_phi = _load(**locals())
+    elif isinstance(d2cross_phi, str):
+        d2cross_phi = _load(pfe=d2cross_phi, **locals())
 
     return d2cross_phi
 
@@ -129,7 +128,7 @@ def get_d2cross_phi(
 
 
 def _check(
-    pfe=None,
+    d2cross_phi=None,
     save=None,
     overwrite=None,
     pfe_save=None,
@@ -162,16 +161,25 @@ def _check(
     # pfe
     # -------------
 
-    if pfe is not None:
+    if d2cross_phi is not None and not isinstance(d2cross_phi, dict):
 
-        c0 = (
-            isinstance(pfe, str)
-            and os.path.isfile(pfe)
-            and pfe.endswith('.npz')
-        )
-        if not c0:
+        dc = {
+            'str': isinstance(d2cross_phi, str),
+            'file': (
+                isinstance(d2cross_phi, str)
+                and os.path.isfile(d2cross_phi)
+            ),
+            '.npz': (
+                isinstance(d2cross_phi, str)
+                and d2cross_phi.endswith('.npz')
+            ),
+        }
+        if not all([vv for vv in dc.values()]):
+            lstr = [f"\t- {kk}: {vv}" for kk, vv in dc.items()]
             msg = (
-                "Arg pfe must be a valid path to a .npz file!"
+                "Arg pfe must be a valid path to a .npz file!\n"
+                + "\n".join(lstr)
+                + f"\nProvided: {d2cross_phi}\n"
             )
             raise Exception(msg)
         save = False
@@ -189,7 +197,7 @@ def _check(
     ))
 
     return (
-        save, overwrite, pfe, verb,
+        save, overwrite, d2cross_phi, verb,
     )
 
 
@@ -624,7 +632,7 @@ def _get_interpolator(
             cross,
             method='linear',
             bounds_error=False,
-            fill_value=np.nan,
+            fill_value=0.,
         )
 
         # ---------------
