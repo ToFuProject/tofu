@@ -384,15 +384,16 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         for kk, vv in ddist1d.items():
 
             l0, = ax.semilogy(
-                vv['E_e0']['data']*1e-3,
-                vv['dist']['data'],
-                c=vv['color'],
+                vv['E']['data']*1e-3,
+                vv['dist']['data'].ravel(),
+                c=vv.get('color', 'k'),
                 ls=vv.get('ls', '-'),
                 marker=vv.get('marker'),
                 lw=vv.get('lw', 1.),
                 label=kk,
             )
-            ddist[kk]['color'] = l0.get_color()
+            ddist['dist'][kk]['color'] = l0.get_color()
+            ddist1d[kk]['color'] = l0.get_color()
 
         ax.set_ylabel(
             vv['dist']['units'],
@@ -401,7 +402,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         )
 
     # -------------------
-    # plot emiss
+    # plot emiss - norm
     # -------------------
 
     kax = 'theta_emiss_norm'
@@ -411,8 +412,21 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         # -----------
         # emissivity
 
-        for kk, vv in ddist1d.items():
-            pass
+        for k0, v0 in demiss.items():
+
+            kdist = dcases_dist_resp[k0]['dist']
+            kresp = dcases_dist_resp[k0]['resp']
+            yy = v0['emiss'][kdist]['emiss_integ']['data'][0, ...]
+            yy = yy / np.nanmax(yy)
+
+            ax.plot(
+                v0['theta_ph_vsB']['data'],
+                yy,
+                color=dresp[kresp]['color'],
+                ls=ddist1d[kdist]['ls'],
+                lw=1,
+                label=k0,
+            )
 
         # --------------------------
         # responsivity theta_ph_vs_B
@@ -423,16 +437,42 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
             if vv.get(ktheta) is None:
                 continue
 
-            for (theta0, theta1) in vv[kk]:
+            for (theta0, theta1) in vv[ktheta]:
                 ax.axvspan(
                     theta0,
                     theta1,
-                    facecolr=vv['color'],
+                    facecolor=vv['color'],
                     alpha=vv.get('alpha', 0.5),
                     label=kk,
                 )
 
-    return dax
+    # -------------------
+    # plot emiss - abs
+    # -------------------
+
+    kax = 'theta_emiss_abs'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # -----------
+        # emissivity
+
+        for k0, v0 in demiss.items():
+
+            kdist = dcases_dist_resp[k0]['dist']
+            kresp = dcases_dist_resp[k0]['resp']
+            yy = v0['emiss'][kdist]['emiss_integ']['data'][0, ...]
+
+            ax.semilogy(
+                v0['theta_ph_vsB']['data'],
+                yy,
+                color=dresp[kresp]['color'],
+                ls=ddist1d[kdist]['ls'],
+                lw=1,
+                label=k0,
+            )
+
+    return dax, dresp, ddist, ddist1d, demiss
 
 
 # #############################################
@@ -548,13 +588,29 @@ def _check(
         )
         raise Exception(msg)
 
+    # ---------------------
+    # make sure only one dist
+
+    for k0, v0 in ddist['dist'].items():
+        c0 = np.prod(v0['dist']['data'].shape) == v0['dist']['data'].size
+        if not c0:
+            msg = (
+                f"Arg ddist['dist']['{k0}']['dist']['data'] must be:\n"
+                "\t- only vs E_e0: np.prod(shape) must be == size\n"
+                f"Provided shape = {v0['dist']['data'].shape}\n"
+            )
+            raise Exception(msg)
+
     # ------------
     # dist1d
     # ------------
 
     ddist1d = {}
-    for k0, v0 in ddist['dist'].items():
+    lls = ['-', '--', ':', '-.']
+    for ii, (k0, v0) in enumerate(ddist['dist'].items()):
         ddist1d[k0] = distribution.get_dist1d_E(ddist, k0, nbins=None)
+        ddist1d[k0]['ls'] = v0.get('ls', lls[ii % len(lls)])
+        ddist1d[k0]['color'] = v0.get('color', 'k')
 
     # ------------
     # dcases

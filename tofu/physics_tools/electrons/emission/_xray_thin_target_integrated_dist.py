@@ -283,6 +283,9 @@ def get_xray_thin_integ_dist(
             if debug is not False and debug(ind) is True:
                 _plot_debug(**locals())
 
+        if np.any(np.isnan(demiss['maxwell']['emiss']['data'])):
+            import pdb; pdb.set_trace()     # DB
+
     # ----------------
     # prepare output
     # ----------------
@@ -695,6 +698,14 @@ def _responsivity(
             left=0,
             right=0,
         )
+
+    # --------------
+    # safety check
+    # --------------
+
+    # resp = nan => 0
+    if np.any(np.isnan(resp_data)):
+        import pdb; pdb.set_trace()     # DB
 
     # --------------
     # compute
