@@ -15,6 +15,8 @@ import datastock as ds
 
 # from . import _xray_thin_target_integrated as _mod
 from . import _xray_thin_target_integrated_plot as _mod_plot
+from . import _xray_thin_target_integrated_dist as _mod_dist
+from .. import distribution
 from ... import transmission
 # from ..distribution import get_distribution
 
@@ -61,7 +63,7 @@ _DDIST_FORMAT = {
 # DRESP
 _DRESP = {}
 _DRESP_FORMAT = {
-    'E_ph': {'data': np.ndarray, 'units': _UNITS},
+    'E_eV': {'data': np.ndarray, 'units': _UNITS},
     'responsivity': {'data': np.ndarray, 'units': _UNITS},
     'marker': 'None',
     'lw': 1,
@@ -133,6 +135,7 @@ _DRANGES_DEF = {
 def plot_xray_thin_integ_dist_filter_anisotropy(
     # optional input d2cross file
     d2cross: Optional[str | dict] = None,
+    d2cross_phi: Optional[str | dict] = None,
     # target ion charge
     Z: Optional[int] = None,
     # Energy
@@ -156,7 +159,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     dtrans: Optional[dict] = None,
     dranges: Optional[dict] = None,
     # verb
-    verb: Optional[bool] = None,
+    verb: Optional[bool | int] = None,
     # plot
     dax: Optional[dict] = None,
     fs: Optional[tuple] = None,
@@ -186,15 +189,11 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     # ---------------
 
     (
-        ddist, dresp,
+        ddist, ddist1d, dresp,
         dcases_dist_resp,
         dscales,
         fs, fontsize,
     ) = _check(**locals())
-
-    # ---------------
-    # prepare data
-    # ---------------
 
     # --------------
     # prepare axes
@@ -243,6 +242,28 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         dplot_mean=dplot_mean,
     )
 
+    # ---------------
+    # compute emiss
+    # ---------------
+
+    demiss = {}
+    for kcase, vcase in dcases_dist_resp.items():
+
+        msg = f"\n\tComputing emiss for case '{kcase}'"
+        print(msg)
+
+        demiss[kcase], ddist, d2cross_phi = _mod_dist.get_xray_thin_integ_dist(
+            ddist={
+                'plasma': ddist['plasma'],
+                'dist': {vcase['dist']: ddist['dist'][vcase['dist']]},
+                'coords': ddist['coords'],
+            },
+            d2cross_phi=d2cross_phi,
+            dresponsivity=dresp[vcase['resp']],
+            plot_responsivity_integration=False,
+            verb=verb,
+        )
+
     # -------------------
     # Compute integrand
     # -------------------
@@ -280,7 +301,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
 
             l0, = ax.plot(
                 vv['responsivity']['data'],
-                vv['E_ph']['data']*1e-3,
+                vv['E_eV']['data']*1e-3,
                 c=vv.get('color'),
                 ls=vv.get('ls', '-'),
                 marker=vv.get('marker'),
@@ -360,7 +381,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        for kk, vv in ddist.items():
+        for kk, vv in ddist1d.items():
 
             l0, = ax.semilogy(
                 vv['E_e0']['data']*1e-3,
@@ -378,6 +399,38 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
             fontsize=fontsize,
             fontweight='bold',
         )
+
+    # -------------------
+    # plot emiss
+    # -------------------
+
+    kax = 'theta_emiss_norm'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # -----------
+        # emissivity
+
+        for kk, vv in ddist1d.items():
+            pass
+
+        # --------------------------
+        # responsivity theta_ph_vs_B
+
+        ktheta = 'theta_ph_vs_B'
+        for kk, vv in dresp.items():
+
+            if vv.get(ktheta) is None:
+                continue
+
+            for (theta0, theta1) in vv[kk]:
+                ax.axvspan(
+                    theta0,
+                    theta1,
+                    facecolr=vv['color'],
+                    alpha=vv.get('alpha', 0.5),
+                    label=kk,
+                )
 
     return dax
 
@@ -421,6 +474,35 @@ def _check(
         ddef=_DRESP_FORMAT,
     )
 
+    # ----------------------
+    # optional theta_ph_vs_B
+
+    kk = 'theta_ph_vs_B'
+    for k0, v0 in dresp.items():
+        if v0.get(kk) is not None:
+
+            vv = np.atleast_2d(v0[kk]).astype(float)
+            iok = np.isfinite(vv)
+            iok[iok] = (vv[iok] >= 0.) & (vv[iok] <= np.pi)
+            if not np.all(iok) or vv.shape[1] != 2:
+                msg = (
+                    f"Arg dresp['{k0}']['{kk}'] must be:\n"
+                    f"\t- (2, N) array of floats\n"
+                    f"\t- All finite values in [0, pi]\n"
+                    f"Provided:\n{vv}\n"
+                )
+                raise Exception(msg)
+
+            if np.any(np.diff(vv, axis=0) <= 0):
+                msg = (
+                    f"Arg dresp['{k0}']['{kk}'] must be:\n"
+                    f"\t- strictly increasing along axis=0\n"
+                    f"Provided:\n{vv}\n"
+                )
+                raise Exception(msg)
+
+            dresp[k0][kk] = vv
+
     # ------------
     # ddist
     # ------------
@@ -431,11 +513,48 @@ def _check(
     if ddist is False:
         ddist = {}
 
-    ddist = _check_dict(
-        din=ddist,
-        din_name='ddist',
-        ddef=_DDIST_FORMAT,
+    c0 = (
+        isinstance(ddist, dict)
+        and isinstance(ddist.get('dist'), dict)
+        and isinstance(ddist['coords'].get('x0'), dict)
+        and isinstance(ddist['coords'].get('x1'), dict)
     )
+    if not c0:
+        msg = (
+            "Arg ddist must be a dict of the form:\n"
+            "{"
+            "\t'dist': dict,\n"
+            "\t'coords': {'x0': dict, 'x1': dict}\n"
+            "}\n"
+            f"Provided: {ddist}\n"
+        )
+        raise Exception(msg)
+
+    for k0, v0 in ddist['dist'].items():
+
+        c0 = (
+            isinstance(k0, str)
+            and isinstance(v0.get('dist'), dict)
+            and isinstance(v0['dist'].get('data'), np.ndarray)
+        )
+    if not c0:
+        msg = (
+            f"Arg ddist['dist']['{k0}']['dist'] must be a dict of the form:\n"
+            "{"
+            "\t'data': np.ndarray,\n"
+            "\t'units': str\n"
+            "}\n"
+            f"Provided: {v0}\n"
+        )
+        raise Exception(msg)
+
+    # ------------
+    # dist1d
+    # ------------
+
+    ddist1d = {}
+    for k0, v0 in ddist['dist'].items():
+        ddist1d[k0] = distribution.get_dist1d_E(ddist, k0, nbins=None)
 
     # ------------
     # dcases
@@ -486,7 +605,7 @@ def _check(
         )
 
     return (
-        ddist, dresp,
+        ddist, ddist1d, dresp,
         dcases_dist_resp,
         dscales,
         fs, fontsize,
@@ -627,7 +746,7 @@ def _check_dcases(
 
     if dcases is None:
         dcases = {}
-        for kdist in ddist.keys():
+        for kdist in ddist['dist'].keys():
             for kresp in dresp.keys():
                 key = f"{kresp}_{kdist}"
                 dcases[key] = {
@@ -649,7 +768,7 @@ def _check_dcases(
             )
             and (
                 isinstance(vcase.get('dist'), str)
-                and vcase['dist'] in ddist.keys()
+                and vcase['dist'] in ddist['dist'].keys()
             )
             for kcase, vcase in dcases.items()
         ])
