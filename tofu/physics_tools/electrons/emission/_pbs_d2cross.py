@@ -8,7 +8,7 @@ import numpy as np
 
 
 _PATH_TOFU = os.path.join(
-    os.path.expand_user('~'),
+    os.path.expanduser('~'),
     'projects',
     'tofu',
 )
