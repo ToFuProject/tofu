@@ -16,5 +16,5 @@ source ~/.bashrc
 
 # Beware: PBS does not expand the tilde ~/ => full explicit path needed
 export PBS_O_WORKDIR="/data/home/dvezinet/projects/tofu/tofu/physics_tools/electrons/emission"
-cd $PBS_O_WORKDIR/
-python $PBS_O_WORKDIR/_pbs_d2cross.py -nEph 401 -nEe0 400 -ntheta 3 -v BHE
+cd ${PBS_O_WORKDIR}/
+python _pbs_d2cross.py -nEph 401 -nEe0 400 -ntheta 3 -v BHE
