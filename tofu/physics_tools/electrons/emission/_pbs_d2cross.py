@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+import datetime as dtm
 
 
 import numpy as np
@@ -29,6 +30,11 @@ def main(
     version=None,
     ddef=None,
 ):
+
+    # ------------------
+    # timing
+
+    t0 = dtm.datetime.now()
 
     # -------------------
     # msg
@@ -70,6 +76,13 @@ def main(
         verb=2,
         version='BHE',
     )
+
+    # ------------------
+    # timing
+
+    dt = (dtm.datetime.now() - t0).total_seconds()
+    msg = f"\nCPU time = {dt/60} min"
+    print(msg)
 
     return
 
