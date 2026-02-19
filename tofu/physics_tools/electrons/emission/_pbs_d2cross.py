@@ -107,9 +107,9 @@ if __name__ == '__main__':
     # nEph
     parser.add_argument(
         '-nEph',
-        '--nEph_eV',
+        '--nEph',
         type=int,
-        help='Number of np.logspace(0, 8, nEph)',
+        help='Number of np.logspace(0, 8, nEph) (eV)',
         required=False,
         default=ddef['nEph'],
     )
@@ -117,9 +117,9 @@ if __name__ == '__main__':
     # nEe0
     parser.add_argument(
         '-nEe0',
-        '--nEe0_eV',
+        '--nEe0',
         type=int,
-        help='Number of np.logspace(0, 8, nEe0)',
+        help='Number of np.logspace(0, 8, nEe0) (eV)',
         required=False,
         default=ddef['nEe0'],
     )
@@ -127,9 +127,9 @@ if __name__ == '__main__':
     # ntheta
     parser.add_argument(
         '-ntheta',
-        '--ntheta_ph',
+        '--ntheta',
         type=int,
-        help='Number of np.linspace(0, np.pi, ntheta)',
+        help='Number of np.linspace(0, np.pi, ntheta) (rad)',
         required=False,
         default=ddef['ntheta'],
     )
