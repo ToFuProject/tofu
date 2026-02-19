@@ -773,11 +773,14 @@ def _save(
             base='eV',
         )
 
+        # extract versions
+        versions = d2cross_phi['version_cross']
+
         # extract boundaries
         path = os.path.abspath(_PATH_HERE)
         fname = (
             f"d2cross_phi_Ee0{Ee0}_Eph{Eph}"
-            f"_nthetaph{ntheta_ph}_nthetae0{ntheta_e0}"
+            f"_nthetaph{ntheta_ph}_nthetae0{ntheta_e0}_{versions}"
         )
         pfe_save = os.path.join(path, f"{fname}.npz")
 
