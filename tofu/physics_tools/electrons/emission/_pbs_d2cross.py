@@ -74,7 +74,7 @@ def main(
         theta_ph=theta_ph[:, None, None],
         save=True,
         verb=2,
-        version='BHE',
+        version=version,
     )
 
     # ------------------
