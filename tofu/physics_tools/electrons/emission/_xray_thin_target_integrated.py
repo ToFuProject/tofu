@@ -516,9 +516,12 @@ def _save(
             base=d2cross['E_e0']['units'],
         )
 
+        # extract versions
+        versions = '-'.join(sorted(d2cross['cross'].keys()))
+
         # extract boundaries
         path = os.path.abspath(_PATH_HERE)
-        fname = f"d2cross_Ee0{Ee0}_Eph{Eph}_ntheta{ntheta}"
+        fname = f"d2cross_Ee0{Ee0}_Eph{Eph}_ntheta{ntheta}_{versions}"
         pfe_save = os.path.join(path, f"{fname}.npz")
 
     # ----------
