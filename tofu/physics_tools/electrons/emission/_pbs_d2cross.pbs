@@ -15,4 +15,4 @@
 cd $PBS_O_WORKDIR/
 source ~/.bashrc
 
-python $PBS_O_WORKDIR/_pbs_d2cross_EH.py -nEph 401 -nEe0 400 -ntheta 3 -v BHE
+python $PBS_O_WORKDIR/_pbs_d2cross.py -nEph 401 -nEe0 400 -ntheta 3 -v BHE
