@@ -1,0 +1,18 @@
+#PBS -S /bin/bash
+#PBS -q normal
+#PBS -l nodes=1
+#PBS -l instance_type=c7i.8xlarge
+#PBS -l walltime=24:00:00
+#PBS -P sparc-design
+#PBS -N d2cross_3x400x401_BHE
+#PBS -o d2cross_3x400x401_BHE.out
+#PBS -e d2cross_3x400x401_BHE.err
+#PBS -m abe
+#PBS -l base_os=ubuntu2404
+#PBS -l instance_ami=ami-0d63a2e021bce724d
+#PBS -l efa_support=false
+ 
+cd $PBS_O_WORKDIR/
+source ~/.bashrc
+
+python $PBS_O_WORKDIR/_pbs_d2cross_EH.py -nEph 401 -nEe0 400 -ntheta 3 -v BHE
