@@ -485,24 +485,48 @@ def _get_cross(
     )
 
     # ----------------
+    # valid points
+    # ----------------
+
+    ivalid = (
+        (q2 > 0.)
+        & (kk < eps0)
+        & (D0D1 > 0.)
+        & (mu > 0.)
+    )
+
+    # adjust
+    lout = ['iok', 'ivalid']
+    kwd = {k0: v0 for k0, v0 in locals().items() if k0 not in lout}
+    if np.any(~ivalid):
+        larr = [k0 for k0, v0 in kwd.items() if isinstance(v0, np.ndarray)]
+        for k0 in larr:
+            kwd[k0] = kwd[k0][ivalid]
+
+    # ----------------
     # loop on versions
     # ----------------
 
     for vv in version:
 
         # -----------
+        # initialize
+
+        cross = np.zeros(ivalid.shape, dtype=float)
+
+        # -----------
         # Elwert-Haug
 
         if vv == 'EH':
 
-            cross, dcrit = _cross_ElwertHaug(**locals())
+            cross[ivalid], dcrit = _cross_ElwertHaug(**kwd)
 
         # -------------
         # Bethe-Heitler
 
         else:
 
-            cross, dcrit = _cross_BetheHeitler(**locals())
+            cross[ivalid], dcrit = _cross_BetheHeitler(**kwd)
 
             # optional Elwert factor
             if vv == 'BHE':
@@ -555,7 +579,13 @@ def _cross_BetheHeitler(
 
     term0 = scpct.alpha * Z**2 * (r0/np.pi)**2
     term1 = p1 / p0
-    term2 = kk / q2**2
+
+    # very conservative handling of q2 == 0
+    # should do better though, q2 = 0 => term2 = inf
+    # but d3cross vs q2 does not show inf
+    term2 = np.zeros(kk.shape, dtype=float)
+    iok = (q2 != 0.)
+    term2[iok] = kk[iok] / q2[iok]**2
 
     # assembling in cross-section
     d3cross_ei = (
@@ -661,13 +691,6 @@ def _cross_ElwertHaug(
 
     # hypergeometric variable
     xx = 1. - mu*q2 / D0D1
-
-    # safety check
-    assert np.all(kk < eps0)
-    assert np.all(D0D1 > 0.)
-    assert np.all(mu > 0.)
-    assert np.all(q2 > 0.)
-    assert np.all(xx < 1.)
 
     # hypergeometric functions
     # V = scpsp.hyp2f1(1j*a0, 1j*a1, 1., x)
