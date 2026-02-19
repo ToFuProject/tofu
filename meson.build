@@ -39,7 +39,7 @@ os = import('fs')
 # ------------------------
 
 min_numpy_version = '1.26.4'  # keep in sync with pyproject.toml
-min_python_version = '3.9'   # keep in sync with pyproject.toml
+min_python_version = '3.10'   # keep in sync with pyproject.toml
 
 python_version = py.language_version()
 if python_version.version_compare(f'<@min_python_version@')
