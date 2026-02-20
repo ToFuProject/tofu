@@ -37,6 +37,10 @@ def main(
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
+    # bump
+    step=None,
+    pnormW=None,
+    # dominant
     dominant=None,
     # ------------
     # coordinates

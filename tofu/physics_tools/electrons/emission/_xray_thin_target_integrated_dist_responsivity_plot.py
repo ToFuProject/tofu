@@ -443,8 +443,8 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
 
             for (theta0, theta1) in vv[ktheta]:
                 ax.axvspan(
-                    theta0,
-                    theta1,
+                    theta0*180/np.pi,
+                    theta1*180/np.pi,
                     facecolor=vv['color'],
                     alpha=vv.get('alpha', 0.5),
                     label=kk,

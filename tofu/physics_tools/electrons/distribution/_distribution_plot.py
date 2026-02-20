@@ -71,9 +71,9 @@ _DPLASMA = {
 # DCOORDS
 _EMAX_EV = 20e6
 _DCOORDS = {
-    'E_eV': np.logspace(1, np.log10(_EMAX_EV), 201),
-    'ntheta': 41,
-    'nperp': 201,
+    'E_eV': np.logspace(1, np.log10(_EMAX_EV), 401),
+    'ntheta': 61,
+    'nperp': 401,
 }
 
 
@@ -96,6 +96,14 @@ def main(
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
+    # bump
+    step=None,
+    p_perp_norm0=None,
+    p_perp_normW=None,
+    p_par_norm0=None,
+    p_par_normW=None,
+    # dominant
+    dominant=None,
     # -----------
     # coordinates
     E_eV=None,
@@ -133,6 +141,8 @@ def main(
         # version
         dist=('maxwell', 'RE'),
         version='f2d_E_theta',
+        # dominant
+        dominant=dominant,
         # plasma
         **{kk: vv['data'] for kk, vv in dplasma.items()},
     )
@@ -450,9 +460,9 @@ def _plot(
         # legend & lims
         ax.legend(handles=lh, loc='upper right', fontsize=12)
         ax.set_xlim(left=0.)
-        ax.set_ylim(
+        ax.set_ylabel(
             f"integral ({ddist_E_num['maxwell']['units']})",
-            fontisize=fontsize,
+            fontsize=fontsize,
             fontweight='bold',
         )
 
@@ -563,9 +573,9 @@ def _plot(
         # legend & lims
         ax.legend(handles=lh, loc='upper right', fontsize=12)
         ax.set_xlim(left=0.)
-        ax.set_ylim(
+        ax.set_ylabel(
             f"integral ({ddist_pnorm_num['maxwell']['units']})",
-            fontisize=fontsize,
+            fontsize=fontsize,
             fontweight='bold',
         )
 

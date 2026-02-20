@@ -63,6 +63,15 @@ _DPLASMA = {
         'def': 0.1,
         'units': '',
     },
+    # bump
+    'step': {
+        'def': 50,
+        'units': '',
+    },
+    'pnormW': {
+        'def': 0.4,
+        'units': '',
+    },
 }
 
 
@@ -256,7 +265,7 @@ def _plasma(
 
     # initialize
     lk = list(_DPLASMA.keys())
-    dinputs = {kk: kwdargs[kk] for kk in lk}
+    dinputs = {kk: kwdargs.get(kk) for kk in lk}
 
     # coll
     coll = kwdargs.get('coll')

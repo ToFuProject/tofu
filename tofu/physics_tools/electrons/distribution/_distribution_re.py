@@ -8,6 +8,7 @@ from . import _runaway_growth
 from . import _distribution_maxwell as _maxwell
 from . import _distribution_dreicer as _dreicer
 from . import _distribution_avalanche as _avalanche
+from . import _distribution_bump as _bump
 
 
 # ########################################################
@@ -20,6 +21,7 @@ _DMOD = {
     'maxwell': _maxwell,
     'dreicer': _dreicer,
     'avalanche': _avalanche,
+    'bump': _bump,
 }
 
 
@@ -27,6 +29,7 @@ _DOMINANT = {
     'dreicer': 0,
     'avalanche': 1,
     'maxwell': 2,
+    'bump': 3,
 }
 
 
@@ -152,6 +155,10 @@ def main(
                 'Cs': Cs[sli0],
                 'lnG': dplasma['lnG']['data'][sli0],
                 'p_crit': p_crit[sli0],
+                # bump
+                'step': dplasma['step']['data'][sli0],
+                'pnorm0': pmax[sli0],
+                'pnormW': dplasma['pnormW']['data'][sli0],
             }
 
             # update with coords
