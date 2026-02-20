@@ -230,6 +230,20 @@ def get_xray_thin_d3cross_ei(
     for vv in version:
         ddata['cross'][vv]['data'] *= coef
 
+    # -----------------
+    # Safety check
+    # -----------------
+
+    for vv in version:
+        nnan = np.sum(~np.isfinite(ddata['cross'][vv]['data']))
+        if nnan > 0:
+            size = ddata['cross'][vv]['data'].size
+            msg = (
+                "Some non-finite values found in d3cross!\n"
+                f"\t- ddata['cross']['{vv}']['data'] => {nnan} / {size}\n"
+            )
+            raise Exception(msg)
+
     return ddata
 
 
