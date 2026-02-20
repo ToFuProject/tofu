@@ -283,9 +283,6 @@ def get_xray_thin_integ_dist(
             if debug is not False and debug(ind) is True:
                 _plot_debug(**locals())
 
-        if np.any(np.isnan(demiss['maxwell']['emiss']['data'])):
-            import pdb; pdb.set_trace()     # DB
-
     # ----------------
     # prepare output
     # ----------------
@@ -688,6 +685,10 @@ def _responsivity(
         dresponsivity['E_eV']['data'].size == E_ph_eV.size
         and np.allclose(dresponsivity['E_eV']['data'], E_ph_eV)
     )
+
+    iok = np.isfinite(dresponsivity['responsivity']['data'])
+    dresponsivity['E_eV']['data'] = dresponsivity['E_eV']['data'][iok]
+    dresponsivity['responsivity']['data'] = dresponsivity['responsivity']['data'][iok]
     if c0:
         resp_data = dresponsivity['responsivity']['data']
     else:
@@ -705,7 +706,8 @@ def _responsivity(
 
     # resp = nan => 0
     if np.any(np.isnan(resp_data)):
-        import pdb; pdb.set_trace()     # DB
+        msg = "Some NaN in responisivity!"
+        raise Exception(msg)
 
     # --------------
     # compute
