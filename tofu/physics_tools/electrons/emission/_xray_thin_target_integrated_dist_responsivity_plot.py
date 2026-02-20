@@ -420,13 +420,17 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
             yy = yy / np.nanmax(yy)
 
             ax.plot(
-                v0['theta_ph_vsB']['data'],
+                v0['theta_ph_vsB']['data'] * 180/np.pi,
                 yy,
                 color=dresp[kresp]['color'],
                 ls=ddist1d[kdist]['ls'],
                 lw=1,
                 label=k0,
             )
+
+        ax.set_xlim(0, 180)
+        ax.set_ylim(0, 1)
+        ax.legend(loc='lower left', fontsize=fontsize)
 
         # --------------------------
         # responsivity theta_ph_vs_B
@@ -464,7 +468,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
             yy = v0['emiss'][kdist]['emiss_integ']['data'][0, ...]
 
             ax.semilogy(
-                v0['theta_ph_vsB']['data'],
+                v0['theta_ph_vsB']['data'] * 180/np.pi,
                 yy,
                 color=dresp[kresp]['color'],
                 ls=ddist1d[kdist]['ls'],
@@ -1150,7 +1154,7 @@ def _dax(
     nh = nhvert + nhcom + nhlarge + nhint + nhtheta
     ax = fig.add_subplot(
         gs[nv2:, nh:],
-        sharex=dax['theta_norm']['handle'],
+        sharex=dax['theta_emiss_norm']['handle'],
         yscale='log',
     )
     ax.set_xlabel(
