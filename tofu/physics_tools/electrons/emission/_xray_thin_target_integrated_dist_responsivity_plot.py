@@ -8,7 +8,7 @@ import numpy as np
 import astropy.units as asunits
 import scipy.constants as scpct
 import matplotlib.pyplot as plt
-# import matplotlib.lines as mlines
+import matplotlib.lines as mlines
 import matplotlib.gridspec as gridspec
 import datastock as ds
 
@@ -252,7 +252,7 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
         msg = f"\n\tComputing emiss for case '{kcase}'"
         print(msg)
 
-        demiss[kcase], ddist, d2cross_phi = _mod_dist.get_xray_thin_integ_dist(
+        demiss[kcase], ddisti, d2cross_phi = _mod_dist.get_xray_thin_integ_dist(
             ddist={
                 'plasma': ddist['plasma'],
                 'dist': {vcase['dist']: ddist['dist'][vcase['dist']]},
@@ -425,12 +425,19 @@ def plot_xray_thin_integ_dist_filter_anisotropy(
                 color=dresp[kresp]['color'],
                 ls=ddist1d[kdist]['ls'],
                 lw=1,
-                label=k0,
+                label=k0 if ddist1d[kdist]['ls'] == '-' else None,
             )
 
         ax.set_xlim(0, 180)
         ax.set_ylim(0, 1)
-        ax.legend(loc='lower left', fontsize=fontsize)
+        leg = ax.legend(loc='lower left', fontsize=fontsize)
+        ax.add_artist(leg)
+
+        lh = [
+            mlines.Line2D([], [], c='k', ls=ddist1d[kdist]['ls'], label=kdist)
+            for kdist in ddist['dist'].keys()
+        ]
+        ax.legend(handles=lh, loc='lower center')
 
         # --------------------------
         # responsivity theta_ph_vs_B
