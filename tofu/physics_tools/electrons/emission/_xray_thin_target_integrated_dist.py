@@ -184,10 +184,27 @@ def get_xray_thin_integ_dist(
         )
 
     # shape
+    kdist0 = list(ddist['dist'].keys())[0]
     shape_plasma = ddist['plasma']['Te_eV']['data'].shape
-    shape_dist = ddist['dist']['maxwell']['dist']['data'].shape
+    shape_dist = ddist['dist'][kdist0]['dist']['data'].shape
     shape_cross = d2cross_phi['d2cross_phi']['data'].shape
     shape_emiss = shape_plasma + (E_ph_eV.size, theta_ph_vsB.size)
+
+    # -----------------------
+    # Safety check on E_e0_eV (should be identical)
+    c0 = (
+        E_e0_eV.shape == ddist['coords']['x0']['data'].shape
+        and np.allclose(E_e0_eV, ddist['coords']['x0']['data'])
+    )
+    if not c0:
+        dshape = ddist['coords']['x0']['data'].shape
+        msg = (
+            "ddist and d2cross_phi must have the same E_e0_eV vector!\n"
+            f"\t- ddist['coords']['x0']['data'].shape = {dshape}\n"
+            f"\t- d2cross_phi['E_e0_eV'].shape = {E_e0_eV.shape}\n"
+            f"\t- or values are different!\n"
+        )
+        raise Exception(msg)
 
     # ------------
     # add nZ_m3
@@ -713,7 +730,8 @@ def _responsivity(
     # compute
     # --------------
 
-    sli = [None]*demiss['maxwell']['emiss']['data'].ndim
+    kdist0 = list(demiss.keys())[0]
+    sli = [None]*demiss[kdist0]['emiss']['data'].ndim
     sli[-2] = slice(None)
     sli = tuple(sli)
     dintegrand = {}
