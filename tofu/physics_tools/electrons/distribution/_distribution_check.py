@@ -51,6 +51,10 @@ _DPLASMA = {
         'def': 10e6,
         'units': 'eV',
     },
+    'Ekin_min_eV': {
+        'def': 1e3,
+        'units': 'eV',
+    },
     'Efield_par_Vm': {
         'def': 0.1,
         'units': 'V/m',

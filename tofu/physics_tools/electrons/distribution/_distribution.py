@@ -34,6 +34,7 @@ def main(
     ne_m3_re=None,
     Zeff=None,
     Ekin_max_eV=None,
+    Ekin_min_eV=None,
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,

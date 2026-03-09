@@ -75,6 +75,11 @@ def main(
         energy_kinetic_eV=dplasma['Ekin_max_eV']['data'],
     )['momentum_normalized']['data']
 
+    # get momentum min from total energy eV.s/m - shape
+    pmin = _convert.convert_momentum_velocity_energy(
+        energy_kinetic_eV=dplasma['Ekin_min_eV']['data'],
+    )['momentum_normalized']['data']
+
     # Critical electric field - shape
     Ec_Vm = _runaway_growth.get_RE_critical_dreicer_electric_fields(
         ne_m3=dplasma['ne_m3']['data'],
@@ -176,7 +181,11 @@ def main(
         if dominant['meaning'][vv] != 'maxwell':
             pnorm = np.broadcast_to(_get_pnorm(dcoords), shape)
             iokp = np.copy(np.broadcast_to(iok, shape))
-            iokp[iokp] = pnorm[iokp] < np.broadcast_to(p_crit, shape)[iokp]
+
+            # pc = min(p_crit, pmin)
+            pc = np.broadcast_to(p_crit, shape)[iokp]
+
+            iokp[iokp] = pnorm[iokp] < pc
             re_dist[iokp] = 0.
 
     # ----------------------
