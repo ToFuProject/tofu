@@ -170,6 +170,10 @@ def get_xray_thin_d3cross_ei(
             }
             for vv in version
         },
+        'Z': {
+            'data': Z,
+            'units': None,
+        },
     }
 
     # -------------

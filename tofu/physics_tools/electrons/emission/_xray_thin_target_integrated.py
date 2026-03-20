@@ -483,6 +483,9 @@ def _compute(
                 srunits * asunits.Unit(vcross['units'])
             )
 
+        # Add Z
+        d2cross['Z'] = d3cross['Z']
+
     return d2cross
 
 

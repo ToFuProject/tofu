@@ -143,6 +143,9 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         verb=verb,
     )
 
+    version = list(d2cross['cross'].keys())[0]
+    Z = d2cross.get('Z', {'data': 1})['data']
+
     # -------------------
     # update from d2cross
     # -------------------
