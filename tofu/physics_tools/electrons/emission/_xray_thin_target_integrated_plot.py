@@ -49,6 +49,7 @@ _DCASES_FORMAT = {
     'marker': {'type': str, 'val': '*'},
     'ms': {'type': (int, float), 'val': 18},
     'ls': {'type': str, 'val': '-'},
+    'label': {'type': (str, type(None)), 'val': None},
 }
 
 
@@ -315,9 +316,12 @@ def plot_xray_thin_d2cross_ei_anisotropy(
 
     for ic, (kcase, vcase) in enumerate(dcases.items()):
 
-        lab = vcase['lab']
+        lab = vcase['label']
         for kv, vv in d2cross['cross'].items():
-            labi = lab + f" - {kv}"
+            if len(d2cross['cross']) > 1:
+                labi = lab + f" - {kv}"
+            else:
+                labi = lab
             yy = vv['data'][:, vcase['ie'], vcase['iph']]
             if np.any(yy > 0):
 
@@ -568,11 +572,13 @@ def _check_dcases(
             # update with label
             ee0 = E_e0_eV[ie]
             eph = E_ph_eV[iph]
-            dcases[k0]['lab'] = (
-                r"$E_{e0} / E_{ph}$ = "
-                + f"{ee0*1e-3:3.0f} / {eph*1e-3:3.0f} keV = "
-                + f"{round(ee0 / eph, ndigits=1)}"
-            )
+
+            if dcases[k0].get('label') is None:
+                dcases[k0]['label'] = (
+                    r"$E_{e0} / E_{ph}$ = "
+                    + f"{ee0*1e-3:3.0f} / {eph*1e-3:3.0f} keV = "
+                    + f"{round(ee0 / eph, ndigits=1)}"
+                )
     else:
         dcases = {}
 
