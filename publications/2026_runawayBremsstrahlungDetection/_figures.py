@@ -40,7 +40,7 @@ _DPFE_DCROSS = {
 
 
 def fig01_cross_section(
-    figsize=(15, 9),
+    figsize=(15, 7),
     version='EH',
     Eph_eV=np.r_[1e3, 10e3, 500e3],
     Ee0_eV=np.r_[20e3, 1e6],
@@ -67,7 +67,7 @@ def fig01_cross_section(
 
     dmargin = {
         'left': 0.06, 'right': 0.99,
-        'bottom': 0.06, 'top': 0.95,
+        'bottom': 0.08, 'top': 0.93,
         'wspace': 0.25, 'hspace': 0.10,
     }
 
@@ -239,6 +239,7 @@ def fig01_cross_section(
         'theta_abs1': '(d)',
     }
     for kax, abc in dabc.items():
+        dax[kax]['handle'].grid(visible=True, which='major', axis='both')
         dax[kax]['handle'].text(
             0.95, 0.95,
             abc,
@@ -246,17 +247,17 @@ def fig01_cross_section(
             fontweight='bold',
             horizontalalignment='right',
             verticalalignment='top',
-            transform=ax.transAxes,
+            transform=dax[kax]['handle'].transAxes,
         )
 
     dax['map']['handle'].text(
-        0., 1.05,
+        0., 1.02,
         "(e)",
         fontsize=fontsize,
         fontweight='bold',
         horizontalalignment='left',
         verticalalignment='bottom',
-        transform=ax.transAxes,
+        transform=dax['map']['handle'].transAxes,
     )
 
     # --------------
