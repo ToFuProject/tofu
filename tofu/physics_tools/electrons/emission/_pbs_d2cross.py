@@ -60,8 +60,8 @@ def main(
     if version is None:
         version = ddef['version']
 
-    E_ph_eV = np.logspace(0, 8, nEph)
-    E_e0_eV = np.logspace(0, 8, nEe0)
+    E_ph_eV = np.logspace(2, 7, nEph)
+    E_e0_eV = np.logspace(2, 7, nEe0)
     theta_ph = np.linspace(0, np.pi, ntheta)
 
     # -------------------
