@@ -30,7 +30,7 @@ def f2d_momentum_pitch(
 
     """
     # B = (E_hat + 1) / (Zeff + 1)
-    B = 1.
+    # B = 1.
 
     shape = np.broadcast_shapes(
         pnorm.shape,
@@ -43,7 +43,7 @@ def f2d_momentum_pitch(
     pitch_term = (1 - pitch**2) / np.abs(pitch)
 
     dist = np.zeros(shape, dtype=float)
-    dreicer_like = np.exp(-0.5*B * pitch_term * pnorm)[iok] / pnorm[iok]
+    dreicer_like = np.exp(- pitch_term * pnorm)[iok] / pnorm[iok]
     drop = np.exp(-(pnorm - (pnorm0 + 3*pnormW))**2/pnormW**2)[iok]
     ione = (pnorm <= (pnorm0 + 3*pnormW))[iok]
     drop[ione] = 1.
@@ -52,6 +52,11 @@ def f2d_momentum_pitch(
         dreicer_like
         + (step * np.exp(-pitch_term * (pnorm - pnorm0)**4/pnormW**4))[iok]
     ) * drop
+
+    dist[iok] = (
+        dreicer_like
+        * (step * np.exp(-pitch_term * (pnorm - pnorm0)**4/pnormW**4))[iok]
+    )
 
     units = asunits.Unit('')
 
