@@ -53,6 +53,10 @@ _DPLASMA = {
         'def': 10e6,
         'units': 'eV',
     },
+    'Ekin_min_eV': {
+        'def': 1e3,
+        'units': 'eV',
+    },
     'Efield_par_Vm': {
         'def': 1.,
         'units': 'V/m',
@@ -64,6 +68,15 @@ _DPLASMA = {
     'sigmap': {
         'def': 1.,
         'units': None,
+    },
+    # bump
+    'step': {
+        'def': 50,
+        'units': '',
+    },
+    'pnormW': {
+        'def': 0.4,
+        'units': '',
     },
 }
 
@@ -93,15 +106,13 @@ def main(
     # RE-specific
     Zeff=None,
     Ekin_max_eV=None,
+    Ekin_min_eV=None,
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
     # bump
     step=None,
-    p_perp_norm0=None,
-    p_perp_normW=None,
-    p_par_norm0=None,
-    p_par_normW=None,
+    pnormW=None,
     # dominant
     dominant=None,
     # -----------
