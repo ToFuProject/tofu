@@ -22,9 +22,13 @@ _PATH_HERE = os.path.dirname(__file__)
 
 
 _DPFE_DCROSS = {
-    'EH': os.path.join(
+    'EH0': os.path.join(
         _PATH_HERE,
         'd2cross_Ee01eV-100MeV-80log_Eph1eV-100MeV-81log_ntheta61_EH.npz',
+    ),
+    'EH1': os.path.join(
+        _PATH_HERE,
+        'd2cross_Ee0100eV-10MeV-80log_Eph100eV-10MeV-81log_ntheta61_EH.npz',
     ),
     'BHE': os.path.join(
         _PATH_HERE,
@@ -41,6 +45,7 @@ _DPFE_DCROSS = {
 
 def fig01_cross_section(
     figsize=(15, 7),
+    pfe_cross='EH0',
     version='EH',
     Eph_eV=np.r_[1e3, 10e3, 500e3],
     Ee0_eV=np.r_[20e3, 1e6],
@@ -52,7 +57,7 @@ def fig01_cross_section(
     # load
     # --------------
 
-    pfe = _DPFE_DCROSS[version]
+    pfe = _DPFE_DCROSS[pfe_cross]
 
     dout = {
         kk: vv.tolist()
