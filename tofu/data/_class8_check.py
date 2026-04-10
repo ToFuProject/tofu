@@ -749,13 +749,13 @@ def _get_default_cam(coll=None, key=None, key_cam=None, default=None):
     if isinstance(key_cam, str):
         key_cam = [key_cam]
 
-    key_cam = ds._generic_check._check_var_iter(
+    key_cam = list(ds._generic_check._check_var_iter(
         key_cam, 'key_cam',
-        types=list,
+        types=(list, tuple),
         types_iter=str,
         allowed=lok,
         default=key_cam_def,
-    )
+    ))
 
     return key, key_cam
 

@@ -1111,6 +1111,8 @@ class Diagnostic(Previous):
         key_cam=None,
         # new diag
         key_new=None,
+        # fixed_optics
+        fixed_optics=None,
         # move params
         vect_xyz=None,
         length=None,
@@ -1151,6 +1153,8 @@ class Diagnostic(Previous):
         key_cam=None,
         # new diag
         key_new=None,
+        # fixed_optics
+        fixed_optics=None,
         # move params
         axis_pt=None,
         axis_vect=None,

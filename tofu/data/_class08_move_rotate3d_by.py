@@ -51,6 +51,9 @@ def main(
         angle, axis_pt, axis_vect,
     ) = _check.main(move='rotate', **locals())
 
+    if len(key_cam) == 0:
+        return
+
     # ----------
     # prepare
     # ----------

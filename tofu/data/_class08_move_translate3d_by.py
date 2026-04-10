@@ -15,11 +15,11 @@ def main(
     key_cam=None,
     # new diag
     key_new=None,
+    # fixed_optics
+    fixed_optics=None,
     # move params
     vect_xyz=None,
     length=None,
-    # fixed_optics
-    fixed_optics=None,
     # computing
     compute=None,
     strict=None,
@@ -45,6 +45,9 @@ def main(
         key, key_cam, key_new, fixed_optics,
         length, vect_xyz,
     ) = _check.main(move='translate', **locals())
+
+    if len(key_cam) == 0:
+        return
 
     # ----------
     # prepare
