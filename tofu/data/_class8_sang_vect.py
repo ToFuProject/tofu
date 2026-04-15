@@ -26,6 +26,8 @@ def main(
     visibility=None,
     config=None,
     return_vect=None,
+    # debug
+    debug=None,
 ):
 
     # ----------
@@ -79,6 +81,8 @@ def _check(
     # options
     visibility=None,
     return_vect=None,
+    # debug
+    debug=None,
     # unused
     **kwdargs,
 ):
@@ -180,12 +184,20 @@ def _check(
         default=False,
     )
 
+    # debug
+    debug = ds._generic_check._check_var(
+        debug, 'debug',
+        types=bool,
+        default=False,
+    )
+
     return {
         'key_diag': key_diag,
         'key_cam': key_cam,
         'dpts': dpts,
         'visibility': visibility,
         'return_vect': return_vect,
+        'debug': debug,
     }
 
 
@@ -206,6 +218,8 @@ def _compute(
     visibility=None,
     config=None,
     return_vect=None,
+    # debug
+    debug=None,
     # unused
     **kwdargs,
 ):

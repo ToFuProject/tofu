@@ -399,6 +399,8 @@ class Diagnostic(Previous):
         visibility=None,
         config=None,
         return_vect=None,
+        # debug
+        debug=None,
     ):
         """Return as dict of sang, vect, dV for any set of pts (full 3d)"""
         return _sang_vect.main(
@@ -414,6 +416,8 @@ class Diagnostic(Previous):
             visibility=visibility,
             config=config,
             return_vect=return_vect,
+            # debug
+            debug=debug,
         )
 
     # -----------------
