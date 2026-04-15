@@ -19,6 +19,8 @@ def main(
     key_cam=None,
     # new diag
     key_new=None,
+    # fixed_optics
+    fixed_optics=None,
     # move params
     axis_pt=None,
     axis_vect=None,
@@ -45,9 +47,12 @@ def main(
     # ----------
 
     (
-        key, key_cam, key_new,
+        key, key_cam, key_new, fixed_optics,
         angle, axis_pt, axis_vect,
     ) = _check.main(move='rotate', **locals())
+
+    if len(key_cam) == 0:
+        return
 
     # ----------
     # prepare
@@ -83,15 +88,20 @@ def main(
         doptics[kcam_new] = {}
         for kop in doptics0[kcam]['optics']:
 
-            # translate
-            kop_new = _rotate_optics(
-                coll=coll,
-                kop=kop,
-                axis_pt=axis_pt[kcam],
-                axis_vect=axis_vect[kcam],
-                angle=angle[kcam],
-                key_new=key_new,
-            )
+            if kop in fixed_optics:
+                kop_new = kop
+
+            else:
+                # rotate
+                kop_new = _rotate_optics(
+                    coll=coll,
+                    kop=kop,
+                    axis_pt=axis_pt[kcam],
+                    axis_vect=axis_vect[kcam],
+                    angle=angle[kcam],
+                    key_new=key_new,
+                )
+
             lop_new.append(kop_new)
 
         # doptics
