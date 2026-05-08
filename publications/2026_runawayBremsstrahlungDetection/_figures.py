@@ -278,3 +278,95 @@ def fig01_cross_section(
         print(msg)
 
     return dax
+
+
+# #####################################################
+# #####################################################
+#       Fig 1 - cross-section
+# #####################################################
+
+
+_DR = {
+    'R0': 1.8,
+    'rplasma': 0.6,
+    'RFW': [1.2, 2.45],
+    'Rcryo': 4.6,
+    'PP_length': 2.2,
+    'PP_width': None,
+    'PP_phi': np.r_[-30, 30] * np.pi/180,
+}
+
+
+def fig02_tokamak(
+    # tokamak
+    R0=None,
+    rplasma=None,
+    RFW=None,
+    Rcryo=None,
+    PP_length=None,
+    PP_width=None,
+    PP_phi=None,
+    # plot
+    figsize=(15, 7),
+    fontsize=14,
+    pfe_save=None,
+):
+
+    # --------------
+    # Load SPARC
+    # --------------
+
+    config = tf.load_config('SPARC')
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    dmargin = {
+        'left': 0.06, 'right': 0.99,
+        'bottom': 0.08, 'top': 0.93,
+        'wspace': 0.25, 'hspace': 0.10,
+    }
+
+    fig = plt.figure(figsize=figsize)
+
+    gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+    dax = {}
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    ax = fig.add_subplot(gs[0, 0], aspect='equal')
+    ax.set_xlabel('X (m)', fontsize=fontsize, fontweight='bold')
+    ax.set_ylabel('Y (m)', fontsize=fontsize, fontweight='bold')
+    ax.set_title('SPARC-like tokamak', fontsize=fontsize, fontweight='bold')
+
+    dax['hor'] = ax
+
+    dax = ds._generic_check._check_dax(dax)
+
+    # --------------
+    # plot tokamak
+    # --------------
+
+    config.plot(lax=dax['hor']['handle'], proj='hor')
+
+    # --------------
+    # add port plug
+    # --------------
+
+    # --------------
+    # save
+    # --------------
+
+    if pfe_save is not False:
+        if pfe_save is None:
+            name = 'fig02_tokamak.png'
+            pfe_save = os.path.join(_PATH_HERE, name)
+        fig.savefig(pfe_save, format='png', dpi=300)
+        msg = f"Saved figure in:\n\t{pfe_save}\n"
+        print(msg)
+
+    return dax
+
