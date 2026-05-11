@@ -6,6 +6,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import datastock as ds
 
 
 import tofu as tf
@@ -316,7 +317,11 @@ def fig02_tokamak(
     # Load SPARC
     # --------------
 
-    config = tf.load_config('SPARC')
+    config, dinput = _fig02_check(**locals())
+
+    phi = np.pi * np.linspace(-1, 1, 181)
+    cos = np.cos(phi)
+    sin = np.sin(phi)
 
     # --------------
     # prepare axes
@@ -347,10 +352,22 @@ def fig02_tokamak(
     dax = ds._generic_check._check_dax(dax)
 
     # --------------
-    # plot tokamak
+    # plot R
     # --------------
 
-    config.plot(lax=dax['hor']['handle'], proj='hor')
+    lk = [kk for kk in dinput.keys() if kk[0] == 'R']
+    for k0 in lk:
+        v0 = np.r_[dinput[k0]['data']]
+        for v1 in v0:
+            ax.plot(
+                v0*cos,
+                v0*sin,
+                **dinput[k0]['prop'],
+            )
+
+    # --------------
+    # plot port plug
+    # --------------
 
     # --------------
     # add port plug
@@ -370,3 +387,117 @@ def fig02_tokamak(
 
     return dax
 
+
+def _fig02_check(
+    config=None,
+    # tokamak
+    R0=None,
+    rplasma=None,
+    RFW=None,
+    Rcryo=None,
+    PP_length=None,
+    PP_width=None,
+    PP_phi=None,
+    # unused
+    **kwdargs,
+):
+
+    # ------------------
+    # config
+    # ------------------
+
+    if config is None:
+        config = 'SPARC'
+
+    if isinstance(config, str):
+        config = tf.load_config(config)
+
+    # ------------------
+    # Geometry - R
+    # ------------------
+
+    lk = ['R0', 'rplasma', 'RFW', 'Rcryo', 'PP_length', 'PP_width', 'PP_phi']
+    dinput = {
+        kk: {'data': None, 'color': 'k', 'ls': '-', 'lw': 1, 'label': None}
+        for kk in lk
+    }
+
+    # R0
+    dinput['R0']['data'] = float(ds._generic_check._check_var(
+        R0, 'R0',
+        types=(float, int),
+        sign='>0',
+        default=_DR['R0'],
+    ))
+
+    # rplasma
+    dinput['rplasma']['data'] = float(ds._generic_check._check_var(
+        rplasma, 'rplasma',
+        types=(float, int),
+        sign='>0',
+        default=_DR['rplasma'],
+    ))
+    assert dinput['rplasma']['data'] < dinput['R0']['data']
+
+    dinput['Rplasma'] = {
+        'data': dinput['R0']['data'] + dinput['rplasma']['data']*np.r_[-1, 1],
+        'color': 'k',
+        'lw': 1,
+        'ls': '-',
+    }
+
+    # RFW
+    dinput['RFW']['data'] = ds._generic_check._check_1darray(
+        RFW, 'RFW',
+        dtypes=float,
+        sign='>0',
+        unique=True,
+        default=_DR['RFW'],
+        size=2,
+    )
+    Rlim = dinput['R0']['data'] - dinput['rplasma']['data']
+    assert dinput['RFW'][0]['data'] < Rlim
+    Rlim = dinput['R0']['data'] + dinput['rplasma']['data']
+    assert dinput['RFW'][1]['data'] > Rlim
+
+    # rplasma
+    dinput['Rcryo']['data'] = float(ds._generic_check._check_var(
+        Rcryo, 'Rcryo',
+        types=(float, int),
+        sign='>0',
+        default=_DR['Rcryo'],
+    ))
+    assert dinput['Rcryo']['data'] > dinput['RFW']['data'][1]
+
+    # ------------------
+    # Geometry - Port plug
+    # ------------------
+
+    # PP_length
+    dinput['PP_length']['data'] = float(ds._generic_check._check_var(
+        PP_length, 'PP_length',
+        types=(float, int),
+        sign='>0',
+        default=_DR['PP_length'],
+    ))
+    Rin = dinput['R0']['data'] + dinput['rplasma']['data']
+    Rlim = dinput['Rcryo']['data'] - Rin
+    assert dinput['PP_length']['data']/2 < Rlim
+
+    # PP_width
+    dinput['PP_width']['data'] = float(ds._generic_check._check_var(
+        PP_width, 'PP_width',
+        types=(float, int),
+        sign='>0',
+        default=_DR['PP_width'],
+    ))
+
+    # PP_phi
+    PP_phi = float(ds._generic_check._check_var(
+        PP_phi, 'PP_phi',
+        types=(float, int),
+        default=_DR['PP_phi'],
+    ))
+    dinput['PP_phi']['data'] = np.arctan2(np.sin(PP_phi), np.cos(PP_phi))
+
+    return config, dinput
