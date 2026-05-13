@@ -4,6 +4,7 @@ import os
 
 
 import numpy as np
+import scipy.integrate as scpinteg
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as mpatches
@@ -285,7 +286,220 @@ def fig01_cross_section(
 
 # #####################################################
 # #####################################################
-#       Fig 1 - cross-section
+#       Fig 02 - RE dist
+# #####################################################
+
+
+_DDIST = {
+    # maxwell
+    'Te_eV': np.r_[1e3, 1e3, 3e3, 3e3],
+    'ne_m3': 1e20,
+    'jp_Am2': 1e6,
+    # RE
+    'jp_fraction_re': np.r_[0.2, 0.8, 0.2, 0.8],
+    'dominant': 'bump',
+    'Ekin_max_eV': 20e6,
+    'E_eV': np.logspace(0, 8, 80),
+    'theta': np.linspace(0, 180, 181) * np.pi / 180,
+}
+
+
+def fig02_distributions(
+    E_eV=None,
+    theta=None,
+    ne_m3=None,
+    jp_Am2=None,
+    jp_fraction_re=None,
+    Ekin_max_eV=None,
+    # plot
+    figsize=(5, 7),
+    fontsize=12,
+    pfe_save=None,
+):
+
+    # ------------
+    # inputs
+    # ------------
+
+    din = locals()
+    din = {
+        kk: vv if din.get(kk) is None else din[kk]
+        for kk, vv in _DDIST.items()
+    }
+
+    # ------------
+    # compute
+    # ------------
+
+    # dout = {'dist': dict, 'plasma': dist, 'coords': dist}
+    dout = tf.physics.electrons.distribution.get_distribution(**din)
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    dmargin = {
+        'left': 0.11, 'right': 0.97,
+        'bottom': 0.06, 'top': 0.99,
+        'wspace': 0.25, 'hspace': 0.20,
+    }
+
+    fig = plt.figure(figsize=figsize)
+
+    gs = gridspec.GridSpec(ncols=1, nrows=2, **dmargin)
+    dax = {}
+
+    # --------------
+    # axes - 2d
+    # --------------
+
+    ax = fig.add_subplot(gs[0, 0], aspect='auto')
+    ax.set_xlabel('E (keV)', fontsize=fontsize, fontweight='bold')
+    ax.set_ylabel(
+        r'$\theta_{e0}$ (deg)',
+        fontsize=fontsize,
+        fontweight='bold',
+    )
+    ax.text(
+        0.01,
+        0.99,
+        '(a)',
+        horizontalalignment='left',
+        verticalalignment='top',
+        fontsize=fontsize,
+        fontweight='bold',
+        transform=ax.transAxes,
+    )
+
+    dax['2d'] = ax
+
+    # --------------
+    # axes - 1d
+    # --------------
+
+    ax = fig.add_subplot(gs[1, 0], aspect='auto', sharex=ax)
+    ax.set_xlabel('E (keV)', fontsize=fontsize, fontweight='bold')
+    ax.set_ylabel(
+        '',
+        fontsize=fontsize,
+        fontweight='bold',
+    )
+    ax.text(
+        0.01,
+        0.99,
+        '(b)',
+        horizontalalignment='left',
+        verticalalignment='top',
+        fontsize=fontsize,
+        fontweight='bold',
+        transform=ax.transAxes,
+    )
+
+    dax['1d'] = ax
+
+    # ------------
+    # plot 1d
+    # ------------
+
+    kax = '1d'
+    dcolor = {}
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # prepare
+        dataRE = scpinteg.trapezoid(
+            dout['dist']['RE']['dist']['data'],
+            x=dout['coords']['x1']['data'],
+            axis=-1,
+        )
+        dataMax = scpinteg.trapezoid(
+            dout['dist']['maxwell']['dist']['data'],
+            x=dout['coords']['x1']['data'],
+            axis=-1,
+        )
+
+        # loop plot
+        for ind in np.ndproduct(dataRE.shape[:-2]):
+            sli = ind + (slice(None),)
+
+            # Max
+            l0, = ax.plot(
+                dout['coords']['x0']['data']*1e-3,
+                dataMax[sli],
+                ls='-',
+                lw=1,
+                color=dcolor[ind],
+            )
+            dcolor[ind] = l0.get_color()
+
+            # RE
+            ax.plot(
+                dout['coords']['x0']['data']*1e-3,
+                dataRE[sli],
+                ls='--',
+                lw=1,
+                color=dcolor[ind],
+            )
+
+            # Total
+            ax.plot(
+                dout['coords']['x0']['data']*1e-3,
+                dataMax[sli] + dataRE[sli],
+                ls='-',
+                lw=2,
+                color=dcolor[ind],
+                label=str(ind),
+            )
+
+        ax.legend()
+
+    # ------------
+    # plot 2d
+    # ------------
+
+    kax = '2d'
+    dcolor = {}
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # prepare
+        dataRE = dout['dist']['RE']['dist']['data']
+        dataMax = dout['dist']['maxwell']['dist']['data']
+
+        # loop plot
+        for ind in np.ndproduct(dataRE.shape[:-2]):
+            sli = ind + (slice(None), slice(None))
+
+            cc = ax.contour(
+                dout['coords']['x0']['data'],
+                dout['coords']['x1']['data'],
+                dataRE[sli] + dataMax[sli],
+                20,
+                ls='-',
+                vmin=0,
+                vmax=None,
+                label=str(ind),
+                color=dcolor[ind],
+            )
+
+    # --------------
+    # save
+    # --------------
+
+    if pfe_save is not False:
+        if pfe_save is None:
+            name = 'fig02_distributions.png'
+            pfe_save = os.path.join(_PATH_HERE, name)
+        fig.savefig(pfe_save, format='png', dpi=300)
+        msg = f"Saved figure in:\n\t{pfe_save}\n"
+        print(msg)
+
+    return dax
+
+
+# #####################################################
+# #####################################################
+#       Fig 03 - cross-section
 # #####################################################
 
 
