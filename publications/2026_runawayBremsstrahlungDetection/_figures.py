@@ -356,7 +356,7 @@ def fig03_tokamak(
     ex_marker=None,
     ex_ms=None,
     # plot
-    figsize=(5, 6),
+    figsize=(5, 7),
     fontsize=12,
     pfe_save=None,
 ):
@@ -377,8 +377,8 @@ def fig03_tokamak(
 
     dmargin = {
         'left': 0.11, 'right': 0.97,
-        'bottom': 0.08, 'top': 0.95,
-        'wspace': 0.25, 'hspace': 0.35,
+        'bottom': 0.06, 'top': 0.99,
+        'wspace': 0.25, 'hspace': 0.20,
     }
 
     fig = plt.figure(figsize=figsize)
@@ -393,13 +393,12 @@ def fig03_tokamak(
     ax = fig.add_subplot(gs[0, 0], aspect='equal')
     ax.set_xlabel('X (m)', fontsize=fontsize, fontweight='bold')
     ax.set_ylabel('Y (m)', fontsize=fontsize, fontweight='bold')
-    ax.set_title('SPARC-like tokamak', fontsize=fontsize, fontweight='bold')
     ax.text(
-        0,
-        1,
+        0.01,
+        0.99,
         '(a)',
         horizontalalignment='left',
-        verticalalignment='bottom',
+        verticalalignment='top',
         fontsize=fontsize,
         fontweight='bold',
         transform=ax.transAxes,
@@ -418,13 +417,12 @@ def fig03_tokamak(
         fontsize=fontsize,
         fontweight='bold',
     )
-    ax.set_title('FOV sampling', fontsize=fontsize, fontweight='bold')
     ax.text(
-        0,
-        1,
+        0.01,
+        0.99,
         '(b)',
         horizontalalignment='left',
-        verticalalignment='bottom',
+        verticalalignment='top',
         fontsize=fontsize,
         fontweight='bold',
         transform=ax.transAxes,
