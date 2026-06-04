@@ -41,6 +41,7 @@ def main(
     # bump
     step=None,
     pnormW=None,
+    theta_width=None,
     # dominant
     dominant=None,
     # ------------

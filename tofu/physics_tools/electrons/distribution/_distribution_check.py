@@ -76,6 +76,10 @@ _DPLASMA = {
         'def': 0.4,
         'units': '',
     },
+    'theta_width': {
+        'def': 20 * np.pi/180,
+        'units': 'rad',
+    },
 }
 
 

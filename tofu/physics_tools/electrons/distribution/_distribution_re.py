@@ -87,6 +87,9 @@ def main(
         lnG=dplasma['lnG']['data'],
     )['E_C']['data']
 
+    # pitch_width
+    pitch_width = 1 - np.cos(dplasma['theta_width']['data'])
+
     # -------------
     # Intermediates
     # -------------
@@ -164,6 +167,8 @@ def main(
                 'step': dplasma['step']['data'][sli0],
                 'pnorm0': pmax[sli0],
                 'pnormW': dplasma['pnormW']['data'][sli0],
+                'pitch_width': pitch_width,
+                'pmin': pmin[sli0],
             }
 
             # update with coords

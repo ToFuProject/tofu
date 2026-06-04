@@ -20,7 +20,9 @@ def f2d_momentum_pitch(
     # params
     step=None,
     pnorm0=None,
+    pmin=None,
     pnormW=None,
+    pitch_width=None,
     E_hat=None,
     Zeff=None,
     # unused
@@ -40,24 +42,22 @@ def f2d_momentum_pitch(
     pnorm = np.broadcast_to(pnorm, shape)
     iok = np.broadcast_to((pitch > 0.) & (pnorm > 0.), shape)
 
-    pitch_term = (1 - pitch**2) / np.abs(pitch)
-
     dist = np.zeros(shape, dtype=float)
-    dreicer_like = np.exp(- pitch_term * pnorm)[iok] / pnorm[iok]
-    drop = np.exp(-(pnorm - (pnorm0 + 3*pnormW))**2/pnormW**2)[iok]
-    ione = (pnorm <= (pnorm0 + 3*pnormW))[iok]
+
+    dreicer_like = pnorm[iok]
+
+    drop = np.exp(-(pnorm - pnorm0)**2/(2*pnormW)**2)[iok]
+    ione = (pnorm <= pnorm0)[iok]
     drop[ione] = 1.
+    ilow = (pnorm <= pmin)[iok]
+    drop[ilow] = 0.
 
-    dist[iok] = (
-        dreicer_like
-        + (step * np.exp(-pitch_term * (pnorm - pnorm0)**4/pnormW**4))[iok]
-    ) * drop
+    pitch_term = np.broadcast_to(
+        np.exp(-(1 - pitch**2)**2 / pitch_width**2),
+        shape,
+    )[iok]
 
-    dist[iok] = (
-        dreicer_like
-        * (step * np.exp(-pitch_term * (pnorm - pnorm0)**4/pnormW**4))[iok]
-    )
-
+    dist[iok] = drop * (dreicer_like + 0) * pitch_term
     units = asunits.Unit('')
 
     return dist, units
@@ -69,7 +69,9 @@ def f2d_momentum_theta(
     # params
     step=None,
     pnorm0=None,
+    pmin=None,
     pnormW=None,
+    pitch_width=None,
     E_hat=None,
     Zeff=None,
     # unused
@@ -81,7 +83,9 @@ def f2d_momentum_theta(
         # params
         step=step,
         pnorm0=pnorm0,
+        pmin=pmin,
         pnormW=pnormW,
+        pitch_width=pitch_width,
         E_hat=E_hat,
         Zeff=Zeff,
     )
@@ -98,7 +102,9 @@ def f2d_E_theta(
     # params
     step=None,
     pnorm0=None,
+    pmin=None,
     pnormW=None,
+    pitch_width=None,
     E_hat=None,
     Zeff=None,
     # unused
@@ -121,7 +127,9 @@ def f2d_E_theta(
         # params
         step=step,
         pnorm0=pnorm0,
+        pmin=pmin,
         pnormW=pnormW,
+        pitch_width=pitch_width,
         E_hat=E_hat,
         Zeff=Zeff,
     )
@@ -150,7 +158,9 @@ def f3d_E_theta(
     # params
     step=None,
     pnorm0=None,
+    pmin=None,
     pnormW=None,
+    pitch_width=None,
     E_hat=None,
     Zeff=None,
     # unused
@@ -166,7 +176,9 @@ def f3d_E_theta(
         # params
         step=step,
         pnorm0=pnorm0,
+        pmin=pmin,
         pnormW=pnormW,
+        pitch_width=pitch_width,
         E_hat=E_hat,
         Zeff=Zeff,
     )
