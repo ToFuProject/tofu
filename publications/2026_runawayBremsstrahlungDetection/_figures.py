@@ -1436,3 +1436,291 @@ def _intersect(cent, vect, R):
     assert isout.sum() <= 1
 
     return kk, isout
+
+
+# #####################################################
+# #####################################################
+#       Fig 04 - Bremsstrahlung
+# #####################################################
+
+
+_PFE_D2CROSS_PHI = os.path.join(
+    _PATH_HERE,
+    'd2cross_phi_Ee01eV-100MeV-80log_Eph1eV-100MeV-81log_nthetaph61_nthetae060_EH.npz',
+)
+
+
+_CASES = {
+    'case': {
+        '0': {'Te': 0.1e3, 'jp_frac': 0.9, 'color': 'r'},
+        '1': {'Te': 1e3, 'jp_frac': 0.1, 'color': 'b'},
+    },
+    'theta_ph_vsB': {
+        'val': np.r_[0, 0.5, 1]*np.pi,
+        'ls': ['-', '--', ':'],
+    },
+    'E_ph_eV': np.r_[0.1, 1, 10]*1e3,
+}
+
+
+def fig04_Bremsstrahlung(
+    d2cross_phi=None,
+    # cases
+    cases=None,
+    # plot
+    figsize=(7, 4),
+    fontsize=14,
+    # save
+    pfe_save=None,
+):
+
+    # ------------
+    # d2cross_phi
+    # ------------
+
+    if d2cross_phi is None:
+        d2cross_phi = _PFE_D2CROSS_PHI
+
+    # ------------
+    # ddist
+    # ------------
+
+    ddist = locals()
+    ddist = {
+        kk: vv if ddist.get(kk) is None else ddist[kk]
+        for kk, vv in _DDIST.items()
+        if kk not in ['E_eV', 'theta']
+    }
+
+    # --------------
+    # integrated cross-section
+    # --------------
+
+    demiss, ddist, d2cross_phi = tfphysemis.get_xray_thin_integ_dist(
+        # ----------------
+        # cross-section
+        # tabulated d2cross_phi
+        d2cross_phi=d2cross_phi,
+        # d2cross_phi computation
+        E_ph_eV=None,
+        E_e0_eV=None,
+        E_e0_eV_npts=None,
+        theta_e0_vsB_npts=None,
+        phi_e0_vsB_npts=None,
+        theta_ph_vsB=None,
+        # inputs
+        Z=None,
+        # hypergeometric parameter
+        ninf=None,
+        source=None,
+        # integration parameters
+        nthetae=None,
+        ndphi=None,
+        # output customization
+        version_cross=None,
+        # save / load
+        save_d2cross_phi=False,
+        # ---------------------
+        # optional responsivity
+        dresponsivity=None,
+        plot_responsivity_integration=None,
+        # -----------
+        # verb
+        debug=False,
+        verb=True,
+        # ----------------
+        # electron distribution
+        **ddist,
+    )
+
+    units = demiss['emiss']['RE']['emiss']['units']
+
+    # --------------
+    # cases
+    # --------------
+
+    if cases is None:
+        cases = _CASES
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    dmargin = {
+        'left': 0.11, 'right': 0.97,
+        'bottom': 0.12, 'top': 0.98,
+        'wspace': 0.25, 'hspace': 0.20,
+    }
+
+    fig = plt.figure(figsize=figsize)
+
+    gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+    dax = {}
+
+    # ----------------
+    # ax - spectra
+    # ----------------
+
+    ax = fig.add_subplot(gs[0, 0], aspect='auto')
+    ax.set_xlabel('E (keV)', fontsize=fontsize, fontweight='bold')
+    ax.set_ylabel(f'emiss ({units})', fontsize=fontsize, fontweight='bold')
+
+    dax['spectra'] = ax
+
+    dax = ds._generic_check._check_dax(dax)
+
+    # --------------
+    # plot - resp
+    # --------------
+
+    kax = 'spectra'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for kdist in demiss['emiss'].keys():
+
+            # loop on spectra
+            for i0, (k0, v0) in enumerate(cases['case'].items()):
+                for i1, cc in enumerate(cases['theta_ph_vsB']['val']):
+
+                    # slice
+                    ic = (
+                        (ddist['plasma']['jp_fraction_re']['data'] == v0['jp_frac'])
+                        & (ddist['plasma']['Te_eV']['data'] == v0['Te'])
+                    )
+                    assert ic.sum() == 1
+                    it = np.argmin(np.abs(demiss['theta_ph_vsB']['data'] - cc))
+                    sli = (ic.nonzero()[0][0], slice(None), it)
+
+                    # plot
+                    import pdb; pdb.set_trace()     # DB
+                    ax.loglog(
+                        demiss['E_ph_eV']['data']*1e-3,
+                        demiss['emiss'][kdist]['emiss']['data'][sli],
+                        ls=cases['theta_ph_vsB']['ls'][i1],
+                        lw=1 if kdist == 'RE' else 2,
+                        marker='None',
+                        color=v0['color'],
+                    )
+
+    return dax, demiss, ddist, d2cross_phi
+
+
+# #####################################################
+# #####################################################
+#       Fig 05 - responsivities
+# #####################################################
+
+
+_PFE_RESPONSIVITIES = os.path.join(_PATH_HERE, 'responsivities.npz')
+
+
+def fig05_responsivities(
+    pfe=None,
+    lw=2,
+    figsize=(7, 4),
+    fontsize=14,
+    pfe_save=None,
+):
+
+    # --------------
+    # load
+    # --------------
+
+    if pfe is None:
+        pfe = _PFE_RESPONSIVITIES
+
+    dresp = {
+        k0: v0.tolist()
+        for k0, v0 in np.load(pfe, allow_pickle=True).items()
+    }
+
+    # --------------
+    # prepare axes
+    # --------------
+
+    dmargin = {
+        'left': 0.11, 'right': 0.97,
+        'bottom': 0.12, 'top': 0.98,
+        'wspace': 0.25, 'hspace': 0.20,
+    }
+
+    fig = plt.figure(figsize=figsize)
+
+    gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+    dax = {}
+
+    # --------------
+    # axes - resp
+    # --------------
+
+    ax = fig.add_subplot(gs[0, 0], aspect='auto')
+    ax.set_xlabel('E (keV)', fontsize=fontsize, fontweight='bold')
+    ax.set_ylabel('responsivity', fontsize=fontsize, fontweight='bold')
+
+    dax['resp'] = ax
+
+    dax = ds._generic_check._check_dax(dax)
+
+    # --------------
+    # plot - resp
+    # --------------
+
+    kax = 'resp'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # ---------------
+        # loop on sensors
+
+        dme = {'mesxr': False, 'mehxr': False, 'cvd': False}
+        for k0, v0 in dresp.items():
+
+            # resp, color, lab
+            lk = [kk for kk in dme.keys() if kk in k0]
+            if len(lk) == 1:
+                kk = lk[0]
+                if dme[kk] is False:
+                    dme[kk] = v0.get('color', 'k')
+                    lab = f"{kk}  -  {v0['responsivity']['units']}"
+                else:
+                    v0['color'] = dme[kk]
+                    v0['ls'] = '--'
+                    lab = None
+            else:
+                lab = f"{k0}  -  {v0['responsivity']['units']}"
+
+            # lw
+            if lw is None:
+                lwi = v0.get('lw', 1)
+            else:
+                lwi = lw
+
+            # plot
+            ax.loglog(
+                v0['E_eV']['data']*1e-3,
+                v0['responsivity']['data'],
+                ls=v0.get('ls', '-'),
+                lw=lwi,
+                c=v0.get('color', 'k'),
+                marker=v0.get('marker', 'None'),
+                label=lab,
+            )
+
+        ax.set_ylim(1e-4, 2)
+        ax.grid(True)
+        ax.legend()
+
+    # --------------
+    # save
+    # --------------
+
+    if pfe_save is not False:
+        if pfe_save is None:
+            name = 'fig05_responsivities.png'
+            pfe_save = os.path.join(_PATH_HERE, name)
+        fig.savefig(pfe_save, format='png', dpi=300)
+        msg = f"Saved figure in:\n\t{pfe_save}\n"
+        print(msg)
+
+    return dax, dresp
