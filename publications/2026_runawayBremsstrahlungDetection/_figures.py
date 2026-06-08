@@ -1459,7 +1459,10 @@ _CASES = {
         'val': np.r_[0, 0.5, 1]*np.pi,
         'ls': ['-', '--', ':'],
     },
-    'E_ph_eV': np.r_[0.1, 1, 10]*1e3,
+    'E_ph_eV': {
+        'val': np.r_[0.1, 1, 10]*1e3,
+        'ls': ['-', '--', ':'],
+    },
 }
 
 
@@ -1491,6 +1494,8 @@ def fig04_Bremsstrahlung(
         for kk, vv in _DDIST.items()
         if kk not in ['E_eV', 'theta']
     }
+    ddist['Te_eV'] = 1e3 * np.linspace(0.1, 2.5, 25)[:, None]
+    ddist['jp_fraction_re'] = np.linspace(0., 1., 11)[None, :]
 
     # --------------
     # integrated cross-section
@@ -1543,6 +1548,23 @@ def fig04_Bremsstrahlung(
         cases = _CASES
 
     # --------------
+    # Elim
+    # --------------
+
+    shape = ddist['plasma']['Te_eV']['data'].shape
+    Elim = np.full(shape, np.nan)
+    theta_Elim = 0
+    for ii, ind in enumerate(np.ndindex(shape)):
+
+        sli_emiss = ind + (slice(None), 0)
+        emiss_RE = demiss['emiss']['RE']['emiss']['data'][sli_emiss]
+        emiss_max = demiss['emiss']['maxwell']['emiss']['data'][sli_emiss]
+
+        ilim = (emiss_RE > emiss_max)
+        if np.any(ilim):
+            Elim[ind] = np.min(demiss['E_ph_eV']['data'][ilim])
+
+    # --------------
     # prepare axes
     # --------------
 
@@ -1554,7 +1576,7 @@ def fig04_Bremsstrahlung(
 
     fig = plt.figure(figsize=figsize)
 
-    gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+    gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
     dax = {}
 
     # ----------------
@@ -1567,41 +1589,119 @@ def fig04_Bremsstrahlung(
 
     dax['spectra'] = ax
 
+    # ----------------
+    # ax - theta
+    # ----------------
+
+    ax = fig.add_subplot(gs[1, 0], aspect='auto')
+    ax.set_xlabel(
+        r'$\theta_{ph,B}$' + ' (deg)',
+        fontsize=fontsize,
+        fontweight='bold',
+    )
+    ax.set_ylabel(f'emiss ({units})', fontsize=fontsize, fontweight='bold')
+    ax.set_xlim(0, 180)
+
+    dax['theta'] = ax
+
+    # ----------------
+    # ax - Elim
+    # ----------------
+
+    ax = fig.add_subplot(gs[:, 1], aspect='auto')
+    ax.set_xlabel('Te (keV)', fontsize=fontsize, fontweight='bold')
+    ax.set_ylabel('jp_frac', fontsize=fontsize, fontweight='bold')
+
+    dax['Elim'] = ax
+
     dax = ds._generic_check._check_dax(dax)
 
     # --------------
-    # plot - resp
+    # plot - cases
     # --------------
 
-    kax = 'spectra'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
+    Teu = np.unique(ddist['plasma']['Te_eV']['data'])
+    jp_fracu = np.unique(ddist['plasma']['jp_fraction_re']['data'])
+    for kdist in demiss['emiss'].keys():
 
-        for kdist in demiss['emiss'].keys():
+        # loop on spectra
+        for i0, (k0, v0) in enumerate(cases['case'].items()):
 
-            # loop on spectra
-            for i0, (k0, v0) in enumerate(cases['case'].items()):
+            # slice
+            Te = Teu[np.argmin(np.abs(Teu - v0['jp_frac']))]
+            jpf = jp_fracu[np.argmin(np.abs(jp_fracu - v0['jp_frac']))]
+            ic = (
+                (ddist['plasma']['jp_fraction_re']['data'] == jpf)
+                & (ddist['plasma']['Te_eV']['data'] == Te)
+            )
+            assert ic.sum() == 1
+
+            # --------
+            # spectra
+
+            kax = 'spectra'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+
                 for i1, cc in enumerate(cases['theta_ph_vsB']['val']):
-
-                    # slice
-                    ic = (
-                        (ddist['plasma']['jp_fraction_re']['data'] == v0['jp_frac'])
-                        & (ddist['plasma']['Te_eV']['data'] == v0['Te'])
-                    )
-                    assert ic.sum() == 1
                     it = np.argmin(np.abs(demiss['theta_ph_vsB']['data'] - cc))
-                    sli = (ic.nonzero()[0][0], slice(None), it)
+                    sli = tuple([cc[0] for cc in ic.nonzero()]) + (slice(None), it)
+                    emiss_E = demiss['emiss'][kdist]['emiss']['data'][sli]
 
                     # plot
-                    import pdb; pdb.set_trace()     # DB
                     ax.loglog(
                         demiss['E_ph_eV']['data']*1e-3,
-                        demiss['emiss'][kdist]['emiss']['data'][sli],
+                        emiss_E,
                         ls=cases['theta_ph_vsB']['ls'][i1],
                         lw=1 if kdist == 'RE' else 2,
                         marker='None',
                         color=v0['color'],
                     )
+
+            # --------
+            # theta
+
+            kax = 'theta'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+
+                for i1, cc in enumerate(cases['E_ph_eV']['val']):
+                    iE = np.argmin(np.abs(demiss['E_ph_eV']['data'] - cc))
+                    sli = sli[:-2] + (iE, slice(None))
+                    emiss_theta = demiss['emiss'][kdist]['emiss']['data'][sli]
+
+                    # plot
+                    ax.plot(
+                        demiss['theta_ph_vsB']['data']*180/np.pi,
+                        emiss_theta / emiss_theta.max(),
+                        ls=cases['theta_ph_vsB']['ls'][i1],
+                        lw=1 if kdist == 'RE' else 2,
+                        marker='None',
+                        color=v0['color'],
+                    )
+
+    # --------------
+    # plot - Elim
+    # --------------
+
+    kax = 'Elim'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        cs = ax.contour(
+            ddist['plasma']['Te_eV']['data'] * 1e-3,
+            ddist['plasma']['jp_fraction_re']['data'],
+            Elim * 1e-3,
+            cmap=plt.cm.viridis,
+            levels=np.r_[0.1, 0.2, 0.5, 1, 2, 5, 10, 20]*1e3,
+            vmin=0.1,
+            vmax=20,
+        )
+
+        ax.clabel(cs, cs.levels, fontsize=12)
+
+        ax.set_xlim(0, ddist['plasma']['Te_eV']['data'].max()*1e-3)
+        ax.set_ylim(0, 1)
 
     return dax, demiss, ddist, d2cross_phi
 
