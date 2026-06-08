@@ -167,12 +167,16 @@ def main(
                 'step': dplasma['step']['data'][sli0],
                 'pnorm0': pmax[sli0],
                 'pnormW': dplasma['pnormW']['data'][sli0],
-                'pitch_width': pitch_width,
+                'pitch_width': pitch_width[sli0],
                 'pmin': pmin[sli0],
             }
 
             # update with coords
-            kwdargsi.update(**dcoords)
+            nc0 = kwdargsi['Cs'].ndim-2
+            sli_coord = (0,) * nc0 + (slice(None), slice(None))
+            kwdargsi.update(**{
+                kk: vv[sli_coord] for kk, vv in dcoords.items()
+            })
 
             # compute
             re_dist[sli1], dunits[dominant['meaning'][vv]] = getattr(
