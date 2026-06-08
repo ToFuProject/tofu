@@ -69,6 +69,11 @@ def get_d2cross_phi(
     # unused
     **kwdargs,
 ):
+    """ Integrates d2cross over phi_e0_vsB
+
+    Intermediate between d2cross and integration over an electron distribution
+
+    """
 
     # ----------------
     # inputs
@@ -230,7 +235,10 @@ def _check_compute(
     # ----------
 
     if E_ph_eV is None:
-        E_ph_eV = _E_PH_EV
+        if isinstance(d2cross, dict):
+            E_ph_eV = d2cross['E_ph']['data']
+        else:
+            E_ph_eV = _E_PH_EV
 
     E_ph_eV = ds._generic_check._check_flat1darray(
         E_ph_eV, 'E_ph_eV',
@@ -250,11 +258,14 @@ def _check_compute(
     ))
 
     if E_e0_eV is None:
-        E_e0_eV = np.logspace(
-            np.log10(E_ph_eV.min()),
-            np.ceil(np.log10(E_ph_eV.max())) + 2,
-            E_e0_eV_npts,
-        )
+        if isinstance(d2cross, dict):
+            E_e0_eV = d2cross['E_e0']['data']
+        else:
+            E_e0_eV = np.logspace(
+                np.log10(E_ph_eV.min()),
+                np.ceil(np.log10(E_ph_eV.max())) + 2,
+                E_e0_eV_npts,
+            )
 
     E_e0_eV = np.unique(ds._generic_check._check_flat1darray(
         E_e0_eV, 'E_e0_eV',
@@ -293,7 +304,10 @@ def _check_compute(
     # ------------
 
     if theta_ph_vsB is None:
-        theta_ph_vsB = _THETA_PH_VSB
+        if isinstance(d2cross, dict):
+            theta_ph_vsB = d2cross['theta_ph']['data']
+        else:
+            theta_ph_vsB = _THETA_PH_VSB
 
     theta_ph_vsB = ds._generic_check._check_flat1darray(
         theta_ph_vsB, 'theta_ph_vsB',
@@ -312,11 +326,16 @@ def _check_compute(
     # theta_e0_vsB
     # ------------
 
+    if isinstance(d2cross, dict):
+        npdef = d2cross['theta_e']['data'].size
+    else:
+        npdef = _THETA_E0_VSB_NPTS
+
     theta_e0_vsB_npts = int(ds._generic_check._check_var(
         theta_e0_vsB_npts, 'theta_e0_vsB_npts',
         types=(int, float),
         sign='>=3',
-        default=_THETA_E0_VSB_NPTS,
+        default=npdef,
     ))
     theta_e0_vsB = np.linspace(0, np.pi, theta_e0_vsB_npts)
 
