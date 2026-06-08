@@ -60,13 +60,19 @@ def get_xray_thin_integ_dist(
     jp_Am2=None,
     jp_fraction_re=None,
     # RE-specific
+    Te_eV_re=None,
+    ne_m3_re=None,
     Zeff=None,
     Ekin_max_eV=None,
+    Ekin_min_eV=None,
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
-    Te_eV_re=None,
-    ne_m3_re=None,
+    # bump
+    step=None,
+    pnormW=None,
+    theta_width=None,
+    # dominant
     dominant=None,
     # ----------------
     # cross-section
