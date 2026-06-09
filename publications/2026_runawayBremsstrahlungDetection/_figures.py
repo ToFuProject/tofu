@@ -1453,15 +1453,15 @@ _PFE_D2CROSS_PHI = os.path.join(
 _CASES = {
     'case': {
         '0': {'Te': 0.1e3, 'jp_frac': 0.9, 'color': 'r'},
-        '1': {'Te': 1e3, 'jp_frac': 0.1, 'color': 'b'},
+        '1': {'Te': 2.5e3, 'jp_frac': 0.1, 'color': 'b'},
     },
     'theta_ph_vsB': {
         'val': np.r_[0, 0.5, 1]*np.pi,
         'ls': ['-', '--', ':'],
     },
     'E_ph_eV': {
-        'val': np.r_[0.1, 1, 10]*1e3,
-        'ls': ['-', '--', ':'],
+        'val': np.r_[0.1, 5, 20]*1e3,
+        'ls': ['-', '-', '-'],
     },
 }
 
@@ -1471,7 +1471,7 @@ def fig04_Bremsstrahlung(
     # cases
     cases=None,
     # plot
-    figsize=(7, 4),
+    figsize=(15, 7),
     fontsize=14,
     # save
     pfe_save=None,
@@ -1495,7 +1495,7 @@ def fig04_Bremsstrahlung(
         if kk not in ['E_eV', 'theta']
     }
     ddist['Te_eV'] = 1e3 * np.linspace(0.1, 2.5, 25)[:, None]
-    ddist['jp_fraction_re'] = np.linspace(0., 1., 11)[None, :]
+    ddist['jp_fraction_re'] = np.linspace(0., 1., 21)[None, :]
 
     # --------------
     # integrated cross-section
@@ -1539,6 +1539,7 @@ def fig04_Bremsstrahlung(
     )
 
     units = demiss['emiss']['RE']['emiss']['units']
+    ne = np.unique(ddist['plasma']['ne_m3']['data'])[0]
 
     # --------------
     # cases
@@ -1569,23 +1570,33 @@ def fig04_Bremsstrahlung(
     # --------------
 
     dmargin = {
-        'left': 0.11, 'right': 0.97,
-        'bottom': 0.12, 'top': 0.98,
-        'wspace': 0.25, 'hspace': 0.20,
+        'left': 0.06, 'right': 0.98,
+        'bottom': 0.06, 'top': 0.95,
+        'wspace': 0.25, 'hspace': 0.30,
     }
 
     fig = plt.figure(figsize=figsize)
 
-    gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
+    nE = len(cases['E_ph_eV']['val'])
+    gs = gridspec.GridSpec(ncols=nE + 2, nrows=2, **dmargin)
     dax = {}
 
     # ----------------
     # ax - spectra
     # ----------------
 
-    ax = fig.add_subplot(gs[0, 0], aspect='auto')
+    ax = fig.add_subplot(gs[0, :nE], aspect='auto')
     ax.set_xlabel('E (keV)', fontsize=fontsize, fontweight='bold')
-    ax.set_ylabel(f'emiss ({units})', fontsize=fontsize, fontweight='bold')
+    ax.set_ylabel(
+        r"$\epsilon$" + f' ({units})',
+        fontsize=fontsize,
+        fontweight='bold',
+    )
+    ax.set_title(
+        r"$n_e$" + f" = {ne:1.0e} /m3",
+        fontsize=fontsize,
+        fontweight='bold',
+    )
 
     dax['spectra'] = ax
 
@@ -1593,22 +1604,32 @@ def fig04_Bremsstrahlung(
     # ax - theta
     # ----------------
 
-    ax = fig.add_subplot(gs[1, 0], aspect='auto')
-    ax.set_xlabel(
-        r'$\theta_{ph,B}$' + ' (deg)',
-        fontsize=fontsize,
-        fontweight='bold',
-    )
-    ax.set_ylabel(f'emiss ({units})', fontsize=fontsize, fontweight='bold')
-    ax.set_xlim(0, 180)
+    ax0 = None
+    for ii in range(nE):
+        ax = fig.add_subplot(
+            gs[1, ii],
+            aspect='auto',
+            sharex=ax0,
+            sharey=ax0,
+        )
+        ax.set_xlabel(
+            r'$\theta_{ph,B}$' + ' (deg)',
+            fontsize=fontsize,
+            fontweight='bold',
+        )
+        if ii == 0:
+            ax.set_ylabel('emiss (norm.)', fontsize=fontsize, fontweight='bold')
+            ax.set_xlim(0, 180)
+            ax.set_ylim(0, 1)
+            ax0 = ax
 
-    dax['theta'] = ax
+        dax[f'theta_{ii}'] = ax
 
     # ----------------
     # ax - Elim
     # ----------------
 
-    ax = fig.add_subplot(gs[:, 1], aspect='auto')
+    ax = fig.add_subplot(gs[:, nE:], aspect='auto')
     ax.set_xlabel('Te (keV)', fontsize=fontsize, fontweight='bold')
     ax.set_ylabel('jp_frac', fontsize=fontsize, fontweight='bold')
 
@@ -1622,30 +1643,32 @@ def fig04_Bremsstrahlung(
 
     Teu = np.unique(ddist['plasma']['Te_eV']['data'])
     jp_fracu = np.unique(ddist['plasma']['jp_fraction_re']['data'])
-    for kdist in demiss['emiss'].keys():
 
-        # loop on spectra
-        for i0, (k0, v0) in enumerate(cases['case'].items()):
+    # loop on cases
+    for i0, (k0, v0) in enumerate(cases['case'].items()):
 
-            # slice
-            Te = Teu[np.argmin(np.abs(Teu - v0['jp_frac']))]
-            jpf = jp_fracu[np.argmin(np.abs(jp_fracu - v0['jp_frac']))]
-            ic = (
-                (ddist['plasma']['jp_fraction_re']['data'] == jpf)
-                & (ddist['plasma']['Te_eV']['data'] == Te)
-            )
-            assert ic.sum() == 1
+        # slice
+        Te = Teu[np.argmin(np.abs(Teu - v0['Te']))]
+        jpf = jp_fracu[np.argmin(np.abs(jp_fracu - v0['jp_frac']))]
+        ic = (
+            (ddist['plasma']['jp_fraction_re']['data'] == jpf)
+            & (ddist['plasma']['Te_eV']['data'] == Te)
+        )
+        assert ic.sum() == 1
+        ic = tuple([cc[0] for cc in ic.nonzero()])
 
-            # --------
-            # spectra
+        # --------
+        # spectra
 
-            kax = 'spectra'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
+        kax = 'spectra'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
 
-                for i1, cc in enumerate(cases['theta_ph_vsB']['val']):
-                    it = np.argmin(np.abs(demiss['theta_ph_vsB']['data'] - cc))
-                    sli = tuple([cc[0] for cc in ic.nonzero()]) + (slice(None), it)
+            for i1, cc in enumerate(cases['theta_ph_vsB']['val']):
+                it = np.argmin(np.abs(demiss['theta_ph_vsB']['data'] - cc))
+                sli = ic + (slice(None), it)
+
+                for kdist in demiss['emiss'].keys():
                     emiss_E = demiss['emiss'][kdist]['emiss']['data'][sli]
 
                     # plot
@@ -1656,29 +1679,58 @@ def fig04_Bremsstrahlung(
                         lw=1 if kdist == 'RE' else 2,
                         marker='None',
                         color=v0['color'],
+                        label=f'{kdist}_{ic}_{cc*180/np.pi:3.0f}deg',
                     )
 
-            # --------
-            # theta
+            # vlines
+            for i1, cc in enumerate(cases['E_ph_eV']['val']):
+                ax.axvline(cc*1e-3, c='k', ls='--', lw=1)
 
-            kax = 'theta'
+            # Elim
+            iE = np.argmin(np.abs(demiss['E_ph_eV']['data'] - Elim[ic]))
+            ax.plot(
+                np.r_[Elim[ic], Elim[ic]] * 1e-3,
+                [emiss_E[iE], 1e16],
+                color=v0['color'],
+                ls='--',
+                lw=1,
+            )
+
+            ax.set_ylim(1e0, 1e16)
+            ax.set_xlim(1e-2, 2e4)
+
+        # --------
+        # theta
+
+        for i1, cc in enumerate(cases['E_ph_eV']['val']):
+
+            kax = f'theta_{i1}'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
 
-                for i1, cc in enumerate(cases['E_ph_eV']['val']):
-                    iE = np.argmin(np.abs(demiss['E_ph_eV']['data'] - cc))
-                    sli = sli[:-2] + (iE, slice(None))
+                iE = np.argmin(np.abs(demiss['E_ph_eV']['data'] - cc))
+                sli = ic + (iE, slice(None))
+
+                for kdist in demiss['emiss'].keys():
                     emiss_theta = demiss['emiss'][kdist]['emiss']['data'][sli]
 
                     # plot
                     ax.plot(
                         demiss['theta_ph_vsB']['data']*180/np.pi,
                         emiss_theta / emiss_theta.max(),
-                        ls=cases['theta_ph_vsB']['ls'][i1],
+                        ls=cases['E_ph_eV']['ls'][i1],
                         lw=1 if kdist == 'RE' else 2,
                         marker='None',
                         color=v0['color'],
+                        label=f'{kdist}_{ic}_{cc*1e-3:3.1f}keV',
                     )
+
+                # deco
+                ax.set_title(
+                    r"$E_{ph,B}$" + f" = {cc*1e-3:3.1f} keV",
+                    fontsize=fontsize,
+                    fontweight='bold',
+                )
 
     # --------------
     # plot - Elim
@@ -1693,15 +1745,38 @@ def fig04_Bremsstrahlung(
             ddist['plasma']['jp_fraction_re']['data'],
             Elim * 1e-3,
             cmap=plt.cm.viridis,
-            levels=np.r_[0.1, 0.2, 0.5, 1, 2, 5, 10, 20]*1e3,
+            levels=np.r_[1, 2, 5, 7.5, 10, 15],
             vmin=0.1,
             vmax=20,
         )
+
+        # cases
+        for i0, (k0, v0) in enumerate(cases['case'].items()):
+            ax.plot(
+                v0['Te']*1e-3,
+                v0['jp_frac'],
+                marker='*',
+                markersize=8,
+                markerfacecolor=v0['color'],
+                color=v0['color'],
+            )
 
         ax.clabel(cs, cs.levels, fontsize=12)
 
         ax.set_xlim(0, ddist['plasma']['Te_eV']['data'].max()*1e-3)
         ax.set_ylim(0, 1)
+
+    # --------------
+    # save
+    # --------------
+
+    if pfe_save is not False:
+        if pfe_save is None:
+            name = 'fig04_bemsstrahlung.png'
+            pfe_save = os.path.join(_PATH_HERE, name)
+        fig.savefig(pfe_save, format='png', dpi=300)
+        msg = f"Saved figure in:\n\t{pfe_save}\n"
+        print(msg)
 
     return dax, demiss, ddist, d2cross_phi
 
