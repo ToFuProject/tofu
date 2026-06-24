@@ -1580,6 +1580,28 @@ def _hyp2F1(
                     * _hyp2F1(an, cn-bn, cn, zn/(zn-1.))
                 )
 
+    # ------------
+    # sanity check
+    # ------------
+
+    nnan_tot = np.sum(~np.isfinite(out))
+    if nnan_tot > 0:
+        nnan = np.sum(np.isnan(out))
+        ninf = np.sum(np.isinf(out))
+        size = out.size
+        lstr = ([np.sum(~np.isfinite(vv)) for vv in [aa, bb, cc, zz]])
+        msg = (
+            f"EH d3cross: hyp2F1() is getting {nnan_tot} non-finite values\n"
+            f"\t- source = {source}\n"
+            f"\t- nb of (NaN, inf) / size = ({nnan}, {ninf}) / {size}\n"
+            f"\t- nb of non-finite (aa, bb, cc, zz) = {lstr}\n"
+            f"\t- np.unique(aa) = {np.unique(aa)}\n"
+            f"\t- np.unique(bb) = {np.unique(bb)}\n"
+            f"\t- np.unique(cc) = {np.unique(cc)}\n"
+            f"\t- np.unique(zz) = {np.unique(zz)}\n"
+        )
+        raise Exception(msg)
+
     return out
 
 
