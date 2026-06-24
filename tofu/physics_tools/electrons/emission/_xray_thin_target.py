@@ -1584,7 +1584,8 @@ def _hyp2F1(
     # sanity check
     # ------------
 
-    nnan_tot = np.sum(~np.isfinite(out))
+    ind_nofin = ~np.isfinite(out)
+    nnan_tot = np.sum(ind_nofin)
     if nnan_tot > 0:
         nnan = np.sum(np.isnan(out))
         ninf = np.sum(np.isinf(out))
@@ -1595,10 +1596,12 @@ def _hyp2F1(
             f"\t- source = {source}\n"
             f"\t- nb of (NaN, inf) / size = ({nnan}, {ninf}) / {size}\n"
             f"\t- nb of non-finite (aa, bb, cc, zz) = {lstr}\n"
-            f"\t- np.unique(aa) = {np.unique(aa)}\n"
-            f"\t- np.unique(bb) = {np.unique(bb)}\n"
-            f"\t- np.unique(cc) = {np.unique(cc)}\n"
-            f"\t- np.unique(zz) = {np.unique(zz)}\n"
+            f"\t- np.unique(aa) = {np.unique(aa[ind_nofin])}\n"
+            f"\t- np.unique(bb) = {np.unique(bb[ind_nofin])}\n"
+            f"\t- np.unique(cc) = {np.unique(cc[ind_nofin])}\n"
+            f"\t- np.unique(zz) = {np.unique(zz[ind_nofin])}\n"
+            f"\t- out[np.isnan(out)] = {out[np.isnan(out)]}\n"
+            f"\t- out[np.isinf(out)] = {out[np.isinf(out)]}\n"
         )
         raise Exception(msg)
 
