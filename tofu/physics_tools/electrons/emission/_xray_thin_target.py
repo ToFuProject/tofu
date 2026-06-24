@@ -1,5 +1,6 @@
 
 
+import sys
 import os
 import warnings
 from typing import Any, Optional   # Dict
@@ -23,6 +24,15 @@ TupleDict = tuple[dict]
 
 
 _PATH_HERE = os.path.dirname(__file__)
+_PATH_PROJ = os.path.dirname(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(_PATH_HERE)
+            )
+        )
+    )
+)
 
 
 # version
@@ -1385,37 +1395,52 @@ def _hyp2F1(
     zz=None,
     ninf: Optional[int] = None,
     source: Optional[str] = None,
+    # specfunc
+    specfunc_dir=None,
 ):
     """ Hypergeometric function 2F1 with complex arguments
 
-    Home-made, replacement for:
-        https://github.com/scipy/scipy/issues/23450
-
-    Inspired from:
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.hyp2f1.html
-
-    And:
-        https://www.johndcook.com/blog/2024/04/16/hypergeometric-large-negative-z/
+    Three possible options:
+        - specfunc: Priority 1
+            A C-library, user-compiled  with a python wrapper
+            Fast, takes numpy arrays
+            Needs to be accessible in the specfunc_dir
+            see:
+                https://github.com/fedro4/specfunc
+        - mpmath: Priority 2
+            Accurate computaton but slow
+            Doesn't take numpy arrays (loop needed)
+        - 'z/(z-1)' or '1/z': Priority 3
+            Homemade approximation, two different versions
+            Faster than mpmath, but less accurate
+            see:
+                https://github.com/scipy/scipy/issues/23450
+                https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.hyp2f1.html
+                https://www.johndcook.com/blog/2024/04/16/hypergeometric-large-negative-z/
 
     """
 
     # ----------
-    # Safety check
+    # preliminary checks
     # ----------
 
-    if np.any(zz > 1):
+    lok, dwarn, dfunc = _hyp2f1_check(specfunc_dir)
+
+    if isinstance(source, str) and dwarn.get(source) is not None:
+        raise Exception(dwarn[source])
+
+    if source is None and len(dwarn) > 0:
+        lstr = [f"\t- {k0}" for k0 in dwarn.keys]
         msg = (
-            "This homemade implementation of Hyp2F1 is particularly unstable"
-            " for |zz| > 1\n"
-            f"Found {(np.abs(zz) > 1).sum()} / {zz.size} pts with |zz| > 1\n"
+            "The following are not available for computing _hyp2F1():\n"
+            + "\n".join(lstr)
         )
-        raise Exception(msg)
+        warnings.warn(msg)
 
     # ----------
     # inputs
     # ----------
 
-    lok = ['mpmath', 'z/(z-1)', '1/z']
     source = ds._generic_check._check_var(
         source, 'source',
         types=str,
@@ -1423,18 +1448,17 @@ def _hyp2F1(
         default=lok[0],
     )
 
-    # try import
-    if source == 'mpmath':
-        try:
-            import mpmath
-        except Exception:
-            source = lok[1]
-            msg = (
-                "_hyp2F1(source='{lok[0]}') requires mpmath to be installed\n"
-                "See https://pypi.org/project/mpmath/\n"
-                f"Setting to source = '{source}'\n"
-            )
-            warnings.warn(msg)
+    # ----------
+    # Safety check
+    # ----------
+
+    if source in lok[-2:] and np.any(zz > 1):
+        msg = (
+            "This homemade implementation of Hyp2F1 is particularly unstable"
+            " for |zz| > 1\n"
+            f"Found {(np.abs(zz) > 1).sum()} / {zz.size} pts with |zz| > 1\n"
+        )
+        raise Exception(msg)
 
     # ----------
     # broadcast
@@ -1464,13 +1488,23 @@ def _hyp2F1(
     out = np.full(zz.shape, np.nan, dtype=complex)
 
     # ----------------
+    # source = specfunc
+    # ----------------
+
+    if source == 'specfunc':
+
+        out = dfunc[source].hyp2f1(aa, bb, cc, zz)
+
+    # ----------------
     # source = mpmath
     # ----------------
 
-    if source == 'mpmath':
+    elif source == 'mpmath':
 
         for ind in np.ndindex(zz.shape):
-            out[ind] = mpmath.hyp2f1(aa[ind], bb[ind], cc[ind], zz[ind])
+            out[ind] = dfunc['mpmath'].hyp2f1(
+                aa[ind], bb[ind], cc[ind], zz[ind],
+            )
 
     # ----------------
     # source = 1/z or z/(z-1)
@@ -1547,6 +1581,88 @@ def _hyp2F1(
                 )
 
     return out
+
+
+# ####################################################
+# ####################################################
+#        _hyp2F1 - check options
+# ####################################################
+
+
+def _hyp2f1_check(specfunc_dir=None):
+
+    dwarn = {}
+    dfunc = {}
+
+    # --------
+    # specfunc
+    # --------
+
+    specfunc_dir = ds._generic_check._check_var(
+        specfunc_dir, 'specfunc_dir',
+        types=str,
+        default=os.path.join(_PATH_PROJ, 'specfunc'),
+    )
+
+    if not os.path.isdir(specfunc_dir):
+        msg = (
+            "\n_hyp2F1: library specfunc not found in dir:\n"
+            f"\t- {specfunc_dir}\n"
+        )
+        dwarn['specfunc'] = msg
+
+    else:
+
+        # check executable
+        pfe_specfunc_exc = os.path.join(specfunc_dir, 'libspecfunc.so')
+        if not os.path.isfile(pfe_specfunc_exc):
+            msg = (
+                "\n_hyp2F1: library specfunc needs to be compiled!\n"
+                f"\t- libspecfunc.so not found in {pfe_specfunc_exc}\n"
+            )
+            dwarn['specfunc'] = msg
+
+        # check wrapper
+        pfe_specfunc_py = os.path.join(specfunc_dir, 'specfunc.py')
+        if not os.path.isfile(pfe_specfunc_py):
+            msg = (
+                "\n_hyp2F1: Library specfunc is missing the python wrapper!\n"
+                f"\t- specfunc.py not found in {pfe_specfunc_py}\n"
+            )
+            dwarn['specfunc'] = msg
+
+        # import
+        if dwarn.get('specfunc') is None:
+            sys.path.insert(0, specfunc_dir)
+            import specfunc
+            sys.path.pop(0)
+            dfunc['specfunc'] = specfunc
+
+    # --------
+    # mpmath
+    # --------
+
+    try:
+        import mpmath
+        dfunc['mpmath'] = mpmath
+    except Exception:
+        msg = (
+            "\n_hyp2F1: mpmath not available\n"
+            "See https://pypi.org/project/mpmath/\n"
+        )
+        dwarn['mpmath'] = msg
+
+    # --------
+    # lok
+    # --------
+
+    lok = ['z/(z-1)', '1/z']
+    if dwarn.get('mpmath') is None:
+        lok.insert(0, 'mpmath')
+    if dwarn.get('specfunc') is None:
+        lok.insert(0, 'specfunc')
+
+    return lok, dwarn, dfunc
 
 
 # ####################################################
