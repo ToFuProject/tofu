@@ -62,7 +62,6 @@ def get_xray_thin_integ_dist(
     # RE-specific
     Te_eV_re=None,
     ne_m3_re=None,
-    Zeff=None,
     Ekin_max_eV=None,
     Ekin_min_eV=None,
     Efield_par_Vm=None,
