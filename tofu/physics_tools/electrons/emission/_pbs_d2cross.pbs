@@ -4,9 +4,9 @@
 #PBS -l instance_type=c7i.8xlarge
 #PBS -l walltime=1500:00:00
 #PBS -P sparc-design
-#PBS -N d2cross_61x80x81_EH
-#PBS -o d2cross_61x80x81_EH.out
-#PBS -e d2cross_61x80x81_EH.err
+#PBS -N d2cross_91x160x81_EH
+#PBS -o d2cross_91x160x161_EH.out
+#PBS -e d2cross_91x160x161_EH.err
 #PBS -m abe
 #PBS -l base_os=ubuntu2404
 #PBS -l instance_ami=ami-0d63a2e021bce724d
@@ -17,4 +17,4 @@ source ~/.bashrc
 # Beware: PBS does not expand the tilde ~/ => full explicit path needed
 export PBS_O_WORKDIR="/data/home/dvezinet/projects/tofu/tofu/physics_tools/electrons/emission"
 cd ${PBS_O_WORKDIR}/
-python _pbs_d2cross.py -nEph 81 -nEe0 80 -ntheta 61 -v EH
+python _pbs_d2cross.py -nEph 161 -nEe0 160 -ntheta 91 -v EH
