@@ -1430,7 +1430,7 @@ def _hyp2F1(
         raise Exception(dwarn[source])
 
     if source is None and len(dwarn) > 0:
-        lstr = [f"\t- {k0}" for k0 in dwarn.keys]
+        lstr = [f"\t- {k0}" for k0 in dwarn.keys()]
         msg = (
             "The following are not available for computing _hyp2F1():\n"
             + "\n".join(lstr)
