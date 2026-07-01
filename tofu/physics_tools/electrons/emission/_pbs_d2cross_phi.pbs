@@ -1,0 +1,22 @@
+#PBS -S /bin/bash
+#PBS -q normal
+#PBS -l nodes=1
+#PBS -l instance_type=c7i.8xlarge
+#PBS -l walltime=24:00:00
+#PBS -P sparc-design
+#PBS -N d2cross_phi_241x91x240x93_BHE
+#PBS -o d2cross_phi_241x91x240x93_BHE.out
+#PBS -e d2cross_phi_241x91x240x93_BHE.err
+#PBS -m abe
+#PBS -l base_os=ubuntu2404
+#PBS -l instance_ami=ami-0d63a2e021bce724d
+#PBS -l efa_support=false
+ 
+source ~/.bashrc
+
+# Beware: PBS does not expand the tilde ~/ => full explicit path needed
+export PBS_O_WORKDIR="/data/home/dvezinet/projects/tofu/tofu/physics_tools/electrons/emission"
+export D2CROSS="/data/home/dvezinet/projects/tofu/tofu/physics_tools/electrons/emission/d2cross_Ee01eV-100MeV-400log_Eph1eV-100MeV-401log_ntheta181.npz"
+
+cd ${PBS_O_WORKDIR}/
+python _pbs_d2cross_phi.py -nEph 241 -nEe0 240 -ntheta_ph_vsB 91 -ntheta_e0_vsB 93 -nphi_e0_vsB 181 -d2cross ${D2CROSS}

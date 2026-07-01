@@ -278,7 +278,20 @@ def _rotate_camera(
     # unit vects
     lk_vect = ['nin', 'e0', 'e1']
     for kk in lk_vect:
-        if dgeom0.get(kk) is not None:
+
+        if isinstance(dgeom0.get(kk), tuple):
+            kx, ky, kz = f"{kk}_x", f"{kk}_y", f"{kk}_z"
+            dgeom[kx], dgeom[ky], dgeom[kz] = _rotate_pts(
+                axis_pt,
+                axis_vect,
+                angle,
+                coll.ddata[dgeom0[kk][0]]['data'],
+                coll.ddata[dgeom0[kk][1]]['data'],
+                coll.ddata[dgeom0[kk][2]]['data'],
+                isvect=True,
+            )
+
+        elif dgeom0.get(kk) is not None:
             dgeom[kk] = np.r_[_rotate_pts(
                 axis_pt,
                 axis_vect,
@@ -286,18 +299,6 @@ def _rotate_camera(
                 *dgeom0[kk],
                 isvect=True,
             )]
-
-        if dgeom0.get(f"{kk}_x") is not None:
-            kx, ky, kz = f"{kk}_x", f"{kk}_y", f"{kk}_z"
-            dgeom[kx], dgeom[ky], dgeom[kz] = _rotate_pts(
-                axis_pt,
-                axis_vect,
-                angle,
-                dgeom0[kx],
-                dgeom0[ky],
-                dgeom0[kz],
-                isvect=True,
-            )
 
     # ----------------
     # add as-is

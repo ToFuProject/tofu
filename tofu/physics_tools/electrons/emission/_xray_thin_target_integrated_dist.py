@@ -52,22 +52,32 @@ _DPLASMA = {
 def get_xray_thin_integ_dist(
     # ----------------
     # electron distribution
+    ddist=None,
+    # compute
     Te_eV=None,
     ne_m3=None,
     nZ_m3=None,
     jp_Am2=None,
     jp_fraction_re=None,
     # RE-specific
-    Zeff=None,
+    Te_eV_re=None,
+    ne_m3_re=None,
     Ekin_max_eV=None,
+    Ekin_min_eV=None,
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
-    Te_eV_re=None,
-    ne_m3_re=None,
+    # bump
+    step=None,
+    pnormW=None,
+    theta_width=None,
+    # dominant
     dominant=None,
     # ----------------
     # cross-section
+    # tabulated d2cross_phi
+    d2cross_phi=None,
+    # d2cross_phi computation
     E_ph_eV=None,
     E_e0_eV=None,
     E_e0_eV_npts=None,
@@ -85,7 +95,6 @@ def get_xray_thin_integ_dist(
     # output customization
     version_cross=None,
     # save / load
-    pfe_d2cross_phi=None,
     save_d2cross_phi=None,
     # ---------------------
     # optional responsivity
@@ -166,23 +175,41 @@ def get_xray_thin_integ_dist(
         msg = "Computing e distributions..."
         print(msg)
 
-    ddist = get_distribution(
-        # Energy, theta
-        E_eV=E_e0_eV,
-        theta=theta_e0_vsB,
-        # version
-        version='f3d_E_theta',
-        returnas=dict,
-        # plasma parameters
-        dominant=dominant,
-        **{kk: vv['data'] for kk, vv in dplasma.items()}
-    )
+    if ddist is None:
+        ddist = get_distribution(
+            # Energy, theta
+            E_eV=E_e0_eV,
+            theta=theta_e0_vsB,
+            # version
+            version='f3d_E_theta',
+            returnas=dict,
+            # plasma parameters
+            dominant=dominant,
+            **{kk: vv['data'] for kk, vv in dplasma.items()}
+        )
 
     # shape
+    kdist0 = list(ddist['dist'].keys())[0]
     shape_plasma = ddist['plasma']['Te_eV']['data'].shape
-    shape_dist = ddist['dist']['maxwell']['dist']['data'].shape
+    shape_dist = ddist['dist'][kdist0]['dist']['data'].shape
     shape_cross = d2cross_phi['d2cross_phi']['data'].shape
     shape_emiss = shape_plasma + (E_ph_eV.size, theta_ph_vsB.size)
+
+    # -----------------------
+    # Safety check on E_e0_eV (should be identical)
+    c0 = (
+        E_e0_eV.shape == ddist['coords']['x0']['data'].shape
+        and np.allclose(E_e0_eV, ddist['coords']['x0']['data'])
+    )
+    if not c0:
+        dshape = ddist['coords']['x0']['data'].shape
+        msg = (
+            "ddist and d2cross_phi must have the same E_e0_eV vector!\n"
+            f"\t- ddist['coords']['x0']['data'].shape = {dshape}\n"
+            f"\t- d2cross_phi['E_e0_eV'].shape = {E_e0_eV.shape}\n"
+            f"\t- or values are different!\n"
+        )
+        raise Exception(msg)
 
     # ------------
     # add nZ_m3
@@ -307,7 +334,10 @@ def get_xray_thin_integ_dist(
         iok = np.isfinite(demiss[kdist]['emiss']['data'])
         iok[iok] = demiss[kdist]['emiss']['data'][iok] >= 0.
         if np.any(~iok):
-            msg = f"\nSome non-finite or negative values in emiss {kdist} !\n"
+            msg = (
+                f"\n({(~iok).sum()} / {iok.size}) non-finite or "
+                f"negative values in emiss '{kdist}' !\n"
+            )
             warnings.warn(msg)
 
     # ---------------------
@@ -652,10 +682,18 @@ def _responsivity(
         raise Exception(msg)
 
     # ph vs E
+    if 'ph' in str(dresponsivity['responsivity']['units']):
+        ph_vs_E_def = 'ph'
+    elif 'W' in str(dresponsivity['responsivity']['units']):
+        ph_vs_E_def = 'E'
+    else:
+        ph_vs_E_def = None
+
     dresponsivity['ph_vs_E'] = ds._generic_check._check_var(
         dresponsivity['ph_vs_E'], 'ph_vs_E',
         types=str,
         allowed=['ph', 'E'],
+        default=ph_vs_E_def,
         extra_msg="dresponsivity['ph_vs_E'] integrated photons or energy",
     )
 
@@ -669,6 +707,10 @@ def _responsivity(
         dresponsivity['E_eV']['data'].size == E_ph_eV.size
         and np.allclose(dresponsivity['E_eV']['data'], E_ph_eV)
     )
+
+    iok = np.isfinite(dresponsivity['responsivity']['data'])
+    dresponsivity['E_eV']['data'] = dresponsivity['E_eV']['data'][iok]
+    dresponsivity['responsivity']['data'] = dresponsivity['responsivity']['data'][iok]
     if c0:
         resp_data = dresponsivity['responsivity']['data']
     else:
@@ -681,10 +723,20 @@ def _responsivity(
         )
 
     # --------------
+    # safety check
+    # --------------
+
+    # resp = nan => 0
+    if np.any(np.isnan(resp_data)):
+        msg = "Some NaN in responisivity!"
+        raise Exception(msg)
+
+    # --------------
     # compute
     # --------------
 
-    sli = [None]*demiss['maxwell']['emiss']['data'].ndim
+    kdist0 = list(demiss.keys())[0]
+    sli = [None]*demiss[kdist0]['emiss']['data'].ndim
     sli[-2] = slice(None)
     sli = tuple(sli)
     dintegrand = {}

@@ -54,13 +54,18 @@ def plot_xray_thin_integ_dist(
     jp_Am2=None,
     jp_fraction_re=None,
     # RE-specific
-    Zeff=None,
+    Te_eV_re=None,
+    ne_m3_re=None,
     Ekin_max_eV=None,
+    Ekin_min_eV=None,
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
-    Te_eV_re=None,
-    ne_m3_re=None,
+    # bump
+    step=None,
+    pnormW=None,
+    theta_width=None,
+    # dominant
     dominant=None,
     # ----------------
     # cross-section
@@ -114,23 +119,7 @@ def plot_xray_thin_integ_dist(
         plot_angular_spectra,
         plot_anisotropy_map,
         verb,
-    ) = _check(
-        # electron distribution
-        Te_eV=Te_eV,
-        ne_m3=ne_m3,
-        jp_Am2=jp_Am2,
-        jp_fraction_re=jp_fraction_re,
-        # cross-section
-        E_ph_eV=E_ph_eV,
-        E_e0_eV=E_e0_eV,
-        theta_e0_vsB_npts=theta_e0_vsB_npts,
-        theta_ph_vsB=theta_ph_vsB,
-        version_cross=version_cross,
-        # plots
-        plot_angular_spectra=plot_angular_spectra,
-        plot_anisotropy_map=plot_anisotropy_map,
-        verb=verb,
-    )
+    ) = _check(**locals())
 
     # -------------
     # compute
@@ -205,18 +194,51 @@ def _check(
     ne_m3=None,
     jp_Am2=None,
     jp_fraction_re=None,
+    # RE-specific
+    Te_eV_re=None,
+    ne_m3_re=None,
+    Ekin_max_eV=None,
+    Ekin_min_eV=None,
+    Efield_par_Vm=None,
+    lnG=None,
+    sigmap=None,
+    # bump
+    step=None,
+    pnormW=None,
+    theta_width=None,
+    # dominant
+    dominant=None,
     # ----------------
     # cross-section
     E_ph_eV=None,
     E_e0_eV=None,
+    E_e0_eV_npts=None,
     theta_e0_vsB_npts=None,
+    phi_e0_vsB_npts=None,
     theta_ph_vsB=None,
-    # version
+    # inputs
+    Z=None,
+    # hypergeometric parameter
+    ninf=None,
+    source=None,
+    # integration parameters
+    nthetae=None,
+    ndphi=None,
     version_cross=None,
+    # save / load
+    pfe_d2cross_phi=None,
+    # -----------------
+    # optional responsivity
+    dresponsivity=None,
+    # -----------------
     # plots
     plot_angular_spectra=None,
     plot_anisotropy_map=None,
+    plot_E_ph=None,
+    # verb
     verb=None,
+    # unused
+    **kwdargs,
 ):
 
     # --------------------

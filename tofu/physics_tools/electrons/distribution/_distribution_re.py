@@ -8,6 +8,7 @@ from . import _runaway_growth
 from . import _distribution_maxwell as _maxwell
 from . import _distribution_dreicer as _dreicer
 from . import _distribution_avalanche as _avalanche
+from . import _distribution_bump as _bump
 
 
 # ########################################################
@@ -20,6 +21,7 @@ _DMOD = {
     'maxwell': _maxwell,
     'dreicer': _dreicer,
     'avalanche': _avalanche,
+    'bump': _bump,
 }
 
 
@@ -27,6 +29,7 @@ _DOMINANT = {
     'dreicer': 0,
     'avalanche': 1,
     'maxwell': 2,
+    'bump': 3,
 }
 
 
@@ -72,12 +75,20 @@ def main(
         energy_kinetic_eV=dplasma['Ekin_max_eV']['data'],
     )['momentum_normalized']['data']
 
+    # get momentum min from total energy eV.s/m - shape
+    pmin = _convert.convert_momentum_velocity_energy(
+        energy_kinetic_eV=dplasma['Ekin_min_eV']['data'],
+    )['momentum_normalized']['data']
+
     # Critical electric field - shape
     Ec_Vm = _runaway_growth.get_RE_critical_dreicer_electric_fields(
         ne_m3=dplasma['ne_m3']['data'],
         kTe_eV=None,
         lnG=dplasma['lnG']['data'],
     )['E_C']['data']
+
+    # pitch_width
+    pitch_width = 1 - np.cos(dplasma['theta_width']['data'])
 
     # -------------
     # Intermediates
@@ -152,10 +163,20 @@ def main(
                 'Cs': Cs[sli0],
                 'lnG': dplasma['lnG']['data'][sli0],
                 'p_crit': p_crit[sli0],
+                # bump
+                'step': dplasma['step']['data'][sli0],
+                'pnorm0': pmax[sli0],
+                'pnormW': dplasma['pnormW']['data'][sli0],
+                'pitch_width': pitch_width[sli0],
+                'pmin': pmin[sli0],
             }
 
             # update with coords
-            kwdargsi.update(**dcoords)
+            nc0 = kwdargsi['Cs'].ndim-2
+            sli_coord = (0,) * nc0 + (slice(None), slice(None))
+            kwdargsi.update(**{
+                kk: vv[sli_coord] for kk, vv in dcoords.items()
+            })
 
             # compute
             re_dist[sli1], dunits[dominant['meaning'][vv]] = getattr(
@@ -169,7 +190,11 @@ def main(
         if dominant['meaning'][vv] != 'maxwell':
             pnorm = np.broadcast_to(_get_pnorm(dcoords), shape)
             iokp = np.copy(np.broadcast_to(iok, shape))
-            iokp[iokp] = pnorm[iokp] < np.broadcast_to(p_crit, shape)[iokp]
+
+            # pc = min(p_crit, pmin)
+            pc = np.broadcast_to(p_crit, shape)[iokp]
+
+            iokp[iokp] = pnorm[iokp] < pc
             re_dist[iokp] = 0.
 
     # ----------------------

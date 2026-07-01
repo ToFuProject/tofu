@@ -1,6 +1,7 @@
 
 
 import copy
+from typing import Optional   # Any, Dict
 
 
 import numpy as np
@@ -12,7 +13,11 @@ import matplotlib.gridspec as gridspec
 import datastock as ds
 
 
-from . import _xray_thin_target_integrated
+from . import _xray_thin_target_integrated as _mod
+from ._xray_thin_target_integrated_cases import _DCASES_PRE
+
+
+TupleDict = tuple[dict]
 
 
 # ####################################################
@@ -21,51 +26,37 @@ from . import _xray_thin_target_integrated
 # ####################################################
 
 
-# ANISOTROPY CASES
-_DCASES = {
-    0: {
-        'E_e0_eV': 20e3,
-        'E_ph_eV': 10e3,
-        'color': 'r',
-        'marker': '*',
-        'ms': 14,
-    },
-    1: {
-        'E_e0_eV': 100e3,
-        'E_ph_eV': 50e3,
-        'color': 'c',
-        'marker': '*',
-        'ms': 14,
-    },
-    2: {
-        'E_e0_eV': 100e3,
-        'E_ph_eV': 10e3,
-        'color': 'm',
-        'marker': '*',
-        'ms': 14,
-    },
-    3: {
-        'E_e0_eV': 1000e3,
-        'E_ph_eV': 10e3,
-        'color': (0.8, 0.8, 0),
-        'marker': '*',
-        'ms': 14,
-    },
-    4: {
-        'E_e0_eV': 10000e3,
-        'E_ph_eV': 10e3,
-        'color': (0., 0.8, 0.8),
-        'marker': '*',
-        'ms': 14,
-    },
-    5: {
-        'E_e0_eV': 1000e3,
-        'E_ph_eV': 50e3,
-        'color': (0.8, 0., 0.8),
-        'marker': '*',
-        'ms': 14,
-    },
+# Energy vectors
+_E_E0_EV = np.logspace(3, 6, 51)
+_E_PH_EV = np.linspace(1, 100, 25) * 1e3
+_THETA_PH = np.linspace(0, np.pi, 41)
+_VERSION = 'BHE'
+
+
+# DSCALES
+_DSCALES = {
+    'E_ph': 'log',
+    'E_e0': 'log',
+    'theta': 'linear',
 }
+
+
+# ANISOTROPY CASES FORMATTING
+_DCASES_FORMAT = {
+    'E_e0_eV': {'type': (int, float), 'val': 1e3},
+    'E_ph_eV': {'type': (int, float), 'val': 10e3},
+    'color': {'type': (str, tuple), 'val': 'k'},
+    'marker': {'type': str, 'val': '*'},
+    'ms': {'type': (int, float), 'val': 18},
+    'ls': {'type': str, 'val': '-'},
+    'label': {'type': (str, type(None)), 'val': None},
+}
+
+
+# ANISOTROPY CASES DEFAULT
+_DCASES_CASE = 'standard'
+
+
 # ####################################################
 # ####################################################
 #        plot anisotropy
@@ -73,26 +64,50 @@ _DCASES = {
 
 
 def plot_xray_thin_d2cross_ei_anisotropy(
-    # compute
-    Z=None,
+    # optional input d2cross file
+    d2cross: Optional[str | dict] = None,
+    # target ion charge
+    Z: Optional[int] = None,
+    # Energy
     E_e0_eV=None,
     E_ph_eV=None,
     theta_ph=None,
-    per_energy_units=None,
-    version=None,
-    # hypergeometrc
-    ninf=None,
-    source=None,
+    # hypergeometric parameter
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
+    # output customization
+    per_energy_unit: Optional[str] = None,
+    # version
+    version: Optional[str] = None,
     # selected cases
-    dcases=None,
+    dcases: Optional[dict[int, dict]] = None,
+    # verb
+    verb: Optional[bool] = None,
     # plot
-    dax=None,
-    fontsize=None,
+    dax: Optional[dict] = None,
+    fontsize: Optional[int] = None,
+    E_e0_scale: Optional[str] = None,
+    E_ph_scale: Optional[str] = None,
+    theta_scale: Optional[str] = None,
     dplot_forbidden=None,
     dplot_peaking=None,
     dplot_thetamax=None,
-    dplot_integ=None,
-):
+    dplot_mean=None,
+) -> TupleDict:
+    """ Compute and plot a (E_e0, E_ph) countour map of the d2cross section
+
+    Where d2cross is the fully differentiated cross-section (d3cross),
+    integrated over one of the two the emission angle (dphi)
+
+    Actually 3 overlayed contour plots with:
+        - integral of of the cross-section (over photon emission angle)
+        - angle of max cross-section
+        - peaking of the cross-section (std vs angle)
+
+    Can overlay a few selected cases and plot them vs angle of emission
+    In normalized-linear and log scales
+
+    """
 
     # ---------------
     # check inputs
@@ -100,44 +115,52 @@ def plot_xray_thin_d2cross_ei_anisotropy(
 
     (
         E_e0_eV, E_ph_eV, theta_ph,
-        dcases,
+        version,
+        dscales,
+        verb,
         fontsize,
-        dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_integ,
-    ) = _check_anisotropy(
-        E_e0_eV=E_e0_eV,
-        E_ph_eV=E_ph_eV,
-        theta_ph=theta_ph,
-        version=version,
-        # selected cases
-        dcases=dcases,
-        # plotting
-        fontsize=fontsize,
-        dplot_forbidden=dplot_forbidden,
-        dplot_peaking=dplot_peaking,
-        dplot_thetamax=dplot_thetamax,
-        dplot_integ=dplot_integ,
-    )
+        dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_mean,
+    ) = _check_anisotropy(**locals())
 
     # ---------------
     # prepare data
     # ---------------
 
-    mod = _xray_thin_target_integrated
-    d2cross = mod.get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+    d2cross = _mod.get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+        d2cross=d2cross,
         # inputs
         Z=Z,
         E_e0_eV=E_e0_eV[None, :, None],
         E_ph_eV=E_ph_eV[None, None, :],
         theta_ph=theta_ph[:, None, None],
         # output customization
-        per_energy_unit=per_energy_units,
+        per_energy_unit=per_energy_unit,
         # version
         version=version,
         # hypergeometric
         ninf=ninf,
         source=source,
         # verb
-        verb=False,
+        verb=verb,
+    )
+
+    version = list(d2cross['cross'].keys())[0]
+    Z = d2cross.get('Z', {'data': 1})['data']
+
+    # -------------------
+    # update from d2cross
+    # -------------------
+
+    # if d2cross was provided
+    theta_ph = d2cross['theta_ph']['data'].ravel()
+    E_ph_eV = d2cross['E_ph']['data'].ravel()
+    E_e0_eV = d2cross['E_e0']['data'].ravel()
+
+    # dcases
+    dcases = _check_dcases(
+        dcases=dcases,
+        E_e0_eV=E_e0_eV,
+        E_ph_eV=E_ph_eV,
     )
 
     # --------------
@@ -145,11 +168,14 @@ def plot_xray_thin_d2cross_ei_anisotropy(
     # --------------
 
     if dax is None:
-        dax = _get_axes_anisotropy(
+        dax = _dax(
             Z=Z,
             version=version,
             fontsize=fontsize,
+            dscales=dscales,
         )
+
+    dax = ds._generic_check._check_dax(dax)
 
     # ---------------
     # plot - map
@@ -162,20 +188,25 @@ def plot_xray_thin_d2cross_ei_anisotropy(
         for iv, (kk, vv) in enumerate(d2cross['cross'].items()):
 
             # compute integral and peaking
-            integ, peaking = _get_peaking(
+            mean, peaking = _get_peaking(
                 vv['data'],
                 theta_ph*180/np.pi,
                 axis=0,
             )
+            mean_log10 = np.full(mean.shape, np.nan)
+            iok = np.isfinite(mean)
+            iok[iok] = mean[iok] > 0.
+            mean_log10[iok] = np.log10(mean[iok])
+            mean_units = vv['units']
 
             # integral
-            if dplot_integ is not False:
+            if dplot_mean is not False:
                 im0 = ax.contour(
                     E_e0_eV * 1e-3,
                     E_ph_eV * 1e-3,
-                    np.log10(integ).T,
-                    levels=dplot_integ['levels'],
-                    colors=dplot_integ['colors'],
+                    mean_log10.T,
+                    levels=dplot_mean['levels'],
+                    colors=dplot_mean['colors'],
                 )
 
                 # clabels
@@ -240,24 +271,27 @@ def plot_xray_thin_d2cross_ei_anisotropy(
             ax.add_patch(patch)
 
         # legend
-        lh = [
-            mlines.Line2D(
+        lh = []
+        if dplot_mean is not False:
+            lh.append(mlines.Line2D(
                 [], [],
-                c=dplot_integ['colors'],
-                label='log10(integral)',
-            ),
-            mlines.Line2D(
+                c=dplot_mean['colors'],
+                label=f'log10(<mean>) (log10({mean_units}))',
+            ))
+        if dplot_peaking is not False:
+            lh.append(mlines.Line2D(
                 [], [],
                 c=dplot_peaking['colors'],
                 label='peaking (1/std)',
-            ),
-            mlines.Line2D(
+            ))
+        if dplot_thetamax is not False:
+            lh.append(mlines.Line2D(
                 [], [],
                 c=dplot_thetamax['colors'],
                 label='theta_max (deg)',
-            ),
-        ]
-        ax.legend(handles=lh, loc='upper left')
+            ))
+        if len(lh) > 0:
+            ax.legend(handles=lh, loc='upper left')
 
         # add cases
         for ic, (kcase, vcase) in enumerate(dcases.items()):
@@ -273,7 +307,8 @@ def plot_xray_thin_d2cross_ei_anisotropy(
             )
 
         # limits
-        ax.set_ylim(0, ymax*1e-3)
+        if dscales['E_ph'] == 'linear':
+            ax.set_ylim(0, ymax*1e-3)
 
     # ---------------
     # plot - cases
@@ -281,14 +316,17 @@ def plot_xray_thin_d2cross_ei_anisotropy(
 
     for ic, (kcase, vcase) in enumerate(dcases.items()):
 
-        lab = vcase['lab']
+        lab = vcase['label']
         for kv, vv in d2cross['cross'].items():
-            labi = lab + f" - {kv}"
+            if len(d2cross['cross']) > 1:
+                labi = lab + f" - {kv}"
+            else:
+                labi = lab
             yy = vv['data'][:, vcase['ie'], vcase['iph']]
             if np.any(yy > 0):
 
-                # normalized
-                kax = 'norm'
+                # theta_norm
+                kax = 'theta_norm'
                 if dax.get(kax) is not None:
                     ax = dax[kax]['handle']
 
@@ -296,11 +334,12 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                         theta_ph * 180/np.pi,
                         yy / np.max(yy),
                         c=vcase['color'],
+                        ls=vcase['ls'],
                         label=labi,
                     )
 
-                # abs
-                kax = 'log'
+                # theta_abs
+                kax = 'theta_abs'
                 if dax.get(kax) is not None:
                     ax = dax[kax]['handle']
 
@@ -308,22 +347,25 @@ def plot_xray_thin_d2cross_ei_anisotropy(
                         theta_ph * 180/np.pi,
                         yy*1e28,
                         c=vcase['color'],
+                        ls=vcase['ls'],
                         label=labi,
                     )
 
-    # normalized
-    kax = 'norm'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-        ax.legend(prop={'size': 12})
-        ax.set_ylim(0, 1)
-        ax.set_xlim(0, 180)
+    leg = False
 
     # normalized
-    kax = 'abs'
+    kax = 'theta_norm'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
+        ax.set_ylim(0, 1)
+        ax.set_xlim(0, 180)
         ax.legend(prop={'size': 12})
+        leg = True
+
+    # normalized
+    kax = 'theta_abs'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
         units = str(vv['units'])
         units.replace('m2', 'barn')
         ax.set_ylabel(
@@ -332,6 +374,8 @@ def plot_xray_thin_d2cross_ei_anisotropy(
             fontweight='bold',
         )
         ax.grid(True)
+        if leg is False:
+            ax.legend(prop={'size': 12})
 
     return dax, d2cross
 
@@ -347,73 +391,61 @@ def _check_anisotropy(
     E_ph_eV=None,
     theta_ph=None,
     version=None,
-    # selected cases
-    dcases=None,
+    # verb
+    verb=None,
+    # scales
+    E_e0_scale=None,
+    E_ph_scale=None,
+    theta_scale=None,
     # plotting
     fontsize=None,
     dplot_forbidden=None,
     dplot_peaking=None,
     dplot_thetamax=None,
-    dplot_integ=None,
+    dplot_mean=None,
+    # unused
+    **kwdargs,
 ):
 
     # E_e0_eV
     if E_e0_eV is None:
-        E_e0_eV = np.logspace(3, 6, 51)
+        E_e0_eV = _E_E0_EV
 
     E_e0_eV = ds._generic_check._check_flat1darray(
         E_e0_eV, 'E_e0_eV',
         dtype=float,
         sign='>0',
+        unique=True,
     )
 
     # E_ph_eV
     if E_ph_eV is None:
-        E_ph_eV = np.linspace(1, 100, 25) * 1e3
+        E_ph_eV = _E_PH_EV
 
     E_ph_eV = ds._generic_check._check_flat1darray(
         E_ph_eV, 'E_ph_eV',
         dtype=float,
         sign='>0',
+        unique=True,
     )
 
     # theta_ph
     if theta_ph is None:
-        theta_ph = np.linspace(0, np.pi, 41)
+        theta_ph = _THETA_PH
 
     # version
     if version is None:
-        version = 'BHE'
+        version = _VERSION
 
-    # ------------
-    # dcases
-    # ------------
+    # -----------
+    # verb
+    # -----------
 
-    ddef = copy.deepcopy(_DCASES)
-    if dcases in [None, True]:
-        dcases = ddef
-
-    if dcases is not False:
-        for k0, v0 in dcases.items():
-            dcases[k0] = _check_anisotropy_dplot(
-                v0,
-                f'dcases[{k0}]',
-                ddef[0],
-            )
-
-            # update with indices
-            ie = np.argmin(np.abs(E_e0_eV - dcases[k0]['E_e0_eV']))
-            iph = np.argmin(np.abs(E_ph_eV - dcases[k0]['E_ph_eV']))
-            dcases[k0].update({'ie': ie, 'iph': iph})
-
-            # update with label
-            ee0 = E_e0_eV[ie]
-            eph = E_ph_eV[iph]
-            dcases[k0]['lab'] = (
-                r"$E_{e0} / E_{ph}$ = "
-                + f"{ee0*1e-3:3.0f} / {eph*1e-3:3.0f} keV = "
-                + f"{round(ee0 / eph, ndigits=1)}"
-            )
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=(bool, int),
+        default=False,
+    )
 
     # ------------
     # plotting
@@ -445,27 +477,112 @@ def _check_anisotropy(
     )
 
     # dplot_thetamax
-    ddef = {'colors': 'b', 'levels': np.r_[0.1, 30, 50, 90]}
+    ddef = {'colors': 'b', 'levels': np.r_[0.01, 2, 30, 50, 90]}
     dplot_thetamax = _check_anisotropy_dplot(
         dplot_thetamax,
         'dplot_thetamax',
         ddef,
     )
 
-    # dplot_integ
+    # dplot_mean
     ddef = {'colors': 'g', 'levels': 20}
-    dplot_integ = _check_anisotropy_dplot(
-        dplot_integ,
-        'dplot_integ',
+    dplot_mean = _check_anisotropy_dplot(
+        dplot_mean,
+        'dplot_mean',
         ddef,
     )
 
+    # ------------
+    # scales
+    # ------------
+
+    dscales = {
+        'E_ph': E_ph_scale,
+        'E_e0': E_e0_scale,
+        'theta': theta_scale,
+    }
+
+    for kk, vv in dscales.items():
+        dscales[kk] = ds._generic_check._check_var(
+            vv, f'{kk}_scale',
+            types=str,
+            allowed=['log', 'linear'],
+            default=_DSCALES[kk],
+        )
+
     return (
         E_e0_eV, E_ph_eV, theta_ph,
-        dcases,
+        version,
+        dscales,
+        verb,
         fontsize,
-        dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_integ,
+        dplot_forbidden, dplot_peaking, dplot_thetamax, dplot_mean,
     )
+
+
+def _check_dcases(
+    dcases=None,
+    E_e0_eV=None,
+    E_ph_eV=None,
+):
+
+    # --------------
+    # dcases default
+    # --------------
+
+    ddef = copy.deepcopy(_DCASES_FORMAT)
+    if dcases in [None, True]:
+        dcases = _DCASES_CASE
+
+    # --------------
+    # dcases from predefined
+    # --------------
+
+    if isinstance(dcases, str):
+        lok = sorted(_DCASES_PRE.keys())
+        if dcases not in lok:
+            lstr = [f"\t- {kk}" for kk in lok]
+            msg = (
+                "Arg 'dcases' must be either:\n"
+                "\t- dict of cases\n"
+                "\t- a key to a predefined dict of cases\n"
+                "Available predefined dcases:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+        dcases = copy.deepcopy(_DCASES_PRE[dcases])
+
+    # --------------
+    # generic check
+    # --------------
+
+    if dcases is not False:
+        for k0, v0 in dcases.items():
+            dcases[k0] = _check_anisotropy_dplot(
+                v0,
+                f'dcases[{k0}]',
+                ddef,
+            )
+
+            # update with indices
+            ie = np.argmin(np.abs(E_e0_eV - dcases[k0]['E_e0_eV']))
+            iph = np.argmin(np.abs(E_ph_eV - dcases[k0]['E_ph_eV']))
+            dcases[k0].update({'ie': ie, 'iph': iph})
+
+            # update with label
+            ee0 = E_e0_eV[ie]
+            eph = E_ph_eV[iph]
+
+            if dcases[k0].get('label') is None:
+                dcases[k0]['label'] = (
+                    r"$E_{e0} / E_{ph}$ = "
+                    + f"{ee0*1e-3:3.0f} / {eph*1e-3:3.0f} keV = "
+                    + f"{round(ee0 / eph, ndigits=1)}"
+                )
+    else:
+        dcases = {}
+
+    return dcases
 
 
 def _check_anisotropy_dplot(din, dname, ddef):
@@ -484,10 +601,18 @@ def _check_anisotropy_dplot(din, dname, ddef):
     if din is not False:
         c0 = (
             isinstance(din, dict)
-            and all([kk in ddef.keys() for kk in din.keys()])
+            and all([
+                kk in ddef.keys()
+                and (
+                    isinstance(ddef[kk], dict)
+                    and ddef[kk].get('type') is not None
+                    and isinstance(din[kk], ddef[kk]['type'])
+                )
+                for kk in din.keys()
+            ])
         )
         if not c0:
-            lstr = [f"\t- ''{k0}': {v0}" for k0, v0 in ddef.items()]
+            lstr = [f"\t- '{k0}': {v0['type']}" for k0, v0 in ddef.items()]
             msg = (
                 f"Arg '{dname}' must be either False or a dict with:\n"
                 + "\n".join(lstr)
@@ -501,7 +626,11 @@ def _check_anisotropy_dplot(din, dname, ddef):
 
     if din is not False:
         for k0, v0 in ddef.items():
-            din[k0] = din.get(k0, v0)
+            if isinstance(v0, dict):
+                vv = v0['val']
+            else:
+                vv = v0
+            din[k0] = din.get(k0, vv)
 
     return din
 
@@ -519,11 +648,18 @@ def _get_peaking(data, x, axis=None):
     # ----------
 
     integ = scpinteg.trapezoid(data, x=x, axis=axis)
-    shape_integ = tuple([
-        1 if ii == axis else ss
-        for ii, ss in enumerate(data.shape)
-    ])
-    data_n = data / integ.reshape(shape_integ)
+    shape_integ = list(data.shape)
+    shape_integ[axis] = 1
+
+    data_n = np.full(data.shape, np.nan)
+    iok = np.isfinite(integ)
+    iok[iok] = integ[iok] > 0
+    iokn = iok.nonzero()
+    sli0 = list(iokn)
+    sli1 = list(iokn)
+    sli0.insert(axis, None)
+    sli1.insert(axis, slice(None))
+    data_n[tuple(sli1)] = data[tuple(sli1)] / integ[tuple(sli0)]
 
     # ----------
     # get average
@@ -531,10 +667,14 @@ def _get_peaking(data, x, axis=None):
 
     shape_x = tuple([-1 if ii == axis else 1 for ii in range(data.ndim)])
     xf = x.reshape(shape_x)
-    x_avf = scpinteg.simpson(data_n * xf, x=x, axis=axis).reshape(shape_integ)
+    x_avf = scpinteg.trapezoid(
+        data_n * xf,
+        x=x,
+        axis=axis,
+    ).reshape(shape_integ)
     std = np.sqrt(scpinteg.simpson(data_n * (xf - x_avf)**2, x=x, axis=axis))
 
-    return integ, 1/std
+    return integ/180, 1/std
 
 
 # #############################################
@@ -543,20 +683,22 @@ def _get_peaking(data, x, axis=None):
 # #############################################
 
 
-def _get_axes_anisotropy(
+def _dax(
     Z=None,
     version=None,
     fontsize=None,
+    dax=None,
+    dscales=None,
 ):
 
     tit = (
-        "Anisotropy"
+        "Thin-target Bremsstrahlung cross-section anisotropy"
     )
 
     dmargin = {
-        'left': 0.08, 'right': 0.95,
-        'bottom': 0.06, 'top': 0.85,
-        'wspace': 0.2, 'hspace': 0.40,
+        'left': 0.06, 'right': 0.95,
+        'bottom': 0.06, 'top': 0.90,
+        'wspace': 0.20, 'hspace': 0.20,
     }
 
     fig = plt.figure(figsize=(15, 12))
@@ -572,7 +714,11 @@ def _get_axes_anisotropy(
     # --------------
     # ax - isolines
 
-    ax = fig.add_subplot(gs[:, 0], xscale='log')
+    ax = fig.add_subplot(
+        gs[:, 0],
+        xscale=dscales['E_e0'],
+        yscale=dscales['E_ph'],
+    )
     ax.set_xlabel(
         r"$E_{e,0}$ (keV)",
         size=fontsize,
@@ -594,9 +740,12 @@ def _get_axes_anisotropy(
     dax['map'] = {'handle': ax, 'type': 'isolines'}
 
     # --------------
-    # ax - norm
+    # ax - theta_norm
 
-    ax = fig.add_subplot(gs[0, 1])
+    ax = fig.add_subplot(
+        gs[0, 1],
+        xscale=dscales['theta'],
+    )
     ax.set_xlabel(
         r"$\theta_{ph}$ (deg)",
         size=fontsize,
@@ -614,19 +763,17 @@ def _get_axes_anisotropy(
     )
 
     # store
-    dax['norm'] = {'handle': ax, 'type': 'isolines'}
+    dax['theta_norm'] = {'handle': ax, 'type': 'isolines'}
 
     # --------------
-    # ax - log
+    # ax - theta_abs
 
-    ax = fig.add_subplot(gs[1, 1], sharex=dax['norm']['handle'])
+    ax = fig.add_subplot(
+        gs[1, 1],
+        sharex=dax['theta_norm']['handle'],
+    )
     ax.set_xlabel(
         r"$\theta_{ph}$ (deg)",
-        size=fontsize,
-        fontweight='bold',
-    )
-    ax.set_ylabel(
-        r"$\frac{d^2\sigma_{ei}}{dkd\Omega_{ph}}$  ()",
         size=fontsize,
         fontweight='bold',
     )
@@ -637,6 +784,6 @@ def _get_axes_anisotropy(
     )
 
     # store
-    dax['log'] = {'handle': ax, 'type': 'isolines'}
+    dax['theta_abs'] = {'handle': ax, 'type': 'isolines'}
 
     return dax
