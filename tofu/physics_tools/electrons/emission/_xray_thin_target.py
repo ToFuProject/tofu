@@ -4,7 +4,6 @@ import sys
 import os
 import warnings
 from typing import Any, Optional   # Dict
-import json
 
 
 import numpy as np
@@ -1605,11 +1604,7 @@ def _hyp2F1(
         }
 
         pfe = os.path.join(_PATH_HERE, f"{source}_hyp2f1_MWE.npz")
-        np.savez(pfe, **dout)
-        # with open(pfe, 'w') as fp:
-            # json.dump(mwe, fp)
-        msg = f"Saved MEW in:\n\t{pfe}"
-        print(msg)
+        np.savez(pfe, **mwe)
 
         msg = (
             f"EH d3cross: hyp2F1() with source = '{source}'"
@@ -1623,6 +1618,7 @@ def _hyp2F1(
             f"\t- np.unique(zz) = {np.unique(zz[ind_nofin])}\n"
             f"\t- out[np.isnan(out)] = {out[np.isnan(out)]}\n"
             f"\t- out[np.isinf(out)] = {out[np.isinf(out)]}\n"
+            f"\nSaved MEW in:\n\t{pfe}"
         )
         raise Exception(msg)
 
