@@ -4,6 +4,7 @@ import sys
 import os
 import warnings
 from typing import Any, Optional   # Dict
+import json
 
 
 import numpy as np
@@ -1591,8 +1592,28 @@ def _hyp2F1(
         ninf = np.sum(np.isinf(out))
         size = out.size
         lstr = ([np.sum(~np.isfinite(vv)) for vv in [aa, bb, cc, zz]])
+
+        # Save MWE to help debug specfunc
+        # see: https://github.com/fedro4/specfunc/issues/3
+        mwe = {
+            'a': aa[ind_nofin],
+            'b': bb[ind_nofin],
+            'c': cc[ind_nofin],
+            'z': zz[ind_nofin],
+            'isnan': np.isnan(out),
+            'isinf': np.isinf(out),
+        }
+
+        pfe = os.path.join(_PATH_HERE, "specfunc_MWE.npz")
+        np.savez(pfe, **dout)
+        # with open(pfe, 'w') as fp:
+            # json.dump(mwe, fp)
+        msg = f"Saved MEW in:\n\t{pfe}"
+        print(msg)
+
         msg = (
-            f"EH d3cross: hyp2F1() is getting {nnan_tot} non-finite values\n"
+            f"EH d3cross: hyp2F1() with source = '{source}'"
+            ": getting {nnan_tot} non-finite values\n"
             f"\t- source = {source}\n"
             f"\t- nb of (NaN, inf) / size = ({nnan}, {ninf}) / {size}\n"
             f"\t- nb of non-finite (aa, bb, cc, zz) = {lstr}\n"
