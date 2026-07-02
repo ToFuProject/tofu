@@ -1699,10 +1699,10 @@ def _hyp2f1_check(specfunc_dir=None):
     # --------
 
     lok = ['z/(z-1)', '1/z']
-    if dwarn.get('mpmath') is None:
-        lok.insert(0, 'mpmath')
     if dwarn.get('specfunc') is None:
         lok.insert(0, 'specfunc')
+    if dwarn.get('mpmath') is None:
+        lok.insert(0, 'mpmath')
 
     return lok, dwarn, dfunc
 
