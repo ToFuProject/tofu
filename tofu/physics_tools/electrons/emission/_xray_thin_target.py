@@ -1604,7 +1604,7 @@ def _hyp2F1(
             'isinf': np.isinf(out),
         }
 
-        pfe = os.path.join(_PATH_HERE, "specfunc_MWE.npz")
+        pfe = os.path.join(_PATH_HERE, f"{source}_hyp2f1_MWE.npz")
         np.savez(pfe, **dout)
         # with open(pfe, 'w') as fp:
             # json.dump(mwe, fp)
