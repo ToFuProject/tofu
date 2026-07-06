@@ -1618,7 +1618,7 @@ def _hyp2F1(
             f"\t- np.unique(zz) = {np.unique(zz[ind_nofin])}\n"
             f"\t- out[np.isnan(out)] = {out[np.isnan(out)]}\n"
             f"\t- out[np.isinf(out)] = {out[np.isinf(out)]}\n"
-            + f"\nSaved MEW in:\n\t{pfe}"
+            f"\nSaved MEW in:\n\t{pfe}"
         )
         raise Exception(msg)
 
