@@ -271,6 +271,17 @@ def _check(
         )
 
     # --------------
+    # unit vectors - prep
+    # --------------
+
+    if e0 is None and (nin is not None and e1 is not None):
+        e0 = np.cross(nin, e1)
+        e0 = np.linalg.norm(e0)
+        phi = np.arctan2(cent[1], cent[0])
+        if np.sum(-np.sin(phi)*e0[0] + np.cos(phi)*e0[1]) < 0:
+            e0 = -e0
+
+    # --------------
     # unit vectors
     # --------------
 
