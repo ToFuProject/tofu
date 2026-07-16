@@ -286,6 +286,7 @@ def _check(
                 f"\t- key_diag = '{key}'\n"
                 f"\t- key_cam = {key_cam}\n"
                 f"\t- key_rays = {key_rays}\n"
+                f"Provided:\n{key_rays}\n"
             )
             raise Exception(msg)
 
