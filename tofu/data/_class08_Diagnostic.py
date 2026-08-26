@@ -399,6 +399,8 @@ class Diagnostic(Previous):
         visibility=None,
         config=None,
         return_vect=None,
+        # debug
+        debug=None,
     ):
         """Return as dict of sang, vect, dV for any set of pts (full 3d)"""
         return _sang_vect.main(
@@ -414,6 +416,8 @@ class Diagnostic(Previous):
             visibility=visibility,
             config=config,
             return_vect=return_vect,
+            # debug
+            debug=debug,
         )
 
     # -----------------
@@ -1111,6 +1115,8 @@ class Diagnostic(Previous):
         key_cam=None,
         # new diag
         key_new=None,
+        # fixed_optics
+        fixed_optics=None,
         # move params
         vect_xyz=None,
         length=None,
@@ -1151,6 +1157,8 @@ class Diagnostic(Previous):
         key_cam=None,
         # new diag
         key_new=None,
+        # fixed_optics
+        fixed_optics=None,
         # move params
         axis_pt=None,
         axis_vect=None,

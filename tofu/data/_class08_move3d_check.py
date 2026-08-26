@@ -17,6 +17,8 @@ def main(
     coll=None,
     key=None,
     key_cam=None,
+    # fixed_optics
+    fixed_optics=None,
     # new diag
     key_new=None,
     # move - translate
@@ -66,7 +68,30 @@ def main(
         excluded=lout,
     )
 
-    out = (key, key_cam, key_new)
+    # --------------
+    # fixed_optics
+    # --------------
+
+    if len(key_cam) == 0:
+        fixed_optics = None
+    else:
+        if fixed_optics is None:
+            fixed_optics = ()
+        if isinstance(fixed_optics, str):
+            fixed_optics = (fixed_optics,)
+
+        lok = set(np.concatenate([
+            coll.dobj[wdiag][key]['doptics'][kcam]['optics']
+            for kcam in key_cam
+        ]))
+        fixed_optics = tuple(ds._generic_check._check_var_iter(
+            fixed_optics, 'fixed_optics',
+            types=(list, tuple),
+            types_iter=str,
+            allowed=lok,
+        ))
+
+    out = (key, key_cam, key_new, fixed_optics)
 
     # --------------
     # move params
@@ -235,7 +260,14 @@ def _add_asis(
             if isinstance(dgeom0[kk], str):
                 dgeom[kk] = coll.ddata[kk]['data']
 
-            elif not isinstance(dgeom0[kk], tuple):
-                dgeom[kk] = dgeom0[kk]
+            elif isinstance(dgeom0[kk], tuple):
+                if all([isinstance(vv, str) for vv in dgeom0[kk]]):
+                    for vv in dgeom0[kk]:
+                        cc = vv.split('_')[-1]
+                        dgeom[f"{kk}_{cc}"] = coll.ddata[vv]['data']
+
+            else:
+                if dgeom0.get(kk) is not None:
+                    dgeom[kk] = dgeom0[kk]
 
     return

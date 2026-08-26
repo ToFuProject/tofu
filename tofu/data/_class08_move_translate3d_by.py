@@ -15,6 +15,8 @@ def main(
     key_cam=None,
     # new diag
     key_new=None,
+    # fixed_optics
+    fixed_optics=None,
     # move params
     vect_xyz=None,
     length=None,
@@ -40,9 +42,12 @@ def main(
     # ----------
 
     (
-        key, key_cam, key_new,
+        key, key_cam, key_new, fixed_optics,
         length, vect_xyz,
     ) = _check.main(move='translate', **locals())
+
+    if len(key_cam) == 0:
+        return
 
     # ----------
     # prepare
@@ -77,14 +82,19 @@ def main(
         doptics[kcam_new] = {}
         for kop in doptics0[kcam]['optics']:
 
-            # translate
-            kop_new = _translate_optics(
-                coll=coll,
-                kop=kop,
-                length=length[kcam],
-                vect_xyz=vect_xyz[kcam],
-                key_new=key_new,
-            )
+            if kop in fixed_optics:
+                kop_new = kop
+
+            else:
+                # translate
+                kop_new = _translate_optics(
+                    coll=coll,
+                    kop=kop,
+                    length=length[kcam],
+                    vect_xyz=vect_xyz[kcam],
+                    key_new=key_new,
+                )
+
             lop_new.append(kop_new)
 
         # doptics
