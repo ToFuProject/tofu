@@ -1507,6 +1507,16 @@ def _hyp2F1(
             )
 
     # ----------------
+    # source = cfsem
+    # ----------------
+
+    elif source == 'cfsem':
+
+        out = dfunc['mpmath'].hyp2f1(
+            aa, bb, cc, zz,
+        )
+
+    # ----------------
     # source = 1/z or z/(z-1)
     # ----------------
 
@@ -1681,18 +1691,24 @@ def _hyp2f1_check(specfunc_dir=None):
             dfunc['specfunc'] = specfunc
 
     # --------
-    # mpmath
+    # mpmath and cfsem
     # --------
 
-    try:
-        import mpmath
-        dfunc['mpmath'] = mpmath
-    except Exception:
-        msg = (
-            "\n_hyp2F1: mpmath not available\n"
-            "See https://pypi.org/project/mpmath/\n"
-        )
-        dwarn['mpmath'] = msg
+    ls = ['mpmath', 'cfsem']
+
+    for ss in ls:
+        try:
+            if ss == 'mpmath':
+                import mpmath as sour
+            else:
+                import cfsem as sour
+            dfunc[ss] = sour
+        except Exception:
+            msg = (
+                f"\n_hyp2F1: {ss} not available\n"
+                "See https://pypi.org/project/{ss}/\n"
+            )
+            dwarn[ss] = msg
 
     # --------
     # lok
@@ -1701,6 +1717,8 @@ def _hyp2f1_check(specfunc_dir=None):
     lok = ['z/(z-1)', '1/z']
     if dwarn.get('specfunc') is None:
         lok.insert(0, 'specfunc')
+    if dwarn.get('cfsem') is None:
+        lok.insert(0, 'cfsem')
     if dwarn.get('mpmath') is None:
         lok.insert(0, 'mpmath')
 
