@@ -1,7 +1,9 @@
 
 
+import sys
 import os
 import warnings
+from typing import Any, Optional   # Dict
 
 
 import numpy as np
@@ -12,6 +14,9 @@ import matplotlib.gridspec as gridspec
 import datastock as ds
 
 
+TupleDict = tuple[dict]
+
+
 # ####################################################
 # ####################################################
 #           DEFAULT
@@ -19,6 +24,19 @@ import datastock as ds
 
 
 _PATH_HERE = os.path.dirname(__file__)
+_PATH_PROJ = os.path.dirname(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(_PATH_HERE)
+            )
+        )
+    )
+)
+
+
+# version
+_VERSION = 'EH'  # most accurate, but slow
 
 
 # ####################################################
@@ -28,8 +46,9 @@ _PATH_HERE = os.path.dirname(__file__)
 
 
 def get_xray_thin_d3cross_ei(
-    # inputs
-    Z=None,
+    # target ion charge
+    Z: Optional[int] = None,
+    # Energy
     E_e0_eV=None,
     E_e1_eV=None,
     # directions
@@ -37,19 +56,19 @@ def get_xray_thin_d3cross_ei(
     theta_e=None,
     dphi=None,
     # hypergeometric parameter
-    ninf=None,
-    source=None,
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
     # output customization
-    per_energy_unit=None,
+    per_energy_unit: Optional[str] = None,
     # version
-    version=None,
+    version: Optional[str] = None,
     # debug
-    debug=None,
-):
+    debug: Optional[bool] = None,
+) -> dict:
     """ Return a differential cross-section for thin-target bremsstrahlung
 
-    Allowws several formulas (version):
-        - 'BE': Elwert-Haug [1]
+    Allows several formulas (version):
+        - 'EH': Elwert-Haug [1]   (default)
             . most general and accurate
             . Uses Sommerfield-Maue eigenfunctions
             . eq. (30) in [1]
@@ -74,14 +93,15 @@ def get_xray_thin_d3cross_ei(
             Physics Reports, vol. 243, p. 317—353, 1994.
 
 
-    Inputs:
+    Inputs: (all angles in rad)
         E_e0_eV = kinetic energy of incident electron in eV
         E_e1_eV = kinetic energy of scattered electron in eV
         theta_e = (spherical) theta angle of scattered e vs incident e
         theta_ph = (spherical) theta angle of photon vs incident e
         phi_e = (spherical) phi angle of scattered e vs incident e
         phi_ph = (spherical) theta angle of photon vs incident e
-        (all angles in rad)
+        version = 'EH', 'BH' or 'BHE'
+
 
     Limitations:
         - 'EH' implementation currently stalled because:
@@ -160,6 +180,10 @@ def get_xray_thin_d3cross_ei(
             }
             for vv in version
         },
+        'Z': {
+            'data': Z,
+            'units': None,
+        },
     }
 
     # -------------
@@ -219,6 +243,20 @@ def get_xray_thin_d3cross_ei(
     # apply
     for vv in version:
         ddata['cross'][vv]['data'] *= coef
+
+    # -----------------
+    # Safety check
+    # -----------------
+
+    for vv in version:
+        nnan = np.sum(~np.isfinite(ddata['cross'][vv]['data']))
+        if nnan > 0:
+            size = ddata['cross'][vv]['data'].size
+            msg = (
+                "Some non-finite values found in d3cross!\n"
+                f"\t- ddata['cross']['{vv}']['data'] => {nnan} / {size}\n"
+            )
+            raise Exception(msg)
 
     return ddata
 
@@ -354,7 +392,7 @@ def _check_cross(
     # ------------
 
     if version is None:
-        version = 'EH'
+        version = _VERSION
     if isinstance(version, str):
         version = [version]
 
@@ -475,24 +513,48 @@ def _get_cross(
     )
 
     # ----------------
+    # valid points
+    # ----------------
+
+    ivalid = (
+        (q2 > 0.)
+        & (kk < eps0)
+        & (D0D1 > 0.)
+        & (mu > 0.)
+    )
+
+    # adjust
+    lout = ['iok', 'ivalid']
+    kwd = {k0: v0 for k0, v0 in locals().items() if k0 not in lout}
+    if np.any(~ivalid):
+        larr = [k0 for k0, v0 in kwd.items() if isinstance(v0, np.ndarray)]
+        for k0 in larr:
+            kwd[k0] = kwd[k0][ivalid]
+
+    # ----------------
     # loop on versions
     # ----------------
 
     for vv in version:
 
         # -----------
+        # initialize
+
+        cross = np.zeros(ivalid.shape, dtype=float)
+
+        # -----------
         # Elwert-Haug
 
         if vv == 'EH':
 
-            cross, dcrit = _cross_ElwertHaug(**locals())
+            cross[ivalid], dcrit = _cross_ElwertHaug(**kwd)
 
         # -------------
         # Bethe-Heitler
 
         else:
 
-            cross, dcrit = _cross_BetheHeitler(**locals())
+            cross[ivalid], dcrit = _cross_BetheHeitler(**kwd)
 
             # optional Elwert factor
             if vv == 'BHE':
@@ -545,7 +607,13 @@ def _cross_BetheHeitler(
 
     term0 = scpct.alpha * Z**2 * (r0/np.pi)**2
     term1 = p1 / p0
-    term2 = kk / q2**2
+
+    # very conservative handling of q2 == 0
+    # should do better though, q2 = 0 => term2 = inf
+    # but d3cross vs q2 does not show inf
+    term2 = np.zeros(kk.shape, dtype=float)
+    iok = (q2 != 0.)
+    term2[iok] = kk[iok] / q2[iok]**2
 
     # assembling in cross-section
     d3cross_ei = (
@@ -651,13 +719,6 @@ def _cross_ElwertHaug(
 
     # hypergeometric variable
     xx = 1. - mu*q2 / D0D1
-
-    # safety check
-    assert np.all(kk < eps0)
-    assert np.all(D0D1 > 0.)
-    assert np.all(mu > 0.)
-    assert np.all(q2 > 0.)
-    assert np.all(xx < 1.)
 
     # hypergeometric functions
     # V = scpsp.hyp2f1(1j*a0, 1j*a1, 1., x)
@@ -891,7 +952,13 @@ def _angle_dependent_internediates(
     sintp = np.sin(theta_ph)
     cosdphi = np.cos(dphi)
 
-    cossindphi = costp*coste + sintp*sinte*cosdphi
+    costpcoste = costp * coste
+    sintpsintecosdphi = sintp * sinte * cosdphi
+
+    cossindphi = costpcoste + sintpsintecosdphi
+
+    sintecostp = sinte * costp
+    costesintp = coste * sintp
 
     # -------------
     # Vectors / scalar product
@@ -899,15 +966,15 @@ def _angle_dependent_internediates(
 
     # scalar
     sca_kp0 = kk * p0 * costp
-    sca_p01 = p1 * p0 * coste
+    sca_p01 = p0 * p1 * coste
     sca_kp1 = kk * p1 * cossindphi
 
     # vect{q} = vect{p0 - p1 - k}
     q2 = (
         p0**2 + p1**2 + k2
-        - 2.*p0*p1*coste
-        - 2.*p0*kk*costp
-        + 2.*p1*kk*cossindphi
+        - 2. * sca_p01
+        - 2. * sca_kp0
+        + 2. * sca_kp1
     )
 
     # -------------
@@ -945,9 +1012,9 @@ def _angle_dependent_internediates(
     #     + (sinte*sintp)**2 * sin(phi_p - phi_e)**2
     # )
     eta12 = p12 * (
-        (sinte*costp)**2
-        + (coste*sintp)**2
-        - 2*(coste*costp)*(sinte*sintp*cosdphi)
+        sintecostp**2
+        + costesintp**2
+        - 2 * costpcoste * sintpsintecosdphi
         + (sinte*sintp)**2 * (1 - cosdphi**2)
     )
 
@@ -966,7 +1033,7 @@ def _angle_dependent_internediates(
     #     coste*sintp*(sinpp**2 + cospp**2)
     #     - sinte*costp*(sinpe*sinpp + cospe*cospp)
     # )
-    sca_eta01 = p0 * p1 * sintp * (coste*sintp - sinte*costp*cosdphi)
+    sca_eta01 = p0 * p1 * sintp * (costesintp - sintecostp * cosdphi)
 
     # ---------------
     # Intermediates 1
@@ -1326,39 +1393,54 @@ def _hyp2F1(
     bb=None,
     cc=None,
     zz=None,
-    ninf=None,
-    source=None,
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
+    # specfunc
+    specfunc_dir=None,
 ):
     """ Hypergeometric function 2F1 with complex arguments
 
-    Home-made, replacement for:
-        https://github.com/scipy/scipy/issues/23450
-
-    Inspired from:
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.hyp2f1.html
-
-    And:
-        https://www.johndcook.com/blog/2024/04/16/hypergeometric-large-negative-z/
+    Three possible options:
+        - specfunc: Priority 1
+            A C-library, user-compiled  with a python wrapper
+            Fast, takes numpy arrays
+            Needs to be accessible in the specfunc_dir
+            see:
+                https://github.com/fedro4/specfunc
+        - mpmath: Priority 2
+            Accurate computaton but slow
+            Doesn't take numpy arrays (loop needed)
+        - 'z/(z-1)' or '1/z': Priority 3
+            Homemade approximation, two different versions
+            Faster than mpmath, but less accurate
+            see:
+                https://github.com/scipy/scipy/issues/23450
+                https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.hyp2f1.html
+                https://www.johndcook.com/blog/2024/04/16/hypergeometric-large-negative-z/
 
     """
 
     # ----------
-    # Safety check
+    # preliminary checks
     # ----------
 
-    if np.any(zz > 1):
+    lok, dwarn, dfunc = _hyp2f1_check(specfunc_dir)
+
+    if isinstance(source, str) and dwarn.get(source) is not None:
+        raise Exception(dwarn[source])
+
+    if source is None and len(dwarn) > 0:
+        lstr = [f"\t- {k0}" for k0 in dwarn.keys()]
         msg = (
-            "This homemade implementation of Hyp2F1 is particularly unstable"
-            " for |zz| > 1\n"
-            f"Found {(np.abs(zz) > 1).sum()} / {zz.size} pts with |zz| > 1\n"
+            "The following are not available for computing _hyp2F1():\n"
+            + "\n".join(lstr)
         )
-        raise Exception(msg)
+        warnings.warn(msg)
 
     # ----------
     # inputs
     # ----------
 
-    lok = ['mpmath', 'z/(z-1)', '1/z']
     source = ds._generic_check._check_var(
         source, 'source',
         types=str,
@@ -1366,18 +1448,17 @@ def _hyp2F1(
         default=lok[0],
     )
 
-    # try import
-    if source == 'mpmath':
-        try:
-            import mpmath
-        except Exception:
-            source = lok[1]
-            msg = (
-                "_hyp2F1(source='{lok[0]}') requires mpmath to be installed\n"
-                "See https://pypi.org/project/mpmath/\n"
-                f"Setting to source = '{source}'\n"
-            )
-            warnings.warn(msg)
+    # ----------
+    # Safety check
+    # ----------
+
+    if source in lok[-2:] and np.any(zz > 1):
+        msg = (
+            "This homemade implementation of Hyp2F1 is particularly unstable"
+            " for |zz| > 1\n"
+            f"Found {(np.abs(zz) > 1).sum()} / {zz.size} pts with |zz| > 1\n"
+        )
+        raise Exception(msg)
 
     # ----------
     # broadcast
@@ -1389,8 +1470,12 @@ def _hyp2F1(
     # Number of terms
     # ----------
 
-    if ninf is None:
-        ninf = 50
+    ninf = ds._generic_check._check_var(
+        ninf, 'ninf',
+        types=int,
+        default=50,
+        sign='>0',
+    )
 
     nn = np.arange(0, ninf)[None, :]
 
@@ -1403,13 +1488,23 @@ def _hyp2F1(
     out = np.full(zz.shape, np.nan, dtype=complex)
 
     # ----------------
+    # source = specfunc
+    # ----------------
+
+    if source == 'specfunc':
+
+        out = dfunc[source].hyp2f1(aa, bb, cc, zz)
+
+    # ----------------
     # source = mpmath
     # ----------------
 
-    if source == 'mpmath':
+    elif source == 'mpmath':
 
         for ind in np.ndindex(zz.shape):
-            out[ind] = mpmath.hyp2f1(aa[ind], bb[ind], cc[ind], zz[ind])
+            out[ind] = dfunc['mpmath'].hyp2f1(
+                aa[ind], bb[ind], cc[ind], zz[ind],
+            )
 
     # ----------------
     # source = 1/z or z/(z-1)
@@ -1485,7 +1580,131 @@ def _hyp2F1(
                     * _hyp2F1(an, cn-bn, cn, zn/(zn-1.))
                 )
 
+    # ------------
+    # sanity check
+    # ------------
+
+    ind_nofin = ~np.isfinite(out)
+    nnan_tot = np.sum(ind_nofin)
+    if nnan_tot > 0:
+        nnan = np.sum(np.isnan(out))
+        ninf = np.sum(np.isinf(out))
+        size = out.size
+        lstr = ([np.sum(~np.isfinite(vv)) for vv in [aa, bb, cc, zz]])
+
+        # Save MWE to help debug specfunc
+        # see: https://github.com/fedro4/specfunc/issues/3
+        mwe = {
+            'a': aa[ind_nofin],
+            'b': bb[ind_nofin],
+            'c': cc[ind_nofin],
+            'z': zz[ind_nofin],
+            'isnan': np.isnan(out),
+            'isinf': np.isinf(out),
+        }
+
+        pfe = os.path.join(_PATH_HERE, f"{source}_hyp2f1_MWE.npz")
+        np.savez(pfe, **mwe)
+
+        msg = (
+            f"EH d3cross: hyp2F1() with source = '{source}'"
+            ": getting {nnan_tot} non-finite values\n"
+            f"\t- source = {source}\n"
+            f"\t- nb of (NaN, inf) / size = ({nnan}, {ninf}) / {size}\n"
+            f"\t- nb of non-finite (aa, bb, cc, zz) = {lstr}\n"
+            f"\t- np.unique(aa) = {np.unique(aa[ind_nofin])}\n"
+            f"\t- np.unique(bb) = {np.unique(bb[ind_nofin])}\n"
+            f"\t- np.unique(cc) = {np.unique(cc[ind_nofin])}\n"
+            f"\t- np.unique(zz) = {np.unique(zz[ind_nofin])}\n"
+            f"\t- out[np.isnan(out)] = {out[np.isnan(out)]}\n"
+            f"\t- out[np.isinf(out)] = {out[np.isinf(out)]}\n"
+            f"\nSaved MEW in:\n\t{pfe}"
+        )
+        raise Exception(msg)
+
     return out
+
+
+# ####################################################
+# ####################################################
+#        _hyp2F1 - check options
+# ####################################################
+
+
+def _hyp2f1_check(specfunc_dir=None):
+
+    dwarn = {}
+    dfunc = {}
+
+    # --------
+    # specfunc
+    # --------
+
+    specfunc_dir = ds._generic_check._check_var(
+        specfunc_dir, 'specfunc_dir',
+        types=str,
+        default=os.path.join(_PATH_PROJ, 'specfunc'),
+    )
+
+    if not os.path.isdir(specfunc_dir):
+        msg = (
+            "\n_hyp2F1: library specfunc not found in dir:\n"
+            f"\t- {specfunc_dir}\n"
+        )
+        dwarn['specfunc'] = msg
+
+    else:
+
+        # check executable
+        pfe_specfunc_exc = os.path.join(specfunc_dir, 'libspecfunc.so')
+        if not os.path.isfile(pfe_specfunc_exc):
+            msg = (
+                "\n_hyp2F1: library specfunc needs to be compiled!\n"
+                f"\t- libspecfunc.so not found in {pfe_specfunc_exc}\n"
+            )
+            dwarn['specfunc'] = msg
+
+        # check wrapper
+        pfe_specfunc_py = os.path.join(specfunc_dir, 'specfunc.py')
+        if not os.path.isfile(pfe_specfunc_py):
+            msg = (
+                "\n_hyp2F1: Library specfunc is missing the python wrapper!\n"
+                f"\t- specfunc.py not found in {pfe_specfunc_py}\n"
+            )
+            dwarn['specfunc'] = msg
+
+        # import
+        if dwarn.get('specfunc') is None:
+            sys.path.insert(0, specfunc_dir)
+            import specfunc
+            sys.path.pop(0)
+            dfunc['specfunc'] = specfunc
+
+    # --------
+    # mpmath
+    # --------
+
+    try:
+        import mpmath
+        dfunc['mpmath'] = mpmath
+    except Exception:
+        msg = (
+            "\n_hyp2F1: mpmath not available\n"
+            "See https://pypi.org/project/mpmath/\n"
+        )
+        dwarn['mpmath'] = msg
+
+    # --------
+    # lok
+    # --------
+
+    lok = ['z/(z-1)', '1/z']
+    if dwarn.get('specfunc') is None:
+        lok.insert(0, 'specfunc')
+    if dwarn.get('mpmath') is None:
+        lok.insert(0, 'mpmath')
+
+    return lok, dwarn, dfunc
 
 
 # ####################################################
@@ -1495,11 +1714,11 @@ def _hyp2F1(
 
 
 def plot_xray_thin_d3cross_ei_vs_Literature(
-    version=None,
-    ninf=None,
-    source=None,
-    dax=None,
-):
+    version: Optional[str] = None,
+    ninf: Optional[int] = None,
+    source: Optional[str] = None,
+    dax: Optional[dict[str, Any]] = None,
+) -> TupleDict:
     """ Compare computed cross-sections vs literature values from Elwert-Haug
 
     Triply differential cross-section
@@ -1508,6 +1727,19 @@ def plot_xray_thin_d3cross_ei_vs_Literature(
     [1] G. Elwert and E. Haug, Phys. Rev., 183, p.90, 1969
     [2] W. Nakel, Physics Reports, 243, p. 317—353, 1994
 
+
+    Return:
+    -------
+    dax:        dict
+        Dict of axes
+    ddata_iso:  dict
+        Dict of
+    ddata_ph_dist:  dict
+        Dict of
+    ddata_ph_dist_nakel:    dict
+        Dict of
+    ddata_ph_spect_nakel:   dict
+        Dict of
 
     """
 

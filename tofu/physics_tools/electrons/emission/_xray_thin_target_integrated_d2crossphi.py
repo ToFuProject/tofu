@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 import scipy.integrate as scpinteg
+import scipy.interpolate as scpinterp
 import astropy.units as asunits
 import datastock as ds
 
@@ -38,7 +39,9 @@ _E_E0_EV_NPTS = 61
 
 def get_d2cross_phi(
     # load from file
-    pfe=None,
+    d2cross_phi=None,
+    # tabulated d2cross
+    d2cross=None,
     # params
     Z=None,
     E_ph_eV=None,
@@ -60,22 +63,28 @@ def get_d2cross_phi(
     # verb
     verb=None,
     # load / save
-    d2cross_phi=None,
     save=None,
     pfe_save=None,
+    overwrite=None,
     # unused
     **kwdargs,
 ):
+    """ Integrates d2cross over phi_e0_vsB
+
+    Intermediate between d2cross and integration over an electron distribution
+
+    """
 
     # ----------------
     # inputs
     # ----------------
 
     (
-        save, pfe, verb,
+        save, overwrite, d2cross_phi, verb,
     ) = _check(
-        pfe=pfe,
+        d2cross_phi=d2cross_phi,
         save=save,
+        overwrite=overwrite,
         pfe_save=pfe_save,
         verb=verb,
     )
@@ -84,7 +93,7 @@ def get_d2cross_phi(
     # compute
     # ----------------
 
-    if pfe is None:
+    if d2cross_phi is None:
 
         # check compute
         (
@@ -100,14 +109,19 @@ def get_d2cross_phi(
 
         # optional save
         if save is True:
-            _save(d2cross_phi, pfe_save)
+            _save(
+                d2cross_phi=d2cross_phi,
+                pfe_save=pfe_save,
+                overwrite=overwrite,
+                verb=verb,
+            )
 
     # ----------------
     # load
     # ----------------
 
-    else:
-        d2cross_phi = _load(**locals())
+    elif isinstance(d2cross_phi, str):
+        d2cross_phi = _load(pfe=d2cross_phi, **locals())
 
     return d2cross_phi
 
@@ -119,8 +133,9 @@ def get_d2cross_phi(
 
 
 def _check(
-    pfe=None,
+    d2cross_phi=None,
     save=None,
+    overwrite=None,
     pfe_save=None,
     verb=None,
 ):
@@ -137,19 +152,39 @@ def _check(
     )
 
     # -------------
+    # overwrite
+    # -------------
+
+    # overwrite
+    overwrite = ds._generic_check._check_var(
+        overwrite, 'overwrite',
+        types=bool,
+        default=False,
+    )
+
+    # -------------
     # pfe
     # -------------
 
-    if pfe is not None:
+    if d2cross_phi is not None and not isinstance(d2cross_phi, dict):
 
-        c0 = (
-            isinstance(pfe, str)
-            and os.path.isfile(pfe)
-            and pfe.endswith('.npz')
-        )
-        if not c0:
+        dc = {
+            'str': isinstance(d2cross_phi, str),
+            'file': (
+                isinstance(d2cross_phi, str)
+                and os.path.isfile(d2cross_phi)
+            ),
+            '.npz': (
+                isinstance(d2cross_phi, str)
+                and d2cross_phi.endswith('.npz')
+            ),
+        }
+        if not all([vv for vv in dc.values()]):
+            lstr = [f"\t- {kk}: {vv}" for kk, vv in dc.items()]
             msg = (
-                "Arg pfe must be a valid path to a .npz file!"
+                "Arg pfe must be a valid path to a .npz file!\n"
+                + "\n".join(lstr)
+                + f"\nProvided: {d2cross_phi}\n"
             )
             raise Exception(msg)
         save = False
@@ -167,7 +202,7 @@ def _check(
     ))
 
     return (
-        save, pfe, verb,
+        save, overwrite, d2cross_phi, verb,
     )
 
 
@@ -178,6 +213,8 @@ def _check(
 
 
 def _check_compute(
+    # tabulated d2cross
+    d2cross=None,
     # params
     E_ph_eV=None,
     E_e0_eV=None,
@@ -198,7 +235,10 @@ def _check_compute(
     # ----------
 
     if E_ph_eV is None:
-        E_ph_eV = _E_PH_EV
+        if isinstance(d2cross, dict):
+            E_ph_eV = d2cross['E_ph']['data']
+        else:
+            E_ph_eV = _E_PH_EV
 
     E_ph_eV = ds._generic_check._check_flat1darray(
         E_ph_eV, 'E_ph_eV',
@@ -218,11 +258,14 @@ def _check_compute(
     ))
 
     if E_e0_eV is None:
-        E_e0_eV = np.logspace(
-            np.log10(E_ph_eV.min()),
-            np.ceil(np.log10(E_ph_eV.max())) + 2,
-            E_e0_eV_npts,
-        )
+        if isinstance(d2cross, dict):
+            E_e0_eV = d2cross['E_e0']['data']
+        else:
+            E_e0_eV = np.logspace(
+                np.log10(E_ph_eV.min()),
+                np.ceil(np.log10(E_ph_eV.max())) + 2,
+                E_e0_eV_npts,
+            )
 
     E_e0_eV = np.unique(ds._generic_check._check_flat1darray(
         E_e0_eV, 'E_e0_eV',
@@ -261,7 +304,10 @@ def _check_compute(
     # ------------
 
     if theta_ph_vsB is None:
-        theta_ph_vsB = _THETA_PH_VSB
+        if isinstance(d2cross, dict):
+            theta_ph_vsB = d2cross['theta_ph']['data']
+        else:
+            theta_ph_vsB = _THETA_PH_VSB
 
     theta_ph_vsB = ds._generic_check._check_flat1darray(
         theta_ph_vsB, 'theta_ph_vsB',
@@ -280,11 +326,16 @@ def _check_compute(
     # theta_e0_vsB
     # ------------
 
+    if isinstance(d2cross, dict):
+        npdef = d2cross['theta_e']['data'].size
+    else:
+        npdef = _THETA_E0_VSB_NPTS
+
     theta_e0_vsB_npts = int(ds._generic_check._check_var(
         theta_e0_vsB_npts, 'theta_e0_vsB_npts',
         types=(int, float),
         sign='>=3',
-        default=_THETA_E0_VSB_NPTS,
+        default=npdef,
     ))
     theta_e0_vsB = np.linspace(0, np.pi, theta_e0_vsB_npts)
 
@@ -314,13 +365,7 @@ def _check_compute(
     # pfe
     # ----------
 
-    if pfe_save is None:
-        nE = E_ph_eV.size
-        ntheta = theta_ph_vsB.size
-        fn = f"d2cross_phi_nEph{nE}_ntheta{ntheta}"
-        pfe_save = os.path.join(_PATH_HERE, f'{fn}.npz')
-    else:
-
+    if pfe_save is not None:
         c0 = (
             isinstance(pfe_save, str)
             and os.path.isdir(os.path.split(pfe_save)[0])
@@ -351,6 +396,9 @@ def _check_compute(
 
 
 def _compute(
+    # tabulated d2cross
+    d2cross=None,
+    # parameters
     E_ph_eV=None,
     E_e0_eV=None,
     theta_e0_vsB=None,
@@ -372,6 +420,10 @@ def _compute(
     **kwdargs,
 ):
 
+    # -----------
+    # prepare
+    # -----------
+
     # theta_ph_vs_e in (theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
     cos = (
         np.cos(theta_e0_vsB[None, :, None])
@@ -390,6 +442,20 @@ def _compute(
     shape_integ = (E_e0_eV.size, theta_e0_vsB.size, phi_e0_vsB.size)
 
     d2cross_phi = np.zeros(shape_emiss + shape_integ[:-1], dtype=float)
+
+    # -------------
+    # load d2cross
+    # -------------
+
+    if d2cross is not None:
+        d2cross0, nthetae, ndphi = _get_interpolator(d2cross)
+    else:
+        d2cross0 = None
+
+    # -------------
+    # loop on index
+    # -------------
+
     for i0, ind in enumerate(np.ndindex(shape_emiss)):
 
         if verb >= 2:
@@ -400,35 +466,60 @@ def _compute(
             msg = f"\tE_ph_eV {iEstr}, theta_ph_vsB {itstr} for shape {ish}"
             print(msg)
 
+        # -----------
         # get integrated cross-section
         # theta_ph_vs_e = (theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
         # d2cross = (E_ph_eV, E_e0_eV, theta_ph_vsB)
         #         = (E_ph_eV, E_e0_eV, theta_ph_vsB, theta_e0_vsB, phi_e0_vsB)
-        d2cross = _mod.get_xray_thin_d2cross_ei_integrated_thetae_dphi(
-            # inputs
-            Z=Z,
-            E_ph_eV=E_ph_eV[ind[0]],
-            E_e0_eV=E_e0_eV[iok, None, None],
-            theta_ph=theta_ph_vs_e[None, ind[1], :, :],
-            # hypergeometric parameter
-            ninf=ninf,
-            source=source,
-            # integration parameters
-            nthetae=nthetae,
-            ndphi=ndphi,
-            # output customization
-            per_energy_unit='eV',
-            # version
-            version=version_cross,
-            # verb
-            verb=verb > 2,
-            verb_tab=2,
-        )
+        if d2cross0 is None:
+            d2cross = _mod.get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+                # tabulated d2cross
+                d2cross=None,
+                # inputs
+                Z=Z,
+                E_ph_eV=E_ph_eV[ind[0]],
+                E_e0_eV=E_e0_eV[iok, None, None],
+                theta_ph=theta_ph_vs_e[None, ind[1], :, :],
+                # hypergeometric parameter
+                ninf=ninf,
+                source=source,
+                # integration parameters
+                nthetae=nthetae,
+                ndphi=ndphi,
+                # output customization
+                per_energy_unit='eV',
+                # version
+                version=version_cross,
+                # verb
+                verb=verb > 2,
+                verb_tab=2,
+            )
 
+            if i0 == 0:
+                units = d2cross['cross'][version_cross]['units']
+                nthetae = d2cross['theta_e']['data'].size
+                ndphi = d2cross['dphi']['data'].size
+
+            cross = d2cross['cross'][version_cross]['data']
+
+        # -----------
+        # interpolate
+        else:
+
+            xx = d2cross0[version_cross]['get_xx'](
+                E_ph_eV=E_ph_eV[ind[0]],
+                E_e0_eV=E_e0_eV[iok, None, None],
+                theta_ph=theta_ph_vs_e[None, ind[1], :, :],
+            )
+
+            cross = d2cross0[version_cross]['interp'](xx)
+            units = d2cross0[version_cross]['units']
+
+        # -----------
         # integrate over phi
         # MULTIPLY BY SIN PHI ?????
         d2cross_phi[ind[0], ind[1], iok, :] = scpinteg.trapezoid(
-            d2cross['cross'][version_cross]['data'],
+            cross,
             x=phi_e0_vsB,
             axis=-1,
         )
@@ -437,7 +528,6 @@ def _compute(
     # units
     # ----------
 
-    units = d2cross['cross'][version_cross]['units']
     units *= asunits.Unit('rad')
 
     # -------------
@@ -455,14 +545,141 @@ def _compute(
         'theta_ph_vsB': theta_ph_vsB,
         'phi_e0_vsB': phi_e0_vsB,
         'Z': Z,
-        'nthetae': d2cross['theta_e']['data'].size,
-        'ndphi': d2cross['dphi']['data'].size,
+        'nthetae': nthetae,
+        'ndphi': ndphi,
         'version_cross': version_cross,
         'ninf': ninf,
         'source': source,
     }
 
     return dout
+
+
+# ###########################################
+# ###########################################
+#        Interpolator
+# ###########################################
+
+
+def _get_interpolator(
+    d2cross=None,
+):
+
+    # ---------------
+    # load tabulated
+    # ---------------
+
+    d2cross0 = _mod.get_xray_thin_d2cross_ei_integrated_thetae_dphi(
+        d2cross=d2cross,
+    )
+
+    # extract npts
+    nthetae = d2cross0['theta_e']['data'].size
+    ndphi = d2cross0['dphi']['data'].size
+
+    # loop on versions
+    dinterp = {}
+    laxis = ['theta_ph', 'E_ph', 'E_e0']
+    for version in d2cross0['cross'].keys():
+
+        # ----------------------
+        # extract data and units
+
+        dinterp[version] = {
+            'axis': {},
+            'islog': {},
+            'interp': None,
+            'units': d2cross0['cross'][version]['units'],
+        }
+        cross = d2cross0['cross'][version]['data']
+
+        # --------------
+        # safety check
+
+        if np.unique(cross.shape).size != cross.ndim:
+            msg = (
+                "d2cross from file has ambiguous dimensions!\n"
+                f"\t- pfe: {d2cross}\n"
+                f"\t- cross shape: {cross.shape}\n"
+            )
+            raise Exception(msg)
+
+        # ---------------
+        # axes
+
+        for kk in laxis:
+            data = d2cross0[kk]['data']
+            assert np.prod(data.shape) == data.size
+            data = np.squeeze(data)
+
+            dinterp[version]['axis'][kk] = cross.shape.index(data.size)
+
+            diff = np.diff(data)
+            if np.allclose(diff, diff[0]):
+                dinterp[version]['islog'][kk] = False
+            else:
+                difflog = np.diff(np.log10(data))
+                if np.allclose(difflog, difflog[0]):
+                    dinterp[version]['islog'][kk] = True
+                else:
+                    msg = (
+                        "Not linear nor log!\n"
+                        f"\t- pfe = {d2cross}\n"
+                        f"\t- kk = {kk}\n"
+                    )
+                    raise Exception(msg)
+
+        # ---------------
+        # grid point
+        # ---------------
+
+        inds = np.argsort([dinterp[version]['axis'][kk] for kk in laxis])
+        keys = [laxis[ii] for ii in inds]
+        xx = tuple([
+            np.log10(d2cross0[kk]['data'].ravel())
+            if dinterp[version]['islog'][kk]
+            else d2cross0[kk]['data'].ravel()
+            for kk in keys
+        ])
+
+        # ---------------
+        # interpolator
+        # ---------------
+
+        dinterp[version]['interp'] = scpinterp.RegularGridInterpolator(
+            xx,
+            cross,
+            method='linear',
+            bounds_error=False,
+            fill_value=0.,
+        )
+
+        # ---------------
+        # get_xx
+        # ---------------
+
+        islog = [dinterp[version]['islog'][kk] for kk in keys]
+        keys = [f"{kk}_eV" if kk[0] == 'E' else kk for kk in keys]
+        dinterp[version]['get_xx'] = _get_xx(keys, islog)
+
+    return dinterp, nthetae, ndphi
+
+
+def _get_xx(keys, islog):
+
+    def func(**kwdargs):
+        args = [
+            np.log10(kwdargs[kk]) if islog[ii]
+            else kwdargs[kk]
+            for ii, kk in enumerate(keys)
+        ]
+        return np.moveaxis(
+            np.array(np.broadcast_arrays(*args)),
+            0,
+            -1,
+        )
+
+    return func
 
 
 # ###########################################
@@ -553,7 +770,54 @@ def _load(
 def _save(
     d2cross_phi=None,
     pfe_save=None,
+    overwrite=None,
+    verb=None,
 ):
+
+    # ----------
+    # pfe_save
+    # ----------
+
+    if pfe_save is None:
+
+        # extract sizes
+        ntheta_ph = d2cross_phi['theta_ph_vsB'].size
+        ntheta_e0 = d2cross_phi['theta_e0_vsB'].size
+        Eph = _mod._format_vect2str(
+            d2cross_phi['E_ph_eV'],
+            base='eV',
+        )
+        Ee0 = _mod._format_vect2str(
+            d2cross_phi['E_e0_eV'],
+            base='eV',
+        )
+
+        # extract versions
+        versions = d2cross_phi['version_cross']
+
+        # extract boundaries
+        path = os.path.abspath(_PATH_HERE)
+        fname = (
+            f"d2cross_phi_Ee0{Ee0}_Eph{Eph}"
+            f"_nthetaph{ntheta_ph}_nthetae0{ntheta_e0}_{versions}"
+        )
+        pfe_save = os.path.join(path, f"{fname}.npz")
+
+    # ----------
+    # overwrite
+    # ----------
+
+    if os.path.isfile(pfe_save):
+        if overwrite is True:
+            if verb is True:
+                msg = f"Overwritting file {pfe_save}\n"
+                warnings.warn(msg)
+        else:
+            msg = (
+                "File {pfe_save} already exists!\n"
+                "\t=> use overwrite=True to overwrite\n"
+            )
+            raise Exception(msg)
 
     # ----------
     # save

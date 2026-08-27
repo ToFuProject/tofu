@@ -38,6 +38,20 @@ def main(
     )
     vt_ms = np.sqrt(2. * kbT_J / me)
 
+    # check v0_par_ms
+    if np.any(v0_par_ms > scpct.c):
+        msg = (
+            "Shifted Maxwellian has invalid v0_par_ms > c!\n"
+        )
+        raise Exception(msg)
+
+    # check vt_ms
+    if np.any(vt_ms > scpct.c):
+        msg = (
+            "Shifted Maxwellian has invalid vt_ms > c!\n"
+        )
+        raise Exception(msg)
+
     # --------------
     # format output
     # --------------
@@ -209,6 +223,7 @@ def f3d_E_theta(
         v0_par_ms=v0_par_ms,
     )
 
+    # caution: sin(theta) => negative values !
     dist = np.sin(theta) * dist0 / (2.*np.pi)
     units = units0 * asunits.Unit('1/rad^2')
 

@@ -7,7 +7,9 @@ import warnings
 import numpy as np
 import scipy.integrate as scpinteg
 import scipy.constants as scpct
+import scipy.stats as scpstats
 import astropy.units as asunits
+import datastock as ds
 
 
 from . import _distribution_check as _check
@@ -32,9 +34,15 @@ def main(
     ne_m3_re=None,
     Zeff=None,
     Ekin_max_eV=None,
+    Ekin_min_eV=None,
     Efield_par_Vm=None,
     lnG=None,
     sigmap=None,
+    # bump
+    step=None,
+    pnormW=None,
+    theta_width=None,
+    # dominant
     dominant=None,
     # ------------
     # coordinates
@@ -55,6 +63,8 @@ def main(
     verb=None,
     # return
     returnas=None,
+    # unused
+    **kwdargs,
 ):
 
     # --------------
@@ -161,13 +171,25 @@ def main(
         inan = np.isnan(ddist['dist'][kdist]['dist']['data'])
         ddist['dist'][kdist]['dist']['data'][inan] = 0.
 
+        # neg => error
+        ineg = ddist['dist'][kdist]['dist']['data'] < 0.
+        if np.any(ineg):
+            msg = (
+                "Electron dist has negative values!\n"
+                f"\t- dist = '{kdist}'\n"
+                f"\t- version = '{dfunc[kdist]['version']}'\n"
+                f"\t- module = {dfunc[kdist]['func'].__module__}\n"
+                f"\t- func = {dfunc[kdist]['func'].__name__}\n"
+            )
+            raise Exception(msg)
+
         # scale
         ne_re = _scale(
             din=din,
             ddist=ddist,
             kdist=kdist,
             dcoords=dcoords,
-            version=version,
+            version=dfunc[kdist]['version'],
         )
 
     # --------------
@@ -185,7 +207,7 @@ def main(
             ddist=ddist,
             kdist=kdist,
             dcoords=dcoords,
-            version=version,
+            version=dfunc[kdist]['version'],
         )
 
         # store
@@ -355,7 +377,10 @@ def _get_velocity_par(ddist, kdist):
             energy_kinetic_eV=ddist['coords']['x0']['data'],
         )['velocity_ms']
         units = v_par_ms['units']
-        v_par_ms = v_par_ms['data']
+        # v_par_ms = v_par_ms['data']
+
+        # assume 0 drift velocity => average v_par = 0
+        v_par_ms = np.zeros(v_par_ms['data'].shape)
 
     else:
         raise NotImplementedError(kcoords)
@@ -371,6 +396,175 @@ def _get_velocity_par(ddist, kdist):
 
     return velocity_par
 
+
+# #####################################################
+# #####################################################
+#           Get Energy
+# #####################################################
+
+
+def get_dist1d_E(ddist, kdist, nbins=None):
+
+    # -----------
+    # check inputs
+    # -----------
+
+    nbins = int(ds._generic_check._check_var(
+        nbins, 'nbins',
+        types=(float, int),
+        default=ddist['coords']['x0']['data'].size,
+        sign='>3',
+    ))
+
+    # -----------
+    # prepare
+    # -----------
+
+    kcoords = tuple([
+        ddist['coords'][kk]['key'] for kk in ['x0', 'x1']
+        if ddist['coords'].get(kk) is not None
+    ])
+    shape = ddist['dist'][kdist]['dist']['data'].shape
+
+    # -----------
+    # (E, theta)
+    # -----------
+
+    if kcoords == ('E_eV', 'theta'):
+
+        assert ddist['coords']['x0']['units'] == 'eV'
+        E = ddist['coords']['x0']['data']
+
+        dist1d = scpinteg.trapezoid(
+            ddist['dist'][kdist]['dist']['data'],
+            x=ddist['coords']['x1']['data'],
+            axis=-1,
+        )
+        units = (
+            asunits.Unit(ddist['dist'][kdist]['dist']['units'])
+            * asunits.Unit(ddist['coords']['x1']['units'])
+        )
+
+    # -----------
+    # (E, pitch)
+    # -----------
+
+    elif kcoords == ('E_eV', 'pitch'):
+
+        assert ddist['coords']['x0']['units'] == 'eV'
+        E = ddist['coords']['x0']['data']
+
+        dist1d = scpinteg.trapezoid(
+            ddist['dist'][kdist]['dist']['data'],
+            x=ddist['coords']['x1']['data'],
+            axis=-1,
+        )
+        units = (
+            asunits.Unit(ddist['dist'][kdist]['dist']['units'])
+            * asunits.Unit(ddist['coords']['x1']['units'])
+        )
+
+    # -----------
+    # (p_par, p_perp)
+    # -----------
+
+    elif kcoords == ('p_par_norm', 'p_perp_norm'):
+
+        sli = (None,)*(len(shape)-2) + (slice(None),)*2
+        pnorm = np.sqrt(
+            ddist['coords']['x0']['data'][:, None]**2
+            + ddist['coords']['x1']['data'][None, :]**2
+        )[sli]
+        pnorm = np.broadcast_to(pnorm, shape)
+
+        # abs(velocity)
+        energy = _convert.convert_momentum_velocity_energy(
+            momentum_normalized=pnorm,
+        )['energy_kinetic_eV']
+
+        # nbins
+        E = np.linspace(np.min(energy)-1e-14, np.max(energy)+1e-14, nbins + 1)
+        dE = E[1] - E[0]
+
+        # binning
+        dist1d = scpstats.binned_statictics(
+            energy,
+            ddist['dist'][kdist]['dist']['data'],
+            bins=E,
+            statistic='sum',
+        ).statistic / dE
+        E = 0.5*(E[1:] + E[:-1])
+
+        units = (
+            asunits.Unit(ddist['dist'][kdist]['dist']['units'])
+            / asunits.unit('eV')
+        )
+
+    # -----------
+    # (v_par, v_perp)
+    # -----------
+
+    elif kcoords == ('v_par_norm', 'v_perp_norm'):
+
+        sli = (None,)*(len(shape)-2) + (slice(None),)*2
+        vv = np.sqrt(
+            ddist['coords']['x0']['data'][:, None]**2
+            + ddist['coords']['x1']['data'][None, :]**2
+        )[sli]
+        vv = np.broadcast_to(vv, shape)
+
+        # abs(velocity)
+        energy = _convert.convert_momentum_velocity_energy(
+            velocity_ms=vv,
+        )['energy_kinetic_eV']
+
+        # nbins
+        E = np.linspace(np.min(energy)-1e-14, np.max(energy)+1e-14, nbins + 1)
+        dE = E[1] - E[0]
+
+        # binning
+        dist1d = scpstats.binned_statictics(
+            energy,
+            ddist['dist'][kdist]['dist']['data'],
+            bins=E,
+            statistic='sum',
+        ).statistic / dE
+        E = 0.5*(E[1:] + E[:-1])
+
+        units = (
+            asunits.Unit(ddist['dist'][kdist]['dist']['units'])
+            / asunits.unit('eV')
+        )
+
+    # -----------
+    # (E,)
+    # -----------
+
+    elif kcoords == ('E_eV',):
+
+        E = ddist['coords']['x0']['data']
+        dist1d = ddist['dist'][kdist]['dist']['data']
+        units = ddist['dist'][kdist]['dist']['units']
+
+    else:
+        raise NotImplementedError(kcoords)
+
+    # ---------------
+    # abs() => v_par
+    # ---------------
+
+    ddist1d = {
+        'E': {
+            'data': E,
+            'units': 'eV',
+        },
+        'dist': {
+            'data': dist1d,
+            'units': units,
+        },
+    }
+
+    return ddist1d
 
 # #####################################################
 # #####################################################
@@ -401,6 +595,7 @@ def _integrate(
         )
         ne = ddist['dist'][kdist]['dist']['data']
         x0 = dcoords['x0']['data']
+
     else:
         current = scpinteg.trapezoid(
             scpct.e

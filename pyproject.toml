@@ -45,7 +45,7 @@ maintainers = [
 keywords = [
     "tomography", "fusion", "synthetic diagnostic", "diagnostic design", 
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10,<3.12"
 dependencies = [
     "numpy<1.25",  # for astropy compatibility vs deprecated np.product
     # "PySide2 ; platform_system != 'Windows'",
@@ -58,10 +58,6 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Natural Language :: English",
@@ -81,7 +77,7 @@ tofu = "scripts.main:main"
 [project.optional-dependencies]
 full = [
     "Polygon3",
-    'spectrally>=0.0.9', 
+    'spectrally>=0.0.10', 
     'pytest',                    # For testing
     'pytest-xvfb',               # For GUI testing
     'pytest-cov',                # For coverage
