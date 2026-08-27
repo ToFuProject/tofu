@@ -92,6 +92,8 @@ def get_xray_thin_integ_dist(
     # integration parameters
     nthetae=None,
     ndphi=None,
+    # integration method
+    integration=None,
     # output customization
     version_cross=None,
     # save / load
@@ -137,9 +139,21 @@ def get_xray_thin_integ_dist(
 
     (
         dplasma,
+        integration,
         debug,
         verb,
     ) = _check(**locals())
+
+    # --------------------
+    # integration method
+    # --------------------
+
+    if integration == 'trapz':
+        integ = scpinteg.trapezoid
+    elif integration == 'romb':
+        integ = scpinteg.romb
+    else:
+        integ = scpinteg.simpson
 
     # --------------------
     # get d2cross integrated over phi (from dist)
@@ -286,7 +300,7 @@ def get_xray_thin_integ_dist(
                 sli1 = ind + sli1_None
 
             # integrate over theta_e
-            integ_phi_theta = scpinteg.trapezoid(
+            integ_phi_theta = integ(
                 v_e
                 * d2cross_phi['d2cross_phi']['data']
                 * ddist['dist'][kdist]['dist']['data'][sli1],
@@ -295,7 +309,7 @@ def get_xray_thin_integ_dist(
             )
 
             # integrate over E_e0_eV
-            demiss[kdist]['emiss']['data'][sli0] = scpinteg.trapezoid(
+            demiss[kdist]['emiss']['data'][sli0] = integ(
                 integ_phi_theta,
                 x=E_e0_eV,
                 axis=-1,
@@ -351,6 +365,7 @@ def get_xray_thin_integ_dist(
             dresponsivity=dresponsivity,
             plot=plot_responsivity_integration,
             dplasma=dplasma,
+            integ=integ,
         )
 
     # ----------------
@@ -408,6 +423,7 @@ def get_xray_thin_integ_dist(
 
 
 def _check(
+    integration=None,
     debug=None,
     verb=None,
     # unused
@@ -421,6 +437,18 @@ def _check(
     dplasma = _distribution_check._plasma(
         ddef=_DPLASMA,
         **kwdargs,
+    )
+
+    # --------------------
+    # integration
+    # --------------------
+
+    lok = ['trapz', 'romb', 'simps']
+    integration = ds._generic_check._check_var(
+        integration, 'integration',
+        types=str,
+        default=lok[0],
+        allowed=lok,
     )
 
     # --------------------
@@ -457,6 +485,7 @@ def _check(
 
     return (
         dplasma,
+        integration,
         debug,
         verb,
     )
@@ -645,6 +674,7 @@ def _responsivity(
     dresponsivity=None,
     plot=None,
     dplasma=None,
+    integ=None,
 ):
 
     # --------------
@@ -761,7 +791,7 @@ def _responsivity(
         }
 
         # data
-        data = scpinteg.trapezoid(
+        data = integ(
             integrand,
             x=E_ph_eV,
             axis=-2,

@@ -1430,7 +1430,7 @@ def _hyp2F1(
         raise Exception(dwarn[source])
 
     if source is None and len(dwarn) > 0:
-        lstr = [f"\t- {k0}" for k0 in dwarn.keys]
+        lstr = [f"\t- {k0}" for k0 in dwarn.keys()]
         msg = (
             "The following are not available for computing _hyp2F1():\n"
             + "\n".join(lstr)
@@ -1591,8 +1591,24 @@ def _hyp2F1(
         ninf = np.sum(np.isinf(out))
         size = out.size
         lstr = ([np.sum(~np.isfinite(vv)) for vv in [aa, bb, cc, zz]])
+
+        # Save MWE to help debug specfunc
+        # see: https://github.com/fedro4/specfunc/issues/3
+        mwe = {
+            'a': aa[ind_nofin],
+            'b': bb[ind_nofin],
+            'c': cc[ind_nofin],
+            'z': zz[ind_nofin],
+            'isnan': np.isnan(out),
+            'isinf': np.isinf(out),
+        }
+
+        pfe = os.path.join(_PATH_HERE, f"{source}_hyp2f1_MWE.npz")
+        np.savez(pfe, **mwe)
+
         msg = (
-            f"EH d3cross: hyp2F1() is getting {nnan_tot} non-finite values\n"
+            f"EH d3cross: hyp2F1() with source = '{source}'"
+            ": getting {nnan_tot} non-finite values\n"
             f"\t- source = {source}\n"
             f"\t- nb of (NaN, inf) / size = ({nnan}, {ninf}) / {size}\n"
             f"\t- nb of non-finite (aa, bb, cc, zz) = {lstr}\n"
@@ -1602,6 +1618,7 @@ def _hyp2F1(
             f"\t- np.unique(zz) = {np.unique(zz[ind_nofin])}\n"
             f"\t- out[np.isnan(out)] = {out[np.isnan(out)]}\n"
             f"\t- out[np.isinf(out)] = {out[np.isinf(out)]}\n"
+            f"\nSaved MEW in:\n\t{pfe}"
         )
         raise Exception(msg)
 
@@ -1682,10 +1699,10 @@ def _hyp2f1_check(specfunc_dir=None):
     # --------
 
     lok = ['z/(z-1)', '1/z']
-    if dwarn.get('mpmath') is None:
-        lok.insert(0, 'mpmath')
     if dwarn.get('specfunc') is None:
         lok.insert(0, 'specfunc')
+    if dwarn.get('mpmath') is None:
+        lok.insert(0, 'mpmath')
 
     return lok, dwarn, dfunc
 
