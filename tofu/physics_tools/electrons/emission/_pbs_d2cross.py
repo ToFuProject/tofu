@@ -72,6 +72,8 @@ def main(
         E_e0_eV=E_e0_eV[None, :, None],
         E_ph_eV=E_ph_eV[None, None, :],
         theta_ph=theta_ph[:, None, None],
+        nthetae=theta_ph.size,
+        ndphi=2*theta_ph.size+1,
         save=True,
         verb=2,
         version=version,

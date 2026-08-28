@@ -35,11 +35,11 @@ _THETA_PH = np.linspace(0, np.pi, 31)
 
 
 # Integration
-_NTHETAE = 31
-_NDPHI = 51
+_NTHETAE = 91
+_NDPHI = 181
 
 # VERSION
-_VERSION = 'BHE'   # good compromise
+_VERSION = 'EH'   # best with cfsem.hyp2f1()
 
 
 # Default naming
