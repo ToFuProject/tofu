@@ -1512,8 +1512,11 @@ def _hyp2F1(
 
     elif source == 'cfsem':
 
-        out = dfunc['mpmath'].hyp2f1(
-            aa, bb, cc, zz,
+        out = dfunc['cfsem'].hyp2f1(
+            aa.astype('complex128'),
+            bb.astype('complex128'),
+            cc.astype('complex128'),
+            zz.astype('complex128'),
         )
 
     # ----------------
@@ -1717,10 +1720,10 @@ def _hyp2f1_check(specfunc_dir=None):
     lok = ['z/(z-1)', '1/z']
     if dwarn.get('specfunc') is None:
         lok.insert(0, 'specfunc')
-    if dwarn.get('cfsem') is None:
-        lok.insert(0, 'cfsem')
     if dwarn.get('mpmath') is None:
         lok.insert(0, 'mpmath')
+    if dwarn.get('cfsem') is None:
+        lok.insert(0, 'cfsem')
 
     return lok, dwarn, dfunc
 
