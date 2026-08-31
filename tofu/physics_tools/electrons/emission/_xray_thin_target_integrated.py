@@ -35,11 +35,11 @@ _THETA_PH = np.linspace(0, np.pi, 31)
 
 
 # Integration
-_NTHETAE = 31
-_NDPHI = 51
+_NTHETAE = 91
+_NDPHI = 181
 
 # VERSION
-_VERSION = 'BHE'   # good compromise
+_VERSION = 'EH'   # best with cfsem.hyp2f1()
 
 
 # Default naming
@@ -229,12 +229,20 @@ def _check(
     # integers
     # -----------
 
+    # nthetae_def and ndphi_def
+    if theta_ph.size == np.prod(theta_ph.shape):
+        nthetae_def = theta_ph.size
+        ndphi_def = 2*(theta_ph.size - 1) + 1
+    else:
+        nthetae_def = _NTHETAE
+        ndphi_def = _NDPHI
+
     # nthetae
     nthetae = ds._generic_check._check_var(
         nthetae, 'nthetae',
         types=int,
         sign='>0',
-        default=_NTHETAE,
+        default=nthetae_def,
     )
 
     # ndphi
@@ -242,7 +250,7 @@ def _check(
         ndphi, 'ndphi',
         types=int,
         sign='>0',
-        default=_NDPHI,
+        default=ndphi_def,
     )
 
     # ------------
