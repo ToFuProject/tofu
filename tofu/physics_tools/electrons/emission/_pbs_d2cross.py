@@ -27,6 +27,8 @@ def main(
     nEph=None,
     nEe0=None,
     ntheta=None,
+    nthetae=None,
+    ndphi=None,
     version=None,
     ddef=None,
 ):
@@ -72,8 +74,8 @@ def main(
         E_e0_eV=E_e0_eV[None, :, None],
         E_ph_eV=E_ph_eV[None, None, :],
         theta_ph=theta_ph[:, None, None],
-        nthetae=theta_ph.size,
-        ndphi=2*theta_ph.size+1,
+        nthetae=nthetae,
+        ndphi=ndphi,
         save=True,
         verb=2,
         version=version,
@@ -110,6 +112,8 @@ if __name__ == '__main__':
         'nEph': 401,
         'nEe0': 400,
         'ntheta': 181,
+        'nthetae': None,
+        'ndphi': None,
         'version': 'EH',
     }
 
@@ -148,6 +152,26 @@ if __name__ == '__main__':
         help='Number of np.linspace(0, np.pi, ntheta) (rad)',
         required=False,
         default=ddef['ntheta'],
+    )
+
+    # nthetae
+    parser.add_argument(
+        '-nthetae',
+        '--nthetae',
+        type=int,
+        help='Number of np.linspace(0, np.pi, nthetae) (rad)',
+        required=False,
+        default=ddef['nthetae'],
+    )
+
+    # ndphi
+    parser.add_argument(
+        '-ndphi',
+        '--ndphi',
+        type=int,
+        help='Number of np.linspace(-np.pi, np.pi, ndphi) (rad)',
+        required=False,
+        default=ddef['ndphi'],
     )
 
     # version
