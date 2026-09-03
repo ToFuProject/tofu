@@ -339,7 +339,7 @@ def _check_doptics_basics(
                     key=key,
                     doptics=doptics,
                     returnas=True,
-                    shape_cam=emsg,
+                    extra_msg=emsg,
                 )
                 raise err0 from err
 
