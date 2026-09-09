@@ -24,6 +24,7 @@ from ._class00_poly2d_sample import main as poly2d_sample
 def main(
     coll=None,
     key=None,
+    key_cam=None,
     # to sample on a single optics
     key_optics=None,
     # sampling
@@ -73,6 +74,7 @@ def main(
 
     (
         key,
+        key_cam,
         dsampling_pixel,
         dsampling_optics,
         optics,
@@ -80,6 +82,7 @@ def main(
     ) = _check(
         coll=coll,
         key=key,
+        key_cam=key_cam,
         # sampling
         dsampling_pixel=dsampling_pixel,
         dsampling_optics=dsampling_optics,
@@ -97,7 +100,6 @@ def main(
     # ---------------
 
     wdiag = 'diagnostic'
-    key_cam = coll.dobj[wdiag][key]['camera']
     doptics = coll.dobj[wdiag][key]['doptics']
 
     # ---------------
@@ -152,6 +154,7 @@ def main(
 def _check(
     coll=None,
     key=None,
+    key_cam=None,
     # sampling
     dsampling_pixel=None,
     dsampling_optics=None,
@@ -168,6 +171,7 @@ def _check(
     # key
     # ------------
 
+    # key
     wdiag = 'diagnostic'
     lok = list(coll.dobj.get(wdiag, {}).keys())
     key = ds._generic_check._check_var(
@@ -176,7 +180,18 @@ def _check(
         allowed=lok,
     )
 
-    key_cam = coll.dobj[wdiag][key]['camera']
+    # key_cam
+    lok = coll.dobj[wdiag][key]['camera']
+    if key_cam is None:
+        key_cam = lok
+    if isinstance(key_cam, str):
+        key_cam = [key_cam]
+    key_cam = ds._generic_check._check_var_iter(
+        key_cam, 'key_cam',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=lok,
+    )
 
     # spectro ?
     spectro = coll.dobj[wdiag][key]['spectro']
@@ -295,6 +310,7 @@ def _check(
 
     return (
         key,
+        key_cam,
         dsampling_pixel, dsampling_optics,
         optics0,
         store, strict, key_rays, overwrite,
