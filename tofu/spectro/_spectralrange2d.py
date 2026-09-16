@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
+import warnings
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -56,13 +59,14 @@ def spectral_range_2d(
     beta_max: maximum angular opening from point source (optionnal)
     npts: nb of rays from point source to crystals
     length: crystal length
+    varrad: for variable-radii spiral
 
     """
 
     # --------
     # check
 
-    din, npts, plot, save, pfe_fig, pfe_npz = _check(**locals())
+    din, npts, dcam, plot, save, pfe_fig, pfe_npz = _check(**locals())
 
     # --------------
     # compute
@@ -76,7 +80,6 @@ def spectral_range_2d(
 
     # -------------
     # format output
-
 
     ilamb_min = np.full((lamb.shape[1],), -1)
     ilamb_max = np.full((lamb.shape[1],), -1)
@@ -156,6 +159,7 @@ def _check(
     rcurve=None,
     varrad_b=None,
     dist=None,
+    dcam=None,
     # options
     npts=None,
     # plotting
@@ -257,6 +261,43 @@ def _check(
     if npts % 2 == 0:
         npts += 1
 
+    # -------
+    # dcam
+
+    if dcam is not None:
+
+        c0 = (
+            isinstance(dcam, dict)
+            and isinstance(dcam.get('cent'), (list, tuple, np.ndarray))
+            and np.ravel(dcam['cent']).size == 2
+            and isinstance(dcam.get('nin'), (list, tuple, np.ndarray))
+            and np.ravel(dcam['nin']).size == 2
+        )
+        if not c0:
+            msg = (
+                "If provided, arg 'dcam' must be a dict with:\n"
+                "\t- 'nin': a 1d array of size 2\n"
+                "\t\tcoordinates of normal vector to the camera\n"
+                "\t- 'cent': a 1d array of size 2\n"
+                "\t\tcoordinates of the camera center\n"
+                "\t- 'abs' (optional): bool\n"
+                "\t\tif True 'cent' and 'nin' is in absolute coordinates\n"
+                "\t\tif False, relative to (ap, ex, ey), default\n"
+                f"Provided:\n{dcam}\n"
+            )
+            raise Exception(msg)
+        dcam['nin'] = np.ravel(dcam['nin'])
+        dcam['cent'] = np.ravel(dcam['cent'])
+        dcam['abs'] = ds._generic_check._check_var(
+            dcam.get('abs'), "dcam['abs']",
+            types=bool,
+            default=False,
+        )
+
+        if np.abs(np.linalg.norm(dcam['nin']) - 1.) > 1e-12:
+            msg = "Arg dcam['nin'] does not seem normalized!"
+            warnings.warn(msg)
+
     # ---------
     # plot
 
@@ -277,7 +318,7 @@ def _check(
         default=False,
     )
 
-    return din, npts, plot, save, pfe_fig, pfe_npz
+    return din, npts, dcam, plot, save, pfe_fig, pfe_npz
 
 
 # #################################################################
@@ -423,17 +464,16 @@ def _compute(
     # phi
     phi = (gam - gam0[None, :]) / (b[None, :]-1)
 
-    # cryst
-
+    # pts on cryst
     crystx[:, indb] = (
         ap[0]
         + (xx[indb] - r0) * ex[0]
-        + r * (np.cos(phi) * ex[0]  + np.sin(phi) * ey[0])
+        + r * (np.cos(phi) * ex[0] + np.sin(phi) * ey[0])
     )
     crysty[:, indb] = (
         ap[1]
         + (xx[indb] - r0) * ex[1]
-        + r * (np.cos(phi) * ex[1]  + np.sin(phi) * ey[1])
+        + r * (np.cos(phi) * ex[1] + np.sin(phi) * ey[1])
     )
 
     # derivative
@@ -458,7 +498,6 @@ def _compute(
     vin = np.sqrt(vix**2 + viy**2)
     vix = vix / vin
     viy = viy / vin
-
 
     # reflected vectors
     sca = vix*vnx + viy*vny
@@ -492,17 +531,34 @@ def _compute(
     # -----------------
 
     if dcam is not None:
-        ninx, niny = dcam['nin'][:2]
+        ninx, niny = dcam['nin']
         ninn = np.sqrt(ninx**2 + niny**2)
         ninx, niny = ninx/ninn, niny/ninn
 
-        ninx_r = ninx * ex[0] + niny * ey[0]
-        niny_r = ninx * ex[1] + niny * ey[1]
+        # cam center
+        if dcam['abs'] is True:
 
-        camx = ap[0] + dcam['cent'][0] * ex[0] + dcam['cent'][1] * ey[0]
-        camy = ap[1] + dcam['cent'][0] * ex[1] + dcam['cent'][1] * ey[1]
+            camx_r = dcam['cent'][0]
+            camy_r = dcam['cent'][1]
+            camx = np.sum((dcam['cent'] - ap) * ex)
+            camy = np.sum((dcam['cent'] - ap) * ey)
 
-        sca_up = (camx - crystx) * ninx_r + (camy - crysty) * niny_r
+            ninx_r = ninx
+            niny_r = niny
+            ninx = ninx_r * ex[0] + niny_r * ex[1]
+            niny = ninx_r * ey[0] + niny_r * ey[1]
+
+        else:
+            camx = dcam['cent'][0]
+            camy = dcam['cent'][1]
+            camx_r = ap[0] + camx * ex[0] + camy * ey[0]
+            camy_r = ap[1] + camx * ex[1] + camy * ey[1]
+
+            ninx_r = ninx * ex[0] + niny * ey[0]
+            niny_r = ninx * ex[1] + niny * ey[1]
+
+        # rays x0
+        sca_up = (camx_r - crystx) * ninx_r + (camy_r - crysty) * niny_r
         sca_bot = vrx*ninx_r + vry*niny_r
 
         kk = sca_up / sca_bot
@@ -511,14 +567,17 @@ def _compute(
 
         e0x = -niny_r
         e0y = ninx_r
-        x0 = (ptsx - camx) * e0x + (ptsy - camy) * e0y
+        x0 = (ptsx - camx_r) * e0x + (ptsy - camy_r) * e0y
 
         if beta_max is not None:
             x0[ind] = np.nan
 
         dcam['x0'] = x0
-        dcam['cent_r'] = np.r_[camx, camy]
+        dcam['cent'] = np.r_[camx, camy]
+        dcam['cent_r'] = np.r_[camx_r, camy_r]
+        dcam['nin'] = np.r_[ninx, niny]
         dcam['nin_r'] = np.r_[ninx_r, niny_r]
+        dcam['abs'] = False
 
     return crystx, crysty, endx, endy, lamb
 
@@ -717,7 +776,6 @@ def _plot(
         verticalalignment='top',
         transform=ax.figure.transFigure,
     )
-
 
     # ------------
     # camera
