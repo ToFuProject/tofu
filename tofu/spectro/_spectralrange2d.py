@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.colors as mcolors
 import datastock as ds
 
 
@@ -66,7 +67,11 @@ def spectral_range_2d(
     # --------
     # check
 
-    din, npts, dcam, plot, save, pfe_fig, pfe_npz = _check(**locals())
+    (
+        key_crystals, din,
+        npts, dcam,
+        plot, save, pfe_fig, pfe_npz,
+    ) = _check(**locals())
 
     # --------------
     # compute
@@ -75,6 +80,7 @@ def spectral_range_2d(
         npts=npts,
         beta_max=beta_max,
         dcam=dcam,
+        key_crystals=key_crystals,
         **din,
     )
 
@@ -98,6 +104,7 @@ def spectral_range_2d(
 
     dout = dict(din)
     dout.update({
+        'key_crystals': key_crystals,
         'beta_max': beta_max,
         'crystx': crystx,
         'crysty': crysty,
@@ -146,19 +153,11 @@ def spectral_range_2d(
 
 
 def _check(
-    # crystal
-    lamb0=None,
-    bragg0=None,
+    dcrystals=None,
     # geometry basis
     ap=None,
     ex=None,
     ey=None,
-    # geometry
-    xx=None,
-    length=None,
-    rcurve=None,
-    varrad_b=None,
-    dist=None,
     dcam=None,
     # options
     npts=None,
@@ -194,6 +193,22 @@ def _check(
     din_basis['ey'] = din_basis['ey'] / np.linalg.norm(din_basis['ey'])
 
     # -----------------
+    # dcrystals
+    # -----------------
+
+    # dcrystals
+    _check_dcrystals(dcrystals)
+
+    key_crystals = list(dcrystals.keys())
+    lamb0 = np.array([dcrystals[k0]['lamb0'] for k0 in key_crystals])
+    bragg0 = np.array([dcrystals[k0]['bragg0'] for k0 in key_crystals])
+    xx = np.array([dcrystals[k0]['xx'] for k0 in key_crystals])
+    rcurve = np.array([dcrystals[k0]['rcurve'] for k0 in key_crystals])
+    length = np.array([dcrystals[k0]['length'] for k0 in key_crystals])
+    dist = np.array([dcrystals[k0]['dist'] for k0 in key_crystals])
+    varrad_b = np.array([dcrystals[k0]['varrad_b'] for k0 in key_crystals])
+
+    # -----------------
     # initialize dict
 
     din = {
@@ -206,32 +221,6 @@ def _check(
         'varrad_b': varrad_b,
         'dist': dist,
     }
-
-    # -------------
-    # get size
-
-    # make all arrays
-    for k0, v0 in din.items():
-        if v0 is None:
-            din[k0] = np.nan
-        din[k0] = np.atleast_1d(din[k0]).ravel().astype(float)
-
-    # sizes
-    lsizes = list(set([v0.size for v0 in din.values()]))
-    if len(lsizes) == 1:
-        pass
-    elif 1 in lsizes and len(lsizes) == 2:
-        size = [ss for ss in lsizes if ss != 1][0]
-        for k0, v0 in din.items():
-            if v0.size == 1:
-                din[k0] = np.full((size,), v0[0])
-    else:
-        lstr = [f"\t- '{k0}': {v0.size}" for k0, v0 in din.items()]
-        msg = (
-            "All args must be either scalar or 1d arrays of the same size:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
 
     # -------
     # values
@@ -255,9 +244,12 @@ def _check(
     # ---------
     # npts
 
-    if npts is None:
-        npts = 101
-    npts = int(npts)
+    npts = int(ds._generic_check._check_var(
+        npts, 'npts',
+        types=(float, int),
+        sign='>0',
+        default=101,
+    ))
     if npts % 2 == 0:
         npts += 1
 
@@ -318,7 +310,184 @@ def _check(
         default=False,
     )
 
-    return din, npts, dcam, plot, save, pfe_fig, pfe_npz
+    return (
+        key_crystals, din,
+        npts, dcam,
+        plot, save, pfe_fig, pfe_npz,
+    )
+
+
+def _check_dcrystals(dcrystals):
+
+    # ----------------
+    # basics
+    # ----------------
+
+    c0 = (
+        isinstance(dcrystals, dict)
+        and all([isinstance(k0, str) for k0 in dcrystals.keys()])
+        and all([isinstance(v0, dict) for v0 in dcrystals.values()])
+    )
+    if not c0:
+        _err_dcrystals(dcrystals)
+
+    # -------------------
+    # loop on key, values
+    # -------------------
+
+    dfail = {}
+    for i0, (k0, v0) in enumerate(dcrystals.items()):
+
+        try:
+            # ---------------
+            # bragg0
+
+            dcrystals[k0]['bragg0'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('bragg0'),
+                f"dcrystals['{k0}']['bragg0']",
+                types=(int, float, np.float),
+                sign=[">0", "<1.5708"],
+            ))
+
+            # ---------------
+            # lamb0
+
+            dcrystals[k0]['lamb0'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('lamb0'),
+                f"dcrystals['{k0}']['lamb0']",
+                types=(int, float, np.float),
+                sign=[">0"],
+            ))
+
+            # ---------------
+            # lamb0_min
+
+            if dcrystals[k0].get('lamb0_min') is not None:
+                dcrystals[k0]['lamb0_min'] = float(ds._generic_check._check_var(
+                    dcrystals[k0].get('lamb0_min'),
+                    f"dcrystals['{k0}']['lamb0_min']",
+                    types=(int, float, np.float),
+                    sign=[">0", f">{dcrystals[k0]['lamb0']}"],
+                ))
+
+            # ---------------
+            # lamb0_max
+
+            if dcrystals[k0].get('lamb0_max') is not None:
+                dcrystals[k0]['lamb0_max'] = float(ds._generic_check._check_var(
+                    dcrystals[k0].get('lamb0_max'),
+                    f"dcrystals['{k0}']['lamb0_max']",
+                    types=(int, float, np.float),
+                    sign=[">0", f"<{dcrystals[k0]['lamb0']}"],
+                ))
+
+            # ---------------
+            # rcurve
+
+            dcrystals[k0]['rcurve'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('rcurve'),
+                f"dcrystals['{k0}']['rcurve']",
+                types=(int, float, np.float),
+                default=np.inf,
+            ))
+
+            # ---------------
+            # xx
+
+            dcrystals[k0]['xx'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('xx'),
+                f"dcrystals['{k0}']['xx']",
+                types=(int, float, np.float),
+                sign='>0.',
+            ))
+
+            # ---------------
+            # length
+
+            dcrystals[k0]['length'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('length'),
+                f"dcrystals['{k0}']['length']",
+                types=(int, float, np.float),
+                sign='>0.',
+            ))
+
+            # ---------------
+            # dist
+
+            dcrystals[k0]['dist'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('dist'),
+                f"dcrystals['{k0}']['dist']",
+                types=(int, float, np.float),
+                sign='>0.',
+            ))
+
+            # ---------------
+            # varrad_b
+
+            dcrystals[k0]['varrad_b'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('varrad_b'),
+                f"dcrystals['{k0}']['varrad_b']",
+                types=(int, float, np.float),
+                sign='>0.',
+                default=np.nan,
+            ))
+
+            # ---------------
+            # label
+
+            dcrystals[k0]['label'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('label'),
+                f"dcrystals['{k0}']['label']",
+                types=str,
+                default=str(k0),
+            ))
+
+            # ---------------
+            # color
+
+            if dcrystals[k0].get('color') is None:
+                dcrystals[k0]['color'] = ['r', 'g', 'b', 'm', 'y', 'c'][i0]
+                if not mcolors.is_color_like(dcrystals[k0]['color']):
+                    msg = f"dcrystals['{k0}']['color'] not color-like!"
+                    raise Exception(msg)
+            dcrystals[k0]['color'] = mcolors.to_rgba(dcrystals[k0]['color'])
+
+        except Exception as err:
+            dfail[k0] = str(err)
+
+    # -------------------
+    # raise errors if any
+    # -------------------
+
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = "\n".join(lstr)
+        _err_dcrystals(dcrystals, errstr=msg)
+
+    return
+
+
+def _err_dcrystals(dcrystals, errstr=''):
+    msg = (
+        "Arg dcrystals must be a dict of sub-dicts of the form:\n"
+        "\t- 'key0': {\n"
+        "\t\t'lamb0': float,     (m)\n"
+        "\t\t'lamb0_min': float, (optional)\n"
+        "\t\t'lamb0_max': float, (optional)\n"
+        "\t\t'bragg0': float,    (rad)\n"
+        "\t\t'rcurve': float,    (inf if flat, +/-float if concave/convex)\n"
+        "\t\t'xx': float,        (m, distance from aperture)\n"
+        "\t\t'length': float,    (m, crystal length)\n"
+        "\t\t'dist': float,      (m, crystal-to-camera distance)\n"
+        "\t\t'varrad_b': float,  (m, ??)\n"
+        "\t\t'color': color-like,   (optional)\n"
+        "\t\t'label': str,          (optional)\n"
+        "\t\t'yy': str,             (optional, height on camera image, ii)\n"
+        "\t}\n\n"
+        + errstr
+        + "\n\nProvided:\n{dcrystals}\n"
+    )
+    raise Exception(msg)
 
 
 # #################################################################
@@ -328,6 +497,7 @@ def _check(
 
 
 def _compute(
+    key_crystals=None,
     # crystal
     lamb0=None,
     bragg0=None,
@@ -589,6 +759,7 @@ def _compute(
 
 
 def _plot(
+    key_crystals=None,
     # crystal
     lamb0=None,
     bragg0=None,
@@ -726,6 +897,7 @@ def _plot(
                 marker='.',
                 color=color,
                 ms=6,
+                label=None,
             )
 
             # lamb min, max
