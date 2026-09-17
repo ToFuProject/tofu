@@ -1,3 +1,6 @@
+import os
+
+
 import numpy as np
 import matplotlib.colors as mcolors
 import datastock as ds
@@ -66,28 +69,6 @@ def main(
 
     _dmatch(dmatch, dcam=dcam, dap=dap, dcrystals=dcrystals)
 
-    # -----------------
-    # initialize dict
-
-    din = {
-        'lamb0': lamb0,
-        'bragg0': bragg0,
-        # geometry
-        'xx': xx,
-        'length': length,
-        'rcurve': rcurve,
-        'varrad_b': varrad_b,
-        'dist': dist,
-    }
-
-    # ------------
-    # add basis
-
-    # din.update(din_basis)
-
-    # -------
-    # dcam
-
     # ---------
     # plot
     # ---------
@@ -110,9 +91,56 @@ def main(
         default=False,
     )
 
+    # ---------
+    # pfe
+    # ---------
+
+    if save is True:
+
+        # -----------
+        # pfe_fig
+
+        path = os.path.abspath('.')
+        name = f"spectral_range_2d_{len(dmatch)}cases.png"
+        pfe_fig_def = os.path.join(path, name)
+
+        pfe_fig = ds._generic_check._check_var(
+            pfe_fig, 'pfe_fig',
+            types=str,
+            default=pfe_fig_def,
+        )
+
+        if not os.path.isdir(os.path.split(pfe_fig)[0]):
+            msg = (
+                "Arg 'pfe_fig' points to a non-existing dir!\n"
+                f"Provided:\n{pfe_fig}\n"
+            )
+            raise Exception(msg)
+
+        # -----------
+        # pfe_npz
+
+        name = f"spectral_range_2d_{len(dmatch)}cases.npz"
+        pfe_npz_def = os.path.join(path, name)
+
+        pfe_npz = ds._generic_check._check_var(
+            pfe_npz, 'pfe_npz',
+            types=str,
+            default=pfe_npz_def,
+        )
+
+        if not os.path.isdir(os.path.split(pfe_npz)[0]):
+            msg = (
+                "Arg 'pfe_fig' points to a non-existing dir!\n"
+                f"Provided:\n{pfe_npz}\n"
+            )
+            raise Exception(msg)
+    else:
+        pfe_fig = None
+        pfe_npz = None
+
     return (
-        key_crystals, din,
-        npts, dcam,
+        dap, dcrystals, dcam, dmatch,
         plot, save, pfe_fig, pfe_npz,
     )
 
@@ -553,6 +581,18 @@ def _dcam(dcam, dap=None, dcrystals=None):
                 )
 
             # ---------------
+            # length
+
+            dcam[k0]['from_cryst']['length'] = float(
+                ds._generic_check._check_var(
+                    dcam[k0]['from_cryst'].get('length'),
+                    f"dcam['{k0}']['from_cryst']['length']",
+                    types=(float, int, np.float),
+                    sign='>0.',
+                )
+            )
+
+            # ---------------
             # label
 
             dcam[k0]['label'] = ds._generic_check._check_var(
@@ -612,7 +652,39 @@ def _err_dcam(dcam, errstr=''):
 # ######################################
 
 
-def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None):
+def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None, npts=None):
+
+    # ----------------
+    # prepare
+    # ----------------
+
+    lok = {
+        'aperture': list(dap.keys()),
+        'crystal': list(dcrystals.keys()),
+        'cam': list(dcam.keys()),
+    }
+
+    # ----------------
+    # if None => all
+    # ----------------
+
+    if dmatch is None:
+        dmatch = {}
+        for kap in lok['aperture']:
+            for kcryst in lok['crystal']:
+                for kcam in lok['cam']:
+
+                    key = f"{kap}_{kcryst}_{kcam}"
+                    dmatch[key] = {
+                        'keys': {
+                            'aperture': kap,
+                            'crystal': kcryst,
+                            'cam': kcam,
+                        },
+                        'npts': None,
+                        'color': None,
+                        'label': None,
+                    }
 
     # ----------------
     # basics
@@ -626,14 +698,6 @@ def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None):
         _err_dmatch(dmatch)
 
     # ----------------
-    # prepare
-    # ----------------
-
-    lok_ap = list(dap.keys())
-    lok_cryst = list(dcrystals.keys())
-    lok_cam = list(dccam.keys())
-
-    # ----------------
     # loop on keys
     # ----------------
 
@@ -642,7 +706,50 @@ def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None):
 
         try:
             # ---------------
-            # from_cryst
+            # keys
+
+            if not isinstance(v0.get('keys'), dict):
+                dfail[k0] = "keys must be a dict"
+                continue
+
+            for kk in ['aperture', 'crystal', 'cam']:
+                dmatch[k0]['keys'][kk] = ds._generic_check._check_var(
+                    dmatch[k0]['keys'].get(kk),
+                    f"dmatch['{k0}']['keys']['{kk}']",
+                    types=str,
+                    allowed=lok[kk],
+                )
+
+            # ---------------
+            # npts
+
+            dmatch[k0]['npts'] = ds._generic_check._check_var(
+                dmatch[k0].get('npts'),
+                f"dmatch['{k0}']['npts']",
+                types=(int, float),
+                sign='>0.',
+                default=npts,
+            )
+
+            # ---------------
+            # label
+
+            dmatch[k0]['label'] = ds._generic_check._check_var(
+                dmatch[k0].get('label'),
+                f"dmatch['{k0}']['label']",
+                types=str,
+                default=str(k0),
+            )
+
+            # ---------------
+            # color
+
+            if dmatch[k0].get('color') is None:
+                dmatch[k0]['color'] = 'k'
+            if not mcolors.is_color_like(dmatch[k0]['color']):
+                msg = f"dcam['{k0}']['color'] not color-like!"
+                raise Exception(msg)
+            dmatch[k0]['color'] = mcolors.to_rgba(dmatch[k0]['color'])
 
         except Exception as err:
             dfail[k0] = str(err)
