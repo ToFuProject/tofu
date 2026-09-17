@@ -1,0 +1,673 @@
+import numpy as np
+import matplotlib.colors as mcolors
+import datastock as ds
+
+
+# ######################################
+# ######################################
+#          Main check function
+# ######################################
+
+
+def main(
+    # apertures, crystals, cameras
+    dap=None,
+    dcrystals=None,
+    dcam=None,
+    # matches
+    dmatch=None,
+    # options
+    npts=None,
+    # plotting
+    plot=None,
+    dax=None,
+    # saving
+    save=None,
+    pfe_fig=None,
+    pfe_npz=None,
+    # unused
+    **kwdargs,
+):
+
+    # --------------
+    # dap
+    # --------------
+
+    _dap(dap)
+
+    # -----------------
+    # dcrystals
+    # -----------------
+
+    _dcrystals(dcrystals)
+
+    # --------------
+    # dcam
+    # --------------
+
+    _dcam(dcam, dap=dap, dcrystals=dcrystals)
+
+    # ---------
+    # npts
+    # ---------
+
+    npts = int(ds._generic_check._check_var(
+        npts, 'npts',
+        types=(float, int),
+        sign='>0',
+        default=101,
+    ))
+    if npts % 2 == 0:
+        npts += 1
+
+    # --------------
+    # dmatch
+    # --------------
+
+    _dmatch(dmatch, dcam=dcam, dap=dap, dcrystals=dcrystals)
+
+    # -----------------
+    # initialize dict
+
+    din = {
+        'lamb0': lamb0,
+        'bragg0': bragg0,
+        # geometry
+        'xx': xx,
+        'length': length,
+        'rcurve': rcurve,
+        'varrad_b': varrad_b,
+        'dist': dist,
+    }
+
+    # ------------
+    # add basis
+
+    # din.update(din_basis)
+
+    # -------
+    # dcam
+
+    # ---------
+    # plot
+    # ---------
+
+    # plot
+    plot = ds._generic_check._check_var(
+        plot, 'plot',
+        types=bool,
+        default=True,
+    )
+
+    # ---------
+    # save
+    # ---------
+
+    # save
+    save = ds._generic_check._check_var(
+        save, 'save',
+        types=bool,
+        default=False,
+    )
+
+    return (
+        key_crystals, din,
+        npts, dcam,
+        plot, save, pfe_fig, pfe_npz,
+    )
+
+
+# ######################################
+# ######################################
+#        Apertures check function
+# ######################################
+
+
+def _dap(dap):
+
+    # ----------------
+    # basics
+    # ----------------
+
+    c0 = (
+        isinstance(dap, dict)
+        and all([isinstance(v0, dict) for v0 in dap.values()])
+    )
+    if not c0:
+        _err_dcrystals(dap)
+
+    # -------------------
+    # loop on key, values
+    # -------------------
+
+    dfail = {}
+    for i0, (k0, v0) in enumerate(dap.items()):
+
+        try:
+
+            # ---------------
+            # cent
+
+            if dap[k0].get('cent') is None:
+                dap[k0]['cent'] = np.r_[0, 0]
+
+            dap[k0]['cent'] = ds._generic_check._check_flat1darray(
+                dap[k0]['cent'],
+                f"dap['{k0}']['cent']",
+                dtype=float,
+                size=2,
+            )
+
+            # ---------------
+            # ex
+
+            if dap[k0].get('ex') is None:
+                dap[k0]['ex'] = np.r_[1, 0]
+
+            dap[k0]['ex'] = ds._generic_check._check_flat1darray(
+                dap[k0]['ex'],
+                f"dap['{k0}']['ex']",
+                dtype=float,
+                size=2,
+                norm=True,
+            )
+
+            # ---------------
+            # ey
+
+            if dap[k0].get('ey') is None:
+                dap[k0]['ey'] = np.r_[-dap[k0]['ex'][1], dap[k0]['ex'][0]]
+
+            dap[k0]['ey'] = ds._generic_check._check_flat1darray(
+                dap[k0]['ey'],
+                f"dap['{k0}']['ey']",
+                dtype=float,
+                size=2,
+                norm=True,
+            )
+
+            dap[k0]['ey'] -= np.sum(dap[k0]['ey']*dap[k0]['ex'])*dap[k0]['ex']
+            dap[k0]['ey'] = dap[k0]['ey'] / np.linalg.norm(dap[k0]['ey'])
+
+            # ---------------
+            # semi_angle_max
+
+            if dap[k0].get('semi_angle_max') is not None:
+                dap[k0]['semi_angle_max'] = float(
+                    ds._generic_check._check_var(
+                        dap[k0]['semi_angle_max'],
+                        f"dap['{k0}']['semi_angle_max']",
+                        types=(float, int, np.float),
+                        sign=['>0', '<1.57'],
+                    )
+                )
+
+            # ---------------
+            # label
+
+            dap[k0]['label'] = ds._generic_check._check_var(
+                dap[k0].get('label'),
+                f"dap['{k0}']['label']",
+                types=str,
+                default=str(k0),
+            )
+
+            # ---------------
+            # color
+
+            if dap[k0].get('color') is None:
+                dap[k0]['color'] = 'k'
+            if not mcolors.is_color_like(dap[k0]['color']):
+                msg = f"dap['{k0}']['color'] not color-like!"
+                raise Exception(msg)
+            dap[k0]['color'] = mcolors.to_rgba(dap[k0]['color'])
+
+        except Exception as err:
+            dfail[k0] = str(err)
+
+    # -------------------
+    # raise errors if any
+    # -------------------
+
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = "\n".join(lstr)
+        _err_dap(dap, errstr=msg)
+
+    return
+
+
+def _err_dap(dap, errstr=''):
+    msg = (
+        "Arg dap must be a dict of sub-dicts of the form:\n"
+        "\t- 'key0': {\n"
+        "\t\t'cent': array of 2 floats,     (default to [0, 0])\n"
+        "\t\t'ex': array of 2 floats, normalized (default to [1, 0])\n"
+        "\t\t'ey': array of 2 floats, normalized (default to [0, 1])\n"
+        "\t\t'semi_angle_max': None / float, max opening of ap\n"
+        "\t\t'color': color-like,   (optional)\n"
+        "\t\t'label': str,          (optional)\n"
+        "\t}\n\n"
+        + errstr
+        + f"\n\nProvided:\n{dap}\n"
+    )
+    raise Exception(msg)
+
+
+# ######################################
+# ######################################
+#          Crystals check function
+# ######################################
+
+
+def _dcrystals(dcrystals):
+
+    # ----------------
+    # basics
+    # ----------------
+
+    c0 = (
+        isinstance(dcrystals, dict)
+        and all([isinstance(v0, dict) for v0 in dcrystals.values()])
+    )
+    if not c0:
+        _err_dcrystals(dcrystals)
+
+    # -------------------
+    # loop on key, values
+    # -------------------
+
+    dfail = {}
+    for i0, (k0, v0) in enumerate(dcrystals.items()):
+
+        try:
+            # ---------------
+            # bragg0
+
+            dcrystals[k0]['bragg0'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('bragg0'),
+                f"dcrystals['{k0}']['bragg0']",
+                types=(int, float, np.float),
+                sign=[">0", "<1.5708"],
+            ))
+
+            # ---------------
+            # lamb0
+
+            dcrystals[k0]['lamb0'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('lamb0'),
+                f"dcrystals['{k0}']['lamb0']",
+                types=(int, float, np.float),
+                sign=[">0"],
+            ))
+
+            # ---------------
+            # lamb0_min
+
+            if dcrystals[k0].get('lamb0_min') is not None:
+                dcrystals[k0]['lamb0_min'] = float(
+                    ds._generic_check._check_var(
+                        dcrystals[k0].get('lamb0_min'),
+                        f"dcrystals['{k0}']['lamb0_min']",
+                        types=(int, float, np.float),
+                        sign=[">0", f">{dcrystals[k0]['lamb0']}"],
+                    )
+                )
+
+            # ---------------
+            # lamb0_max
+
+            if dcrystals[k0].get('lamb0_max') is not None:
+                dcrystals[k0]['lamb0_max'] = float(
+                    ds._generic_check._check_var(
+                        dcrystals[k0].get('lamb0_max'),
+                        f"dcrystals['{k0}']['lamb0_max']",
+                        types=(int, float, np.float),
+                        sign=[">0", f"<{dcrystals[k0]['lamb0']}"],
+                    )
+                )
+
+            # ---------------
+            # rcurve
+
+            dcrystals[k0]['rcurve'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('rcurve'),
+                f"dcrystals['{k0}']['rcurve']",
+                types=(int, float, np.float),
+                default=np.inf,
+            ))
+
+            # ---------------
+            # xx
+
+            dcrystals[k0]['dist_from_ap'] = float(
+                ds._generic_check._check_var(
+                    dcrystals[k0].get('dist_from_ap'),
+                    f"dcrystals['{k0}']['dist_from_ap']",
+                    types=(int, float, np.float),
+                    sign='>0.',
+                )
+            )
+
+            # ---------------
+            # length
+
+            dcrystals[k0]['length'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('length'),
+                f"dcrystals['{k0}']['length']",
+                types=(int, float, np.float),
+                sign='>0.',
+            ))
+
+            # ---------------
+            # dist
+
+            dcrystals[k0]['dist_reflect'] = float(
+                ds._generic_check._check_var(
+                    dcrystals[k0].get('dist_reflect'),
+                    f"dcrystals['{k0}']['dist_reflect']",
+                    types=(int, float, np.float),
+                    sign='>0.',
+                )
+            )
+
+            # ---------------
+            # varrad_b
+
+            dcrystals[k0]['varrad_b'] = float(ds._generic_check._check_var(
+                dcrystals[k0].get('varrad_b'),
+                f"dcrystals['{k0}']['varrad_b']",
+                types=(int, float, np.float),
+                sign='>0.',
+                default=np.nan,
+            ))
+
+            # ---------------
+            # label
+
+            dcrystals[k0]['label'] = ds._generic_check._check_var(
+                dcrystals[k0].get('label'),
+                f"dcrystals['{k0}']['label']",
+                types=str,
+                default=str(k0),
+            )
+
+            # ---------------
+            # color
+
+            if dcrystals[k0].get('color') is None:
+                dcrystals[k0]['color'] = 'k'
+            if not mcolors.is_color_like(dcrystals[k0]['color']):
+                msg = f"dcrystals['{k0}']['color'] not color-like!"
+                raise Exception(msg)
+            dcrystals[k0]['color'] = mcolors.to_rgba(dcrystals[k0]['color'])
+
+        except Exception as err:
+            dfail[k0] = str(err)
+
+    # -------------------
+    # raise errors if any
+    # -------------------
+
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = "\n".join(lstr)
+        _err_dcrystals(dcrystals, errstr=msg)
+
+    return
+
+
+def _err_dcrystals(dcrystals, errstr=''):
+    msg = (
+        "Arg dcrystals must be a dict of sub-dicts of the form:\n"
+        "\t- 'key0': {\n"
+        "\t\t'lamb0': float,     (m)\n"
+        "\t\t'lamb0_min': float, (optional)\n"
+        "\t\t'lamb0_max': float, (optional)\n"
+        "\t\t'bragg0': float,    (rad)\n"
+        "\t\t'rcurve': float,    (inf if flat, +/-float if concave/convex)\n"
+        "\t\t'xx': float,        (m, distance from aperture)\n"
+        "\t\t'length': float,    (m, crystal length)\n"
+        "\t\t'dist': float,      (m, crystal-to-camera distance)\n"
+        "\t\t'varrad_b': float,  (m, ??)\n"
+        "\t\t'color': color-like,   (optional)\n"
+        "\t\t'label': str,          (optional)\n"
+        "\t\t'yy': str,             (optional, height on camera image, ii)\n"
+        "\t}\n\n"
+        + errstr
+        + f"\n\nProvided:\n{dcrystals}\n"
+    )
+    raise Exception(msg)
+
+
+# ######################################
+# ######################################
+#          Cameras check function
+# ######################################
+
+
+def _dcam(dcam, dap=None, dcrystals=None):
+
+    # ----------------
+    # basics
+    # ----------------
+
+    c0 = (
+        isinstance(dcam, dict)
+        and all([isinstance(v0, dict) for v0 in dcam.values()])
+    )
+    if not c0:
+        _err_dcam(dcam)
+
+    # ----------------
+    # prepare
+    # ----------------
+
+    lok_ap = list(dap.keys())
+    lok_cryst = list(dcrystals.keys())
+
+    # ----------------
+    # loop on keys
+    # ----------------
+
+    dfail = {}
+    for i0, (k0, v0) in enumerate(dcam.items()):
+
+        try:
+            # ---------------
+            # from_dist vs (cent, nin)
+
+            lc = [
+                v0.get('from_cryst') is not None
+                and isinstance(v0['from_cryst'], dict),
+                all([v0.get(kk) is not None for kk in ['cent', 'nin']])
+            ]
+            if np.sum(lc) != 1:
+                msg = "Provide either 'from_cryst' or {'cent', 'nin'}"
+                dfail[k0] = msg
+                continue
+
+            # ---------------
+            # from_cryst
+
+            if lc[0]:
+
+                # key
+                dcam[k0]['from_cryst']['key'] = ds._generic_check._check_var(
+                    dcam[k0]['from_cryst'].get('key'),
+                    f"dcam['{k0}']['from_cryst']['key']",
+                    types=str,
+                    allowed=lok_cryst,
+                )
+
+                # dist
+                dcam[k0]['from_cryst']['dist'] = float(
+                    ds._generic_check._check_var(
+                        dcam[k0]['from_cryst'].get('dist'),
+                        f"dcam['{k0}']['from_cryst']['dist']",
+                        types=(float, int, np.float),
+                        sign='>0.',
+                    )
+                )
+
+                # angle
+                dcam[k0]['from_cryst']['angle'] = float(
+                    ds._generic_check._check_var(
+                        dcam[k0]['from_cryst'].get('angle'),
+                        f"dcam['{k0}']['from_cryst']['angle']",
+                        types=(float, int, np.float),
+                    )
+                )
+
+                dcam[k0]['ref_frame'] = None
+
+            # ---------------
+            # cent, nin
+
+            else:
+
+                # cent
+                dcam[k0]['cent'] = ds._generic_check._check_flat1darray(
+                    dcam[k0]['cent'],
+                    f"dcam['{k0}']['cent']",
+                    dtype=float,
+                    size=2,
+                )
+
+                # nin
+                dcam[k0]['nin'] = ds._generic_check._check_flat1darray(
+                    dcam[k0]['nin'],
+                    f"dcam['{k0}']['nin']",
+                    dtype=float,
+                    size=2,
+                    norm=True,
+                )
+
+                # ref_frame
+                dcam[k0]['ref_frame'] = ds._generic_check._check_var(
+                    dcam[k0]['ref_frame'],
+                    f"dcam['{k0}']['ref_frame']",
+                    types=str,
+                    default='abs',
+                    allowed=lok_ap + ['abs'],
+                )
+
+            # ---------------
+            # label
+
+            dcam[k0]['label'] = ds._generic_check._check_var(
+                dcam[k0].get('label'),
+                f"dcam['{k0}']['label']",
+                types=str,
+                default=str(k0),
+            )
+
+            # ---------------
+            # color
+
+            if dcam[k0].get('color') is None:
+                dcam[k0]['color'] = 'k'
+            if not mcolors.is_color_like(dcam[k0]['color']):
+                msg = f"dcam['{k0}']['color'] not color-like!"
+                raise Exception(msg)
+            dcam[k0]['color'] = mcolors.to_rgba(dcam[k0]['color'])
+
+        except Exception as err:
+            dfail[k0] = str(err)
+
+    # -------------------
+    # raise errors if any
+    # -------------------
+
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = "\n".join(lstr)
+        _err_dcrystals(dcrystals, errstr=msg)
+
+    return
+
+
+def _err_dcam(dcam, errstr=''):
+    msg = (
+        "Arg dcam must be a dict of sub-dicts of the form:\n"
+        "\t- 'key0': {\n"
+        "\t\t'from_cryst': {'key': str, 'dist': float, 'angle': float}\n"
+        "\t\t'cent': array of 2 floats, in ref_frame\n"
+        "\t\t'nin': array of 2 floats, in ref_frame\n"
+        "\t\t'ref_frame': None / str, (absolute or kap)\n"
+        "\t\t'length': float,\n"
+        "\t\t'color': color-like,   (optional)\n"
+        "\t\t'label': str,          (optional)\n"
+        "\t}\n\n"
+        "Provide either 'from_cryst' xor ('cent', 'nin', 'ref_frame')"
+        + errstr
+        + f"\n\nProvided:\n{dcam}\n"
+    )
+    raise Exception(msg)
+
+
+# ######################################
+# ######################################
+#          dmatch check functions
+# ######################################
+
+
+def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None):
+
+    # ----------------
+    # basics
+    # ----------------
+
+    c0 = (
+        isinstance(dmatch, dict)
+        and all([isinstance(v0, dict) for v0 in dmatch.values()])
+    )
+    if not c0:
+        _err_dmatch(dmatch)
+
+    # ----------------
+    # prepare
+    # ----------------
+
+    lok_ap = list(dap.keys())
+    lok_cryst = list(dcrystals.keys())
+    lok_cam = list(dccam.keys())
+
+    # ----------------
+    # loop on keys
+    # ----------------
+
+    dfail = {}
+    for i0, (k0, v0) in enumerate(dmatch.items()):
+
+        try:
+            # ---------------
+            # from_cryst
+
+        except Exception as err:
+            dfail[k0] = str(err)
+
+    # -------------------
+    # raise errors if any
+    # -------------------
+
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = "\n".join(lstr)
+        _err_dmatch(dmatch, errstr=msg)
+
+    return
+
+
+def _err_dmatch(dmatch, errstr=''):
+    msg = (
+        "Arg dcam must be a dict of sub-dicts of the form:\n"
+        "\t- 'key0': {\n"
+        "\t\t'cent': array of 2 floats,     (default to [0, 0])\n"
+        "\t\t'color': color-like,   (optional)\n"
+        "\t\t'label': str,          (optional)\n"
+        "\t}\n\n"
+        + errstr
+        + f"\n\nProvided:\n{dmatch}\n"
+    )
+    raise Exception(msg)
