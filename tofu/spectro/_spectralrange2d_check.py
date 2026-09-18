@@ -19,6 +19,8 @@ def main(
     dcam=None,
     # matches
     dmatch=None,
+    # large scans
+    dscans=None,
     # options
     npts=None,
     # plotting
@@ -141,6 +143,7 @@ def main(
 
     return (
         dap, dcrystals, dcam, dmatch,
+        dscans,
         plot, save, pfe_fig, pfe_npz,
     )
 

@@ -7,12 +7,11 @@ import matplotlib.gridspec as gridspec
 
 # ####################################
 # ####################################
-#           Plot main function
+#       Plot match function
 # ####################################
 
 
-def main(
-    key_crystals=None,
+def match(
     # crystal
     lamb0=None,
     bragg0=None,
@@ -88,7 +87,7 @@ def main(
     # prepare figure
 
     if dax is None:
-        dax = _dax()
+        dax = _match_dax()
 
     # -----------
     # plot
@@ -238,11 +237,11 @@ def main(
 
 # ####################################
 # ####################################
-#       Get dax
+#       match -Get dax
 # ####################################
 
 
-def _dax():
+def _match_dax():
 
     # --------------
     # prepare figure
