@@ -92,7 +92,24 @@ def main(
         # ---------
         # derive dscans
 
+        shape = (len(dmatch),)
         dscans = {}
+        for i0, (k0, v0) in dmatch.items():
+
+            # prepare
+            dmatch[k0]['ind'] = i0
+            dapi = dap[v0['keys']['aperture']]
+            dcrysti = dcrystals[v0['keys']['crystal']]
+            dcami = dcam[v0['keys']['cam']]
+
+            # loop on data
+            for kk in lout:
+
+                if kk == '':
+                    val = None
+
+                # store
+                dscans[kk][i0] = val
 
     # --------------
     # check dscans
@@ -799,62 +816,54 @@ def _dscans(
         _err_dscans(dscans)
 
     # ----------------
+    # keys and def
+    # ----------------
+
+    _DDEF = {
+        'apx': (float, 0),
+        'apy': (float, 0),
+        'ex0': ,
+        'dist_from_ap': (float,),
+        'bragg0':
+    }
+
+    # ----------------
     # loop on keys
     # ----------------
 
-    # TBF
     dfail = {}
-    for i0, (k0, v0) in enumerate(dscans.items()):
+    for k0, v0 in _DDEF.items():
+
+        # -------------------
+        # set values as array
 
         try:
-            # ---------------
-            # keys
+            if dscans.get(k0) is None:
+                if len(v0) >= 2:
+                    dscans[k0] = np.atleast_1d(v0[1])
+                else:
+                    msg = (
+                        f"Arg dscans['{k0}'] must be provided!\n"
+                    )
+                    raise Exception(msg)
 
-            if not isinstance(v0.get('keys'), dict):
-                dfail[k0] = "keys must be a dict"
-                continue
-
-            for kk in ['aperture', 'crystal', 'cam']:
-                dmatch[k0]['keys'][kk] = ds._generic_check._check_var(
-                    dmatch[k0]['keys'].get(kk),
-                    f"dmatch['{k0}']['keys']['{kk}']",
-                    types=str,
-                    allowed=lok[kk],
-                )
-
-            # ---------------
-            # npts
-
-            dmatch[k0]['npts'] = ds._generic_check._check_var(
-                dmatch[k0].get('npts'),
-                f"dmatch['{k0}']['npts']",
-                types=(int, float),
-                sign='>0.',
-                default=npts,
-            )
-
-            # ---------------
-            # label
-
-            dmatch[k0]['label'] = ds._generic_check._check_var(
-                dmatch[k0].get('label'),
-                f"dmatch['{k0}']['label']",
-                types=str,
-                default=str(k0),
-            )
-
-            # ---------------
-            # color
-
-            if dmatch[k0].get('color') is None:
-                dmatch[k0]['color'] = 'k'
-            if not mcolors.is_color_like(dmatch[k0]['color']):
-                msg = f"dcam['{k0}']['color'] not color-like!"
-                raise Exception(msg)
-            dmatch[k0]['color'] = mcolors.to_rgba(dmatch[k0]['color'])
+            else:
+                dscans[k0] = np.atleast_1d(dscans[k0])
 
         except Exception as err:
             dfail[k0] = str(err)
+
+    # -------------------
+    # check broadcastable
+    # -------------------
+
+    try:
+        shape = np.broadcast_shapes(*[vv.shape for vv in dscans.values()])
+        for k0, v0 in dscans.items():
+            dscans[k0] = np.broadcast_to(v0)
+    except Exception:
+        lstr = [f"\t- {k0}: {v0.shape}" for k0, v0 in dscans.items()]
+        dfail["broadcastable"] = "\n".join(lstr)
 
     # -------------------
     # raise errors if any
@@ -879,6 +888,7 @@ def _err_dscans(dscans, errstr=''):
         + f"\n\nProvided:\n{dscans}\n"
     )
     raise Exception(msg)
+
 
 # ######################################
 # ######################################

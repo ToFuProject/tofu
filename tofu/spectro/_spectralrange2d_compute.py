@@ -8,80 +8,103 @@ import numpy as np
 
 
 def main(
+    # aperture
+    ap0=None,
+    ap1=None,
+    ex0=None,
+    ex1=None,
+    ey0=None,
+    ey1=None,
     # crystal
+    dist_from_ap=None,
     lamb0=None,
     bragg0=None,
+    rcurve=None,
+    varrad_b=None,
     # geometry basis
     beta_max=None,
     # geometry
     xx=None,
     length=None,
-    rcurve=None,
-    varrad_b=None,
-    dist=None,
     # options
     npts=None,
 ):
 
     # ------------
-    # loop on match
+    # crystal's summit
     # ------------
 
-    csummit = dapi['cent'] + dcrysti['dist_from_ap'] * dapi['ex']
+    csummit0 = ap0 + dist_from_ap * ex0
+    csummit1 = ap1 + dist_from_ap * ex1
 
     # -----------------
     # sort by crystal type
-
-    # flat crystals
-    if np.isinf(dcrysti['rcurve']):
-        _compute_flat()
-
-    # variable radii crystals
-    elif np.isfinite(dcrysti['varrad_b']):
-        _compute_varrad()
-
-    # curved crystals
-    else:
-        _compute_curved()
-
-
-
-
-    # ------------
-    # initialize
-
-    size = lamb0.size
-
-    crystx = np.full((npts, size), np.nan)
-    crysty = np.full((npts, size), np.nan)
-    vnx = np.full((npts, size), np.nan)
-    vny = np.full((npts, size), np.nan)
-
-    # ----------------
-    # compute geometry
-    # ----------------
-
-    # ------------------------
-    # indices of crystal types
+    # -----------------
 
     # variable-radii sinusoidal spiral
-    indb = np.isfinite(varrad_b)
+    ispiral = np.isfinite(varrad_b)
 
     # indices of curved crystals
-    indc = np.isfinite(rcurve) & (~indb)
+    icurve = np.isfinite(rcurve) & (~ispiral)
 
     # flat
-    indf = (~indc) & (~indb)
+    iflat = (~icurve) & (~ispiral)
 
     # safety check
-    if not np.all(np.sum([indc, indb, indf], axis=0) == 1):
+    if not np.all(np.sum([icurve, iflat, ispiral], axis=0) == 1):
         msg = (
             "Some undetermined 2d crystal shapes:\n"
-            f"\t- indc = {indc}\n"
-            f"\t- indb = {indb}\n"
-            f"\t- indf = {indf}\n"
+            f"\t- iflat   = {iflat}\n"
+            f"\t- icurve  = {icurve}\n"
+            f"\t- ispiral = {ispiral}\n"
         )
         raise Exception(msg)
+
+    # ----------------
+    # initialize
+    # ----------------
+
+    shape = (npts,) + ex0.shape
+    cryst0 = np.full(shape, np.nan)
+    cryst1 = np.full(shape, np.nan)
+    vn0 = np.full(shape, np.nan)
+    vn1 = np.full(shape, np.nan)
+    lamb = np.full(shape, np.nan)
+
+    # ----------------
+    # sample rays on crytals
+    # ----------------
+
+    kpts = np.linspace(-1, 1, npts)
+    lif = [
+        (iflat, _compute_flat),
+        (icurve, _compute_curve),
+        (ispiral, _compute_spiral),
+    ]
+
+    for ind, func in lif:
+        if np.any(ind):
+            (
+                cryst0[:, ind], cryst1[:, ind],
+                vn0[:, ind], vn1[:, ind],
+            ) = func(
+                csummit0=csummit0[ind],
+                csummit1=csummit1[ind],
+                bragg0=bragg0[ind],
+                ex0=ex0[ind],
+                ex1=ex1[ind],
+                ey0=ey0[ind],
+                ey1=ey1[ind],
+                length=length[ind],
+                kpts=kpts[ind],
+                rcurve=rcurve[ind],
+            )
+
+
+
+
+
+
 
 
     # ----------------
@@ -184,49 +207,79 @@ def main(
 # #################################################################
 
 
-def _compute_flat():
+def _compute_flat(
+    csummit0=None,
+    csummit1=None,
+    bragg0=None,
+    ex0=None,
+    ex1=None,
+    ey0=None,
+    ey1=None,
+    length=None,
+    kpts=None,
+    # unused
+    **kwdargs,
+):
 
     # crystal plotting - straight
-    estraightx = np.cos(bragg0)[indf] * ex[0] + np.sin(bragg0)[indf] * ey[0]
-    estraighty = np.cos(bragg0)[indf] * ex[1] + np.sin(bragg0)[indf] * ey[1]
+    estraight0 = np.cos(bragg0) * ex0 + np.sin(bragg0) * ey0
+    estraight1 = np.cos(bragg0) * ex1 + np.sin(bragg0) * ey1
 
-    ll = 0.5 * length[None, indf] * np.linspace(-1, 1, npts)[:, None]
-    crystx[:, indf] = sx[None, indf] + ll*estraightx[None, :]
-    crysty[:, indf] = sy[None, indf] + ll*estraighty[None, :]
+    # sample length of crystal
+    sli = (slice(None),) + (None,) * ex0.ndim
+    ll = 0.5 * length[None, ...] * kpts[sli]
+
+    # pts on crystal surface
+    cryst0 = csummit0[None, ...] + ll * estraight0[None, ...]
+    cryst1 = csummit1[None, ...] + ll * estraight1[None, ...]
 
     # local normal vectors
-    vnx[:, indf] = -estraighty
-    vny[:, indf] = estraightx
+    vn0 = -estraight1
+    vn1 = estraight0
 
-    return
+    return cryst0, cryst1, vn0, vn1
 
 
-def _compute_curved():
+# TBF
+def _compute_curve(
+    csummit0=None,
+    csummit1=None,
+    bragg0=None,
+    ex0=None,
+    ex1=None,
+    ey0=None,
+    ey1=None,
+    rcurve=None,
+    # unused
+    **kwdargs,
+):
 
     # center of curvature
-    ecx = np.sin(bragg0[indc]) * ex[0] - np.cos(bragg0[indc]) * ey[0]
-    ecy = np.sin(bragg0[indc]) * ex[1] - np.cos(bragg0[indc]) * ey[1]
+    ecx = np.sin(bragg0) * ex0 - np.cos(bragg0) * ey0
+    ecy = np.sin(bragg0) * ex1 - np.cos(bragg0) * ey1
     ecx_p = -ecy
     ecy_p = ecx
 
-    cx = sx[indc] - rcurve[indc] * ecx
-    cy = sy[indc] - rcurve[indc] * ecy
+    # crystal surface
+    cx = csummit0 - rcurve * ecx
+    cy = csummit1 - rcurve * ecy
 
     # half angular opening of crystal
-    dalpha = 0.5*length[indc] / rcurve[indc]
-    theta = dalpha * np.linspace(-1, 1, npts)[:, None]
+    dalpha = 0.5 * length / rcurve
+    theta = dalpha * kpts[:, None]
 
     # crystal plotting - curved
     ethetax = np.cos(theta) * ecx[None, :] + np.sin(theta) * ecx_p[None, :]
     ethetay = np.cos(theta) * ecy[None, :] + np.sin(theta) * ecy_p[None, :]
 
-    crystx[:, indc] = cx[None, :] + rcurve[indc][None, :] * ethetax
-    crysty[:, indc] = cy[None, :] + rcurve[indc][None, :] * ethetay
+    crystx = cx[None, :] + rcurve[None, :] * ethetax
+    crysty = cy[None, :] + rcurve[None, :] * ethetay
 
     # local normal vectors
-    vnx[:, indc] = -ethetax
-    vny[:, indc] = -ethetay
-    return
+    vn0 = -ethetax
+    vn1 = -ethetay
+
+    return cryst0, cryst1, vn0, vn1
 
 
 def _compute_varrad():

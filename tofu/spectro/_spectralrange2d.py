@@ -70,18 +70,6 @@ def main(
     for k0, v0 in dcrystals.items():
         dcrystals[k0]['d2'] = v0['lamb0'] / np.sin(v0['bragg0'])
 
-    # -----------------
-    # convert to dscans
-    # -----------------
-
-    if dscans is None:
-        dscans = _dscans(
-            dap=dap,
-            dcrystals=dcrystals,
-            dcam=dcam,
-            dmatch=dmatch,
-        )
-
     # --------------
     # compute
     # --------------
@@ -139,6 +127,7 @@ def main(
 
     # ---------
     # plot
+    # ---------
 
     if plot is True:
         if dmatch is None:
@@ -156,6 +145,7 @@ def main(
 
     # ----------
     # save
+    # ----------
 
     if save is True:
         np.savez(pfe_npz, **dout)
@@ -169,51 +159,3 @@ def main(
         return dout, dax
     else:
         return dout
-
-
-# #################################################################
-# #################################################################
-#               dscans
-# #################################################################
-
-
-def _dscans(
-    dap=None,
-    dcrystals=None,
-    dcam=None,
-    dmatch=None,
-):
-
-    # -------------
-    # initialize
-    # -------------
-
-    shape = (len(dmatch),)
-    lout = []
-    dscans = {
-        kk: np.full(shape, np.nan)
-        for kk in lout
-    }
-
-    # -------------
-    # dmatch
-    # -------------
-
-    for i0, (k0, v0) in dmatch.items():
-
-        # prepare
-        dmatch[k0]['ind'] = i0
-        dapi = dap[v0['keys']['aperture']]
-        dcrysti = dcrystals[v0['keys']['crystal']]
-        dcami = dcam[v0['keys']['cam']]
-
-        # loop on data
-        for kk in lout:
-
-            if kk == '':
-                val = None
-
-            # store
-            dscans[kk][i0] = val
-
-    return dscans
