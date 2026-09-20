@@ -20,12 +20,10 @@ def main(
     lamb0=None,
     bragg0=None,
     rcurve=None,
+    length=None,
     varrad_b=None,
     # geometry basis
     beta_max=None,
-    # geometry
-    xx=None,
-    length=None,
     # options
     npts=None,
 ):
@@ -97,35 +95,47 @@ def main(
                 ey1=ey1[ind],
                 length=length[ind],
                 kpts=kpts[ind],
+                # curved
                 rcurve=rcurve[ind],
+                # spiral
+                ap0=ap0[ind],
+                ap1=ap1[ind],
+                dist_from_ap=dist_from_ap[ind],
+                varrad_b=varrad_b[ind],
             )
-
-
-
-
-
-
-
 
     # ----------------
     # compute rays
     # ----------------
 
     # vectors of incident rays
-    vix = crystx - ap[0]
-    viy = crysty - ap[1]
-    vin = np.sqrt(vix**2 + viy**2)
-    vix = vix / vin
-    viy = viy / vin
+    vi0 = cryst0 - ap0
+    vi1 = cryst1 - ap1
+    vin = np.sqrt(vi0**2 + vi1**2)
+    vi0 = vi0 / vin
+    vi1 = vi1 / vin
 
     # reflected vectors
-    sca = vix*vnx + viy*vny
-    vrx = vix - 2.*sca*vnx
-    vry = viy - 2.*sca*vny
+    sca = vi0*vn0 + vi1*vn1
+    vr0 = vi0 - 2.*sca*vn0
+    vr1 = vi1 - 2.*sca*vn1
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # end of rays at dist
-    endx = crystx + dist * vrx
-    endy = crysty + dist * vry
+    end0 = cryst0 + dist * vr0
+    end1 = cryst1 + dist * vr1
 
     # ----------------------
     # compute spectral range
@@ -136,14 +146,23 @@ def main(
     # lamb
     lamb = d2 * np.sin(bragg)
 
+    # -----------
     # beta_max
-    if beta_max is not None:
-        dvx, dvy = crystx - ap[0], crysty - ap[1]
-        beta = np.arctan2(dvx*ey[0] + dvy*ey[1], dvx*ex[0] + dvy*ex[1])
-        ind = np.abs(beta) > beta_max
-        endx[ind] = np.nan
-        endy[ind] = np.nan
-        lamb[ind] = np.nan
+    # -----------
+
+    ibeta = np.isfinite(beta_max)
+    if np.any(ibeta):
+        dv0 = (cryst0 - ap0)[ibeta]
+        dv1 = (cryst1 - ap1)[ibeta]
+        beta = np.arctan2(
+            dv0*ey0[ibeta] + dv1*ey1[ibeta],
+            dv0*ex0[ibeta] + dv1*ex1[ibeta],
+        )
+        ind = np.abs(beta) > beta_max[ibeta]
+        ibeta[~ind] = False
+        end0[ibeta] = np.nan
+        end1[ibeta] = np.nan
+        lamb[ibeta] = np.nan
 
     # -----------------
     # impacts on camera
@@ -198,7 +217,7 @@ def main(
         dcam['nin_r'] = np.r_[ninx_r, niny_r]
         dcam['abs'] = False
 
-    return crystx, crysty, endx, endy, lamb
+    return cryst0, cryst1, end0, end1, lamb
 
 
 # #################################################################
@@ -240,7 +259,6 @@ def _compute_flat(
     return cryst0, cryst1, vn0, vn1
 
 
-# TBF
 def _compute_curve(
     csummit0=None,
     csummit1=None,
@@ -250,92 +268,117 @@ def _compute_curve(
     ey0=None,
     ey1=None,
     rcurve=None,
+    length=None,
+    kpts=None,
     # unused
     **kwdargs,
 ):
 
     # center of curvature
-    ecx = np.sin(bragg0) * ex0 - np.cos(bragg0) * ey0
-    ecy = np.sin(bragg0) * ex1 - np.cos(bragg0) * ey1
-    ecx_p = -ecy
-    ecy_p = ecx
+    ec0 = np.sin(bragg0) * ex0 - np.cos(bragg0) * ey0
+    ec1 = np.sin(bragg0) * ex1 - np.cos(bragg0) * ey1
+    ec0_p = -ec1
+    ec1_p = ec0
 
-    # crystal surface
-    cx = csummit0 - rcurve * ecx
-    cy = csummit1 - rcurve * ecy
+    # crystal center of curvature
+    cc0 = csummit0 - rcurve * ec0
+    cc1 = csummit1 - rcurve * ec1
 
     # half angular opening of crystal
     dalpha = 0.5 * length / rcurve
-    theta = dalpha * kpts[:, None]
+    sli = (slice(None),) + (None,) * ex0.ndim
+    theta = dalpha * kpts[sli]
 
     # crystal plotting - curved
-    ethetax = np.cos(theta) * ecx[None, :] + np.sin(theta) * ecx_p[None, :]
-    ethetay = np.cos(theta) * ecy[None, :] + np.sin(theta) * ecy_p[None, :]
+    etheta0 = np.cos(theta) * ec0[None, :] + np.sin(theta) * ec0_p[None, :]
+    etheta1 = np.cos(theta) * ec1[None, :] + np.sin(theta) * ec1_p[None, :]
 
-    crystx = cx[None, :] + rcurve[None, :] * ethetax
-    crysty = cy[None, :] + rcurve[None, :] * ethetay
+    cryst0 = cc0[None, :] + rcurve[None, :] * etheta0
+    cryst1 = cc1[None, :] + rcurve[None, :] * etheta1
 
     # local normal vectors
-    vn0 = -ethetax
-    vn1 = -ethetay
+    vn0 = -etheta0
+    vn1 = -etheta1
 
     return cryst0, cryst1, vn0, vn1
 
 
-def _compute_varrad():
+def _compute_spiral(
+    csummit0=None,
+    csummit1=None,
+    bragg0=None,
+    ex0=None,
+    ex1=None,
+    ey0=None,
+    ey1=None,
+    rcurve=None,
+    length=None,
+    kpts=None,
+    dist_from_ap=None,
+    varrad_b=None,
+    ap0=None,
+    ap1=None,
+    # unused
+    **kwdargs,
+):
 
     # main parameters
-    gam0 = bragg0[indb]
-    r0 = rcurve[indb]
+    r0 = rcurve
     ix = ~np.isfinite(r0)
-    r0[ix] = xx[indb][ix]
-    b = varrad_b[indb]
+    r0[ix] = dist_from_ap[ix]
 
     # local radius of curvature at center
-    # rc0 = r0 / (b * np.sin(gam0))
+    # rc0 = r0 / (b * np.sin(bragg0))
 
     # dOMx = r / (b-1) * (cos(phi) / tan(gam) - sin(phi))
     # dOMy = r / (b-1) * (sin(phi) / tan(gam) + cos(phi))
     # dL = r/(b-1) * 1 / sin(gam)
-    # dL ~ r0/(b-1) * 1/sin(gam0) * Dgam
+    # dL ~ r0/(b-1) * 1/sin(bragg0) * Dgam
 
     # half angular opening of crystal (approximative)
     # dgam = 0.5*length / rc0
-    dgam = 1.1 * length[indb] * np.sin(gam0) * (b-1) / r0 / 2
+    dgam = 1.1 * length * np.sin(bragg0) * (b-1) / r0 / 2
 
     # gam
-    gam = gam0[None, :] + dgam[None, :] * np.linspace(-1, 1, npts)[:, None]
+    sli = (slice(None),) + (None,) * ex0.ndim
+    gam = bragg0[None, ...] + dgam[None, ...] * kpts[sli]
 
-    # r
-    r = r0[None, :] * (np.sin(gam) / np.sin(gam0)[None, :])**(1/(b[None, :]-1))
+    # rr
+    rr = (
+        r0[None, ...]
+        * (np.sin(gam) / np.sin(bragg0)[None, ...])**(
+            1 / (varrad_b[None, ...] - 1)
+        )
+    )
 
     # phi
-    phi = (gam - gam0[None, :]) / (b[None, :]-1)
+    phi = (gam - bragg0[None, ...]) / (varrad_b[None, ...] - 1)
 
     # pts on cryst
-    crystx[:, indb] = (
-        ap[0]
-        + (xx[indb] - r0) * ex[0]
-        + r * (np.cos(phi) * ex[0] + np.sin(phi) * ey[0])
+    cryst0 = (
+        ap0
+        + (dist_from_ap - r0) * ex0
+        + rr * (np.cos(phi) * ex0 + np.sin(phi) * ey0)
     )
-    crysty[:, indb] = (
-        ap[1]
-        + (xx[indb] - r0) * ex[1]
-        + r * (np.cos(phi) * ex[1] + np.sin(phi) * ey[1])
+    cryst1 = (
+        ap1
+        + (dist_from_ap - r0) * ex1
+        + rr * (np.cos(phi) * ex1 + np.sin(phi) * ey1)
     )
 
     # derivative
-    c0 = r / (b[None, :] - 1)
+    c0 = rr / (varrad_b[None, ...] - 1.)
     c1 = np.cos(gam) / np.sin(gam)
     dOMxx = c0 * (c1 * np.cos(phi) - np.sin(phi))
     dOMyy = c0 * (c1 * np.sin(phi) + np.cos(phi))
-    dOMx = dOMxx * ex[0] + dOMyy * ey[0]
-    dOMy = dOMxx * ex[1] + dOMyy * ey[1]
+    dOMx = dOMxx * ex0 + dOMyy * ey0
+    dOMy = dOMxx * ex1 + dOMyy * ey1
 
     # local normal vectors
-    vnx[:, indb] = dOMy / np.sqrt(dOMx**2 + dOMy**2)
-    vny[:, indb] = -dOMx / np.sqrt(dOMx**2 + dOMy**2)
-    return
+    vn0 = dOMy / np.sqrt(dOMx**2 + dOMy**2)
+    vn1 = -dOMx / np.sqrt(dOMx**2 + dOMy**2)
+
+    return cryst0, cryst1, vn0, vn1
 
 
 # #################################################################
