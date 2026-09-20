@@ -34,24 +34,6 @@ def main(
     **kwdargs,
 ):
 
-    # --------------
-    # dap
-    # --------------
-
-    _dap(dap)
-
-    # -----------------
-    # dcrystals
-    # -----------------
-
-    _dcrystals(dcrystals)
-
-    # --------------
-    # dcam
-    # --------------
-
-    _dcam(dcam, dap=dap, dcrystals=dcrystals)
-
     # ---------
     # npts
     # ---------
@@ -66,10 +48,57 @@ def main(
         npts += 1
 
     # --------------
-    # dmatch
+    # dscans vs the rest
     # --------------
 
-    _dmatch(dmatch, dcam=dcam, dap=dap, dcrystals=dcrystals)
+    lc = [
+        dscans is not None,
+        all([dd is not None for dd in [dap, dcrystals, dcam]]),
+    ]
+    if np.sum(lc) != 1:
+        msg = (
+            "Provide either (xor):\n"
+            "\t- dscans: dict of numpy arrays for large sets\n"
+            "\t- {dap dcrystals, dcam, (dmatch)}: for details\n"
+        )
+        raise Exception(msg)
+
+    # --------------
+    # details => derive dscans
+    # --------------
+
+    if lc[1]:
+
+        # --------------
+        # dap
+
+        _dap(dap)
+
+        # -----------------
+        # dcrystals
+
+        _dcrystals(dcrystals)
+
+        # --------------
+        # dcam
+
+        _dcam(dcam, dap=dap, dcrystals=dcrystals)
+
+        # --------------
+        # dmatch
+
+        _dmatch(dmatch, dcam=dcam, dap=dap, dcrystals=dcrystals)
+
+        # ---------
+        # derive dscans
+
+        dscans = {}
+
+    # --------------
+    # check dscans
+    # --------------
+
+    _dscans(dscans)
 
     # ---------
     # plot
@@ -98,45 +127,10 @@ def main(
     # ---------
 
     if save is True:
-
-        # -----------
-        # pfe_fig
-
-        path = os.path.abspath('.')
-        name = f"spectral_range_2d_{len(dmatch)}cases.png"
-        pfe_fig_def = os.path.join(path, name)
-
-        pfe_fig = ds._generic_check._check_var(
-            pfe_fig, 'pfe_fig',
-            types=str,
-            default=pfe_fig_def,
+        pfe_fig, pfe_npz = _pfe(
+            pfe_fig=pfe_fig,
+            pfe_npz=pfe_npz,
         )
-
-        if not os.path.isdir(os.path.split(pfe_fig)[0]):
-            msg = (
-                "Arg 'pfe_fig' points to a non-existing dir!\n"
-                f"Provided:\n{pfe_fig}\n"
-            )
-            raise Exception(msg)
-
-        # -----------
-        # pfe_npz
-
-        name = f"spectral_range_2d_{len(dmatch)}cases.npz"
-        pfe_npz_def = os.path.join(path, name)
-
-        pfe_npz = ds._generic_check._check_var(
-            pfe_npz, 'pfe_npz',
-            types=str,
-            default=pfe_npz_def,
-        )
-
-        if not os.path.isdir(os.path.split(pfe_npz)[0]):
-            msg = (
-                "Arg 'pfe_fig' points to a non-existing dir!\n"
-                f"Provided:\n{pfe_npz}\n"
-            )
-            raise Exception(msg)
     else:
         pfe_fig = None
         pfe_npz = None
@@ -781,3 +775,167 @@ def _err_dmatch(dmatch, errstr=''):
         + f"\n\nProvided:\n{dmatch}\n"
     )
     raise Exception(msg)
+
+
+# ######################################
+# ######################################
+#        dscans check function
+# ######################################
+
+
+def _dscans(
+    dscans=None,
+):
+
+    # ----------------
+    # basics
+    # ----------------
+
+    c0 = (
+        isinstance(dscans, dict)
+        and all([isinstance(v0, dict) for v0 in dscans.values()])
+    )
+    if not c0:
+        _err_dscans(dscans)
+
+    # ----------------
+    # loop on keys
+    # ----------------
+
+    # TBF
+    dfail = {}
+    for i0, (k0, v0) in enumerate(dscans.items()):
+
+        try:
+            # ---------------
+            # keys
+
+            if not isinstance(v0.get('keys'), dict):
+                dfail[k0] = "keys must be a dict"
+                continue
+
+            for kk in ['aperture', 'crystal', 'cam']:
+                dmatch[k0]['keys'][kk] = ds._generic_check._check_var(
+                    dmatch[k0]['keys'].get(kk),
+                    f"dmatch['{k0}']['keys']['{kk}']",
+                    types=str,
+                    allowed=lok[kk],
+                )
+
+            # ---------------
+            # npts
+
+            dmatch[k0]['npts'] = ds._generic_check._check_var(
+                dmatch[k0].get('npts'),
+                f"dmatch['{k0}']['npts']",
+                types=(int, float),
+                sign='>0.',
+                default=npts,
+            )
+
+            # ---------------
+            # label
+
+            dmatch[k0]['label'] = ds._generic_check._check_var(
+                dmatch[k0].get('label'),
+                f"dmatch['{k0}']['label']",
+                types=str,
+                default=str(k0),
+            )
+
+            # ---------------
+            # color
+
+            if dmatch[k0].get('color') is None:
+                dmatch[k0]['color'] = 'k'
+            if not mcolors.is_color_like(dmatch[k0]['color']):
+                msg = f"dcam['{k0}']['color'] not color-like!"
+                raise Exception(msg)
+            dmatch[k0]['color'] = mcolors.to_rgba(dmatch[k0]['color'])
+
+        except Exception as err:
+            dfail[k0] = str(err)
+
+    # -------------------
+    # raise errors if any
+    # -------------------
+
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = "\n".join(lstr)
+        _err_dmatch(dmatch, errstr=msg)
+
+    return
+
+
+def _err_dscans(dscans, errstr=''):
+    msg = (
+        "Arg dscans must be a dict of sub-dicts of the form:\n"
+        "\t- 'key0': {\n"
+        "\t\t'cent': array, (default to 0)\n"
+        "\t}\n\n"
+        "Where all arrays must be broadcastable with each other\n"
+        + errstr
+        + f"\n\nProvided:\n{dscans}\n"
+    )
+    raise Exception(msg)
+
+# ######################################
+# ######################################
+#       save, pfe check functions
+# ######################################
+
+
+def _pfe(
+    pfe_fig=None,
+    pfe_npz=None,
+):
+
+    # -----------
+    # pfe_fig
+    # -----------
+
+    # defaults
+    path = os.path.abspath('.')
+    name = f"spectral_range_2d_{len(dmatch)}cases.png"
+    pfe_fig_def = os.path.join(path, name)
+
+    # check 1
+    pfe_fig = ds._generic_check._check_var(
+        pfe_fig, 'pfe_fig',
+        types=str,
+        default=pfe_fig_def,
+    )
+
+    # check 2
+    if not os.path.isdir(os.path.split(pfe_fig)[0]):
+        msg = (
+            "Arg 'pfe_fig' points to a non-existing dir!\n"
+            f"Provided:\n{pfe_fig}\n"
+        )
+        raise Exception(msg)
+
+    # -----------
+    # pfe_npz
+    # -----------
+
+    # defaults
+    name = f"spectral_range_2d_{len(dmatch)}cases.npz"
+    pfe_npz_def = os.path.join(path, name)
+
+    # check 1
+    pfe_npz = ds._generic_check._check_var(
+        pfe_npz, 'pfe_npz',
+        types=str,
+        default=pfe_npz_def,
+    )
+
+    # check 1
+    if not os.path.isdir(os.path.split(pfe_npz)[0]):
+        msg = (
+            "Arg 'pfe_fig' points to a non-existing dir!\n"
+            f"Provided:\n{pfe_npz}\n"
+        )
+        raise Exception(msg)
+
+    return pfe_fig, pfe_npz
