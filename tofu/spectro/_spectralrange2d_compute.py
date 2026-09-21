@@ -15,6 +15,7 @@ def main(
     ex1=None,
     ey0=None,
     ey1=None,
+    semi_angle_max=None,
     # crystal
     dist_from_ap=None,
     lamb0=None,
@@ -22,8 +23,13 @@ def main(
     rcurve=None,
     length=None,
     varrad_b=None,
-    # geometry basis
-    beta_max=None,
+    lamb0_min=None,
+    lamb0_max=None,
+    # camera
+    cam_c0=None,
+    cam_c1=None,
+    cam_nin0=None,
+    cam_nin1=None,
     # options
     npts=None,
 ):
@@ -102,6 +108,9 @@ def main(
                 ap1=ap1[ind],
                 dist_from_ap=dist_from_ap[ind],
                 varrad_b=varrad_b[ind],
+                # lamb_min, lamb_max
+                lamb0_min=lamb0_min[ind],
+                lamb0_max=lamb0_max[ind],
             )
 
     # ----------------
@@ -120,49 +129,60 @@ def main(
     vr0 = vi0 - 2.*sca*vn0
     vr1 = vi1 - 2.*sca*vn1
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # end of rays at dist
-    end0 = cryst0 + dist * vr0
-    end1 = cryst1 + dist * vr1
-
     # ----------------------
     # compute spectral range
+    # ----------------------
 
     # get local bragg angle - top and bottom
     bragg = np.arccos(sca) - np.pi/2.
 
     # lamb
+    d2 = lamb0 / np.sin(bragg0)
     lamb = d2 * np.sin(bragg)
 
+    # ----------------
+    # intersection with camera plane
+    # ----------------
+
+    kk = (
+        (cam_c0 - cryst0) * cam_nin0
+        + (cam_c1 - cryst1) * cam_nin1
+    ) / (vr0 * cam_nin0 + vr1 * cam_nin1)
+
+    # end of rays at camera
+    end0 = cryst0 + kk * vr0
+    end1 = cryst1 + kk * vr1
+
     # -----------
-    # beta_max
+    # coordinates on cameras
     # -----------
 
-    ibeta = np.isfinite(beta_max)
-    if np.any(ibeta):
-        dv0 = (cryst0 - ap0)[ibeta]
-        dv1 = (cryst1 - ap1)[ibeta]
-        beta = np.arctan2(
-            dv0*ey0[ibeta] + dv1*ey1[ibeta],
-            dv0*ex0[ibeta] + dv1*ex1[ibeta],
+    # get lateral cam unit vector
+    cam_e00 = -cam_nin1
+    cam_e01 = cam_nin0
+    ineg = (cam_e00 * ex0 + cam_e01 * ex1) < 0.
+    cam_e00[ineg] = -cam_e00[ineg]
+    cam_e01[ineg] = -cam_e01[ineg]
+
+    cam_coord = (end0 - cam_c0) * cam_e00 + (end1 - cam_c1) * cam_e01
+
+    # -----------
+    # semi_angle_max
+    # -----------
+
+    iout = np.isfinite(semi_angle_max)
+    if np.any(iout):
+        dv0 = (cryst0 - ap0)[iout]
+        dv1 = (cryst1 - ap1)[iout]
+        semi_angle = np.arctan2(
+            dv0*ey0[iout] + dv1*ey1[iout],
+            dv0*ex0[iout] + dv1*ex1[iout],
         )
-        ind = np.abs(beta) > beta_max[ibeta]
-        ibeta[~ind] = False
-        end0[ibeta] = np.nan
-        end1[ibeta] = np.nan
-        lamb[ibeta] = np.nan
+        ind = np.abs(semi_angle) <= semi_angle_max[iout]
+        iout[ind] = False
+        end0[iout] = np.nan
+        end1[iout] = np.nan
+        lamb[iout] = np.nan
 
     # -----------------
     # impacts on camera
@@ -217,7 +237,14 @@ def main(
         dcam['nin_r'] = np.r_[ninx_r, niny_r]
         dcam['abs'] = False
 
-    return cryst0, cryst1, end0, end1, lamb
+    return {
+        'cryst0': cryst0,
+        'cryst1': cryst1,
+        'end0': end0,
+        'end1': end1,
+        'lamb': lamb,
+        'cam_coord': cam_coord,
+    }
 
 
 # #################################################################
@@ -236,9 +263,16 @@ def _compute_flat(
     ey1=None,
     length=None,
     kpts=None,
+    # lamb_min, max
+    lamb0_min=None,
+    lamb0_max=None,
     # unused
     **kwdargs,
 ):
+
+    # --------------------
+    # prepare
+    # --------------------
 
     # crystal plotting - straight
     estraight0 = np.cos(bragg0) * ex0 + np.sin(bragg0) * ey0
@@ -255,6 +289,14 @@ def _compute_flat(
     # local normal vectors
     vn0 = -estraight1
     vn1 = estraight0
+
+    # --------------------
+    # lamb0_min, lamb0_max
+    # --------------------
+
+    iok = np.isfinite(lamb0_min)
+    if np.any(lamb0_min):
+        k_l0min = None
 
     return cryst0, cryst1, vn0, vn1
 

@@ -355,6 +355,8 @@ def _dcrystals(dcrystals):
                         sign=[">0", f">{dcrystals[k0]['lamb0']}"],
                     )
                 )
+            else:
+                dcrystals[k0]['lamb0_min'] = np.nan
 
             # ---------------
             # lamb0_max
@@ -368,6 +370,8 @@ def _dcrystals(dcrystals):
                         sign=[">0", f"<{dcrystals[k0]['lamb0']}"],
                     )
                 )
+            else:
+                dcrystals[k0]['lamb0_max'] = np.nan
 
             # ---------------
             # rcurve
@@ -822,9 +826,9 @@ def _dscans(
     _DDEF = {
         'apx': (float, 0),
         'apy': (float, 0),
-        'ex0': ,
+        'ex0': None,
         'dist_from_ap': (float,),
-        'bragg0':
+        'bragg0': None,
     }
 
     # ----------------

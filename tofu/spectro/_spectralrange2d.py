@@ -64,13 +64,6 @@ def main(
     ) = _check(**locals())
 
     # --------------
-    # prepare
-    # --------------
-
-    for k0, v0 in dcrystals.items():
-        dcrystals[k0]['d2'] = v0['lamb0'] / np.sin(v0['bragg0'])
-
-    # --------------
     # compute
     # --------------
 
