@@ -59,7 +59,7 @@ def main(
 
     (
         dap, dcrystals, dcam, dmatch,
-        dscans,
+        dscans, npts,
         plot, save, pfe_fig, pfe_npz,
     ) = _check(**locals())
 
@@ -67,7 +67,7 @@ def main(
     # compute
     # --------------
 
-    dout = _compute(**dscans)
+    dout = _compute(npts=npts, **dscans)
 
     # --------------
     # extract
@@ -84,6 +84,7 @@ def main(
     # -------------
     # format output
 
+    import pdb; pdb.set_trace()  # DB
     ilamb_min = np.full((lamb.shape[1],), -1)
     ilamb_max = np.full((lamb.shape[1],), -1)
     iok = np.any(np.isfinite(lamb), axis=0)

@@ -41,6 +41,9 @@ def main(
     csummit0 = ap0 + dist_from_ap * ex0
     csummit1 = ap1 + dist_from_ap * ex1
 
+    # d2
+    d2 = lamb0 / np.sin(bragg0)
+
     # -----------------
     # sort by crystal type
     # -----------------
@@ -79,7 +82,12 @@ def main(
     # sample rays on crytals
     # ----------------
 
-    kpts = np.linspace(-1, 1, npts)
+    # sample + 2 extra points
+    kpts = np.linspace(-1., 1., npts-2)
+    dk = kpts[1] - kpts[0]
+    kpts = np.r_[kpts[0] - dk, kpts, kpts[-1] + dk]
+
+    # crystal types
     lif = [
         (iflat, _compute_flat),
         (icurve, _compute_curve),
@@ -100,7 +108,7 @@ def main(
                 ey0=ey0[ind],
                 ey1=ey1[ind],
                 length=length[ind],
-                kpts=kpts[ind],
+                kpts=kpts,
                 # curved
                 rcurve=rcurve[ind],
                 # spiral
@@ -109,6 +117,7 @@ def main(
                 dist_from_ap=dist_from_ap[ind],
                 varrad_b=varrad_b[ind],
                 # lamb_min, lamb_max
+                d2=d2[ind],
                 lamb0_min=lamb0_min[ind],
                 lamb0_max=lamb0_max[ind],
             )
@@ -137,8 +146,26 @@ def main(
     bragg = np.arccos(sca) - np.pi/2.
 
     # lamb
-    d2 = lamb0 / np.sin(bragg0)
     lamb = d2 * np.sin(bragg)
+
+    # ---------------------
+    # lamb0_min, lamb0_max
+    # ---------------------
+
+    # ilamb_min
+    ilamb_min = np.isfinite(lamb0_min)
+    ilamb_min[ilamb_min] = ~(
+        np.any(lamb[:, ilamb_min] < lamb0_min[None, ilamb_min], axis=0)
+        & np.any(lamb[:, ilamb_min] > lamb0_min[None, ilamb_min], axis=0)
+    )
+
+    # ilamb_max
+    ilamb_max = np.isfinite(lamb0_max)
+    ilamb_max[ilamb_max] = ~(
+        np.any(lamb[:, ilamb_max] < lamb0_max[None, ilamb_max], axis=0)
+        & np.any(lamb[:, ilamb_max] > lamb0_max[None, ilamb_max], axis=0)
+    )
+    import pdb; pdb.set_trace()     # DB
 
     # ----------------
     # intersection with camera plane
@@ -264,11 +291,36 @@ def _compute_flat(
     length=None,
     kpts=None,
     # lamb_min, max
+    d2=None,
     lamb0_min=None,
     lamb0_max=None,
     # unused
     **kwdargs,
 ):
+
+    # --------------------
+    # lamb_min, max
+    # --------------------
+
+    imin = np.isfinite(lamb0_min)
+    bragg0_min = np.arcsin(lamb0_min[imin] / d2[imin])
+    k_min = (
+        dist_from_ap[imin]
+        * np.sin(bragg0[imin] - bragg0_min) / np.sin(bragg0_min)
+    )
+
+    imax = np.isfinite(lamb0_max)
+    bragg0_max = np.arcsin(lamb0_max[imax] / d2[imax])
+    k_max = (
+        dist_from_ap[imax]
+        * np.sin(bragg0[imax] - bragg0_max) / np.sin(bragg0_max)
+    )
+
+    kmin = -0.5 * length
+    kmax = 0.5 * length
+    kmin
+
+    import pdb; pdb.set_trace()     # DB
 
     # --------------------
     # prepare
@@ -289,14 +341,6 @@ def _compute_flat(
     # local normal vectors
     vn0 = -estraight1
     vn1 = estraight0
-
-    # --------------------
-    # lamb0_min, lamb0_max
-    # --------------------
-
-    iok = np.isfinite(lamb0_min)
-    if np.any(lamb0_min):
-        k_l0min = None
 
     return cryst0, cryst1, vn0, vn1
 
@@ -461,9 +505,6 @@ def _compute_old(
     # ----------------
     # compute geometry
     # ----------------
-
-    # 2d
-    d2 = lamb0 / np.sin(bragg0)
 
     # summit of crystal
     sx = ap[0] + xx * ex[0]

@@ -8,6 +8,43 @@ import datastock as ds
 
 # ######################################
 # ######################################
+#          DEFAULTS
+# ######################################
+
+
+_NPTS = 51
+
+
+_DSCANS = {
+    # aperture
+    'ap0': (float, 0),
+    'ap1': (float, 0),
+    'ex0': (float, 1),
+    'ex1': (float, 0),
+    'ey0': (float, 0),
+    'ey1': (float, 1),
+    'semi_angle_max': (float, np.nan),
+    # crystal
+    'dist_from_ap': (float, '>0'),
+    'lamb0': (float, '>0'),
+    'bragg0': (float, '>0'),
+    'rcurve': (float, np.inf),
+    'length': (float, '>0'),
+    'varrad_b': (float, np.nan),
+    'lamb0_min': (float, np.nan),
+    'lamb0_max': (float, np.nan),
+    # camera
+    'cam_c0': (float,),
+    'cam_c1': (float,),
+    'cam_nin0': (float,),
+    'cam_nin1': (float,),
+    # options
+    # 'npts': (int, 31),
+}
+
+
+# ######################################
+# ######################################
 #          Main check function
 # ######################################
 
@@ -42,7 +79,7 @@ def main(
         npts, 'npts',
         types=(float, int),
         sign='>0',
-        default=101,
+        default=_NPTS,
     ))
     if npts % 2 == 0:
         npts += 1
@@ -82,34 +119,29 @@ def main(
         # --------------
         # dcam
 
+        # (cent, nin) or from_cryst[dist, angle]
         _dcam(dcam, dap=dap, dcrystals=dcrystals)
 
         # --------------
         # dmatch
 
-        _dmatch(dmatch, dcam=dcam, dap=dap, dcrystals=dcrystals)
+        dmatch = _dmatch(
+            dmatch=dmatch,
+            dap=dap,
+            dcrystals=dcrystals,
+            dcam=dcam,
+            npts=npts,
+        )
 
         # ---------
         # derive dscans
 
-        shape = (len(dmatch),)
-        dscans = {}
-        for i0, (k0, v0) in dmatch.items():
-
-            # prepare
-            dmatch[k0]['ind'] = i0
-            dapi = dap[v0['keys']['aperture']]
-            dcrysti = dcrystals[v0['keys']['crystal']]
-            dcami = dcam[v0['keys']['cam']]
-
-            # loop on data
-            for kk in lout:
-
-                if kk == '':
-                    val = None
-
-                # store
-                dscans[kk][i0] = val
+        dscans = _derive_dscans(
+            dap=dap,
+            dcrystals=dcrystals,
+            dcam=dcam,
+            dmatch=dmatch,
+        )
 
     # --------------
     # check dscans
@@ -154,7 +186,7 @@ def main(
 
     return (
         dap, dcrystals, dcam, dmatch,
-        dscans,
+        dscans, npts,
         plot, save, pfe_fig, pfe_npz,
     )
 
@@ -176,7 +208,7 @@ def _dap(dap):
         and all([isinstance(v0, dict) for v0 in dap.values()])
     )
     if not c0:
-        _err_dcrystals(dap)
+        _err_dap(dap)
 
     # -------------------
     # loop on key, values
@@ -239,7 +271,7 @@ def _dap(dap):
                     ds._generic_check._check_var(
                         dap[k0]['semi_angle_max'],
                         f"dap['{k0}']['semi_angle_max']",
-                        types=(float, int, np.float),
+                        types=(float, int),
                         sign=['>0', '<1.57'],
                     )
                 )
@@ -329,7 +361,7 @@ def _dcrystals(dcrystals):
             dcrystals[k0]['bragg0'] = float(ds._generic_check._check_var(
                 dcrystals[k0].get('bragg0'),
                 f"dcrystals['{k0}']['bragg0']",
-                types=(int, float, np.float),
+                types=(int, float),
                 sign=[">0", "<1.5708"],
             ))
 
@@ -339,7 +371,7 @@ def _dcrystals(dcrystals):
             dcrystals[k0]['lamb0'] = float(ds._generic_check._check_var(
                 dcrystals[k0].get('lamb0'),
                 f"dcrystals['{k0}']['lamb0']",
-                types=(int, float, np.float),
+                types=(int, float),
                 sign=[">0"],
             ))
 
@@ -351,8 +383,8 @@ def _dcrystals(dcrystals):
                     ds._generic_check._check_var(
                         dcrystals[k0].get('lamb0_min'),
                         f"dcrystals['{k0}']['lamb0_min']",
-                        types=(int, float, np.float),
-                        sign=[">0", f">{dcrystals[k0]['lamb0']}"],
+                        types=(int, float),
+                        sign=[">0", f"<{dcrystals[k0]['lamb0']}"],
                     )
                 )
             else:
@@ -366,8 +398,8 @@ def _dcrystals(dcrystals):
                     ds._generic_check._check_var(
                         dcrystals[k0].get('lamb0_max'),
                         f"dcrystals['{k0}']['lamb0_max']",
-                        types=(int, float, np.float),
-                        sign=[">0", f"<{dcrystals[k0]['lamb0']}"],
+                        types=(int, float),
+                        sign=[">0", f">{dcrystals[k0]['lamb0']}"],
                     )
                 )
             else:
@@ -379,7 +411,7 @@ def _dcrystals(dcrystals):
             dcrystals[k0]['rcurve'] = float(ds._generic_check._check_var(
                 dcrystals[k0].get('rcurve'),
                 f"dcrystals['{k0}']['rcurve']",
-                types=(int, float, np.float),
+                types=(int, float),
                 default=np.inf,
             ))
 
@@ -390,7 +422,7 @@ def _dcrystals(dcrystals):
                 ds._generic_check._check_var(
                     dcrystals[k0].get('dist_from_ap'),
                     f"dcrystals['{k0}']['dist_from_ap']",
-                    types=(int, float, np.float),
+                    types=(int, float),
                     sign='>0.',
                 )
             )
@@ -401,21 +433,9 @@ def _dcrystals(dcrystals):
             dcrystals[k0]['length'] = float(ds._generic_check._check_var(
                 dcrystals[k0].get('length'),
                 f"dcrystals['{k0}']['length']",
-                types=(int, float, np.float),
+                types=(int, float),
                 sign='>0.',
             ))
-
-            # ---------------
-            # dist
-
-            dcrystals[k0]['dist_reflect'] = float(
-                ds._generic_check._check_var(
-                    dcrystals[k0].get('dist_reflect'),
-                    f"dcrystals['{k0}']['dist_reflect']",
-                    types=(int, float, np.float),
-                    sign='>0.',
-                )
-            )
 
             # ---------------
             # varrad_b
@@ -423,8 +443,7 @@ def _dcrystals(dcrystals):
             dcrystals[k0]['varrad_b'] = float(ds._generic_check._check_var(
                 dcrystals[k0].get('varrad_b'),
                 f"dcrystals['{k0}']['varrad_b']",
-                types=(int, float, np.float),
-                sign='>0.',
+                types=(int, float),
                 default=np.nan,
             ))
 
@@ -524,44 +543,44 @@ def _dcam(dcam, dap=None, dcrystals=None):
             # from_dist vs (cent, nin)
 
             lc = [
-                v0.get('from_cryst') is not None
-                and isinstance(v0['from_cryst'], dict),
+                v0.get('from_crystal') is not None
+                and isinstance(v0['from_crystal'], dict),
                 all([v0.get(kk) is not None for kk in ['cent', 'nin']])
             ]
             if np.sum(lc) != 1:
-                msg = "Provide either 'from_cryst' or {'cent', 'nin'}"
+                msg = "Provide either 'from_crystal' or {'cent', 'nin'}"
                 dfail[k0] = msg
                 continue
 
             # ---------------
-            # from_cryst
+            # from_crystal
 
             if lc[0]:
 
                 # key
-                dcam[k0]['from_cryst']['key'] = ds._generic_check._check_var(
-                    dcam[k0]['from_cryst'].get('key'),
-                    f"dcam['{k0}']['from_cryst']['key']",
+                dcam[k0]['from_crystal']['key'] = ds._generic_check._check_var(
+                    dcam[k0]['from_crystal'].get('key'),
+                    f"dcam['{k0}']['from_crystal']['key']",
                     types=str,
                     allowed=lok_cryst,
                 )
 
                 # dist
-                dcam[k0]['from_cryst']['dist'] = float(
+                dcam[k0]['from_crystal']['dist'] = float(
                     ds._generic_check._check_var(
-                        dcam[k0]['from_cryst'].get('dist'),
-                        f"dcam['{k0}']['from_cryst']['dist']",
-                        types=(float, int, np.float),
+                        dcam[k0]['from_crystal'].get('dist'),
+                        f"dcam['{k0}']['from_crystal']['dist']",
+                        types=(float, int),
                         sign='>0.',
                     )
                 )
 
                 # angle
-                dcam[k0]['from_cryst']['angle'] = float(
+                dcam[k0]['from_crystal']['angle'] = float(
                     ds._generic_check._check_var(
-                        dcam[k0]['from_cryst'].get('angle'),
-                        f"dcam['{k0}']['from_cryst']['angle']",
-                        types=(float, int, np.float),
+                        dcam[k0]['from_crystal'].get('angle'),
+                        f"dcam['{k0}']['from_crystal']['angle']",
+                        types=(float, int),
                     )
                 )
 
@@ -598,14 +617,30 @@ def _dcam(dcam, dap=None, dcrystals=None):
                     allowed=lok_ap + ['abs'],
                 )
 
+                if dcam[k0]['ref_frame'] != 'abs':
+                    dapi = dap[dcam[k0]['ref_frame']]
+
+                    cent = (
+                        dapi['cent']
+                        + dcam[k0]['cent'][0] * dapi['cent']['ex']
+                        + dcam[k0]['cent'][1] * dapi['cent']['ey']
+                    )
+                    nin = (
+                        dcam[k0]['nin'][0] * dapi['cent']['ex']
+                        + dcam[k0]['nin'][1] * dapi['cent']['ey']
+                    )
+                    dcam[k0]['cent'] = cent
+                    dcam[k0]['nin'] = nin
+                    dcam[k0]['ref_frame'] = 'abs'
+
             # ---------------
             # length
 
-            dcam[k0]['from_cryst']['length'] = float(
+            dcam[k0]['length'] = float(
                 ds._generic_check._check_var(
-                    dcam[k0]['from_cryst'].get('length'),
-                    f"dcam['{k0}']['from_cryst']['length']",
-                    types=(float, int, np.float),
+                    dcam[k0].get('length'),
+                    f"dcam['{k0}']['length']",
+                    types=(float, int),
                     sign='>0.',
                 )
             )
@@ -640,7 +675,7 @@ def _dcam(dcam, dap=None, dcrystals=None):
     if len(dfail) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
         msg = "\n".join(lstr)
-        _err_dcrystals(dcrystals, errstr=msg)
+        _err_dcam(dcam, errstr=msg)
 
     return
 
@@ -649,7 +684,7 @@ def _err_dcam(dcam, errstr=''):
     msg = (
         "Arg dcam must be a dict of sub-dicts of the form:\n"
         "\t- 'key0': {\n"
-        "\t\t'from_cryst': {'key': str, 'dist': float, 'angle': float}\n"
+        "\t\t'from_crystal': {'key': str, 'dist': float, 'angle': float}\n"
         "\t\t'cent': array of 2 floats, in ref_frame\n"
         "\t\t'nin': array of 2 floats, in ref_frame\n"
         "\t\t'ref_frame': None / str, (absolute or kap)\n"
@@ -657,7 +692,7 @@ def _err_dcam(dcam, errstr=''):
         "\t\t'color': color-like,   (optional)\n"
         "\t\t'label': str,          (optional)\n"
         "\t}\n\n"
-        "Provide either 'from_cryst' xor ('cent', 'nin', 'ref_frame')"
+        "Provide either 'from_crystal' xor ('cent', 'nin', 'ref_frame')\n"
         + errstr
         + f"\n\nProvided:\n{dcam}\n"
     )
@@ -781,7 +816,7 @@ def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None, npts=None):
         msg = "\n".join(lstr)
         _err_dmatch(dmatch, errstr=msg)
 
-    return
+    return dmatch
 
 
 def _err_dmatch(dmatch, errstr=''):
@@ -812,31 +847,15 @@ def _dscans(
     # basics
     # ----------------
 
-    c0 = (
-        isinstance(dscans, dict)
-        and all([isinstance(v0, dict) for v0 in dscans.values()])
-    )
-    if not c0:
+    if not isinstance(dscans, dict):
         _err_dscans(dscans)
-
-    # ----------------
-    # keys and def
-    # ----------------
-
-    _DDEF = {
-        'apx': (float, 0),
-        'apy': (float, 0),
-        'ex0': None,
-        'dist_from_ap': (float,),
-        'bragg0': None,
-    }
 
     # ----------------
     # loop on keys
     # ----------------
 
     dfail = {}
-    for k0, v0 in _DDEF.items():
+    for k0, v0 in _DSCANS.items():
 
         # -------------------
         # set values as array
@@ -844,15 +863,16 @@ def _dscans(
         try:
             if dscans.get(k0) is None:
                 if len(v0) >= 2:
-                    dscans[k0] = np.atleast_1d(v0[1])
+                    if not isinstance(v0[1], str):
+                        dscans[k0] = np.atleast_1d(v0[1])
                 else:
                     msg = (
                         f"Arg dscans['{k0}'] must be provided!\n"
                     )
                     raise Exception(msg)
 
-            else:
-                dscans[k0] = np.atleast_1d(dscans[k0])
+            # set
+            dscans[k0] = np.atleast_1d(dscans[k0]).astype(v0[0])
 
         except Exception as err:
             dfail[k0] = str(err)
@@ -864,7 +884,7 @@ def _dscans(
     try:
         shape = np.broadcast_shapes(*[vv.shape for vv in dscans.values()])
         for k0, v0 in dscans.items():
-            dscans[k0] = np.broadcast_to(v0)
+            dscans[k0] = np.broadcast_to(v0, shape)
     except Exception:
         lstr = [f"\t- {k0}: {v0.shape}" for k0, v0 in dscans.items()]
         dfail["broadcastable"] = "\n".join(lstr)
@@ -876,22 +896,109 @@ def _dscans(
     if len(dfail) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
         msg = "\n".join(lstr)
-        _err_dmatch(dmatch, errstr=msg)
+        _err_dmatch(dscans, errstr=msg)
 
     return
 
 
 def _err_dscans(dscans, errstr=''):
+    lstr = [f"\t- {k0}: {v0}" for k0, v0 in _DSCANS.items()]
     msg = (
         "Arg dscans must be a dict of sub-dicts of the form:\n"
-        "\t- 'key0': {\n"
-        "\t\t'cent': array, (default to 0)\n"
-        "\t}\n\n"
-        "Where all arrays must be broadcastable with each other\n"
+        "{"
+        + "\n".join(lstr)
+        + "}\n\n"
+        + "Where all arrays must be broadcastable with each other\n"
         + errstr
         + f"\n\nProvided:\n{dscans}\n"
     )
     raise Exception(msg)
+
+
+# ######################################
+# ######################################
+#       derive dscans
+# ######################################
+
+
+def _derive_dscans(
+    dap=None,
+    dcrystals=None,
+    dcam=None,
+    dmatch=None,
+):
+
+    # ----------------
+    # prepare
+    # ----------------
+
+    shape = (len(dmatch),)
+    dscans = {k0: np.full(shape, np.nan) for k0 in _DSCANS.keys()}
+
+    # ----------------
+    # loop on matches
+    # ----------------
+
+    for i0, (k0, v0) in enumerate(dmatch.items()):
+
+        # --------
+        # prepare
+
+        dmatch[k0]['ind'] = i0
+        dapi = dap[v0['keys']['aperture']]
+        dcrysti = dcrystals[v0['keys']['crystal']]
+        dcami = dcam[v0['keys']['cam']]
+
+        # ----------
+        # aperture
+
+        dscans['ap0'][i0] = dapi['cent'][0]
+        dscans['ap1'][i0] = dapi['cent'][1]
+        dscans['ex0'][i0] = dapi['ex'][0]
+        dscans['ex1'][i0] = dapi['ex'][1]
+        dscans['ey0'][i0] = dapi['ey'][0]
+        dscans['ey1'][i0] = dapi['ey'][1]
+        dscans['semi_angle_max'][i0] = dapi['semi_angle_max']
+
+        # ----------
+        # crystal
+
+        dscans['dist_from_ap'][i0] = dcrysti['dist_from_ap']
+        dscans['lamb0'][i0] = dcrysti['lamb0']
+        dscans['lamb0_min'][i0] = dcrysti['lamb0_min']
+        dscans['lamb0_max'][i0] = dcrysti['lamb0_max']
+        dscans['bragg0'][i0] = dcrysti['bragg0']
+        dscans['rcurve'][i0] = dcrysti['rcurve']
+        dscans['length'][i0] = dcrysti['length']
+        dscans['varrad_b'][i0] = dcrysti['varrad_b']
+
+        # ----------
+        # cam
+
+        # from crystal
+        if dcami.get('frame_ref') is None:
+            kcryst = dcami['from_crystal']['key']
+            cc = dapi['cent'] + dapi['ex'] * dcrystals[kcryst]['dist_from_ap']
+            vc = (
+                dapi['ex'] * np.cos(2. * dcrystals[kcryst]['bragg0'])
+                + dapi['ey'] * np.sin(2. * dcrystals[kcryst]['bragg0'])
+            )
+            cent = cc + vc * dcami['from_crystal']['dist']
+            nin = -(
+                np.cos(dcami['from_crystal']['angle']) * vc
+                + np.sin(dcami['from_crystal']['angle']) * np.r_[-vc[1], vc[0]]
+            )
+        else:
+            assert dcami['frame_ref'] == 'abs'
+            cent = dcami['cent']
+            nin = dcami['nin']
+
+        dscans['cam_c0'][i0] = cent[0]
+        dscans['cam_c1'][i0] = cent[1]
+        dscans['cam_nin0'][i0] = nin[0]
+        dscans['cam_nin1'][i0] = nin[1]
+
+    return dscans
 
 
 # ######################################
@@ -901,6 +1008,7 @@ def _err_dscans(dscans, errstr=''):
 
 
 def _pfe(
+    dmatch=None,
     pfe_fig=None,
     pfe_npz=None,
 ):
