@@ -12,7 +12,7 @@ import datastock as ds
 # ######################################
 
 
-_NPTS = 51
+_NPTS = 21
 
 
 _DSCANS = {
@@ -38,6 +38,7 @@ _DSCANS = {
     'cam_c1': (float,),
     'cam_nin0': (float,),
     'cam_nin1': (float,),
+    'cam_length': (float,),
     # options
     # 'npts': (int, 31),
 }
@@ -755,6 +756,8 @@ def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None, npts=None):
     # ----------------
 
     dfail = {}
+    lcolor = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink']
+    lcolor = [f"tab:{cc}" for cc in lcolor]
     for i0, (k0, v0) in enumerate(dmatch.items()):
 
         try:
@@ -798,7 +801,7 @@ def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None, npts=None):
             # color
 
             if dmatch[k0].get('color') is None:
-                dmatch[k0]['color'] = 'k'
+                dmatch[k0]['color'] = lcolor[i0 % len(lcolor)]
             if not mcolors.is_color_like(dmatch[k0]['color']):
                 msg = f"dcam['{k0}']['color'] not color-like!"
                 raise Exception(msg)
@@ -944,7 +947,8 @@ def _derive_dscans(
         # --------
         # prepare
 
-        dmatch[k0]['ind'] = i0
+        dmatch[k0]['ind'] = (i0,)
+
         dapi = dap[v0['keys']['aperture']]
         dcrysti = dcrystals[v0['keys']['crystal']]
         dcami = dcam[v0['keys']['cam']]
@@ -988,15 +992,21 @@ def _derive_dscans(
                 np.cos(dcami['from_crystal']['angle']) * vc
                 + np.sin(dcami['from_crystal']['angle']) * np.r_[-vc[1], vc[0]]
             )
+
+            # update dcam
+            dcam[v0['keys']['cam']]['cent'] = cent
+            dcam[v0['keys']['cam']]['nin'] = nin
         else:
             assert dcami['frame_ref'] == 'abs'
             cent = dcami['cent']
-            nin = dcami['nin']
 
+        # update dscans
+        nin = dcami['nin']
         dscans['cam_c0'][i0] = cent[0]
         dscans['cam_c1'][i0] = cent[1]
         dscans['cam_nin0'][i0] = nin[0]
         dscans['cam_nin1'][i0] = nin[1]
+        dscans['cam_length'][i0] = dcami['length']
 
     return dscans
 

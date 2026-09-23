@@ -73,51 +73,9 @@ def main(
     # extract
     # --------------
 
+    dout_match = None
     if dmatch is not None:
-        dout = {
-            k0: {
-                dout[k1][v0['ind']] for k1 in dout.keys()
-            }
-            for k0, v0 in dmatch.items()
-        }
-
-    # -------------
-    # format output
-
-    import pdb; pdb.set_trace()  # DB
-    ilamb_min = np.full((lamb.shape[1],), -1)
-    ilamb_max = np.full((lamb.shape[1],), -1)
-    iok = np.any(np.isfinite(lamb), axis=0)
-    ilamb_min[iok] = np.nanargmin(lamb[:, iok], axis=0)
-    ilamb_max[iok] = np.nanargmax(lamb[:, iok], axis=0)
-
-    lamb_min = np.array([
-        lamb[imin, ii] if imin >= 0 else np.nan
-        for ii, imin in enumerate(ilamb_min)
-    ])
-    lamb_max = np.array([
-        lamb[imax, ii] if imax >= 0 else np.nan
-        for ii, imax in enumerate(ilamb_max)
-    ])
-
-    dout = dict(din)
-    dout.update({
-        'key_crystals': key_crystals,
-        'beta_max': beta_max,
-        'crystx': crystx,
-        'crysty': crysty,
-        'endx': endx,
-        'endy': endy,
-        'lamb': lamb,
-        'ilamb_min': ilamb_min,
-        'ilamb_max': ilamb_max,
-        'lamb_min': lamb_min,
-        'lamb_max': lamb_max,
-        'Dlamb': lamb_max - lamb_min,
-    })
-
-    if dcam is not None:
-        dout['dcam'] = dcam
+        dout_match = _dout_match(dout=dout, dmatch=dmatch)
 
     # ---------
     # plot
@@ -134,15 +92,21 @@ def main(
             dax = _plot.match(
                 dax=dax,
                 pfe_fig=pfe_fig,
-                **dout,
+                dout=dout,
+                dmatch=dmatch,
+                dap=dap,
+                dcam=dcam,
+                dscans=dscans,
             )
 
     # ----------
     # save
     # ----------
 
+    dout0 = dout if dmatch is None else dout_match
+
     if save is True:
-        np.savez(pfe_npz, **dout)
+        np.savez(pfe_npz, **dout0)
         msg = f"Saved in:\n\t{pfe_npz}"
         print(msg)
 
@@ -150,6 +114,38 @@ def main(
     # return
 
     if plot is True:
-        return dout, dax
+        return dout0, dax
     else:
-        return dout
+        return dout0
+
+
+# ############################################
+# ############################################
+#           Extract dmatch
+# ############################################
+
+
+def _dout_match(dout=None, dmatch=None):
+
+    dout_match = {k0: {k1: {} for k1 in dout.keys()} for k0 in dmatch.keys()}
+    for k0, v0 in dmatch.items():
+        for k1, v1 in dout.items():
+
+            # array
+            if isinstance(v1, np.ndarray):
+                if v1.ndim == dout['cryst0'].ndim:
+                    sli = (slice(None),) + v0['ind']
+                else:
+                    sli = v0['ind']
+                dout_match[k0][k1] = v1[sli]
+
+            # dict
+            else:
+                for k2, v2 in v1.items():
+                    if v2.ndim == dout['cryst0'].ndim:
+                        sli = (slice(None),) + v0['ind']
+                    else:
+                        sli = v0['ind']
+                    dout_match[k0][k1][k2] = v2[sli]
+
+    return dout_match

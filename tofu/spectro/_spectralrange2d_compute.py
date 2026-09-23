@@ -30,6 +30,7 @@ def main(
     cam_c1=None,
     cam_nin0=None,
     cam_nin1=None,
+    cam_length=None,
     # options
     npts=None,
 ):
@@ -85,8 +86,12 @@ def main(
             'semi_angle_max': np.ones(shape, dtype=bool),
             'crystal': np.ones(shape, dtype=bool),
             'camera': np.ones(shape, dtype=bool),
-            'lamb0': np.zeros(shape, dtype=bool),
-        }
+        },
+        'dind_lamb': {
+            'lamb0': np.zeros(shape[1:], dtype=int),
+            'lamb0_min': np.zeros(shape[1:], dtype=int),
+            'lamb0_max': np.zeros(shape[1:], dtype=int),
+        },
     }
 
     # ----------------
@@ -112,7 +117,7 @@ def main(
                 dout['cryst1'][:, ind],
                 dout['vn0'][:, ind],
                 dout['vn1'][:, ind],
-                dout['mask']['crystal'][:, ind],
+                dout['dmask']['crystal'][:, ind],
             ) = func(
                 csummit0=csummit0[ind],
                 csummit1=csummit1[ind],
@@ -132,27 +137,38 @@ def main(
                 varrad_b=varrad_b[ind],
                 # lamb_min, lamb_max
                 d2=d2[ind],
-                dist_from_ap=dist_from_ap[ind],
                 lamb0_min=lamb0_min[ind],
                 lamb0_max=lamb0_max[ind],
                 npts=npts,
             )
+
+    # -----------
+    # semi_angle_max
+    # -----------
+
+    iout = np.isfinite(semi_angle_max)
+    if np.any(iout):
+        dv0 = (dout['cryst0'] - ap0[None, ...])
+        dv1 = (dout['cryst1'] - ap1[None, ...])
+        semi_angle = np.arctan2(dv0*ey0 + dv1*ey1, dv0*ex0 + dv1*ex1)
+        ind = np.abs(semi_angle[:, iout]) <= semi_angle_max[None, iout]
+        dout['dmask']['semi_angle_max'][:, iout] = ind
 
     # ----------------
     # compute rays
     # ----------------
 
     # vectors of incident rays
-    vi0 = cryst0 - ap0
-    vi1 = cryst1 - ap1
+    vi0 = dout['cryst0'] - ap0
+    vi1 = dout['cryst1'] - ap1
     vin = np.sqrt(vi0**2 + vi1**2)
     vi0 = vi0 / vin
     vi1 = vi1 / vin
 
     # reflected vectors
-    sca = vi0*vn0 + vi1*vn1
-    vr0 = vi0 - 2.*sca*vn0
-    vr1 = vi1 - 2.*sca*vn1
+    sca = vi0*dout['vn0'] + vi1*dout['vn1']
+    vr0 = vi0 - 2.*sca*dout['vn0']
+    vr1 = vi1 - 2.*sca*dout['vn1']
 
     # ----------------------
     # compute spectral range
@@ -165,23 +181,21 @@ def main(
     dout['lamb'] = d2 * np.sin(bragg)
 
     # ---------------------
-    # lamb0_min, lamb0_max
+    # dind_lamb
     # ---------------------
 
-    dlamb = np.mean(np.diff(lamb, axis=0), axis=0)
-    import pdb; pdb.set_trace()     # DB
+    dlamb = np.abs(np.mean(np.diff(dout['lamb'], axis=0), axis=0))
 
-    ilamb0 = np.abs(lamb - lamb0[None, ...]) < 0.1 * dlamb[None, ...]
-    assert ilamb0.sum() == 1
-
-    ilamb0_min = np.abs(lamb - lamb0_min[None, ...]) < 0.1 * dlamb[None, ...]
-    assert ilamb0_min.sum() == 1
-
-    ilamb0_max = np.abs(lamb - lamb0_max[None, ...]) < 0.1 * dlamb[None, ...]
-    assert ilamb0_max.sum() == 1
-    import pdb; pdb.set_trace()     # DB
-
-    dout['dmask']['lamb0'] = ilamb0 | ilamb0_min | ilamb0_max
+    ll = [('lamb0', lamb0), ('lamb0_min', lamb0_min), ('lamb0_max', lamb0_max)]
+    for (k0, v0) in ll:
+        iok = np.isfinite(v0)
+        slil = (slice(None), iok)
+        sliv = (None, iok)
+        ind = np.argmin(np.abs(dout['lamb'][slil] - v0[sliv]), axis=0)
+        sli = (ind, iok)
+        c0 = np.abs(dout['lamb'][sli] - v0[sliv]) <= 0.5 * dlamb[iok]
+        assert np.all(c0)
+        dout['dind_lamb'][k0][iok] = ind
 
     # ----------------
     # intersection with camera plane
@@ -195,31 +209,16 @@ def main(
     ) = _camera_plane(
         ex0=ex0,
         ex1=ex1,
-        cryst0=cryst0,
-        cryst1=cryst1,
+        cryst0=dout['cryst0'],
+        cryst1=dout['cryst1'],
         vr0=vr0,
         vr1=vr1,
         cam_c0=cam_c0,
         cam_c1=cam_c1,
         cam_nin0=cam_nin0,
         cam_nin1=cam_nin1,
+        cam_length=cam_length,
     )
-
-    # -----------
-    # semi_angle_max
-    # -----------
-
-    iout = np.isfinite(semi_angle_max)
-    if np.any(iout):
-        dv0 = (cryst0 - ap0)[iout]
-        dv1 = (cryst1 - ap1)[iout]
-        semi_angle = np.arctan2(
-            dv0*ey0[iout] + dv1*ey1[iout],
-            dv0*ex0[iout] + dv1*ex1[iout],
-        )
-        ind = np.abs(semi_angle) <= semi_angle_max[iout]
-        iout[ind] = False
-        dout['dmask']['semi_angle_max'] = ~iout
 
     return dout
 
@@ -325,6 +324,9 @@ def _compute_curve(
     sli = (slice(None),) + (None,) * ex0.ndim
     theta = dalpha * kpts[sli]
 
+    # mask_cryst
+    mask_cryst = np.abs(theta) <= dalpha
+
     # crystal plotting - curved
     etheta0 = np.cos(theta) * ec0[None, :] + np.sin(theta) * ec0_p[None, :]
     etheta1 = np.cos(theta) * ec1[None, :] + np.sin(theta) * ec1_p[None, :]
@@ -336,7 +338,7 @@ def _compute_curve(
     vn0 = -etheta0
     vn1 = -etheta1
 
-    return cryst0, cryst1, vn0, vn1
+    return cryst0, cryst1, vn0, vn1, mask_cryst
 
 
 def _compute_spiral(
@@ -456,7 +458,7 @@ def _camera_plane(
 
     # get lateral cam unit vector
     cam_e00 = -cam_nin1
-    cam_e01 = cam_nin0
+    cam_e01 = np.copy(cam_nin0)
     ineg = (cam_e00 * ex0 + cam_e01 * ex1) < 0.
     cam_e00[ineg] = -cam_e00[ineg]
     cam_e01[ineg] = -cam_e01[ineg]
