@@ -72,11 +72,22 @@ def main(
     # ----------------
 
     shape = (npts,) + ex0.shape
-    cryst0 = np.full(shape, np.nan)
-    cryst1 = np.full(shape, np.nan)
-    vn0 = np.full(shape, np.nan)
-    vn1 = np.full(shape, np.nan)
-    lamb = np.full(shape, np.nan)
+    dout = {
+        'cryst0': np.full(shape, np.nan),
+        'cryst1': np.full(shape, np.nan),
+        'vn0': np.full(shape, np.nan),
+        'vn1': np.full(shape, np.nan),
+        'end0': np.full(shape, np.nan),
+        'end1': np.full(shape, np.nan),
+        'lamb': np.full(shape, np.nan),
+        'cam_coord': np.full(shape, np.nan),
+        'dmask': {
+            'semi_angle_max': np.ones(shape, dtype=bool),
+            'crystal': np.ones(shape, dtype=bool),
+            'camera': np.ones(shape, dtype=bool),
+            'lamb0': np.zeros(shape, dtype=bool),
+        }
+    }
 
     # ----------------
     # sample rays on crytals
@@ -97,8 +108,11 @@ def main(
     for ind, func in lif:
         if np.any(ind):
             (
-                cryst0[:, ind], cryst1[:, ind],
-                vn0[:, ind], vn1[:, ind],
+                dout['cryst0'][:, ind],
+                dout['cryst1'][:, ind],
+                dout['vn0'][:, ind],
+                dout['vn1'][:, ind],
+                dout['mask']['crystal'][:, ind],
             ) = func(
                 csummit0=csummit0[ind],
                 csummit1=csummit1[ind],
@@ -118,8 +132,10 @@ def main(
                 varrad_b=varrad_b[ind],
                 # lamb_min, lamb_max
                 d2=d2[ind],
+                dist_from_ap=dist_from_ap[ind],
                 lamb0_min=lamb0_min[ind],
                 lamb0_max=lamb0_max[ind],
+                npts=npts,
             )
 
     # ----------------
@@ -146,52 +162,48 @@ def main(
     bragg = np.arccos(sca) - np.pi/2.
 
     # lamb
-    lamb = d2 * np.sin(bragg)
+    dout['lamb'] = d2 * np.sin(bragg)
 
     # ---------------------
     # lamb0_min, lamb0_max
     # ---------------------
 
-    # ilamb_min
-    ilamb_min = np.isfinite(lamb0_min)
-    ilamb_min[ilamb_min] = ~(
-        np.any(lamb[:, ilamb_min] < lamb0_min[None, ilamb_min], axis=0)
-        & np.any(lamb[:, ilamb_min] > lamb0_min[None, ilamb_min], axis=0)
-    )
-
-    # ilamb_max
-    ilamb_max = np.isfinite(lamb0_max)
-    ilamb_max[ilamb_max] = ~(
-        np.any(lamb[:, ilamb_max] < lamb0_max[None, ilamb_max], axis=0)
-        & np.any(lamb[:, ilamb_max] > lamb0_max[None, ilamb_max], axis=0)
-    )
+    dlamb = np.mean(np.diff(lamb, axis=0), axis=0)
     import pdb; pdb.set_trace()     # DB
+
+    ilamb0 = np.abs(lamb - lamb0[None, ...]) < 0.1 * dlamb[None, ...]
+    assert ilamb0.sum() == 1
+
+    ilamb0_min = np.abs(lamb - lamb0_min[None, ...]) < 0.1 * dlamb[None, ...]
+    assert ilamb0_min.sum() == 1
+
+    ilamb0_max = np.abs(lamb - lamb0_max[None, ...]) < 0.1 * dlamb[None, ...]
+    assert ilamb0_max.sum() == 1
+    import pdb; pdb.set_trace()     # DB
+
+    dout['dmask']['lamb0'] = ilamb0 | ilamb0_min | ilamb0_max
 
     # ----------------
     # intersection with camera plane
     # ----------------
 
-    kk = (
-        (cam_c0 - cryst0) * cam_nin0
-        + (cam_c1 - cryst1) * cam_nin1
-    ) / (vr0 * cam_nin0 + vr1 * cam_nin1)
-
-    # end of rays at camera
-    end0 = cryst0 + kk * vr0
-    end1 = cryst1 + kk * vr1
-
-    # -----------
-    # coordinates on cameras
-    # -----------
-
-    # get lateral cam unit vector
-    cam_e00 = -cam_nin1
-    cam_e01 = cam_nin0
-    ineg = (cam_e00 * ex0 + cam_e01 * ex1) < 0.
-    cam_e00[ineg] = -cam_e00[ineg]
-    cam_e01[ineg] = -cam_e01[ineg]
-
-    cam_coord = (end0 - cam_c0) * cam_e00 + (end1 - cam_c1) * cam_e01
+    (
+        dout['end0'],
+        dout['end1'],
+        dout['cam_coord'],
+        dout['dmask']['camera'],
+    ) = _camera_plane(
+        ex0=ex0,
+        ex1=ex1,
+        cryst0=cryst0,
+        cryst1=cryst1,
+        vr0=vr0,
+        vr1=vr1,
+        cam_c0=cam_c0,
+        cam_c1=cam_c1,
+        cam_nin0=cam_nin0,
+        cam_nin1=cam_nin1,
+    )
 
     # -----------
     # semi_angle_max
@@ -207,71 +219,9 @@ def main(
         )
         ind = np.abs(semi_angle) <= semi_angle_max[iout]
         iout[ind] = False
-        end0[iout] = np.nan
-        end1[iout] = np.nan
-        lamb[iout] = np.nan
+        dout['dmask']['semi_angle_max'] = ~iout
 
-    # -----------------
-    # impacts on camera
-    # -----------------
-
-    if dcam is not None:
-        ninx, niny = dcam['nin']
-        ninn = np.sqrt(ninx**2 + niny**2)
-        ninx, niny = ninx/ninn, niny/ninn
-
-        # cam center
-        if dcam['abs'] is True:
-
-            camx_r = dcam['cent'][0]
-            camy_r = dcam['cent'][1]
-            camx = np.sum((dcam['cent'] - ap) * ex)
-            camy = np.sum((dcam['cent'] - ap) * ey)
-
-            ninx_r = ninx
-            niny_r = niny
-            ninx = ninx_r * ex[0] + niny_r * ex[1]
-            niny = ninx_r * ey[0] + niny_r * ey[1]
-
-        else:
-            camx = dcam['cent'][0]
-            camy = dcam['cent'][1]
-            camx_r = ap[0] + camx * ex[0] + camy * ey[0]
-            camy_r = ap[1] + camx * ex[1] + camy * ey[1]
-
-            ninx_r = ninx * ex[0] + niny * ey[0]
-            niny_r = ninx * ex[1] + niny * ey[1]
-
-        # rays x0
-        sca_up = (camx_r - crystx) * ninx_r + (camy_r - crysty) * niny_r
-        sca_bot = vrx*ninx_r + vry*niny_r
-
-        kk = sca_up / sca_bot
-        ptsx = crystx + kk * vrx
-        ptsy = crysty + kk * vry
-
-        e0x = -niny_r
-        e0y = ninx_r
-        x0 = (ptsx - camx_r) * e0x + (ptsy - camy_r) * e0y
-
-        if beta_max is not None:
-            x0[ind] = np.nan
-
-        dcam['x0'] = x0
-        dcam['cent'] = np.r_[camx, camy]
-        dcam['cent_r'] = np.r_[camx_r, camy_r]
-        dcam['nin'] = np.r_[ninx, niny]
-        dcam['nin_r'] = np.r_[ninx_r, niny_r]
-        dcam['abs'] = False
-
-    return {
-        'cryst0': cryst0,
-        'cryst1': cryst1,
-        'end0': end0,
-        'end1': end1,
-        'lamb': lamb,
-        'cam_coord': cam_coord,
-    }
+    return dout
 
 
 # #################################################################
@@ -292,8 +242,10 @@ def _compute_flat(
     kpts=None,
     # lamb_min, max
     d2=None,
+    dist_from_ap=None,
     lamb0_min=None,
     lamb0_max=None,
+    npts=None,
     # unused
     **kwdargs,
 ):
@@ -303,24 +255,26 @@ def _compute_flat(
     # --------------------
 
     imin = np.isfinite(lamb0_min)
+    k_lambmin = np.full(lamb0_min.shape, np.nan)
     bragg0_min = np.arcsin(lamb0_min[imin] / d2[imin])
-    k_min = (
+    k_lambmin[imin] = (
         dist_from_ap[imin]
         * np.sin(bragg0[imin] - bragg0_min) / np.sin(bragg0_min)
     )
 
     imax = np.isfinite(lamb0_max)
+    k_lambmax = np.full(lamb0_max.shape, np.nan)
     bragg0_max = np.arcsin(lamb0_max[imax] / d2[imax])
-    k_max = (
+    k_lambmax[imax] = (
         dist_from_ap[imax]
         * np.sin(bragg0[imax] - bragg0_max) / np.sin(bragg0_max)
     )
 
-    kmin = -0.5 * length
-    kmax = 0.5 * length
-    kmin
+    kmin = np.nanmin([-0.5 * length, k_lambmin, k_lambmax], axis=0)
+    kmax = np.nanmax([0.5 * length, k_lambmin, k_lambmax], axis=0)
+    kk = np.linspace(kmin, kmax, npts, axis=0)
 
-    import pdb; pdb.set_trace()     # DB
+    mask_cryst = np.abs(kk) <= 0.5 * length
 
     # --------------------
     # prepare
@@ -330,19 +284,15 @@ def _compute_flat(
     estraight0 = np.cos(bragg0) * ex0 + np.sin(bragg0) * ey0
     estraight1 = np.cos(bragg0) * ex1 + np.sin(bragg0) * ey1
 
-    # sample length of crystal
-    sli = (slice(None),) + (None,) * ex0.ndim
-    ll = 0.5 * length[None, ...] * kpts[sli]
-
     # pts on crystal surface
-    cryst0 = csummit0[None, ...] + ll * estraight0[None, ...]
-    cryst1 = csummit1[None, ...] + ll * estraight1[None, ...]
+    cryst0 = csummit0[None, ...] + kk * estraight0[None, ...]
+    cryst1 = csummit1[None, ...] + kk * estraight1[None, ...]
 
     # local normal vectors
     vn0 = -estraight1
     vn1 = estraight0
 
-    return cryst0, cryst1, vn0, vn1
+    return cryst0, cryst1, vn0, vn1, mask_cryst
 
 
 def _compute_curve(
@@ -469,255 +419,54 @@ def _compute_spiral(
 
 # #################################################################
 # #################################################################
-#               Compute - old
+#               camera plane
 # #################################################################
 
 
-# DEPRECATED
-def _compute_old(
-    # crystal
-    lamb0=None,
-    bragg0=None,
-    # geometry basis
-    beta_max=None,
-    # geometry
-    xx=None,
-    length=None,
-    rcurve=None,
-    varrad_b=None,
-    dist=None,
-    # options
-    npts=None,
-    # camera
-    dcam=None,
+def _camera_plane(
+    ex0=None,
+    ex1=None,
+    cryst0=None,
+    cryst1=None,
+    vr0=None,
+    vr1=None,
+    cam_c0=None,
+    cam_c1=None,
+    cam_nin0=None,
+    cam_nin1=None,
+    cam_length=None,
 ):
 
-    # ------------
-    # initialize
+    # -----------
+    # end points
+    # -----------
 
-    size = lamb0.size
+    kk = (
+        (cam_c0 - cryst0) * cam_nin0
+        + (cam_c1 - cryst1) * cam_nin1
+    ) / (vr0 * cam_nin0 + vr1 * cam_nin1)
 
-    crystx = np.full((npts, size), np.nan)
-    crysty = np.full((npts, size), np.nan)
-    vnx = np.full((npts, size), np.nan)
-    vny = np.full((npts, size), np.nan)
+    # end of rays at camera
+    end0 = cryst0 + kk * vr0
+    end1 = cryst1 + kk * vr1
 
-    # ----------------
-    # compute geometry
-    # ----------------
+    # -----------
+    # coordinates on cameras
+    # -----------
 
-    # summit of crystal
-    sx = ap[0] + xx * ex[0]
-    sy = ap[1] + xx * ex[1]
+    # get lateral cam unit vector
+    cam_e00 = -cam_nin1
+    cam_e01 = cam_nin0
+    ineg = (cam_e00 * ex0 + cam_e01 * ex1) < 0.
+    cam_e00[ineg] = -cam_e00[ineg]
+    cam_e01[ineg] = -cam_e01[ineg]
 
-    # ------------------------
-    # indices of crystal types
+    cam_coord = (end0 - cam_c0) * cam_e00 + (end1 - cam_c1) * cam_e01
 
-    # variable-radii sinusoidal spiral
-    indb = np.isfinite(varrad_b)
+    # ----------
+    # mask
+    # ----------
 
-    # indices of curved crystals
-    indc = np.isfinite(rcurve) & (~indb)
+    mask_cam = np.abs(cam_coord) < cam_length * 0.5
 
-    # flat
-    indf = (~indc) & (~indb)
-
-    # safety check
-    if not np.all(np.sum([indc, indb, indf], axis=0) == 1):
-        msg = (
-            "Some undetermined 2d crystal shapes:\n"
-            f"\t- indc = {indc}\n"
-            f"\t- indb = {indb}\n"
-            f"\t- indf = {indf}\n"
-        )
-        raise Exception(msg)
-
-    # ---------------------
-    # curved crystals
-
-    # center of curvature
-    ecx = np.sin(bragg0[indc]) * ex[0] - np.cos(bragg0[indc]) * ey[0]
-    ecy = np.sin(bragg0[indc]) * ex[1] - np.cos(bragg0[indc]) * ey[1]
-    ecx_p = -ecy
-    ecy_p = ecx
-
-    cx = sx[indc] - rcurve[indc] * ecx
-    cy = sy[indc] - rcurve[indc] * ecy
-
-    # half angular opening of crystal
-    dalpha = 0.5*length[indc] / rcurve[indc]
-    theta = dalpha * np.linspace(-1, 1, npts)[:, None]
-
-    # crystal plotting - curved
-    ethetax = np.cos(theta) * ecx[None, :] + np.sin(theta) * ecx_p[None, :]
-    ethetay = np.cos(theta) * ecy[None, :] + np.sin(theta) * ecy_p[None, :]
-
-    crystx[:, indc] = cx[None, :] + rcurve[indc][None, :] * ethetax
-    crysty[:, indc] = cy[None, :] + rcurve[indc][None, :] * ethetay
-
-    # local normal vectors
-    vnx[:, indc] = -ethetax
-    vny[:, indc] = -ethetay
-
-    # -----------------------
-    # flat crystals
-
-    # crystal plotting - straight
-    estraightx = np.cos(bragg0)[indf] * ex[0] + np.sin(bragg0)[indf] * ey[0]
-    estraighty = np.cos(bragg0)[indf] * ex[1] + np.sin(bragg0)[indf] * ey[1]
-
-    ll = 0.5 * length[None, indf] * np.linspace(-1, 1, npts)[:, None]
-    crystx[:, indf] = sx[None, indf] + ll*estraightx[None, :]
-    crysty[:, indf] = sy[None, indf] + ll*estraighty[None, :]
-
-    # local normal vectors
-    vnx[:, indf] = -estraighty
-    vny[:, indf] = estraightx
-
-    # -----------------------
-    # variable radii crystals
-
-    # main parameters
-    gam0 = bragg0[indb]
-    r0 = rcurve[indb]
-    ix = ~np.isfinite(r0)
-    r0[ix] = xx[indb][ix]
-    b = varrad_b[indb]
-
-    # local radius of curvature at center
-    # rc0 = r0 / (b * np.sin(gam0))
-
-    # dOMx = r / (b-1) * (cos(phi) / tan(gam) - sin(phi))
-    # dOMy = r / (b-1) * (sin(phi) / tan(gam) + cos(phi))
-    # dL = r/(b-1) * 1 / sin(gam)
-    # dL ~ r0/(b-1) * 1/sin(gam0) * Dgam
-
-    # half angular opening of crystal (approximative)
-    # dgam = 0.5*length / rc0
-    dgam = 1.1 * length[indb] * np.sin(gam0) * (b-1) / r0 / 2
-
-    # gam
-    gam = gam0[None, :] + dgam[None, :] * np.linspace(-1, 1, npts)[:, None]
-
-    # r
-    r = r0[None, :] * (np.sin(gam) / np.sin(gam0)[None, :])**(1/(b[None, :]-1))
-
-    # phi
-    phi = (gam - gam0[None, :]) / (b[None, :]-1)
-
-    # pts on cryst
-    crystx[:, indb] = (
-        ap[0]
-        + (xx[indb] - r0) * ex[0]
-        + r * (np.cos(phi) * ex[0] + np.sin(phi) * ey[0])
-    )
-    crysty[:, indb] = (
-        ap[1]
-        + (xx[indb] - r0) * ex[1]
-        + r * (np.cos(phi) * ex[1] + np.sin(phi) * ey[1])
-    )
-
-    # derivative
-    c0 = r / (b[None, :] - 1)
-    c1 = np.cos(gam) / np.sin(gam)
-    dOMxx = c0 * (c1 * np.cos(phi) - np.sin(phi))
-    dOMyy = c0 * (c1 * np.sin(phi) + np.cos(phi))
-    dOMx = dOMxx * ex[0] + dOMyy * ey[0]
-    dOMy = dOMxx * ex[1] + dOMyy * ey[1]
-
-    # local normal vectors
-    vnx[:, indb] = dOMy / np.sqrt(dOMx**2 + dOMy**2)
-    vny[:, indb] = -dOMx / np.sqrt(dOMx**2 + dOMy**2)
-
-    # ----------------
-    # compute rays
-    # ----------------
-
-    # vectors of incident rays
-    vix = crystx - ap[0]
-    viy = crysty - ap[1]
-    vin = np.sqrt(vix**2 + viy**2)
-    vix = vix / vin
-    viy = viy / vin
-
-    # reflected vectors
-    sca = vix*vnx + viy*vny
-    vrx = vix - 2.*sca*vnx
-    vry = viy - 2.*sca*vny
-
-    # end of rays at dist
-    endx = crystx + dist * vrx
-    endy = crysty + dist * vry
-
-    # ----------------------
-    # compute spectral range
-
-    # get local bragg angle - top and bottom
-    bragg = np.arccos(sca) - np.pi/2.
-
-    # lamb
-    lamb = d2 * np.sin(bragg)
-
-    # beta_max
-    if beta_max is not None:
-        dvx, dvy = crystx - ap[0], crysty - ap[1]
-        beta = np.arctan2(dvx*ey[0] + dvy*ey[1], dvx*ex[0] + dvy*ex[1])
-        ind = np.abs(beta) > beta_max
-        endx[ind] = np.nan
-        endy[ind] = np.nan
-        lamb[ind] = np.nan
-
-    # -----------------
-    # impacts on camera
-    # -----------------
-
-    if dcam is not None:
-        ninx, niny = dcam['nin']
-        ninn = np.sqrt(ninx**2 + niny**2)
-        ninx, niny = ninx/ninn, niny/ninn
-
-        # cam center
-        if dcam['abs'] is True:
-
-            camx_r = dcam['cent'][0]
-            camy_r = dcam['cent'][1]
-            camx = np.sum((dcam['cent'] - ap) * ex)
-            camy = np.sum((dcam['cent'] - ap) * ey)
-
-            ninx_r = ninx
-            niny_r = niny
-            ninx = ninx_r * ex[0] + niny_r * ex[1]
-            niny = ninx_r * ey[0] + niny_r * ey[1]
-
-        else:
-            camx = dcam['cent'][0]
-            camy = dcam['cent'][1]
-            camx_r = ap[0] + camx * ex[0] + camy * ey[0]
-            camy_r = ap[1] + camx * ex[1] + camy * ey[1]
-
-            ninx_r = ninx * ex[0] + niny * ey[0]
-            niny_r = ninx * ex[1] + niny * ey[1]
-
-        # rays x0
-        sca_up = (camx_r - crystx) * ninx_r + (camy_r - crysty) * niny_r
-        sca_bot = vrx*ninx_r + vry*niny_r
-
-        kk = sca_up / sca_bot
-        ptsx = crystx + kk * vrx
-        ptsy = crysty + kk * vry
-
-        e0x = -niny_r
-        e0y = ninx_r
-        x0 = (ptsx - camx_r) * e0x + (ptsy - camy_r) * e0y
-
-        if beta_max is not None:
-            x0[ind] = np.nan
-
-        dcam['x0'] = x0
-        dcam['cent'] = np.r_[camx, camy]
-        dcam['cent_r'] = np.r_[camx_r, camy_r]
-        dcam['nin'] = np.r_[ninx, niny]
-        dcam['nin_r'] = np.r_[ninx_r, niny_r]
-        dcam['abs'] = False
-
-    return crystx, crysty, endx, endy, lamb
+    return end0, end1, cam_coord, mask_cam
