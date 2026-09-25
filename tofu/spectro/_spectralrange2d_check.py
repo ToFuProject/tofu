@@ -1,4 +1,5 @@
 import os
+import warnings
 
 
 import numpy as np
@@ -12,7 +13,7 @@ import datastock as ds
 # ######################################
 
 
-_NPTS = 21
+_NPTS = 101
 
 
 _DSCANS = {
@@ -39,6 +40,7 @@ _DSCANS = {
     'cam_nin0': (float,),
     'cam_nin1': (float,),
     'cam_length': (float,),
+    'cam_pixel_size': (float,),
     # options
     # 'npts': (int, 31),
 }
@@ -647,6 +649,23 @@ def _dcam(dcam, dap=None, dcrystals=None):
             )
 
             # ---------------
+            # optional pixel size
+
+            if dcam[k0].get('pixel_size') is not None:
+                dcam[k0]['pixel_size'] = float(
+                    ds._generic_check._check_var(
+                        dcam[k0].get('pixel_size'),
+                        f"dcam['{k0}']['pixel_size']",
+                        types=(float, int),
+                        sign='>0.',
+                    )
+                )
+            else:
+                dcam[k0]['pixel_size'] = np.nan
+                msg = f"dcam['{k0}']['pixel_size'] not provided"
+                warnings.warn(msg)
+
+            # ---------------
             # label
 
             dcam[k0]['label'] = ds._generic_check._check_var(
@@ -1017,6 +1036,7 @@ def _derive_dscans(
         dscans['cam_nin0'][i0] = nin[0]
         dscans['cam_nin1'][i0] = nin[1]
         dscans['cam_length'][i0] = dcami['length']
+        dscans['cam_pixel_size'][i0] = dcami['pixel_size']
 
     return dscans
 

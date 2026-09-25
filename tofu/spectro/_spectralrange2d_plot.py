@@ -63,6 +63,15 @@ def match(
         dout=dout,
     )
 
+    # -------------
+    # prepare txt
+    # -------------
+
+    dtxt = _prepare_txt(
+        dmatch=dmatch,
+        dout=dout,
+    )
+
     # --------------
     # prepare figure
     # --------------
@@ -122,19 +131,21 @@ def match(
             # )
 
     # ---------------
-    # plot input data
+    # plot txt
     # ---------------
 
-    ax.text(
-        0.8,
-        0.4,
-        "beta_max = {beta_str}\n",
-        color='k',
-        size=10,
-        horizontalalignment='center',
-        verticalalignment='top',
-        transform=ax.figure.transFigure,
-    )
+    for ktxt, vtxt in dtxt.items():
+        ax.text(
+            vtxt['x'],
+            vtxt['y'],
+            vtxt['txt'],
+            color=vtxt['color'],
+            size=vtxt['size'],
+            horizontalalignment=vtxt['horizontalalignment'],
+            verticalalignment=vtxt['verticalalignment'],
+            transform=ax.figure.transFigure,
+        )
+        print(vtxt['txt'])
 
     # ------------
     # camera
@@ -301,53 +312,12 @@ def _prepare_rays(
         for klamb, ilamb in dout['dind_lamb'].items():
             pass
 
-    # npts, size = crystx.shape
-
-    # # envelop
-    # iok = np.isfinite(endx)
-    # i0 = tuple([iok[:, ii].nonzero()[0][0] for ii in range(size)])
-    # i1 = tuple([iok[:, ii].nonzero()[0][-1] for ii in range(size)])
-    # nind = tuple(range(size))
-
-    # # envelop
-    # envx = np.array([
-        # endx[i1, nind], crystx[i1, nind],
-        # np.full((size,), ap[0]),
-        # crystx[i0, nind], endx[i0, nind],
-    # ])
-    # envy = np.array([
-        # endy[i1, nind], crysty[i1, nind],
-        # np.full((size,), ap[1]),
-        # crysty[i0, nind], endy[i0, nind],
-    # ])
-
-    # # central rays
-    # ind = int((npts-1)/2)
-    # raycx = np.array([np.full((size,), ap[0]), crystx[ind, :], endx[ind, :]])
-    # raycy = np.array([np.full((size,), ap[1]), crysty[ind, :], endy[ind, :]])
-
-    # # ---------------
-    # # envelop
-    # # ---------------
-
-    # # dcam
-    # if dcam is not None:
-        # ninx, niny = dcam['nin_r'][:2]
-        # ninn = np.sqrt(ninx**2 + niny**2)
-        # ninx, niny = ninx/ninn, niny/ninn
-        # e0x, e0y = -niny, ninx
-        # e0n = np.sqrt(e0x**2 + e0y**2)
-        # e0x, e0y = e0x/e0n, e0y/e0n
-        # clen = dcam['length']
-        # camx = dcam['cent_r'][0] + 0.5*clen*np.r_[-1, 1] * e0x
-        # camy = dcam['cent_r'][1] + 0.5*clen*np.r_[-1, 1] * e0y
-
     return drays
 
 
 # ####################################
 # ####################################
-#       match -Get dax
+#       match - Get dax
 # ####################################
 
 
@@ -505,3 +475,93 @@ def _prepare_img(
         }
 
     return dimg
+
+
+# ####################################
+# ####################################
+#       Prepare txt
+# ####################################
+
+
+def _prepare_txt(
+    dmatch=None,
+    dout=None,
+):
+
+    # ---------------
+    # prepare
+    # ---------------
+
+    dtxt = {}
+
+    pixel = bool(np.all(np.isfinite(dout['Dcam_pixel'])))
+    if pixel is True:
+        kk = "Dcam_pixel"
+        coef = 1
+        units = 'pix'
+    else:
+        kk = "Dcam_coord"
+        coef = 1.e-3
+        units = 'mm'
+
+    # ---------------
+    # perfs
+    # ---------------
+
+    dtxti = {}
+    for i0, (k0, v0) in enumerate(dmatch.items()):
+
+        sli = (slice(None),) + v0['ind']
+
+        # --------
+        # Dlamb
+
+        lamb = "; ".join([f"{ll*1e10:4.3f}" for ll in dout['Dlamb'][sli]])
+        lamb = f"[{lamb}] A"
+
+        Dlamb = f"{np.diff(dout['Dlamb'][sli])[0]*1e13:3.1f} mA"
+
+        # -----------
+        # Dcam
+
+        cam = "; ".join([f"{ll*coef:4.0f}" for ll in dout[kk][sli]])
+        cam = f"[{cam}] {units}"
+
+        Dcam = f"{np.diff(dout[kk][sli])[0]*coef:3.0f} {units}"
+
+        # -----------
+        # concetante
+
+        dtxti[k0] = (k0, lamb, Dlamb, cam, Dcam)
+
+    # -----------
+    # concetante
+
+    lc = ('', r'$\lambda$', r"$|Delta \lambda$", "coordinates", r"$\Delta$")
+    llen = [
+        np.max([len(lc[ii])] + [len(vv[ii]) for vv in dtxti.values()])
+        for ii in range(len(lc))
+    ]
+
+    cc = "   ".join([lc[ii].ljust(llen[ii]) for ii in range(len(lc))])
+    ltxt = [
+        "   ".join([v0[ii].ljust(llen[ii]) for ii in range(len(lc))])
+        for k0, v0 in dtxti.items()
+    ]
+
+    txt = cc + "\n" + "\n".join(ltxt)
+
+    # ------------
+    # bool indices
+
+    dtxt['perf'] = {
+        'x': 0.8,
+        'y': 0.4,
+        'txt': txt,
+        'color': v0['color'],
+        'size': 10,
+        'horizontalalignment': 'center',
+        'verticalalignment': 'top',
+    }
+
+    return dtxt

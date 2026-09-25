@@ -31,6 +31,7 @@ def main(
     cam_nin0=None,
     cam_nin1=None,
     cam_length=None,
+    cam_pixel_size=None,
     # options
     npts=None,
 ):
@@ -86,12 +87,15 @@ def main(
             'semi_angle_max': np.ones(shape, dtype=bool),
             'crystal': np.ones(shape, dtype=bool),
             'camera': np.ones(shape, dtype=bool),
+            'in': np.ones(shape, dtype=bool),
         },
         'dind_lamb': {
             'lamb0': np.zeros(shape[1:], dtype=int),
             'lamb0_min': np.zeros(shape[1:], dtype=int),
             'lamb0_max': np.zeros(shape[1:], dtype=int),
         },
+        'Dlamb': np.full((2,) + shape[1:], np.nan),
+        'Dcam_coord': np.full((2,) + shape[1:], np.nan),
     }
 
     # ----------------
@@ -219,6 +223,55 @@ def main(
         cam_nin1=cam_nin1,
         cam_length=cam_length,
     )
+
+    # ----------------
+    # Performance Assessments
+    # ----------------
+
+    # in
+    dout['dmask']['in'][...] = np.all(
+        [dout['dmask'][kk] for kk in dout['dmask'].keys() if kk != 'in'],
+        axis=0,
+    )
+
+    # Dlamb
+    dout['Dlamb'][...] = np.array([
+        np.min(
+            dout['lamb'],
+            where=dout['dmask']['in'],
+            initial=np.inf,
+            axis=0,
+        ),
+        np.max(
+            dout['lamb'],
+            where=dout['dmask']['in'],
+            initial=-np.inf,
+            axis=0,
+        ),
+    ])
+
+    # Dcam_coord
+    dout['Dcam_coord'][...] = np.array([
+        np.min(
+            dout['cam_coord'],
+            where=dout['dmask']['in'],
+            initial=np.inf,
+            axis=0,
+        ),
+        np.max(
+            dout['cam_coord'],
+            where=dout['dmask']['in'],
+            initial=-np.inf,
+            axis=0,
+        ),
+    ])
+
+    # Dcam_pixel
+    if cam_pixel_size is not None:
+        dout['Dcam_pixel'] = (
+            np.sign(dout['Dcam_coord'])
+            * np.ceil(np.abs(dout['Dcam_coord']) / cam_pixel_size)
+        )
 
     return dout
 
