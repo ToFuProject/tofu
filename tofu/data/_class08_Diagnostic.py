@@ -565,6 +565,7 @@ class Diagnostic(Previous):
     def add_rays_from_diagnostic(
         self,
         key=None,
+        key_cam=None,
         # sampling
         dsampling_pixel=None,
         dsampling_optics=None,
@@ -581,6 +582,7 @@ class Diagnostic(Previous):
         return _generate_rays.main(
             coll=self,
             key=key,
+            key_cam=key_cam,
             # sampling
             dsampling_pixel=dsampling_pixel,
             dsampling_optics=dsampling_optics,
