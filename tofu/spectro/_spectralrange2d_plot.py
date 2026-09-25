@@ -435,9 +435,11 @@ def _prepare_img(
         # bool indices
 
         iin = np.all([vv for vv in dmask.values()], axis=0)
-        iout_ap = dmask['semi_angle_max'] & (~iin)
-        iout_cryst = dmask['crystal'] & (~iout_ap) & (~iin)
-        iout_cam = dmask['camera'] & (~iout_ap) & (~iout_cryst) & (~iin)
+        iout_ap = (~dmask['semi_angle_max'])
+        iout_cryst = (~dmask['crystal']) & dmask['semi_angle_max']
+        iout_cam = (
+            (~dmask['camera']) & dmask['semi_angle_max'] & dmask['crystal']
+        )
         diout = {
             'semi_angle_max': iout_ap,
             'crystal': iout_cryst,
@@ -447,7 +449,7 @@ def _prepare_img(
         # ------------
         # x1
 
-        x1 = i0
+        x1 = v0['ycam']
 
         # -----------
         # store

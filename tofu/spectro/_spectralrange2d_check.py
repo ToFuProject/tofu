@@ -777,6 +777,16 @@ def _dmatch(dmatch, dcam=None, dap=None, dcrystals=None, npts=None):
                 )
 
             # ---------------
+            # ycam
+
+            dmatch[k0]['ycam'] = float(ds._generic_check._check_var(
+                dmatch[k0].get('ycam'),
+                f"dmatch['{k0}']['ycam']",
+                types=(int, float),
+                default=i0,
+            ))
+
+            # ---------------
             # npts
 
             dmatch[k0]['npts'] = ds._generic_check._check_var(
