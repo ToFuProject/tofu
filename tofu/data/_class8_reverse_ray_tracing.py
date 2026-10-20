@@ -177,11 +177,10 @@ def _from_pts(
     # -------
     # reshape
 
-    if len(shape) > 1:
+    lk_reshape = ['sang', 'sang0']
+    if all([kk in dout.keys() for kk in lk_reshape]) and len(shape) > 1:
         shape_new = tuple(np.r_[shape_cam, shape])
-        for k0 in ['sang']:
-            dout[k0]['data'] = dout[k0]['data'].reshape(shape_new)
-        for k0 in ['sang0']:
+        for k0 in lk_reshape:
             dout[k0]['data'] = dout[k0]['data'].reshape(shape_new)
 
     # -------
@@ -1212,7 +1211,7 @@ def _loop1(
                     coords_x01toxyz_plane=coords_x01toxyz_plane,
                     ptsvect_spectro=ptsvect_spectro,
                     ptsvect_cam=ptsvect_cam,
-                )[:9]
+                )[:11]
 
                 # update
                 lp0.append(x0c)
@@ -1542,7 +1541,7 @@ def _plot(
     kd = 'sang_lamb'
     if vmin is None:
         vmin = 0
-    if vmax is None:
+    if vmax is None and dout.get(kd) is not None:
         vmax = np.nanmax(dout[kd]['data'])
 
     # --------------
@@ -1752,7 +1751,7 @@ def _plot(
     # counts
 
     kax = 'cam_bin'
-    if dax.get(kax) is not None:
+    if dax.get(kax) is not None and dout.get(kd) is not None:
         ax = dax[kax]['handle']
 
         extent = (cbin0[0], cbin0[-1], cbin1[0], cbin1[-1])
