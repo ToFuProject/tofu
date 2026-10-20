@@ -46,6 +46,7 @@ def _from_pts(
     rocking_curve=None,
     # options
     append=None,
+    # plotting
     plot=None,
     plot_pixels=None,
     plot_config=None,
