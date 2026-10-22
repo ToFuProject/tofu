@@ -1332,7 +1332,7 @@ class Diagnostic(Previous):
     ):
         """Get rays from plasma points to camera for a spectrometer diag"""
 
-        return _reverse_rt._from_pts(
+        return _reverse_rt.main(
             coll=self,
             # diag
             key=key,
