@@ -339,7 +339,7 @@ def _check_doptics_basics(
                     key=key,
                     doptics=doptics,
                     returnas=True,
-                    shape_cam=emsg,
+                    extra_msg=emsg,
                 )
                 raise err0 from err
 
@@ -488,9 +488,9 @@ def _check_optic(
             (px - cent[0])*nin[0]
             + (py - cent[1])*nin[1]
             + (pz - cent[2])*nin[2]
-        ) <= 0
+        )
 
-        if np.any(iout):
+        if np.all(iout < 0):
             msg = (
                 f"diag '{key}':\n"
                 f"The following points of {ocls} '{oo}' are on the wrong"

@@ -112,20 +112,82 @@ def _get_overall_polygons(
     doptics=None,
     key_cam=None,
     poly=None,
+    # provide array directly
+    p0=None,
+    p1=None,
+    # convexhull
     convexHull=None,
 ):
+    """ Return a union polygon from multiple partially overlapping ones
+
+    Provide either (xor):
+        - coll + doptics + key_cam + poly ('cross' or 'hor')
+        - p0, p1
+
+    """
+
+    # -----------------------
+    # inputs
+    # -----------------------
+
+    lc = [
+        all([pp is not None for pp in [coll, doptics, key_cam, poly]]),
+        all([pp is not None for pp in [p0, p1]]),
+    ]
+    if np.sum(lc) != 1:
+        msg = (
+            "Provide eitehr (xor):\n"
+            "\t- coll, doptics, key_cam, poly\n"
+            "\t- p0, p1\n"
+        )
+        raise Exception(msg)
 
     # -----------------------
     # prepare
     # -----------------------
 
-    # get temporary vos
-    if 'dvos' in doptics.keys():
-        kp0, kp1 = doptics['dvos'][poly]
+    if lc[0]:
+        # get temporary vos
+        if 'dvos' in doptics.keys():
+            kp0, kp1 = doptics['dvos'][poly]
+        else:
+            kp0, kp1 = doptics[key_cam]['dvos'][poly]
+        p0 = coll.ddata[kp0]['data']
+        p1 = coll.ddata[kp1]['data']
     else:
-        kp0, kp1 = doptics[key_cam]['dvos'][poly]
-    p0 = coll.ddata[kp0]['data']
-    p1 = coll.ddata[kp1]['data']
+        c0 = [
+            isinstance(p0, np.ndarray) and isinstance(p1, np.ndarray)
+            and p0.shape == p1.shape and p0.ndim == 2,
+            isinstance(p0, (list, tuple)) and isinstance(p1, (list, tuple))
+            and len(p0) == len(p1)
+            and all([
+                isinstance(p0[ii], np.ndarray)
+                and isinstance(p1[ii], np.ndarray)
+                and p0[ii].shape == p1[ii].shape
+                and p0[ii].ndim == 1
+                for ii in range(len(p0))
+            ])
+        ]
+        if np.sum(c0) != 1:
+            msg = (
+                "Arg p0 and p1 must be either:\n"
+                "\t- two 2d arrays\n"
+                "\t- or two lists of 1d arrays\n"
+            )
+            raise Exception(msg)
+
+        if c0[1]:
+            size = np.max([pp.size for pp in p0])
+            shape_cam = (len(p0),)
+            axis = np.r_[1].astype(int)
+            sli0 = np.array([slice(None), 0])
+
+            p0_bis = np.full((size,) + shape_cam, np.nan)
+            p1_bis = np.full((size,) + shape_cam, np.nan)
+            for ii in range(len(p0)):
+                p0_bis[:p0[ii].size, ii] = p0[ii]
+                p1_bis[:p1[ii].size, ii] = p1[ii]
+            p0, p1 = p0_bis, p1_bis
 
     # pix indices
     iok = np.isfinite(p0)
@@ -141,12 +203,13 @@ def _get_overall_polygons(
 
     else:
 
-        wcam = coll._which_cam
-        ref_cam = coll.dobj[wcam][key_cam]['dgeom']['ref']
-        shape_cam = coll.dobj[wcam][key_cam]['dgeom']['shape']
-        ref = coll.ddata[kp0]['ref']
-        axis = np.array([ref.index(rr) for rr in ref_cam], dtype=int)
-        sli0 = np.array([slice(None) for ss in ref])
+        if lc[0]:
+            wcam = coll._which_cam
+            ref_cam = coll.dobj[wcam][key_cam]['dgeom']['ref']
+            shape_cam = coll.dobj[wcam][key_cam]['dgeom']['shape']
+            ref = coll.ddata[kp0]['ref']
+            axis = np.array([ref.index(rr) for rr in ref_cam], dtype=int)
+            sli0 = np.array([slice(None) for ss in ref])
 
         i0 = 0
         for ii, ind in enumerate(np.ndindex(shape_cam)):

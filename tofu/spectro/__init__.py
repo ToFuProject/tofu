@@ -7,4 +7,4 @@ from ._analysis_tools import *
 from ._plot import *
 from ._rockingcurve import *
 from ._rockingcurve_tools import *
-from ._spectralrange2d import *
+from ._spectralrange2d import main as spectral_range_2d
