@@ -58,6 +58,7 @@ def _loop0(
     cbin1=None,
     append=None,
     verb=True,
+    # unused
     **kwdargs,
 ):
 
@@ -66,24 +67,14 @@ def _loop0(
 
     # counts, ph_count
     ncounts = np.full(shape_cam, 0.)
-    sang = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
     sang0 = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
-    sang_lamb = np.full(shape_cam, 0.)
 
-    lsang = None
     if append is True:
         lp0, lp1 = [], []
         lpx, lpy, lpz = [], [], []
-        lsang = []
-        if lamb is None:
-            dpow = None
-        else:
-            dpow = {ll: [] for ll in lamb}
     else:
         lp0, lp1 = None, None
         lpx, lpy, lpz = None, None, None
-        dpow = None
-        lsang = None
 
     # ----------
     # loop
@@ -96,6 +87,16 @@ def _loop0(
 
         # ------------------------------------------
         # initial polygon (crystal on its own plane)
+
+        # maybe ?
+        x0c, x1c, ptsx2, ptsy2, ptsz2 = ptsvect_cam(
+            pts_x=ptsx[i0],
+            pts_y=ptsy[i0],
+            pts_z=ptsz[i0],
+            vect_x=p0x - ptsx[i0],
+            vect_y=p0y - ptsy[i0],
+            vect_z=p0z - ptsz[i0],
+        )
 
         p0, p1 = ptsvect_plane(
             pts_x=ptsx[i0],
@@ -189,11 +190,6 @@ def _loop0(
             lp0.append(x0c[iok])
             lp1.append(x1c[iok])
 
-            # pow
-            if lamb is not None:
-                for kk, ll in enumerate(lamb):
-                    dpow[ll].append(pow_interp(angles[iok] - bragg[kk]))
-
         # safety check
         iok2 = (
             (x0c[iok] >= cbin0[0])
@@ -230,73 +226,14 @@ def _loop0(
             expand_binnumbers=True,
         ).statistic[ipixok]
 
-        # taking into account rocking curve
-        angles = angles[iok]
-        dsang = dsang[iok]
-
-        ip0, ip1 = ipixok.nonzero()
-        indi = np.zeros((out.binnumber.shape[1],), dtype=bool)
-        indj = np.zeros((out.binnumber.shape[1],), dtype=bool)
-        for ii in np.unique(ip0):
-            indi[:] = (out.binnumber[0, :] == (ii + 1))
-            for jj in np.unique(ip1[ip0 == ii]):
-
-                # indices
-                indj[:] = indi & (out.binnumber[1, :] == jj + 1)
-
-                if lamb is None:
-                    # solid angle
-                    sang[ii, jj, i0] += np.sum(dsang[indj])
-
-                else:
-                    # lambref
-                    arelj = angles[indj] - bragg_per_pix[ii, jj]
-
-                    # solid angle
-                    sang[ii, jj, i0] += np.sum(
-                        pow_interp(arelj)
-                        * dsang[indj]
-                    )
-
-                    # ----------
-                    # sang_lamb
-
-                    angj = angles[indj]
-                    ilamb = (
-                        (angj[:, None] - bragg >= ang_rel[0])
-                        & (angj[:, None] - bragg < ang_rel[-1])
-                    )
-
-                    if not np.any(ilamb):
-                        continue
-
-                    ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
-
-                    # binning of angles
-                    for kk in ilamb_n:
-                        sang_lamb[ii, jj] += np.sum(
-                            pow_interp(angj[ilamb[:, kk]] - bragg[kk])
-                            * dsang[indj][ilamb[:, kk]]
-                        )
-
-    # adjust sang_lamb
-    if lamb is None:
-        sang_lamb = np.nansum(sang0, axis=-1)
-
     return {
         'ncounts': {'data': ncounts, 'units': ''},
         'sang0': {'data': sang0, 'units': 'sr'},
-        'sang': {'data': sang, 'units': 'sr'},    # not really useful?
-        'sang_lamb': {'data': sang_lamb, 'units': 'sr'},
-        'lamb': {'data': lamb, 'units': 'm'},
-        'dlamb': {'data': dlamb, 'units': 'm'},
         'lp0': {'data': lp0, 'units': 'm'},
         'lp1': {'data': lp1, 'units': 'm'},
         'lpx': {'data': lpx, 'units': 'm'},
         'lpy': {'data': lpy, 'units': 'm'},
         'lpz': {'data': lpz, 'units': 'm'},
-        'dpow': {'data': dpow, 'units': ''},
-        'lsang': {'data': lsang, 'units': 'sr'},
     }
 
 
@@ -694,7 +631,7 @@ def _get_points_on_camera_from_pts(
     debug=None,
 ):
 
-    # anuglar resolution associated to pixels
+    # angular resolution associated to pixels
     vect = cent - pti
     dist = np.linalg.norm(vect)
     vect = vect / dist
